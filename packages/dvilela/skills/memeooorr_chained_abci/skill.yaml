@@ -6,24 +6,24 @@ description: The chained abci for the memeooorr skill.
 license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
-  __init__.py: bafybeibuzit74uda5otu75mywtp4r4h3op3vtczbn67xtdb47mcrgui2xy
-  behaviours.py: bafybeiefmwt5p3kprjstnv2ucwp2rogpo7uorp3zfyy6tqkjpikvfadur4
-  composition.py: bafybeidhpvav5ull4vuj3sn27fvtjv7ifbskp2jbqgmdxxcvakv3efq4sm
-  dialogues.py: bafybeifqhwq6liumi5qtuzjcpy7f7zxyacnhbpcva76aii7tubsn2lrxou
-  fsm_specification.yaml: bafybeicvgosac3waoei3sl4lp4ucnqqgsljnn6dq3ab4rvhwyxnrlb5voi
-  handlers.py: bafybeihvlkv6kjmsllz74lt6kfxc2q5do5hkmk5rmxphrbat6yhvzx7ihy
-  models.py: bafybeievzocp5wirc3pgegxcwje2ju7bqz4lswcgwyqyknbjjlefkfjvna
+  __init__.py: bafybeiacqbub377oj2uvkw3lu2u43zv5rpdd2z4jx7dailiffqttksds24
+  behaviours.py: bafybeidabq5scnvljux2732bdbg7xnpnnz54y6t2kdooltd2jgugkz2voi
+  composition.py: bafybeihztrf5t663nwjon3wrmqodkkp7frrrqfzhopnhlnyywbo4ksdcgm
+  dialogues.py: bafybeicgkexdao6m7dmeld4bs677t6tczyxjbx2bzuecon4ipkihhzmyia
+  fsm_specification.yaml: bafybeia2kkj3kniuesdbvnxzp3gzow75kf7dnvdthm2bdyixjttjeie7lm
+  handlers.py: bafybeigq45jhrpeiu5na3khs2jtmny2cq462nbai6qhvrfrn6s33i2g4my
+  models.py: bafybeia67plp5q67m6ezoidweqzrpwwi427mbhg6zskksuxesoo355zbmm
 fingerprint_ignore_patterns: []
 connections: []
 contracts: []
 protocols: []
 skills:
-- valory/abstract_round_abci:0.1.0:bafybeiar2yhzxacfe3qqamqhaihtlcimquwedffctw55sowx6rac3cm3ui
-- valory/registration_abci:0.1.0:bafybeieu7vq3pyns4t5ty6u3sbmpkd7yznpg3rmqifoz3jhy7pmqyg3w6q
-- valory/reset_pause_abci:0.1.0:bafybeiameewywqigpupy3u2iwnkfczeiiucue74x2l5lbge74rmw6bgaie
-- valory/transaction_settlement_abci:0.1.0:bafybeic3tccdjypuge2lewtlgprwkbb53lhgsgn7oiwzyrcrrptrbeyote
-- valory/termination_abci:0.1.0:bafybeif2zim2de356eo3sipkmoev5emwadpqqzk3huwqarywh4tmqt3vzq
-- dvilela/memeooorr_abci:0.1.0:bafybeiavajsi6m37sykuy7rax5xrqyfmslzci52w6gzqbuqpdtexi3n5n4
+- valory/abstract_round_abci:0.1.0:bafybeibovsktd3uxur45nrcomq5shcn46cgxd5idmhxbmjhg32c5abyqim
+- valory/registration_abci:0.1.0:bafybeicnth5q4httefsusywx3zrrq4al47owvge72dqf2fziruicq6hqta
+- valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
+- valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
+- valory/termination_abci:0.1.0:bafybeid54buqxipiuduw7b6nnliiwsxajnltseuroad53wukfonpxca2om
+- dvilela/memeooorr_abci:0.1.0:bafybeifxarnwbustwbxbukjwwojbdpsu2x2uc3mdhogpv2jwgxljbczb6i
 behaviours:
   main:
     args: {}
@@ -147,7 +147,9 @@ models:
       fact_checker_max_days: 3
       fact_checker_api_key: null
       enable_posting: true
-      max_tweets_per_period: 5
+      minimum_gas_balance: 0.01
+      olas_per_pool: 10
+      percentage_supply_for_pool: 0.95
     class_name: Params
   randomness_api:
     args:

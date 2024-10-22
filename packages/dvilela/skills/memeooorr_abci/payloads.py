@@ -21,13 +21,15 @@
 
 from dataclasses import dataclass
 from typing import Optional
+
 from packages.valory.skills.abstract_round_abci.base import BaseTxPayload
+
 
 @dataclass(frozen=True)
 class SearchTweetsPayload(BaseTxPayload):
     """Represent a transaction payload for the SearchTweetsRound."""
 
-    pending_tweets: str
+    pending_deployments: str
 
 
 @dataclass(frozen=True)
@@ -41,7 +43,7 @@ class CheckFundsPayload(BaseTxPayload):
 class DeploymentPayload(BaseTxPayload):
     """Represent a transaction payload for the DeploymentRound."""
 
-    pending_tweets: str
+    pending_deployments: str
     tx_hash: Optional[str]
 
 

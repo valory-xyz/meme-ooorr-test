@@ -5,9 +5,9 @@ description: A service that fact-checks misleading information online.
 aea_version: '>=1.0.0, <2.0.0'
 license: Apache-2.0
 fingerprint:
-  README.md: bafybeieelefzuimrnreo673rqm3cdr7ykf6qq4oye6l3ffikhyyekliwje
+  README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeif2twvo6g422sx3hfhs2xt3xlmygvtr6fnh5dzcmc5qepchwynsje
+agent: dvilela/memeooorr:0.1.0:bafybeibsspm76zb3b2lz2nwh4xiur7c5ltbz5d3t6jjlh2y76ouas5hyia
 number_of_agents: 1
 deployment:
   agent:
@@ -71,7 +71,6 @@ extra:
         request_retry_delay: 1.0
         request_timeout: 10.0
         round_timeout_seconds: 30.0
-        tweet_evaluation_round_timeout: ${TWEET_EVALUATION_ROUND_TIMEOUT:float:600.0}
         service_id: memeooorr
         service_registry_address: ${SERVICE_REGISTRY_ADDRESS:str:0x48b6af7B12C71f09e2fC8aF4855De4Ff54e775cA}
         share_tm_config_on_startup: ${USE_ACN:bool:false}
@@ -88,13 +87,10 @@ extra:
         ipfs_address: ${IPFS_ADDRESS:str:https://gateway.autonolas.tech/ipfs/}
         default_chain_id: ${DEFAULT_CHAIN_ID:str:ethereum}
         termination_from_block: ${TERMINATION_FROM_BLOCK:int:0}
-        fact_checker_url: ${FACT_CHECKER_URL:str:https://factchecktools.googleapis.com/v1alpha1/claims:search}
-        fact_checker_language: ${FACT_CHECKER_LANGUAGE:str:en-US}
-        fact_checker_query: ${FACT_CHECKER_QUERY:str:elections}
-        fact_checker_max_days: ${FACT_CHECKER_MAX_DAYS:int:3}
-        fact_checker_api_key: ${FACT_CHECKER_API_KEY:str:null}
         enable_posting: ${ENABLE_POSTING:bool:true}
-        max_tweets_per_period: ${MAX_TWEETS_PER_PERIOD:int:5}
+        minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.01}
+        olas_per_pool: ${OLAS_PER_POOL:int:10}
+        percentage_supply_for_pool: ${PERCENTAGE_SUPPLY_FOR_POOL:float:0.95}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

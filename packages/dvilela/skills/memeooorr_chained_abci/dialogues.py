@@ -25,8 +25,12 @@ from packages.dvilela.skills.memeooorr_abci.dialogues import (
 from packages.dvilela.skills.memeooorr_abci.dialogues import (
     KvStoreDialogues as BaseKvStoreDialogues,
 )
-from packages.dvilela.skills.memeooorr_abci.dialogues import SrrDialogue as BaseSrrDialogue
-from packages.dvilela.skills.memeooorr_abci.dialogues import SrrDialogues as BaseSrrDialogues
+from packages.dvilela.skills.memeooorr_abci.dialogues import (
+    SrrDialogue as BaseSrrDialogue,
+)
+from packages.dvilela.skills.memeooorr_abci.dialogues import (
+    SrrDialogues as BaseSrrDialogues,
+)
 from packages.valory.skills.abstract_round_abci.dialogues import (
     AbciDialogue as BaseAbciDialogue,
 )

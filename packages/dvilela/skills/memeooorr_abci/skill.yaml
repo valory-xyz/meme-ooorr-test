@@ -6,15 +6,15 @@ description: A skill that fact-checks misleading information online.
 license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
-  __init__.py: bafybeiclxl2rhq5t36l4vy6zejpsyo6w45cmfvkdwmgrwjqw3bphe3mw7q
-  behaviours.py: bafybeieysj7nz3hqbddy5s36azpb2uth5bjyrqwg3m2tyemijylf6w6224
-  dialogues.py: bafybeihz76wuyzojylgjjpamb42pii4e7v5bkzdhiopv5iu3g7ulod74lm
-  fsm_specification.yaml: bafybeigpbg7yuhpa6247qtwdeewh2liq3nrn6u5l77sx4n2z6kgc72ttuu
-  handlers.py: bafybeiglua77cyf7bp7pkfycz4iy7ui7pmxd5tixff45u4jw4lea5iklym
-  models.py: bafybeigcdr4pw3fyemnrytq5utgrf2f2xyz6g4zml7wsduzjwmealrpbe4
-  payloads.py: bafybeiaoj3rvemizcl7qakcwjkumfg74f3az2dsrrbhtf53aeeb3einwfu
+  __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
+  behaviours.py: bafybeidmv6utyvhsda5ur5humk5w5zrle3dneh6klcky4ba6rgyzd3q2bi
+  dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
+  fsm_specification.yaml: bafybeibxxfeintodz53tdm5fze4p57lgvqunlvn7lsutb6ngtn6ek336lq
+  handlers.py: bafybeia3ew422w57ot7jpbrhmagepm7pcoqkkc53p5w4jm4co4yh4tz7em
+  models.py: bafybeid2443o4s4hrmrgm5y4s3nvnzwyvn7peipugtcwfxzt5uywguhbu4
+  payloads.py: bafybeidjsxowdfyu47yemkt773vgk4hnnj3kbyl2jwketnysks5rnk6pyu
   prompts.py: bafybeifveg5zsy3sjn2ysstwhooahfy3sv7ifjskvxouxywwq64krtgb3m
-  rounds.py: bafybeiafl2co7kg2mitzihesrhsqmiofoq63cdwozogl667s726dvg5aea
+  rounds.py: bafybeiflw3urup4cf3otr2tlqzaftitm5lsr6y42qmpeo3etxgu6uqqche
   subgraph.py: bafybeigme6r3cwiiu5l7r55rcbj7y37b62cxtlsnewpkbjqcbadwte32xm
 fingerprint_ignore_patterns: []
 connections:
@@ -28,7 +28,7 @@ protocols:
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
 - valory/http:1.0.0:bafybeifugzl63kfdmwrxwphrnrhj7bn6iruxieme3a4ntzejf6kmtuwmae
 skills:
-- valory/abstract_round_abci:0.1.0:bafybeiar2yhzxacfe3qqamqhaihtlcimquwedffctw55sowx6rac3cm3ui
+- valory/abstract_round_abci:0.1.0:bafybeibovsktd3uxur45nrcomq5shcn46cgxd5idmhxbmjhg32c5abyqim
 behaviours:
   main:
     args: {}
@@ -137,13 +137,10 @@ models:
       validate_timeout: 1205
       default_chain_id: ethereum
       service_endpoint: memeooorr.dummy.com/
-      fact_checker_url: https://factchecktools.googleapis.com/v1alpha1/claims:search
-      fact_checker_language: en-US
-      fact_checker_query: elections
-      fact_checker_max_days: 3
-      fact_checker_api_key: null
       enable_posting: true
-      max_tweets_per_period: 5
+      minimum_gas_balance: 0.01
+      olas_per_pool: 10
+      percentage_supply_for_pool: 0.95
     class_name: Params
   requests:
     args: {}

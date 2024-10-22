@@ -51,13 +51,12 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the parameters object."""
-        self.fact_checker_url = self._ensure("fact_checker_url", kwargs, str)
-        self.fact_checker_language = self._ensure("fact_checker_language", kwargs, str)
-        self.fact_checker_query = self._ensure("fact_checker_query", kwargs, str)
-        self.fact_checker_api_key = self._ensure("fact_checker_api_key", kwargs, str)
-        self.fact_checker_max_days = self._ensure("fact_checker_max_days", kwargs, int)
         self.service_endpoint = self._ensure("service_endpoint", kwargs, str)
         self.enable_posting = self._ensure("enable_posting", kwargs, bool)
-        self.max_tweets_per_period = self._ensure("max_tweets_per_period", kwargs, int)
+        self.minimum_gas_balance = self._ensure("minimum_gas_balance", kwargs, float)
+        self.olas_per_pool = self._ensure("olas_per_pool", kwargs, int)
+        self.percentage_supply_for_pool = self._ensure(
+            "percentage_supply_for_pool", kwargs, float
+        )
 
         super().__init__(*args, **kwargs)

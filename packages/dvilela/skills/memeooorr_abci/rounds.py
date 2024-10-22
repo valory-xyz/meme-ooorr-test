@@ -21,13 +21,13 @@
 
 import json
 from enum import Enum
-from typing import Dict, FrozenSet, Set, cast, Optional, Tuple
+from typing import Dict, FrozenSet, Optional, Set, Tuple, cast
 
 from packages.dvilela.skills.memeooorr_abci.payloads import (
     CheckFundsPayload,
-    SearchTweetsPayload,
     DeploymentPayload,
-    PostTweetPayload
+    PostTweetPayload,
+    SearchTweetsPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -50,6 +50,7 @@ class Event(Enum):
     NO_FUNDS = "no_funds"
     NO_TWEETS = "no_tweets"
     SETTLE = "settle"
+    API_ERROR = "api_error"
     NO_MAJORITY = "no_majority"
     ROUND_TIMEOUT = "round_timeout"
 
@@ -67,9 +68,11 @@ class SynchronizedData(BaseSynchronizedData):
         return CollectionRound.deserialize_collection(serialized)
 
     @property
-    def pending_tweets(self) -> list:
+    def pending_deployments(self) -> list:
         """Get the pending tweets."""
-        return cast(list, json.loads(cast(str, self.db.get("pending_tweets", "[]"))))
+        return cast(
+            list, json.loads(cast(str, self.db.get("pending_deployments", "[]")))
+        )
 
     @property
     def most_voted_tx_hash(self) -> Optional[str]:
@@ -86,16 +89,16 @@ class SearchTweetsRound(CollectSameUntilThresholdRound):
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            pending_tweets = json.loads(self.most_voted_payload)
+            pending_deployments = json.loads(self.most_voted_payload)
 
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
-                    get_name(SynchronizedData.pending_tweets): pending_tweets,
+                    get_name(SynchronizedData.pending_deployments): pending_deployments,
                 }
             )
 
-            event = Event.DONE if pending_tweets else Event.NO_TWEETS
+            event = Event.DONE if pending_deployments else Event.NO_TWEETS
 
             return synchronized_data, event
 
@@ -137,7 +140,9 @@ class DeploymentRound(CollectSameUntilThresholdRound):
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            pending_tweets = json.loads(self.most_voted_payload.pending_tweets)
+            pending_deployments = json.loads(
+                self.most_voted_payload.pending_deployments
+            )
             tx_hash = self.most_voted_payload.tx_hash
 
             event = Event.SETTLE if tx_hash else Event.DONE
@@ -145,7 +150,7 @@ class DeploymentRound(CollectSameUntilThresholdRound):
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
-                    get_name(SynchronizedData.pending_tweets): pending_tweets,
+                    get_name(SynchronizedData.pending_deployments): pending_deployments,
                     get_name(SynchronizedData.most_voted_tx_hash): tx_hash,
                 }
             )
@@ -172,7 +177,20 @@ class PostTweetRound(CollectSameUntilThresholdRound):
             # Event.NO_MAJORITY, Event.DONE, Event.NO_FUNDS, Event.NO_MAJORITY
             payload = json.loads(self.most_voted_payload)
             event = Event(payload["event"])
-            return self.synchronized_data, event
+            synchronized_data = self.synchronized_data
+
+            # Was this a successful announcement? Remove the first pending tweet in the queue
+            if event == Event.DONE:
+                pending_deployments = self.synchronized_data.pending_deployments[1:]
+                synchronized_data = synchronized_data.update(
+                    synchronized_data_class=SynchronizedData,
+                    **{
+                        get_name(
+                            SynchronizedData.pending_deployments
+                        ): pending_deployments,
+                    }
+                )
+            return synchronized_data, event
 
         if not self.is_majority_possible(
             self.collection, self.synchronized_data.nb_participants
@@ -219,7 +237,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         PostTweetRound: {
             Event.DONE: FinishedPostingRound,
-            Event.NO_FUNDS: PostTweetRound,
+            Event.API_ERROR: PostTweetRound,
             Event.NO_MAJORITY: PostTweetRound,
             Event.ROUND_TIMEOUT: PostTweetRound,
         },

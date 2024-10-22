@@ -19,7 +19,9 @@
 
 """This module contains the handlers for the skill of MemeooorrChainedAbciApp."""
 
-from packages.dvilela.skills.memeooorr_abci.handlers import HttpHandler as BaseHttpHandler
+from packages.dvilela.skills.memeooorr_abci.handlers import (
+    HttpHandler as BaseHttpHandler,
+)
 from packages.dvilela.skills.memeooorr_abci.handlers import (
     KvStoreHandler as BaseKvStoreHandler,
 )

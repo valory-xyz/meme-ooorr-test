@@ -20,7 +20,9 @@
 """This module contains the shared state for the abci skill of MemeooorrChainedSkillAbciApp."""
 
 from packages.dvilela.skills.memeooorr_abci.models import Params as MemeooorrParams
-from packages.dvilela.skills.memeooorr_abci.models import RandomnessApi as MemeooorrRandomnessApi
+from packages.dvilela.skills.memeooorr_abci.models import (
+    RandomnessApi as MemeooorrRandomnessApi,
+)
 from packages.dvilela.skills.memeooorr_abci.rounds import Event as MemeooorrEvent
 from packages.dvilela.skills.memeooorr_chained_abci.composition import (
     MemeooorrChainedSkillAbciApp,
