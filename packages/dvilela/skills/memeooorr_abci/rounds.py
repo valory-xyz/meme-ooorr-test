@@ -24,10 +24,13 @@ from enum import Enum
 from typing import Dict, FrozenSet, Optional, Set, Tuple, cast
 
 from packages.dvilela.skills.memeooorr_abci.payloads import (
+    PostInitialTweetPayload,
+    CollectFeedbackPayload,
+    AnalizeFeedbackPayload,
     CheckFundsPayload,
     DeploymentPayload,
-    PostTweetPayload,
-    SearchTweetsPayload,
+    PostDeploymentPayload,
+    PostRefinedTweetPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -48,8 +51,9 @@ class Event(Enum):
 
     DONE = "done"
     NO_FUNDS = "no_funds"
-    NO_TWEETS = "no_tweets"
     SETTLE = "settle"
+    ABORT = "abort"
+    REFINE = "refine"
     API_ERROR = "api_error"
     NO_MAJORITY = "no_majority"
     ROUND_TIMEOUT = "round_timeout"
@@ -68,10 +72,17 @@ class SynchronizedData(BaseSynchronizedData):
         return CollectionRound.deserialize_collection(serialized)
 
     @property
-    def pending_deployments(self) -> list:
-        """Get the pending tweets."""
+    def token_proposal(self) -> Optional[Dict]:
+        """Get the tokwn proposal."""
         return cast(
-            list, json.loads(cast(str, self.db.get("pending_deployments", "[]")))
+            dict, json.loads(cast(str, self.db.get("pending_deployments", None)))
+        )
+
+    @property
+    def feedback(self) -> Optional[Dict]:
+        """Get the feedback."""
+        return cast(
+            dict, json.loads(cast(str, self.db.get("feedback", None)))
         )
 
     @property
@@ -80,33 +91,41 @@ class SynchronizedData(BaseSynchronizedData):
         return cast(str, self.db.get_strict("most_voted_tx_hash"))
 
 
-class SearchTweetsRound(CollectSameUntilThresholdRound):
-    """SearchTweetsRound"""
 
-    payload_class = SearchTweetsPayload
+class PostInitialTweetRound(CollectSameUntilThresholdRound):
+    """PostInitialTweetRound"""
+
+    payload_class = PostInitialTweetPayload
     synchronized_data_class = SynchronizedData
+    done_event = Event.DONE
+    no_majority_event = Event.NO_MAJORITY
+    selection_key = get_name(SynchronizedData.token_proposal)
 
-    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
-        """Process the end of the block."""
-        if self.threshold_reached:
-            pending_deployments = json.loads(self.most_voted_payload)
+    # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
 
-            synchronized_data = self.synchronized_data.update(
-                synchronized_data_class=SynchronizedData,
-                **{
-                    get_name(SynchronizedData.pending_deployments): pending_deployments,
-                }
-            )
 
-            event = Event.DONE if pending_deployments else Event.NO_TWEETS
+class CollectFeedbackRound(CollectSameUntilThresholdRound):
+    """CollectFeedbackRound"""
 
-            return synchronized_data, event
+    payload_class = CollectFeedbackPayload
+    synchronized_data_class = SynchronizedData
+    done_event = Event.DONE
+    no_majority_event = Event.NO_MAJORITY
+    selection_key = get_name(SynchronizedData.feedback)
 
-        if not self.is_majority_possible(
-            self.collection, self.synchronized_data.nb_participants
-        ):
-            return self.synchronized_data, Event.NO_MAJORITY
-        return None
+    # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
+
+
+class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
+    """AnalizeFeedbackRound"""
+
+    payload_class = AnalizeFeedbackPayload
+    synchronized_data_class = SynchronizedData
+    done_event = Event.DONE
+    no_majority_event = Event.NO_MAJORITY
+    selection_key = get_name(SynchronizedData.feedback)
+
+    # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
 
 
 class CheckFundsRound(CollectSameUntilThresholdRound):
@@ -140,22 +159,11 @@ class DeploymentRound(CollectSameUntilThresholdRound):
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            pending_deployments = json.loads(
-                self.most_voted_payload.pending_deployments
-            )
-            tx_hash = self.most_voted_payload.tx_hash
-
-            event = Event.SETTLE if tx_hash else Event.DONE
-
-            synchronized_data = self.synchronized_data.update(
-                synchronized_data_class=SynchronizedData,
-                **{
-                    get_name(SynchronizedData.pending_deployments): pending_deployments,
-                    get_name(SynchronizedData.most_voted_tx_hash): tx_hash,
-                }
-            )
-
-            return synchronized_data, event
+            # this needs to be mentioned for static checkers
+            # Event.NO_MAJORITY, Event.DONE, Event.NO_FUNDS, Event.NO_MAJORITY
+            payload = json.loads(self.most_voted_payload)
+            event = Event(payload["event"])
+            return self.synchronized_data, event
 
         if not self.is_majority_possible(
             self.collection, self.synchronized_data.nb_participants
@@ -164,10 +172,10 @@ class DeploymentRound(CollectSameUntilThresholdRound):
         return None
 
 
-class PostTweetRound(CollectSameUntilThresholdRound):
-    """PostTweetRound"""
+class PostDeploymentRound(CollectSameUntilThresholdRound):
+    """PostDeploymentRound"""
 
-    payload_class = PostTweetPayload
+    payload_class = PostDeploymentPayload
     synchronized_data_class = SynchronizedData
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
@@ -177,20 +185,7 @@ class PostTweetRound(CollectSameUntilThresholdRound):
             # Event.NO_MAJORITY, Event.DONE, Event.NO_FUNDS, Event.NO_MAJORITY
             payload = json.loads(self.most_voted_payload)
             event = Event(payload["event"])
-            synchronized_data = self.synchronized_data
-
-            # Was this a successful announcement? Remove the first pending tweet in the queue
-            if event == Event.DONE:
-                pending_deployments = self.synchronized_data.pending_deployments[1:]
-                synchronized_data = synchronized_data.update(
-                    synchronized_data_class=SynchronizedData,
-                    **{
-                        get_name(
-                            SynchronizedData.pending_deployments
-                        ): pending_deployments,
-                    }
-                )
-            return synchronized_data, event
+            return self.synchronized_data, event
 
         if not self.is_majority_possible(
             self.collection, self.synchronized_data.nb_participants
@@ -199,29 +194,48 @@ class PostTweetRound(CollectSameUntilThresholdRound):
         return None
 
 
-class FinishedNoTweetsRound(DegenerateRound):
-    """FinishedNoTweetsRound"""
+class PostRefinedTweetRound(CollectSameUntilThresholdRound):
+    """PostRefinedTweetRound"""
+
+    payload_class = PostRefinedTweetPayload
+    synchronized_data_class = SynchronizedData
+    done_event = Event.DONE
+    no_majority_event = Event.NO_MAJORITY
+    selection_key = get_name(SynchronizedData.token_proposal)
+
+    # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
 
 
-class FinishedTxPreparationRound(DegenerateRound):
-    """FinishedTxPreparationRound"""
+class FinishedToResetRound(DegenerateRound):
+    """FinishedToResetRound"""
 
-
-class FinishedPostingRound(DegenerateRound):
-    """FinishedPostingRound"""
+class FinishedToSettlementRound(DegenerateRound):
+    """FinishedToSettlementRound"""
 
 
 class MemeooorrAbciApp(AbciApp[Event]):
     """MemeooorrAbciApp"""
 
-    initial_round_cls: AppState = SearchTweetsRound
-    initial_states: Set[AppState] = {SearchTweetsRound, DeploymentRound}
+    initial_round_cls: AppState = PostInitialTweetPayload
+    initial_states: Set[AppState] = {PostInitialTweetPayload}
     transition_function: AbciAppTransitionFunction = {
-        SearchTweetsRound: {
+        PostInitialTweetRound: {
+            Event.DONE: CollectFeedbackRound,
+            Event.API_ERROR: PostInitialTweetRound,
+            Event.NO_MAJORITY: PostInitialTweetRound,
+            Event.ROUND_TIMEOUT: PostInitialTweetRound,
+        },
+        CollectFeedbackRound: {
             Event.DONE: CheckFundsRound,
-            Event.NO_TWEETS: FinishedNoTweetsRound,
-            Event.NO_MAJORITY: SearchTweetsRound,
-            Event.ROUND_TIMEOUT: SearchTweetsRound,
+            Event.NO_MAJORITY: CollectFeedbackRound,
+            Event.ROUND_TIMEOUT: CollectFeedbackRound,
+        },
+        AnalizeFeedbackRound: {
+            Event.DONE: CheckFundsRound,
+            Event.REFINE: PostRefinedTweetRound,
+            Event.ABORT: FinishedToResetRound,
+            Event.NO_MAJORITY: AnalizeFeedbackRound,
+            Event.ROUND_TIMEOUT: AnalizeFeedbackRound,
         },
         CheckFundsRound: {
             Event.DONE: DeploymentRound,
@@ -230,29 +244,34 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: CheckFundsRound,
         },
         DeploymentRound: {
-            Event.DONE: PostTweetRound,
-            Event.SETTLE: FinishedTxPreparationRound,
+            Event.DONE: PostDeploymentRound,
+            Event.SETTLE: FinishedToSettlementRound,
             Event.NO_MAJORITY: DeploymentRound,
             Event.ROUND_TIMEOUT: DeploymentRound,
         },
-        PostTweetRound: {
-            Event.DONE: FinishedPostingRound,
-            Event.API_ERROR: PostTweetRound,
-            Event.NO_MAJORITY: PostTweetRound,
-            Event.ROUND_TIMEOUT: PostTweetRound,
+        PostDeploymentRound: {
+            Event.DONE: FinishedToResetRound,
+            Event.API_ERROR: PostDeploymentRound,
+            Event.NO_MAJORITY: PostDeploymentRound,
+            Event.ROUND_TIMEOUT: PostDeploymentRound,
         },
-        FinishedTxPreparationRound: {},
-        FinishedPostingRound: {},
-        FinishedNoTweetsRound: {},
+        PostRefinedTweetRound: {
+            Event.DONE: FinishedToResetRound,
+            Event.API_ERROR: PostRefinedTweetRound,
+            Event.NO_MAJORITY: PostRefinedTweetRound,
+            Event.ROUND_TIMEOUT: PostRefinedTweetRound,
+        },
+
+        FinishedToResetRound: {},
+        FinishedToSettlementRound: {},
     }
-    final_states: Set[AppState] = {FinishedPostingRound}
+    final_states: Set[AppState] = {FinishedToResetRound, FinishedToSettlementRound}
     event_to_timeout: EventToTimeout = {}
     cross_period_persisted_keys: FrozenSet[str] = frozenset()
     db_pre_conditions: Dict[AppState, Set[str]] = {
         CheckFundsRound: set(),
     }
     db_post_conditions: Dict[AppState, Set[str]] = {
-        FinishedPostingRound: set(),
-        FinishedTxPreparationRound: set(),
-        FinishedNoTweetsRound: set(),
+        FinishedToResetRound: set(),
+        FinishedToSettlementRound: set(),
     }

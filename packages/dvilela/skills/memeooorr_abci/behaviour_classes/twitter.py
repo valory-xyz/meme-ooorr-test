@@ -30,10 +30,10 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 from packages.dvilela.skills.memeooorr_abci.prompts import DEPLOYMENT_RESPONSE_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     Event,
-    PostTweetPayload,
-    PostTweetRound,
-    SearchTweetsPayload,
-    SearchTweetsRound,
+    PostInitialTweetPayload,
+    PostInitialTweetRound,
+    CollectFeedbackPayload,
+    CollectFeedbackRound,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
@@ -46,82 +46,11 @@ def tweet_len(tweet: str) -> int:
     return parse_tweet(tweet).asdict()["weightedLength"]
 
 
-class SearchTweetsBehaviour(
-    MemeooorrBaseBehaviour
-):  # pylint: disable=too-many-ancestors
-    """SearchTweetsBehaviour"""
 
-    matching_round: Type[AbstractRound] = SearchTweetsRound
+class PostInitialTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-ancestors
+    """PostInitialTweetBehaviour"""
 
-    def async_act(self) -> Generator:
-        """Do the act, supporting asynchronous execution."""
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            pending_deployments = yield from self.get_pending_deployments()
-
-            payload = SearchTweetsPayload(
-                sender=self.context.agent_address,
-                fake_news=json.dumps(pending_deployments, sort_keys=True),
-            )
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
-            yield from self.send_a2a_transaction(payload)
-            yield from self.wait_until_round_end()
-
-        self.set_done()
-
-    def get_pending_deployments(self) -> Generator[None, None, List]:
-        """Get the pending tweet queue"""
-
-        pending_deployments = self.synchronized_data.pending_deployments
-
-        # Get responded tweets from the db
-        response = yield from self._read_kv(keys=("deployed_tokens",))
-
-        if response is None:
-            self.context.logger.error(
-                "Error reading from the database. Responded tweets couldn't be loaded and therefore no new tweets will be searched."
-            )
-            return pending_deployments
-
-        deployed_tokens = (
-            json.loads(response["deployed_tokens"])
-            if response["deployed_tokens"]
-            else []
-        )
-        self.context.logger.info(
-            f"Loaded {len(deployed_tokens)} responded tweets from db"
-        )
-
-        # Search new tweets
-        tweets = yield from self._call_twikit(method="search", query=query)
-
-        if tweets is None:
-            self.context.logger.error("No tweets match the query")
-            return pending_deployments
-
-        self.context.logger.info(f"Retrieved {len(tweets)} tweets")
-
-        # Iterate all the tweets
-        for tweet in tweets:
-            self.context.logger.info(
-                f"Analyzing tweet {tweet['id']!r}: {tweet['text']}"
-            )
-
-            if tweet["id"] in deployed_tokens:
-                self.context.logger.info("Tweet was already processed")
-                continue
-
-            # Add new tweets to the pending queue
-            # TODO
-
-        return pending_deployments
-
-
-class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-ancestors
-    """PostTweetBehaviour"""
-
-    matching_round: Type[AbstractRound] = PostTweetRound
+    matching_round: Type[AbstractRound] = PostInitialTweetRound
 
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""
@@ -129,7 +58,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             event = yield from self.get_event()
 
-            payload = PostTweetPayload(
+            payload = PostInitialTweetRound(
                 sender=self.context.agent_address,
                 event=event,
             )
@@ -213,3 +142,76 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         self.context.logger.info("Wrote deployed_tokens to db")
 
         return Event.DONE.value
+
+
+
+class CollectFeedbackBehaviour(
+    MemeooorrBaseBehaviour
+):  # pylint: disable=too-many-ancestors
+    """CollectFeedbackBehaviour"""
+
+    matching_round: Type[AbstractRound] = CollectFeedbackRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            pending_deployments = yield from self.get_pending_deployments()
+
+            payload = CollectFeedbackPayload(
+                sender=self.context.agent_address,
+                fake_news=json.dumps(pending_deployments, sort_keys=True),
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+    def get_pending_deployments(self) -> Generator[None, None, List]:
+        """Get the pending tweet queue"""
+
+        pending_deployments = self.synchronized_data.pending_deployments
+
+        # Get responded tweets from the db
+        response = yield from self._read_kv(keys=("deployed_tokens",))
+
+        if response is None:
+            self.context.logger.error(
+                "Error reading from the database. Responded tweets couldn't be loaded and therefore no new tweets will be searched."
+            )
+            return pending_deployments
+
+        deployed_tokens = (
+            json.loads(response["deployed_tokens"])
+            if response["deployed_tokens"]
+            else []
+        )
+        self.context.logger.info(
+            f"Loaded {len(deployed_tokens)} responded tweets from db"
+        )
+
+        # Search new tweets
+        tweets = yield from self._call_twikit(method="search", query=query)
+
+        if tweets is None:
+            self.context.logger.error("No tweets match the query")
+            return pending_deployments
+
+        self.context.logger.info(f"Retrieved {len(tweets)} tweets")
+
+        # Iterate all the tweets
+        for tweet in tweets:
+            self.context.logger.info(
+                f"Analyzing tweet {tweet['id']!r}: {tweet['text']}"
+            )
+
+            if tweet["id"] in deployed_tokens:
+                self.context.logger.info("Tweet was already processed")
+                continue
+
+            # Add new tweets to the pending queue
+            # TODO
+
+        return pending_deployments

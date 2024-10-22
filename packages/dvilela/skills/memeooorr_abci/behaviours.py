@@ -22,12 +22,17 @@
 from typing import Set, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
-    PostTweetBehaviour,
-    SearchTweetsBehaviour,
+    PostInitialTweetBehaviour,
+    CollectFeedbackBehaviour,
+    PostDeploymentBehaviour,
+    PostRefinedTweetBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
     CheckFundsBehaviour,
     DeploymentBehaviour,
+)
+from packages.dvilela.skills.memeooorr_abci.behaviour_classes.llm import (
+    AnalizeFeedbackBehaviour
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.behaviours import (
@@ -39,11 +44,14 @@ from packages.valory.skills.abstract_round_abci.behaviours import (
 class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
     """MemeooorrRoundBehaviour"""
 
-    initial_behaviour_cls = SearchTweetsBehaviour
+    initial_behaviour_cls = CollectFeedbackBehaviour
     abci_app_cls = MemeooorrAbciApp  # type: ignore
     behaviours: Set[Type[BaseBehaviour]] = [  # type: ignore
-        SearchTweetsBehaviour,
+        PostInitialTweetBehaviour,
+        CollectFeedbackBehaviour,
+        AnalizeFeedbackBehaviour,
         CheckFundsBehaviour,
         DeploymentBehaviour,
-        PostTweetBehaviour,
+        PostDeploymentBehaviour,
+        PostRefinedTweetBehaviour,
     ]
