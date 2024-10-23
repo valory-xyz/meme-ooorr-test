@@ -27,13 +27,17 @@ from twitter_text import parse_tweet  # type: ignore
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.prompts import DEPLOYMENT_RESPONSE_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     Event,
-    PostInitialTweetPayload,
+    PostTweetPayload,
     PostInitialTweetRound,
     CollectFeedbackPayload,
     CollectFeedbackRound,
+    PostDeploymentPayload,
+    PostDeploymentRound,
+    PostRefinedTweetPayload,
+    PostRefinedTweetRound,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
@@ -56,11 +60,11 @@ class PostInitialTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            event = yield from self.get_event()
+            token_proposal = yield from self.post_tweet()
 
-            payload = PostInitialTweetRound(
+            payload = PostTweetPayload(
                 sender=self.context.agent_address,
-                event=event,
+                token_proposal=json.dumps(token_proposal, sort_keys=True),
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -69,80 +73,61 @@ class PostInitialTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-
 
         self.set_done()
 
-    def get_event(  # pylint: disable=too-many-locals
+    def post_tweet(  # pylint: disable=too-many-locals
         self,
     ) -> Generator[None, None, Dict]:
-        """Post the announcement"""
+        """Post a tweet"""
 
-        # Get the first tweet in the queue
-        deployment = self.synchronized_data.pending_deployments[0]
+        token_proposal = self.synchronized_data.token_proposal
+        tweet_text = None
 
-        # Get deployed tokens from the db
-        response = yield from self._read_kv(keys=("deployed_tokens",))
-
-        if response is None:
-            self.context.logger.error(
-                "Error reading from the database. Responded tweets couldn't be loaded and therefore no new tweets will be responded."
+        # INITIAL PROPOSAL
+        # If a tweet token proposal does not exist, prepare one
+        if not token_proposal:
+            self.context.logger.info(
+                "Preparing initial tweet..."
             )
-            return Event.API_ERROR.value
 
-        deployed_tokens = (
-            json.loads(response["deployed_tokens"])
-            if response["deployed_tokens"]
-            else []
-        )
-        self.context.logger.info(
-            f"Loaded {len(deployed_tokens)} responded tweets from db"
-        )
+            llm_response = yield from self._call_genai(prompt=DEFAULT_TWEET_PROMPT)
+            self.context.logger.info(f"LLM response: {llm_response}")
 
-        # Send a request to the LLM
-        self.context.logger.info(
-            f"Preparing response for tweet {deployment['tweet']['id']}"
-        )
+            if llm_response is None:
+                self.context.logger.error("Error getting a response from the LLM.")
+                return None
 
-        prompt = DEPLOYMENT_RESPONSE_PROMPT.format(
-            token_name=deployment["token_name"],
-            token_ticker=deployment["token_name"],
-            tweet=deployment["tweet"]["text"],
-        )
-        llm_response = yield from self._call_genai(prompt=prompt)
-        self.context.logger.info(f"LLM response: {llm_response}")
+            token_proposal = {
+                "token_name": llm_response["token_name"],
+                "token_ticker": llm_response["token_name"],
+                "proposal": llm_response["proposal"],
+                "announcement": None
+            }
 
-        if llm_response is None:
-            self.context.logger.error("Error getting a response from the LLM.")
-            return Event.API_ERROR.value
+            tweet_text = token_proposal["proposal"]
 
-        # Postprocess the tweet
-        t_len = tweet_len(llm_response)
-        if t_len > MAX_TWEET_CHARS:
-            self.context.logger.error(
-                f"Tweet is too long [{t_len}]. will retry: {llm_response}"
-            )
-            return Event.API_ERROR
-
-        self.context.logger.info(f"Response to tweet is OK!: {llm_response}")
-
-        if not self.params.enable_posting:
-            self.context.logger.info("Posting is disabled")
-            return Event.DONE.value
-
-        self.context.logger.info("Posting the response...")
+        # Post either the announcement or the refined proposal
+        else:
+            tweet_text = token_proposal["announcement"] or token_proposal["proposal"]
 
         tweet_ids = yield from self._call_twikit(
             method="post",
-            tweets=[{"text": llm_response, "reply_to": deployment["tweet"]["id"]}],
+            tweets=[{"text": tweet_text}],
         )
 
-        if tweet_ids is None:
+        if not tweet_ids:
             self.context.logger.error("Failed posting to Twitter.")
-            return Event.API_ERROR.value
+            return None
 
-        # Write responded tweets
-        yield from self._write_kv({"deployed_tokens": json.dumps(deployed_tokens)})
-        self.context.logger.info("Wrote deployed_tokens to db")
+        return token_proposal
 
-        return Event.DONE.value
 
+class PostRefinedTweetBehaviour(PostInitialTweetBehaviour):
+    """PostRefinedTweetBehaviour"""
+    matching_round: Type[AbstractRound] = PostRefinedTweetRound
+
+
+class PostDeploymentBehaviour(PostInitialTweetBehaviour):
+    """PostDeploymentBehaviour"""
+    matching_round: Type[AbstractRound] = PostDeploymentRound
 
 
 class CollectFeedbackBehaviour(
@@ -156,11 +141,11 @@ class CollectFeedbackBehaviour(
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            pending_deployments = yield from self.get_pending_deployments()
+            feedback = yield from self.get_feedback()
 
             payload = CollectFeedbackPayload(
                 sender=self.context.agent_address,
-                fake_news=json.dumps(pending_deployments, sort_keys=True),
+                feedback=json.dumps(feedback, sort_keys=True),
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -169,49 +154,22 @@ class CollectFeedbackBehaviour(
 
         self.set_done()
 
-    def get_pending_deployments(self) -> Generator[None, None, List]:
-        """Get the pending tweet queue"""
+    def get_feedback(self) -> Generator[None, None, List]:
+        """Get the responses"""
 
-        pending_deployments = self.synchronized_data.pending_deployments
+        # Search new replies
+        token_proposal = self.synchronized_data.token_proposal
+        query = f"conversation_id:{token_proposal['tweet']['id']}"
+        feedback = yield from self._call_twikit(method="search", query=query, max_results=100)
 
-        # Get responded tweets from the db
-        response = yield from self._read_kv(keys=("deployed_tokens",))
+        if feedback is None:
+            self.context.logger.error("Could not retrieve any replies due to an API error")
+            return None
 
-        if response is None:
-            self.context.logger.error(
-                "Error reading from the database. Responded tweets couldn't be loaded and therefore no new tweets will be searched."
-            )
-            return pending_deployments
-
-        deployed_tokens = (
-            json.loads(response["deployed_tokens"])
-            if response["deployed_tokens"]
-            else []
-        )
-        self.context.logger.info(
-            f"Loaded {len(deployed_tokens)} responded tweets from db"
-        )
-
-        # Search new tweets
-        tweets = yield from self._call_twikit(method="search", query=query)
-
-        if tweets is None:
+        if not feedback :
             self.context.logger.error("No tweets match the query")
-            return pending_deployments
+            return []
 
-        self.context.logger.info(f"Retrieved {len(tweets)} tweets")
+        self.context.logger.info(f"Retrieved {len(feedback)} replies")
 
-        # Iterate all the tweets
-        for tweet in tweets:
-            self.context.logger.info(
-                f"Analyzing tweet {tweet['id']!r}: {tweet['text']}"
-            )
-
-            if tweet["id"] in deployed_tokens:
-                self.context.logger.info("Tweet was already processed")
-                continue
-
-            # Add new tweets to the pending queue
-            # TODO
-
-        return pending_deployments
+        return feedback

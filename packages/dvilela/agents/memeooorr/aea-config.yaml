@@ -192,6 +192,7 @@ models:
       minimum_gas_balance: ${float:0.01}
       olas_per_pool: ${int:10}
       percentage_supply_for_pool: ${float:0.95}
+      min_feedback_replies: ${int:10}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

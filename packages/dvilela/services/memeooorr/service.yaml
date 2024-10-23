@@ -91,6 +91,7 @@ extra:
         minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.01}
         olas_per_pool: ${OLAS_PER_POOL:int:10}
         percentage_supply_for_pool: ${PERCENTAGE_SUPPLY_FOR_POOL:float:0.95}
+        min_feedback_replies: ${MIN_FEEDBACK_REPLIES:int:10}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

@@ -46,10 +46,10 @@ Your task it to create a new token name, ticker and write a funny tweet where yo
 
 OUTPUT_FORMAT
 * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
-* The JSON must contain three fields: "token_name", "token_ticker" and "tweet".
+* The JSON must contain three fields: "token_name", "token_ticker" and "proposal".
     - token_name: a name for your meme coin.
     - token_ticker: a ticker for your meme coin.
-    - tweet: the tweet to propose this new token
+    - proposal: the tweet to propose this new token
 * Output only the JSON object. Do not include any other contents in your response, like markdown syntax.
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```
@@ -78,9 +78,9 @@ if you have decided that the meme coin should be deployed.
 
 OUTPUT_FORMAT
 * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
-* The JSON must contain two fields: "deploy", "tweet", "new_name", "new_ticker", "new_proposal".
+* The JSON must contain two fields: "deploy", "announcement", "new_name", "new_ticker", "new_proposal".
     - deploy: a boolean indicating whether the token should be deployed. True means deploy, False means that the proposal needs refinement.
-    - tweet: a tweet to announce the deployment of the token or an empty string if the proposal was not approved.
+    - announcement: a tweet to announce the deployment of the token or an empty string if the proposal was not approved.
     - new_name: a new name for the token
     - new_ticker: a new ticker for the token
     - new_proposal: a tweet to propose the new token based on the collected feedback

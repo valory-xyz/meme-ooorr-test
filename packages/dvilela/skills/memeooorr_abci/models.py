@@ -58,5 +58,8 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.percentage_supply_for_pool = self._ensure(
             "percentage_supply_for_pool", kwargs, float
         )
+        self.min_feedback_replies = self._ensure(
+            "min_feedback_replies", kwargs, int
+        )
 
         super().__init__(*args, **kwargs)

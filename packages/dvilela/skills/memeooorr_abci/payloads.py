@@ -26,17 +26,17 @@ from packages.valory.skills.abstract_round_abci.base import BaseTxPayload
 
 
 @dataclass(frozen=True)
-class PostInitialTweetPayload(BaseTxPayload):
+class PostTweetPayload(BaseTxPayload):
     """Represent a transaction payload for the PostTweetRound."""
 
-    token_proposal: str
+    token_proposal: Optional[str]
 
 
 @dataclass(frozen=True)
 class CollectFeedbackPayload(BaseTxPayload):
     """Represent a transaction payload for the CollectFeedbackRound."""
 
-    feedback: str
+    feedback: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -59,13 +59,3 @@ class DeploymentPayload(BaseTxPayload):
 
     pending_deployments: str
     tx_hash: Optional[str]
-
-
-@dataclass(frozen=True)
-class PostDeploymentPayload(PostInitialTweetPayload):
-    """Represent a transaction payload for the PostDeploymentRound."""
-
-
-@dataclass(frozen=True)
-class PostRefinedTweetPayload(PostInitialTweetPayload):
-    """Represent a transaction payload for the PostRefinedTweetRound."""

@@ -141,6 +141,7 @@ models:
       minimum_gas_balance: 0.01
       olas_per_pool: 10
       percentage_supply_for_pool: 0.95
+      min_feedback_replies: 10
     class_name: Params
   requests:
     args: {}
