@@ -43,7 +43,7 @@ class CollectFeedbackPayload(BaseTxPayload):
 class AnalizeFeedbackPayload(BaseTxPayload):
     """Represent a transaction payload for the AnalizeFeedbackRound."""
 
-    feedback: str
+    token_proposal: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -57,5 +57,5 @@ class CheckFundsPayload(BaseTxPayload):
 class DeploymentPayload(BaseTxPayload):
     """Represent a transaction payload for the DeploymentRound."""
 
-    pending_deployments: str
     tx_hash: Optional[str]
+    tx_flag: Optional[str]

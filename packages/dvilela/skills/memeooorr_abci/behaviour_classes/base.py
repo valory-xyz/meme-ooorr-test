@@ -165,3 +165,11 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             kv_store_message, kv_store_dialogue  # type: ignore
         )
         return response == KvStoreMessage.Performative.SUCCESS
+
+    def get_sync_timestamp(self) -> float:
+        """Get the synchronized time from Tendermint's last block."""
+        now = cast(
+            SharedState, self.context.state
+        ).round_sequence.last_round_transition_timestamp.timestamp()
+
+        return now

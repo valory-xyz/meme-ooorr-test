@@ -55,11 +55,12 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.enable_posting = self._ensure("enable_posting", kwargs, bool)
         self.minimum_gas_balance = self._ensure("minimum_gas_balance", kwargs, float)
         self.olas_per_pool = self._ensure("olas_per_pool", kwargs, int)
+        self.min_feedback_replies = self._ensure("min_feedback_replies", kwargs, int)
+        self.total_supply = self._ensure("total_supply", kwargs, int)
+        self.user_allocation = self._ensure("user_allocation", kwargs, int)
         self.percentage_supply_for_pool = self._ensure(
             "percentage_supply_for_pool", kwargs, float
         )
-        self.min_feedback_replies = self._ensure(
-            "min_feedback_replies", kwargs, int
-        )
-
+        self.meme_factory_address = self._ensure("meme_factory_address", kwargs, str)
+        self.olas_token_address = self._ensure("olas_token_address", kwargs, str)
         super().__init__(*args, **kwargs)

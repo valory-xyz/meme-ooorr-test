@@ -29,15 +29,15 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
-    Event,
-    PostTweetPayload,
-    PostInitialTweetRound,
     CollectFeedbackPayload,
     CollectFeedbackRound,
+    Event,
     PostDeploymentPayload,
     PostDeploymentRound,
+    PostInitialTweetRound,
     PostRefinedTweetPayload,
     PostRefinedTweetRound,
+    PostTweetPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
@@ -45,13 +45,14 @@ from packages.valory.skills.abstract_round_abci.base import AbstractRound
 MAX_TWEET_CHARS = 280
 
 
-def tweet_len(tweet: str) -> int:
-    """Calculates a tweet length"""
-    return parse_tweet(tweet).asdict()["weightedLength"]
+def is_tweet_valid(tweet: str) -> bool:
+    """Checks a tweet length"""
+    return parse_tweet(tweet).asdict()["weightedLength"] <= MAX_TWEET_CHARS
 
 
-
-class PostInitialTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-ancestors
+class PostInitialTweetBehaviour(
+    MemeooorrBaseBehaviour
+):  # pylint: disable=too-many-ancestors
     """PostInitialTweetBehaviour"""
 
     matching_round: Type[AbstractRound] = PostInitialTweetRound
@@ -84,9 +85,7 @@ class PostInitialTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-
         # INITIAL PROPOSAL
         # If a tweet token proposal does not exist, prepare one
         if not token_proposal:
-            self.context.logger.info(
-                "Preparing initial tweet..."
-            )
+            self.context.logger.info("Preparing initial tweet...")
 
             llm_response = yield from self._call_genai(prompt=DEFAULT_TWEET_PROMPT)
             self.context.logger.info(f"LLM response: {llm_response}")
@@ -99,7 +98,10 @@ class PostInitialTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-
                 "token_name": llm_response["token_name"],
                 "token_ticker": llm_response["token_name"],
                 "proposal": llm_response["proposal"],
-                "announcement": None
+                "announcement": None,
+                "deploy": None,
+                "token_address": None,
+                "pool_address": None,
             }
 
             tweet_text = token_proposal["proposal"]
@@ -117,16 +119,22 @@ class PostInitialTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-
             self.context.logger.error("Failed posting to Twitter.")
             return None
 
+        # Reset the proposal if we have finished the cycle
+        if token_proposal["announcement"]:
+            token_proposal = {}
+
         return token_proposal
 
 
 class PostRefinedTweetBehaviour(PostInitialTweetBehaviour):
     """PostRefinedTweetBehaviour"""
+
     matching_round: Type[AbstractRound] = PostRefinedTweetRound
 
 
 class PostDeploymentBehaviour(PostInitialTweetBehaviour):
     """PostDeploymentBehaviour"""
+
     matching_round: Type[AbstractRound] = PostDeploymentRound
 
 
@@ -160,13 +168,17 @@ class CollectFeedbackBehaviour(
         # Search new replies
         token_proposal = self.synchronized_data.token_proposal
         query = f"conversation_id:{token_proposal['tweet']['id']}"
-        feedback = yield from self._call_twikit(method="search", query=query, max_results=100)
+        feedback = yield from self._call_twikit(
+            method="search", query=query, max_results=100
+        )
 
         if feedback is None:
-            self.context.logger.error("Could not retrieve any replies due to an API error")
+            self.context.logger.error(
+                "Could not retrieve any replies due to an API error"
+            )
             return None
 
-        if not feedback :
+        if not feedback:
             self.context.logger.error("No tweets match the query")
             return []
 

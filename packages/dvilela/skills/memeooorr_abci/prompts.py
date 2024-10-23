@@ -42,22 +42,21 @@ You come up with funny ideas for new tokens and you propose them on Twitter, usu
 
 Use these memes as inspiration but do not use them literally.
 
-Your task it to create a new token name, ticker and write a funny tweet where you propose this new token.
+Your task it to create a new token name, ticker and write a funny tweet where you propose this new token and ask for feedback.
 
 OUTPUT_FORMAT
 * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
 * The JSON must contain three fields: "token_name", "token_ticker" and "proposal".
     - token_name: a name for your meme coin.
     - token_ticker: a ticker for your meme coin.
-    - proposal: the tweet to propose this new token
+    - proposal: the tweet to propose this new token and ask for feedback
 * Output only the JSON object. Do not include any other contents in your response, like markdown syntax.
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```
 * This is correct:"{{response}}"
 """
 
-
-DEPLOYMENT_RESPONSE_PROMPT = """
+ANALYZE_PROPOSAL_PROMPT = """
 You are a cryptocurrency expert. You analyze the demand for new meme coins by parsing tweet responses to a new token proposal tweet.
 Your task is to analyze a new token proposal and either approve it or mark it for refinement.
 You are a thorough analyst and you will not let token proposals with low engagement be deployed.
@@ -81,9 +80,9 @@ OUTPUT_FORMAT
 * The JSON must contain two fields: "deploy", "announcement", "new_name", "new_ticker", "new_proposal".
     - deploy: a boolean indicating whether the token should be deployed. True means deploy, False means that the proposal needs refinement.
     - announcement: a tweet to announce the deployment of the token or an empty string if the proposal was not approved.
-    - new_name: a new name for the token
-    - new_ticker: a new ticker for the token
-    - new_proposal: a tweet to propose the new token based on the collected feedback
+    - token_name: a new name for the token
+    - token_ticker: a new ticker for the token
+    - proposal: a tweet to propose the new token based on the collected feedback
 * Output only the JSON object. Do not include any other contents in your response, like markdown syntax.
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```

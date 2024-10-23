@@ -22,6 +22,7 @@
 import packages.dvilela.skills.memeooorr_abci.rounds as MemeooorrAbci
 import packages.valory.skills.registration_abci.rounds as RegistrationAbci
 import packages.valory.skills.reset_pause_abci.rounds as ResetAndPauseAbci
+import packages.valory.skills.transaction_settlement_abci.rounds as TransactionSettlementAbci
 from packages.valory.skills.abstract_round_abci.abci_app_chain import (
     AbciAppTransitionMapping,
     chain,
@@ -37,9 +38,12 @@ from packages.valory.skills.termination_abci.rounds import (
 # Here we define how the transition between the FSMs should happen
 # more information here: https://docs.autonolas.network/fsm_app_introduction/#composition-of-fsm-apps
 abci_app_transition_mapping: AbciAppTransitionMapping = {
-    RegistrationAbci.FinishedRegistrationRound: MemeooorrAbci.UpdateNewsPoolRound,
-    MemeooorrAbci.FinishedPublishRound: ResetAndPauseAbci.ResetAndPauseRound,
-    ResetAndPauseAbci.FinishedResetAndPauseRound: MemeooorrAbci.UpdateNewsPoolRound,
+    RegistrationAbci.FinishedRegistrationRound: MemeooorrAbci.PostInitialTweetRound,
+    MemeooorrAbci.FinishedToResetRound: ResetAndPauseAbci.ResetAndPauseRound,
+    MemeooorrAbci.FinishedToSettlementRound: TransactionSettlementAbci.RandomnessTransactionSubmissionRound,
+    TransactionSettlementAbci.FinishedTransactionSubmissionRound: MemeooorrAbci.DeploymentRound,
+    TransactionSettlementAbci.FailedRound: TransactionSettlementAbci.RandomnessTransactionSubmissionRound,
+    ResetAndPauseAbci.FinishedResetAndPauseRound: MemeooorrAbci.PostInitialTweetRound,
     ResetAndPauseAbci.FinishedResetAndPauseErrorRound: ResetAndPauseAbci.ResetAndPauseRound,
 }
 
@@ -53,6 +57,7 @@ MemeooorrChainedSkillAbciApp = chain(
     (
         RegistrationAbci.AgentRegistrationAbciApp,
         MemeooorrAbci.MemeooorrAbciApp,
+        TransactionSettlementAbci.TransactionSubmissionAbciApp,
         ResetAndPauseAbci.ResetPauseAbciApp,
     ),
     abci_app_transition_mapping,

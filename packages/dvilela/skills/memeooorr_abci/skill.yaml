@@ -7,14 +7,19 @@ license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
-  behaviours.py: bafybeidmv6utyvhsda5ur5humk5w5zrle3dneh6klcky4ba6rgyzd3q2bi
+  behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
+  behaviour_classes/base.py: bafybeic4qox6mszzxnrbfb46d62eyq4dugflukhmonq7urr644t3ihnl4y
+  behaviour_classes/chain.py: bafybeihfczzbfumnln3phif7veunsowj4dxnsoiejxxg7s4xozqnpueyry
+  behaviour_classes/llm.py: bafybeiat6li5bw52co5gnbmotpuxp6ix3mmdoi3yrhnvr75qlu4ux3ncse
+  behaviour_classes/twitter.py: bafybeihlkvn55a7ldl5ls7pssvmdmwshh5l3ai37gqej6kuznj3odbwr5i
+  behaviours.py: bafybeigusdtci6ieggqsgpngjzcxjrbqzn34kesdrqyk5h4ywq3umharom
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeibxxfeintodz53tdm5fze4p57lgvqunlvn7lsutb6ngtn6ek336lq
   handlers.py: bafybeia3ew422w57ot7jpbrhmagepm7pcoqkkc53p5w4jm4co4yh4tz7em
-  models.py: bafybeid2443o4s4hrmrgm5y4s3nvnzwyvn7peipugtcwfxzt5uywguhbu4
-  payloads.py: bafybeidjsxowdfyu47yemkt773vgk4hnnj3kbyl2jwketnysks5rnk6pyu
-  prompts.py: bafybeifveg5zsy3sjn2ysstwhooahfy3sv7ifjskvxouxywwq64krtgb3m
-  rounds.py: bafybeiflw3urup4cf3otr2tlqzaftitm5lsr6y42qmpeo3etxgu6uqqche
+  models.py: bafybeihszto6bm4stqwtcgtq765gxb2wrvhewbt5744rxhssvt3unqtizu
+  payloads.py: bafybeign2ig66f7n4ijx2tw3eaiqhl72aht4h556xdasn2r4jegtjcejau
+  prompts.py: bafybeie7ansvrdaib3h7x325iuxgs45ldlg25etru3qxebabje23at7qfy
+  rounds.py: bafybeifwojmk7omf5elah6wmys7lwpklyqsolsnug7f5zhi4vcgy3iw4dq
   subgraph.py: bafybeigme6r3cwiiu5l7r55rcbj7y37b62cxtlsnewpkbjqcbadwte32xm
 fingerprint_ignore_patterns: []
 connections:
@@ -142,6 +147,10 @@ models:
       olas_per_pool: 10
       percentage_supply_for_pool: 0.95
       min_feedback_replies: 10
+      total_supply: 1000000000000000000000000
+      user_allocation: 1000000000000000000000000
+      meme_factory_address: '0x0000000000000000000000000000000000000000'
+      olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
     class_name: Params
   requests:
     args: {}

@@ -39,8 +39,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/registration_abci:0.1.0:bafybeicnth5q4httefsusywx3zrrq4al47owvge72dqf2fziruicq6hqta
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
-- dvilela/memeooorr_abci:0.1.0:bafybeifxarnwbustwbxbukjwwojbdpsu2x2uc3mdhogpv2jwgxljbczb6i
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeidfe52bg5myobmiq5sdexcpsh4zdabl6j2puzeicwtzuulpggbvmu
+- dvilela/memeooorr_abci:0.1.0:bafybeifudbb6nwyqc52ovk45cobp77k3x2kuqhf6bvsrdr2wjoz24wdcni
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeid2yeoj2aldxaebdsvfx2amtupir6s47ojwn6dkrlf7mxj22lg7tm
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -193,6 +193,10 @@ models:
       olas_per_pool: ${int:10}
       percentage_supply_for_pool: ${float:0.95}
       min_feedback_replies: ${int:10}
+      total_supply: ${int:1000000000000000000000000}
+      user_allocation: ${int:1000000000000000000000000}
+      meme_factory_address: ${str:0x0000000000000000000000000000000000000000}
+      olas_token_address: ${str:0x54330d28ca3357F294334BDC454a032e7f353416}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

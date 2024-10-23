@@ -21,18 +21,18 @@
 
 from typing import Set, Type
 
-from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
-    PostInitialTweetBehaviour,
-    CollectFeedbackBehaviour,
-    PostDeploymentBehaviour,
-    PostRefinedTweetBehaviour,
-)
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
     CheckFundsBehaviour,
     DeploymentBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.llm import (
-    AnalizeFeedbackBehaviour
+    AnalizeFeedbackBehaviour,
+)
+from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
+    CollectFeedbackBehaviour,
+    PostDeploymentBehaviour,
+    PostInitialTweetBehaviour,
+    PostRefinedTweetBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.behaviours import (
