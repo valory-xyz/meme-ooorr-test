@@ -2,6 +2,7 @@
     "dev": {
         "contract/dvilela/uniswap_v2_router_02/0.1.0": "bafybeialmwsra3oiwoitdzqdt6o3tyt2awpgvfeqcc3xxfnozcewk4n7bi",
         "contract/dvilela/meme_factory/0.1.0": "bafybeihp7jkkx24p7wj27h2nc2e7kvpgkiterw2jjxttadwyp4m4jaqpuq",
+        "contract/valory/erc20/0.1.0": "bafybeibk2y6ldylquuikk3cmtk64e2wnjbtuxy5doorzsp4ysx6uwqbdxm",
         "connection/dvilela/twikit/0.1.0": "bafybeiff76iqbiwfmlrixollynsjib66dxvj6gnprltcf5tvfvs6wm3x54",
         "connection/dvilela/genai/0.1.0": "bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq",
         "skill/dvilela/memeooorr_abci/0.1.0": "bafybeigvvu2acavilwjvzrytjnfvz7xyx64pdcdzrsttzvlnqfvis5ffpy",
@@ -25,7 +26,6 @@
         "contract/valory/gnosis_safe_proxy_factory/0.1.0": "bafybeihi4cvrnf5ne7t5cxcwix3dbtfjucfjux6zn4wouebjx3ldmrmnpm",
         "contract/valory/multisend/0.1.0": "bafybeig5byt5urg2d2bsecufxe5ql7f4mezg3mekfleeh32nmuusx66p4y",
         "contract/valory/gnosis_safe/0.1.0": "bafybeiho6sbfts3zk3mftrngw37d5qnlvkqtnttt3fzexmcwkeevhu4wwi",
-        "contract/valory/erc20/0.1.0": "bafybeibk2y6ldylquuikk3cmtk64e2wnjbtuxy5doorzsp4ysx6uwqbdxm",
         "connection/valory/abci/0.1.0": "bafybeie4eixvrdpc5ifoovj24a6res6g2e22dl6di6gzib7d3fczshzyti",
         "connection/valory/http_client/0.23.0": "bafybeihi772xgzpqeipp3fhmvpct4y6e6tpjp4sogwqrnf3wqspgeilg4u",
         "connection/valory/ipfs/0.1.0": "bafybeiefkqvh5ylbk77xylcmshyuafmiecopt4gvardnubq52psvogis6a",
