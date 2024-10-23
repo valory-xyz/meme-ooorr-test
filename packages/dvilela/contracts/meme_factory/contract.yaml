@@ -1,0 +1,31 @@
+name: meme_factory
+author: dvilela
+version: 0.1.0
+type: contract
+description: MemeFactory contract
+license: Apache-2.0
+aea_version: '>=1.0.0, <2.0.0'
+fingerprint:
+  README.md: bafybeies3iafkjwo4xvqtqpdxvood7pf2wgto4t76dqswy55rya7vl5zgu
+  __init__.py: bafybeiddslgyschgiuwsfiovqgxqqbkazdy6h3d4swwnq3tvpqaxzy37si
+  build/MemeFactory.json: bafybeiemn5b5nszuss7xj6lmvmjuendltp6wz7ubihdvd7c6wqw4bohbpa
+  contract.py: bafybeibkf435ticfwvhpkqvn4xhpqqqblkqdl7jw6cjwaknmvtxjzz4gwe
+fingerprint_ignore_patterns: []
+contracts: []
+class_name: MemeFactoryContract
+contract_interface_paths:
+  ethereum: build/MemeFactory.json
+dependencies:
+  ecdsa:
+    version: '>=0.15'
+  eth_typing: {}
+  hexbytes: {}
+  open-aea-ledger-ethereum:
+    version: ==1.55.0
+  open-aea-test-autonomy:
+    version: ==0.15.2
+  packaging: {}
+  requests:
+    version: ==2.28.1
+  web3:
+    version: <7,>=6.0.0
