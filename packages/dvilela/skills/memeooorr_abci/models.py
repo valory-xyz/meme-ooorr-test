@@ -52,7 +52,6 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the parameters object."""
         self.service_endpoint = self._ensure("service_endpoint", kwargs, str)
-        self.enable_posting = self._ensure("enable_posting", kwargs, bool)
         self.minimum_gas_balance = self._ensure("minimum_gas_balance", kwargs, float)
         self.olas_per_pool = self._ensure("olas_per_pool", kwargs, int)
         self.min_feedback_replies = self._ensure("min_feedback_replies", kwargs, int)

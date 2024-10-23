@@ -141,12 +141,6 @@ models:
       ipfs_address: https://gateway.autonolas.tech/ipfs/
       default_chain_id: ethereum
       service_endpoint: memeooorr.dummy.com/
-      fact_checker_url: https://factchecktools.googleapis.com/v1alpha1/claims:search
-      fact_checker_language: en-US
-      fact_checker_query: elections
-      fact_checker_max_days: 3
-      fact_checker_api_key: null
-      enable_posting: true
       minimum_gas_balance: 0.01
       olas_per_pool: 10
       percentage_supply_for_pool: 0.95

@@ -97,6 +97,11 @@ config:
       chain_id: ${int:31337}
       poa_chain: ${bool:false}
       default_gas_price_strategy: ${str:eip1559}
+    base:
+      address: ${str:http://localhost:8545}
+      chain_id: ${int:31337}
+      poa_chain: ${bool:false}
+      default_gas_price_strategy: ${str:eip1559}
 ---
 public_id: valory/p2p_libp2p_client:0.1.0
 type: connection
@@ -183,12 +188,6 @@ models:
       ipfs_address: ${str:https://gateway.autonolas.tech/ipfs/}
       default_chain_id: ${str:ethereum}
       termination_from_block: ${int:0}
-      fact_checker_url: ${str:https://factchecktools.googleapis.com/v1alpha1/claims:search}
-      fact_checker_language: ${str:en-US}
-      fact_checker_query: ${str:elections}
-      fact_checker_max_days: ${int:3}
-      fact_checker_api_key: ${str:null}
-      enable_posting: ${bool:true}
       minimum_gas_balance: ${float:0.01}
       olas_per_pool: ${int:10}
       percentage_supply_for_pool: ${float:0.95}

@@ -14,11 +14,6 @@ deployment:
     ports:
       0:
         8833: 8000
-  local:
-    volumes:
-      0:
-        /home/david/Descargas/data: /data
-        /home/david/.cache/huggingface: /root/.cache/huggingface
 ---
 public_id: dvilela/memeooorr_chained_abci:0.1.0
 type: skill
@@ -87,7 +82,6 @@ extra:
         ipfs_address: ${IPFS_ADDRESS:str:https://gateway.autonolas.tech/ipfs/}
         default_chain_id: ${DEFAULT_CHAIN_ID:str:ethereum}
         termination_from_block: ${TERMINATION_FROM_BLOCK:int:0}
-        enable_posting: ${ENABLE_POSTING:bool:true}
         minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.01}
         olas_per_pool: ${OLAS_PER_POOL:int:10}
         percentage_supply_for_pool: ${PERCENTAGE_SUPPLY_FOR_POOL:float:0.95}
@@ -106,6 +100,11 @@ config:
       chain_id: ${ETHEREUM_LEDGER_CHAIN_ID:int:31337}
       poa_chain: ${ETHEREUM_LEDGER_IS_POA_CHAIN:bool:false}
       default_gas_price_strategy: ${ETHEREUM_LEDGER_PRICING:str:eip1559}
+    base:
+      address: ${BASE_LEDGER_RPC:str:http://host.docker.internal:8545}
+      chain_id: ${BASE_LEDGER_CHAIN_ID:int:8453}
+      poa_chain: ${BASE_LEDGER_IS_POA_CHAIN:bool:false}
+      default_gas_price_strategy: ${BASE_LEDGER_PRICING:str:eip1559}
 ---
 public_id: valory/p2p_libp2p_client:0.1.0
 type: connection
