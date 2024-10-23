@@ -35,18 +35,25 @@ class MemeFactoryContract(Contract):
     contract_id = PUBLIC_ID
 
     @classmethod
-    def build_deposit_tx(
+    def build_deposit_tx(  # pylint: disable=too-many-arguments
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
         token_name: str,
         token_ticker: str,
-        holders: List[int] = [],
-        allocations: List[int] = [],
-        total_supply: int = 1e24,  # 1 million tokens for default 18 decimals
+        holders: Optional[List[int]] = None,
+        allocations: Optional[List[int]] = None,
+        total_supply: int = 1000000000000000000000000,  # 1 million tokens for default 18 decimals
         user_allocation: int = 1,
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
+
+        if holders is None:
+            holders = []
+
+        if allocations is None:
+            allocations = []
+
         contract_instance = cls.get_instance(ledger_api, contract_address)
         data = contract_instance.encodeABI(
             fn_name="deploy",
@@ -70,16 +77,13 @@ class MemeFactoryContract(Contract):
     ) -> Dict[str, Optional[str]]:
         """Get the data from the TokenDeployed event."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
-        tx_receipt = ledger_api.eth.getTransactionReceipt(tx_hash)
+        tx_receipt = ledger_api.api.eth.get_transaction_receipt(tx_hash)  # type: ignore
 
         for log in tx_receipt["logs"]:
-            try:
-                event = contract_instance.events.TokenDeployed().processLog(log)
-                return {
-                    "token_address": event["newToken"],
-                    "pool_address": event["uniswapV2Factory"],
-                }
-            except Exception:
-                pass
+            event = contract_instance.events.TokenDeployed().processLog(log)
+            return {
+                "token_address": event["newToken"],
+                "pool_address": event["uniswapV2Factory"],
+            }
 
         return {"token_address": None, "pool_address": None}

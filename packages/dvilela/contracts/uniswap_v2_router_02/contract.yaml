@@ -15,5 +15,7 @@ class_name: UniswapV2Router02Contract
 contract_interface_paths:
   ethereum: build/IUniswapV2Router02.json
 dependencies:
+  open-aea-ledger-ethereum:
+    version: ==1.55.0
   open-aea-test-autonomy:
-    version: ==0.3.2
+    version: ==0.15.2

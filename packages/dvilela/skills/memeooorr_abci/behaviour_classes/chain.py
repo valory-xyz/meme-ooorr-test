@@ -19,8 +19,7 @@
 
 """This package contains round behaviours of MemeooorrAbciApp."""
 
-import json
-from typing import Generator, List, Optional, Tuple, Type, cast
+from typing import Generator, Optional, Tuple, Type, cast
 
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.contracts.uniswap_v2_router_02.contract import (
@@ -114,16 +113,16 @@ class CheckFundsBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             )
             return None
 
-        balance = response_msg.raw_transaction.body.get("token", None)
+        balance_wei = cast(dict, response_msg.raw_transaction.body.get("token", None))
 
         # Ensure that the balance is not None
-        if balance is None:
+        if balance_wei is None:
             self.context.logger.error(
                 f"Error while retrieving the balance:  {response_msg}"
             )
             return None
 
-        balance = balance / 10**18  # from wei
+        balance = cast(int, balance_wei) / 10**18  # from wei
 
         self.context.logger.info(
             f"Account {self.synchronized_data.safe_contract_address} has {balance} Olas"
@@ -149,7 +148,7 @@ class CheckFundsBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             )
             return None
 
-        balance = cast(int, ledger_api_response.state.body["get_balance_result"])
+        balance = cast(float, ledger_api_response.state.body["get_balance_result"])
         balance = balance / 10**18  # from wei
 
         self.context.logger.error(f"Got native balance: {balance}")
@@ -181,7 +180,8 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
     def get_tx_hash(self) -> Generator[None, None, Tuple[Optional[str], Optional[str]]]:
         """Prepare the next transaction"""
 
-        tx_flag = self.synchronized_data.tx_flag
+        tx_flag: Optional[str] = self.synchronized_data.tx_flag
+        tx_hash: Optional[str] = None
 
         # Deploy
         if not tx_flag:
@@ -201,7 +201,7 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
         tx_flag = "done"
         return tx_hash, tx_flag
 
-    def get_deployment_tx(self) -> Generator[None, None, str]:
+    def get_deployment_tx(self) -> Generator[None, None, Optional[str]]:
         """Prepare a deployment tx"""
 
         # Transaction data
@@ -213,7 +213,7 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
 
         # Prepare safe transaction
         safe_tx_hash = yield from self._build_safe_tx_hash(
-            to_address=self.params.transfer_target_address, data=bytes.fromhex(data_hex)
+            to_address=self.params.meme_factory_address, data=bytes.fromhex(data_hex)
         )
 
         self.context.logger.info(f"Deployment hash is {safe_tx_hash}")
@@ -236,8 +236,8 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             token_ticker=token_proposal["token_ticker"],
             holders=[],
             allocations=[],
-            total_supply=self.params.total_supply,
-            user_allocation=self.params.user_allocation,
+            total_supply=int(self.params.total_supply),
+            user_allocation=int(self.params.user_allocation),
             chain_id=BASE_CHAIN_ID,
         )
 
@@ -248,8 +248,8 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             )
             return None
 
-        data_bytes: Optional[bytes] = response_msg.raw_transaction.body.get(
-            "data", None
+        data_bytes: Optional[bytes] = cast(
+            bytes, response_msg.raw_transaction.body.get("data", None)
         )
 
         # Ensure that the data is not None
@@ -266,27 +266,6 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
     def get_add_liquidity_tx(self) -> Generator[None, None, Optional[str]]:
         """Prepare a tx to add liquidity to the pool"""
 
-        # Transaction data
-        data_hex = yield from self.get_add_liquidity_data()
-
-        # Check for errors
-        if data_hex is None:
-            return None
-
-        # Prepare safe transaction
-        safe_tx_hash = yield from self._build_safe_tx_hash(
-            to_address=self.params.transfer_target_address, data=bytes.fromhex(data_hex)
-        )
-
-        self.context.logger.info(f"Add liquidity hash is {safe_tx_hash}")
-
-        return safe_tx_hash
-
-    def get_add_liquidity_data(self) -> Generator[None, None, Optional[str]]:
-        """Get the add liquidity transaction data"""
-
-        self.context.logger.info("Preparing add liquidity transaction")
-
         # Extract the token and pool addresses from the TokenDeployed event
         token_address, pool_address = yield from self.get_event_data()
 
@@ -294,10 +273,33 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             self.context.logger.error("Error while getting the event data")
             return None
 
+        # Transaction data
+        data_hex = yield from self.get_add_liquidity_data(token_address, pool_address)
+
+        # Check for errors
+        if data_hex is None:
+            return None
+
+        # Prepare safe transaction
+        safe_tx_hash = yield from self._build_safe_tx_hash(
+            to_address=pool_address, data=bytes.fromhex(data_hex)
+        )
+
+        self.context.logger.info(f"Add liquidity hash is {safe_tx_hash}")
+
+        return safe_tx_hash
+
+    def get_add_liquidity_data(
+        self, token_address: str, pool_address: str
+    ) -> Generator[None, None, Optional[str]]:
+        """Get the add liquidity transaction data"""
+
+        self.context.logger.info("Preparing add liquidity transaction")
+
         # Use the contract api to interact with the ERC20 contract
         response_msg = yield from self.get_contract_api_response(
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
-            contract_address=pool_address,
+            contract_address=self.params.uniswap_v2_router_address,
             contract_id=str(UniswapV2Router02Contract.contract_id),
             contract_callable="add_liquidity",
             token_a=self.params.olas_token_address,
@@ -318,8 +320,8 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             )
             return None
 
-        data_bytes: Optional[bytes] = response_msg.raw_transaction.body.get(
-            "data", None
+        data_bytes: Optional[bytes] = cast(
+            bytes, response_msg.raw_transaction.body.get("data", None)
         )
 
         # Ensure that the data is not None
@@ -368,7 +370,7 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             return None
 
         # Extract the hash and check it has the correct length
-        tx_hash: Optional[str] = response_msg.state.body.get("tx_hash", None)
+        tx_hash: Optional[str] = cast(str, response_msg.state.body.get("tx_hash", None))
 
         if tx_hash is None or len(tx_hash) != TX_HASH_LENGTH:
             self.context.logger.error(
@@ -412,6 +414,10 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             self.context.logger.error(f"Could not get the event data: {response_msg}")
             return None, None
 
-        token_address = response_msg.raw_transaction.body.get("token_address", None)
-        pool_address = response_msg.raw_transaction.body.get("pool_address", None)
+        token_address = cast(
+            str, response_msg.raw_transaction.body.get("token_address", None)
+        )
+        pool_address = cast(
+            str, response_msg.raw_transaction.body.get("pool_address", None)
+        )
         return token_address, pool_address

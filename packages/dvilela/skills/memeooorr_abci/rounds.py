@@ -28,8 +28,6 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     CheckFundsPayload,
     CollectFeedbackPayload,
     DeploymentPayload,
-    PostDeploymentPayload,
-    PostRefinedTweetPayload,
     PostTweetPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import (
@@ -52,7 +50,6 @@ class Event(Enum):
     DONE = "done"
     NO_FUNDS = "no_funds"
     SETTLE = "settle"
-    ABORT = "abort"
     REFINE = "refine"
     API_ERROR = "api_error"
     NO_MAJORITY = "no_majority"
@@ -73,11 +70,9 @@ class SynchronizedData(BaseSynchronizedData):
         return CollectionRound.deserialize_collection(serialized)
 
     @property
-    def token_proposal(self) -> Optional[Dict]:
+    def token_proposal(self) -> Dict:
         """Get the tokwn proposal."""
-        return cast(
-            dict, json.loads(cast(str, self.db.get("pending_deployments", None)))
-        )
+        return cast(dict, json.loads(cast(str, self.db.get("token_proposal", "{}"))))
 
     @property
     def feedback(self) -> Optional[List]:
@@ -109,8 +104,8 @@ class PostInitialTweetRound(CollectSameUntilThresholdRound):
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            # this needs to be mentioned for static checkers
-            # Event.NO_MAJORITY, Event.DONE, Event.NO_FUNDS, Event.NO_MAJORITY
+            # This needs to be mentioned for static checkers
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
             payload = json.loads(self.most_voted_payload)
             token_proposal = payload["token_proposal"]
 
@@ -133,9 +128,15 @@ class PostInitialTweetRound(CollectSameUntilThresholdRound):
 class PostDeploymentRound(PostInitialTweetRound):
     """PostDeploymentRound"""
 
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
 
 class PostRefinedTweetRound(PostInitialTweetRound):
     """PostRefinedTweetRound"""
+
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
 
 class CollectFeedbackRound(CollectSameUntilThresholdRound):
@@ -147,8 +148,8 @@ class CollectFeedbackRound(CollectSameUntilThresholdRound):
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            # this needs to be mentioned for static checkers
-            # Event.NO_MAJORITY, Event.DONE, Event.NO_FUNDS, Event.NO_MAJORITY
+            # This needs to be mentioned for static checkers
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
             payload = json.loads(self.most_voted_payload)
             feedback = payload["feedback"]
 
@@ -181,8 +182,8 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            # this needs to be mentioned for static checkers
-            # Event.NO_MAJORITY, Event.DONE, Event.NO_FUNDS, Event.NO_MAJORITY
+            # This needs to be mentioned for static checkers
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
             # Errors
             if not self.most_voted_payload:
@@ -216,8 +217,8 @@ class CheckFundsRound(CollectSameUntilThresholdRound):
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            # this needs to be mentioned for static checkers
-            # Event.NO_MAJORITY, Event.DONE, Event.NO_FUNDS, Event.NO_MAJORITY
+            # This needs to be mentioned for static checkers
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.NO_FUNDS
             payload = json.loads(self.most_voted_payload)
             event = Event(payload["event"])
             return self.synchronized_data, event
@@ -238,8 +239,8 @@ class DeploymentRound(CollectSameUntilThresholdRound):
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            # this needs to be mentioned for static checkers
-            # Event.NO_MAJORITY, Event.DONE, Event.NO_FUNDS, Event.NO_MAJORITY
+            # This needs to be mentioned for static checkers
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
             payload = json.loads(self.most_voted_payload)
 
             if payload.tx_flag is None:
@@ -273,8 +274,8 @@ class FinishedToSettlementRound(DegenerateRound):
 class MemeooorrAbciApp(AbciApp[Event]):
     """MemeooorrAbciApp"""
 
-    initial_round_cls: AppState = PostTweetPayload
-    initial_states: Set[AppState] = {PostTweetPayload}
+    initial_round_cls: AppState = PostInitialTweetRound
+    initial_states: Set[AppState] = {PostInitialTweetRound, DeploymentRound}
     transition_function: AbciAppTransitionFunction = {
         PostInitialTweetRound: {
             Event.DONE: CollectFeedbackRound,
@@ -283,7 +284,8 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: PostInitialTweetRound,
         },
         CollectFeedbackRound: {
-            Event.DONE: CheckFundsRound,
+            Event.DONE: AnalizeFeedbackRound,
+            Event.API_ERROR: CollectFeedbackRound,
             Event.NOT_ENOUGH_FEEDBACK: FinishedToResetRound,
             Event.NO_MAJORITY: CollectFeedbackRound,
             Event.ROUND_TIMEOUT: CollectFeedbackRound,
@@ -291,7 +293,6 @@ class MemeooorrAbciApp(AbciApp[Event]):
         AnalizeFeedbackRound: {
             Event.DONE: CheckFundsRound,
             Event.REFINE: PostRefinedTweetRound,
-            Event.ABORT: FinishedToResetRound,
             Event.API_ERROR: AnalizeFeedbackRound,
             Event.NO_MAJORITY: AnalizeFeedbackRound,
             Event.ROUND_TIMEOUT: AnalizeFeedbackRound,
@@ -328,9 +329,10 @@ class MemeooorrAbciApp(AbciApp[Event]):
     event_to_timeout: EventToTimeout = {}
     cross_period_persisted_keys: FrozenSet[str] = frozenset()
     db_pre_conditions: Dict[AppState, Set[str]] = {
-        CheckFundsRound: set(),
+        PostInitialTweetRound: set(),
+        DeploymentRound: set(),
     }
     db_post_conditions: Dict[AppState, Set[str]] = {
         FinishedToResetRound: set(),
-        FinishedToSettlementRound: set(),
+        FinishedToSettlementRound: {"most_voted_tx_hash"},
     }

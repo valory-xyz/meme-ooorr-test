@@ -22,8 +22,6 @@
 import json
 from typing import Dict, Generator, Optional, Type
 
-from twitter_text import parse_tweet  # type: ignore
-
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
@@ -53,7 +51,7 @@ class AnalizeFeedbackBehaviour(
 
             payload = AnalizeFeedbackPayload(
                 sender=self.context.agent_address,
-                evaluation=json.dumps(token_proposal, sort_keys=True),
+                token_proposal=json.dumps(token_proposal, sort_keys=True),
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():

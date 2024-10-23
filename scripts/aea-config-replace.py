@@ -49,6 +49,7 @@ PATH_TO_VAR = {
     "models/params/args/total_supply": "TOTAL_SUPPLY",
     "models/params/args/user_allocation": "USER_ALLOCATION",
     "models/params/args/meme_factory_address": "MEME_FACTORY_ADDRESS",
+    "models/params/args/uniswap_v2_router_address": "UNISWAP_V2_ROUTER_ADDRESS",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",

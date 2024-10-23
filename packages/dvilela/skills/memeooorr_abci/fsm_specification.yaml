@@ -1,25 +1,59 @@
 alphabet_in:
+- API_ERROR
 - DONE
+- NOT_ENOUGH_FEEDBACK
+- NO_FUNDS
 - NO_MAJORITY
+- REFINE
 - ROUND_TIMEOUT
-default_start_state: UpdateNewsPoolRound
+- SETTLE
+default_start_state: PostInitialTweetRound
 final_states:
-- FinishedPublishRound
+- FinishedToResetRound
+- FinishedToSettlementRound
 label: MemeooorrAbciApp
 start_states:
-- UpdateNewsPoolRound
+- DeploymentRound
+- PostInitialTweetRound
 states:
-- FinishedPublishRound
-- PostResponsesRound
-- UpdateNewsPoolRound
-- UpdateTweetsPoolRound
+- AnalizeFeedbackRound
+- CheckFundsRound
+- CollectFeedbackRound
+- DeploymentRound
+- FinishedToResetRound
+- FinishedToSettlementRound
+- PostDeploymentRound
+- PostInitialTweetRound
+- PostRefinedTweetRound
 transition_func:
-    (PostResponsesRound, DONE): FinishedPublishRound
-    (PostResponsesRound, NO_MAJORITY): UpdateTweetsPoolRound
-    (PostResponsesRound, ROUND_TIMEOUT): UpdateTweetsPoolRound
-    (UpdateNewsPoolRound, DONE): UpdateTweetsPoolRound
-    (UpdateNewsPoolRound, NO_MAJORITY): UpdateNewsPoolRound
-    (UpdateNewsPoolRound, ROUND_TIMEOUT): UpdateNewsPoolRound
-    (UpdateTweetsPoolRound, DONE): PostResponsesRound
-    (UpdateTweetsPoolRound, NO_MAJORITY): UpdateTweetsPoolRound
-    (UpdateTweetsPoolRound, ROUND_TIMEOUT): UpdateTweetsPoolRound
+    (AnalizeFeedbackRound, API_ERROR): AnalizeFeedbackRound
+    (AnalizeFeedbackRound, DONE): CheckFundsRound
+    (AnalizeFeedbackRound, NO_MAJORITY): AnalizeFeedbackRound
+    (AnalizeFeedbackRound, REFINE): PostRefinedTweetRound
+    (AnalizeFeedbackRound, ROUND_TIMEOUT): AnalizeFeedbackRound
+    (CheckFundsRound, DONE): DeploymentRound
+    (CheckFundsRound, NO_FUNDS): CheckFundsRound
+    (CheckFundsRound, NO_MAJORITY): CheckFundsRound
+    (CheckFundsRound, ROUND_TIMEOUT): CheckFundsRound
+    (CollectFeedbackRound, API_ERROR): CollectFeedbackRound
+    (CollectFeedbackRound, DONE): AnalizeFeedbackRound
+    (CollectFeedbackRound, NOT_ENOUGH_FEEDBACK): FinishedToResetRound
+    (CollectFeedbackRound, NO_MAJORITY): CollectFeedbackRound
+    (CollectFeedbackRound, ROUND_TIMEOUT): CollectFeedbackRound
+    (DeploymentRound, API_ERROR): DeploymentRound
+    (DeploymentRound, DONE): PostDeploymentRound
+    (DeploymentRound, NO_MAJORITY): DeploymentRound
+    (DeploymentRound, ROUND_TIMEOUT): DeploymentRound
+    (DeploymentRound, SETTLE): FinishedToSettlementRound
+    (PostDeploymentRound, API_ERROR): PostDeploymentRound
+    (PostDeploymentRound, DONE): FinishedToResetRound
+    (PostDeploymentRound, NO_MAJORITY): PostDeploymentRound
+    (PostDeploymentRound, ROUND_TIMEOUT): PostDeploymentRound
+    (PostInitialTweetRound, API_ERROR): PostInitialTweetRound
+    (PostInitialTweetRound, DONE): CollectFeedbackRound
+    (PostInitialTweetRound, NO_MAJORITY): PostInitialTweetRound
+    (PostInitialTweetRound, ROUND_TIMEOUT): PostInitialTweetRound
+    (PostRefinedTweetRound, API_ERROR): PostRefinedTweetRound
+    (PostRefinedTweetRound, DONE): FinishedToResetRound
+    (PostRefinedTweetRound, NO_MAJORITY): PostRefinedTweetRound
+    (PostRefinedTweetRound, ROUND_TIMEOUT): PostRefinedTweetRound

@@ -20,7 +20,7 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
-from typing import Dict, Generator, List, Type
+from typing import Dict, Generator, List, Optional, Type
 
 from twitter_text import parse_tweet  # type: ignore
 
@@ -31,11 +31,8 @@ from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     CollectFeedbackPayload,
     CollectFeedbackRound,
-    Event,
-    PostDeploymentPayload,
     PostDeploymentRound,
     PostInitialTweetRound,
-    PostRefinedTweetPayload,
     PostRefinedTweetRound,
     PostTweetPayload,
 )
@@ -76,7 +73,7 @@ class PostInitialTweetBehaviour(
 
     def post_tweet(  # pylint: disable=too-many-locals
         self,
-    ) -> Generator[None, None, Dict]:
+    ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
 
         token_proposal = self.synchronized_data.token_proposal
@@ -94,10 +91,16 @@ class PostInitialTweetBehaviour(
                 self.context.logger.error("Error getting a response from the LLM.")
                 return None
 
+            try:
+                response = json.loads(llm_response)
+            except json.JSONDecodeError as e:
+                self.context.logger.error(f"Error loading the LLM response: {e}")
+                return None
+
             token_proposal = {
-                "token_name": llm_response["token_name"],
-                "token_ticker": llm_response["token_name"],
-                "proposal": llm_response["proposal"],
+                "token_name": response["token_name"],
+                "token_ticker": response["token_name"],
+                "proposal": response["proposal"],
                 "announcement": None,
                 "deploy": None,
                 "token_address": None,
@@ -126,13 +129,17 @@ class PostInitialTweetBehaviour(
         return token_proposal
 
 
-class PostRefinedTweetBehaviour(PostInitialTweetBehaviour):
+class PostRefinedTweetBehaviour(
+    PostInitialTweetBehaviour
+):  # pylint: disable=too-many-ancestors
     """PostRefinedTweetBehaviour"""
 
     matching_round: Type[AbstractRound] = PostRefinedTweetRound
 
 
-class PostDeploymentBehaviour(PostInitialTweetBehaviour):
+class PostDeploymentBehaviour(
+    PostInitialTweetBehaviour
+):  # pylint: disable=too-many-ancestors
     """PostDeploymentBehaviour"""
 
     matching_round: Type[AbstractRound] = PostDeploymentRound
@@ -162,7 +169,7 @@ class CollectFeedbackBehaviour(
 
         self.set_done()
 
-    def get_feedback(self) -> Generator[None, None, List]:
+    def get_feedback(self) -> Generator[None, None, Optional[List]]:
         """Get the responses"""
 
         # Search new replies

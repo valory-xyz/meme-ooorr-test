@@ -10,7 +10,7 @@ fingerprint:
   behaviours.py: bafybeidabq5scnvljux2732bdbg7xnpnnz54y6t2kdooltd2jgugkz2voi
   composition.py: bafybeidjziz4hwtlpthdxa7ym5l5nuoi4aruu73uf5iebd6wbklo4kalfi
   dialogues.py: bafybeiawrgmlra5f6o63nhv5kc77wvzoqmcareub3lf4qceuwpjso4pjbe
-  fsm_specification.yaml: bafybeia2kkj3kniuesdbvnxzp3gzow75kf7dnvdthm2bdyixjttjeie7lm
+  fsm_specification.yaml: bafybeievrwpgkzxxx3usoizgimurak52fmjjpdc25k542pauu66h2ugzh4
   handlers.py: bafybeibw5nfno2scl5qzly3fpvodgoovikl6h3hoiiu6e4sqpbbczbzfim
   models.py: bafybeihmxfjz6irdm5xje6mvnhfc6rwlehzyvhds5shyzz2okrzgac2xde
 fingerprint_ignore_patterns: []
@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/termination_abci:0.1.0:bafybeid54buqxipiuduw7b6nnliiwsxajnltseuroad53wukfonpxca2om
-- dvilela/memeooorr_abci:0.1.0:bafybeighu4n3wtubjoucqkqn53hwphdxnf57mqf2yoouafh2eezz6vdrge
+- dvilela/memeooorr_abci:0.1.0:bafybeigvvu2acavilwjvzrytjnfvz7xyx64pdcdzrsttzvlnqfvis5ffpy
 behaviours:
   main:
     args: {}
@@ -149,6 +149,7 @@ models:
       user_allocation: 1000000000000000000000000
       meme_factory_address: '0x0000000000000000000000000000000000000000'
       olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
+      uniswap_v2_router_address: '0x0000000000000000000000000000000000000000'
     class_name: Params
   randomness_api:
     args:

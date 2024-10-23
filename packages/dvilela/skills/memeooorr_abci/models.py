@@ -62,4 +62,8 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         )
         self.meme_factory_address = self._ensure("meme_factory_address", kwargs, str)
         self.olas_token_address = self._ensure("olas_token_address", kwargs, str)
+        self.uniswap_v2_router_address = self._ensure(
+            "uniswap_v2_router_address", kwargs, str
+        )
+
         super().__init__(*args, **kwargs)
