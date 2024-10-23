@@ -6,10 +6,10 @@ description: MemeFactory contract
 license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
-  README.md: bafybeifmfma6rglvpa22odtozyosnp5mwljum64utxip2wgmezuhnjjjyi
-  __init__.py: bafybeif5vpc3dfrlxlch7brbhmdwksabyzddpfqgm56vdbbkek3t3br6ke
-  build/ERC20.json: bafybeiemn5b5nszuss7xj6lmvmjuendltp6wz7ubihdvd7c6wqw4bohbpa
-  contract.py: bafybeidewckxjj6vaz7sphkpnjgmsyhi7v7hijaz44yu7vbsnv3znqj3wm
+  README.md: bafybeies3iafkjwo4xvqtqpdxvood7pf2wgto4t76dqswy55rya7vl5zgu
+  __init__.py: bafybeiddslgyschgiuwsfiovqgxqqbkazdy6h3d4swwnq3tvpqaxzy37si
+  build/MemeFactory.json: bafybeiemn5b5nszuss7xj6lmvmjuendltp6wz7ubihdvd7c6wqw4bohbpa
+  contract.py: bafybeidotfhjdwsdedpuotn2tjnxak7kouz7clqllfz3rvnh4fhwnlsaza
 fingerprint_ignore_patterns: []
 contracts: []
 class_name: MemeFactoryContract

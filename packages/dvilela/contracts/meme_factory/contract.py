@@ -26,7 +26,7 @@ from aea.contracts.base import Contract
 from aea_ledger_ethereum import EthereumApi
 
 
-PUBLIC_ID = PublicId.from_str("valory/meme_factory:0.1.0")
+PUBLIC_ID = PublicId.from_str("dvilela/meme_factory:0.1.0")
 
 
 class MemeFactoryContract(Contract):

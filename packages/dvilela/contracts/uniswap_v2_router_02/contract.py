@@ -27,7 +27,7 @@ from aea.contracts.base import Contract
 from aea_ledger_ethereum import EthereumApi
 
 
-PUBLIC_ID = PublicId.from_str("valory/uniswap_v2_router_02:0.1.0")
+PUBLIC_ID = PublicId.from_str("dvilela/uniswap_v2_router_02:0.1.0")
 
 _logger = logging.getLogger(
     f"aea.packages.{PUBLIC_ID.author}.contracts.{PUBLIC_ID.name}.contract"
