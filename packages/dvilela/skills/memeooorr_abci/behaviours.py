@@ -25,6 +25,9 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
     CheckFundsBehaviour,
     DeploymentBehaviour,
 )
+from packages.dvilela.skills.memeooorr_abci.behaviour_classes.db import (
+    LoadDatabaseBehaviour,
+)
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.llm import (
     AnalizeFeedbackBehaviour,
 )
@@ -37,9 +40,6 @@ from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.behaviours import (
     AbstractRoundBehaviour,
     BaseBehaviour,
-)
-from packages.dvilela.skills.memeooorr_abci.behaviour_classes.db import (
-    LoadDatabaseBehaviour,
 )
 
 

@@ -224,7 +224,7 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
         """Get the deployment transaction data"""
 
         self.context.logger.info("Preparing deployment transaction")
-        token_proposal = self.synchronized_data.token_proposal
+        token_data = self.synchronized_data.token_data
 
         # Use the contract api to interact with the ERC20 contract
         response_msg = yield from self.get_contract_api_response(
@@ -232,8 +232,8 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             contract_address=self.params.meme_factory_address,
             contract_id=str(MemeFactoryContract.contract_id),
             contract_callable="deploy",
-            token_name=token_proposal["token_name"],
-            token_ticker=token_proposal["token_ticker"],
+            token_name=token_data["token_name"],
+            token_ticker=token_data["token_ticker"],
             holders=[],
             allocations=[],
             total_supply=int(self.params.total_supply),

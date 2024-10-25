@@ -27,12 +27,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple, cast
 
+import twikit  # type: ignore
 from aea.configurations.base import PublicId
 from aea.connections.base import BaseSyncConnection
 from aea.mail.base import Envelope
 from aea.protocols.base import Address, Message
 from aea.protocols.dialogue.base import Dialogue
-from twikit import Client  # type: ignore
 
 from packages.valory.protocols.srr.dialogues import SrrDialogue
 from packages.valory.protocols.srr.dialogues import SrrDialogues as BaseSrrDialogues
@@ -103,7 +103,7 @@ class TwikitConnection(BaseSyncConnection):
         self.email = self.configuration.config.get("twikit_email")
         self.password = self.configuration.config.get("twikit_password")
         self.cookies = self.configuration.config.get("twikit_cookies")
-        self.client = Client(language="en-US")
+        self.client = twikit.Client(language="en-US")
 
         self.run_task(self.twikit_login)
         self.last_call = datetime.now(timezone.utc)
@@ -121,7 +121,6 @@ class TwikitConnection(BaseSyncConnection):
             return asyncio.ensure_future(method(**kwargs))
         except RuntimeError:
             return asyncio.run(method(**kwargs))
-
 
     def main(self) -> None:
         """
@@ -265,9 +264,20 @@ class TwikitConnection(BaseSyncConnection):
         """Post tweets"""
         tweet_ids = []
         for tweet_kwargs in tweets:
-            print(f"Posting: {tweet_kwargs}")
-            result = await self.client.create_tweet(**tweet_kwargs)
-            tweet_ids.append(result.id)
+            self.logger.info(f"Posting: {tweet_kwargs}")
+
+            while True:
+                result = await self.client.create_tweet(**tweet_kwargs)
+
+                # Verify that the tweet exists
+                try:
+                    await self.client.get_tweet_by_id(result.id)
+                    tweet_ids.append(result.id)
+                    break
+                except twikit.errors.TweetNotAvailable:
+                    self.logger.error("Failed to verify the tweet. Retrying...")
+                    continue
+
         return tweet_ids
 
 

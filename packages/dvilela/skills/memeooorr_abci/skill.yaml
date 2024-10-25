@@ -8,24 +8,24 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeigesqbyavhd63szccndgqbiluze3qrlxhooaiaclkevlxmhlyolqm
-  behaviour_classes/chain.py: bafybeibddjfwerlhkpgan7crrccj762zhzlb7bqb42btz6qmpyg6z7cb7e
-  behaviour_classes/db.py: bafybeicjdq5wnn7bbxwafzjarim7km6sfqvqeu6nvfsan5dxfy4ddktjzq
+  behaviour_classes/base.py: bafybeiectbspllsxvcxstrbvyrsfwgqelu6lctopfcu54le3cnee5c5bqi
+  behaviour_classes/chain.py: bafybeid5jhq5kqw2nspbauv3j4wuvqudifzyoaf4ytzy7lytw5tkzhpcoq
+  behaviour_classes/db.py: bafybeicfvk7zdxb7xoddosxqx7gdgqix4wtatr3aa62622zzdyroq5zxb4
   behaviour_classes/llm.py: bafybeidlajxpr442vptqvzbdiv7zlaypllnpssrlar5fm3n4lp3pnzjvby
-  behaviour_classes/twitter.py: bafybeibsiyweipyb5due33j3pl36h46ivwjco5md7e4ocvcslwxrdieinu
-  behaviours.py: bafybeiainnngnmgpys7eenly4rbomcr4n6y7lxrllhjoad3vd5sl3ssv6y
+  behaviour_classes/twitter.py: bafybeie45yhstm3pglz3gimz5taxxoanxmsf372zltvhdkjj7672ikpb6i
+  behaviours.py: bafybeieicsjfnjwm6ijgrqep4fxw26n3pei2bvvlavqjl4w2axr5wxfjdi
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
-  fsm_specification.yaml: bafybeiccc74i46qhljvi667wpwohn4pa6mwc3bcuumplxyqxklwpwamnai
+  fsm_specification.yaml: bafybeihxr32tlovwo6j32bcrkjlev7u5bk4rb2jtt5sxvbp5qq7lhf3jey
   handlers.py: bafybeia3ew422w57ot7jpbrhmagepm7pcoqkkc53p5w4jm4co4yh4tz7em
   models.py: bafybeictfgpkdycdjhupgrajmbqjglyvrmc36v7vx44py4bgr633cmxevy
-  payloads.py: bafybeifyayektmtq5hxpbbp4fbvnp6cxwirvtbg3mmfe3tjwwpr4ynmwvy
+  payloads.py: bafybeidg5xr5bwnvhvk7wnhep2vu66dgsz244mjbj7pvmst7n43yvbt5yu
   prompts.py: bafybeiccjmv4n74nkghzeqnijhm2buhu7rn6tf5ynlrc74gfqbl7izm2jm
-  rounds.py: bafybeibtrzv2s7foes6zpo7ldljihzy6gaskhjvkbramx4qa7nlfxmti7e
+  rounds.py: bafybeiftpaow2s3kzgezguoyzfm6m2ofsrfifogelmf7fblzfyfg26r5wi
   subgraph.py: bafybeigme6r3cwiiu5l7r55rcbj7y37b62cxtlsnewpkbjqcbadwte32xm
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
-- dvilela/twikit:0.1.0:bafybeiejijqve5srlprdiaw5x7hkypfrdiwj435nd2um35x56ewefjim6i
+- dvilela/twikit:0.1.0:bafybeietw4m2t2eliptjh6zuwtcuye6lbo6wttpv4agrf5475uunewvrke
 - dvilela/genai:0.1.0:bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:

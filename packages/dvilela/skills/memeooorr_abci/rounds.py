@@ -28,8 +28,8 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     CheckFundsPayload,
     CollectFeedbackPayload,
     DeploymentPayload,
+    LoadDatabasePayload,
     PostTweetPayload,
-    LoadDatabasePayload
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -56,6 +56,7 @@ class Event(Enum):
     NO_MAJORITY = "no_majority"
     ROUND_TIMEOUT = "round_timeout"
     NOT_ENOUGH_FEEDBACK = "not_enough_feedback"
+    SKIP_FIRST_TWEET = "skip_first_tweet"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -86,17 +87,22 @@ class SynchronizedData(BaseSynchronizedData):
         return cast(str, self.db.get("pending_tweet", None))
 
     @property
-    def latest_tweet(self) -> Optional[Dict]:
+    def skip_next_tweet(self) -> bool:
+        """Get the skip_next_tweet."""
+        return cast(bool, self.db.get_strict("skip_next_tweet"))
+
+    @property
+    def latest_tweet(self) -> Dict:
         """Get the latest_tweet."""
-        return cast(dict, json.loads(self.db.get("latest_tweet", "{}")))
+        return cast(dict, json.loads(cast(str, self.db.get("latest_tweet", "{}"))))
 
     @property
-    def token_data(self) -> Optional[Dict]:
+    def token_data(self) -> Dict:
         """Get the token data."""
-        return cast(dict, json.loads(cast(str, self.db.get("token_data", "{}"))))
+        return cast(dict, json.loads(cast(str, self.db.get_strict("token_data"))))
 
     @property
-    def feedback(self) -> Optional[List]:
+    def feedback(self) -> List:
         """Get the feedback."""
         return cast(list, json.loads(cast(str, self.db.get("feedback", "[]"))))
 
@@ -121,15 +127,40 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
 
     payload_class = LoadDatabasePayload
     synchronized_data_class = SynchronizedData
-    done_event = Event.DONE
-    no_majority_event = Event.NO_MAJORITY
     collection_key = get_name(SynchronizedData.participants_to_db)
     selection_key = (
         get_name(SynchronizedData.persona),
-        get_name(SynchronizedData.latest_tweet)
+        get_name(SynchronizedData.latest_tweet),
+        get_name(SynchronizedData.skip_next_tweet),
     )
 
-    # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
+        """Process the end of the block."""
+
+        # This needs to be mentioned for static checkers
+        # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
+        if self.threshold_reached:
+            payload = dict(zip(self.selection_key, self.most_voted_payload_values))
+
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(SynchronizedData.persona): payload["persona"],
+                    get_name(SynchronizedData.latest_tweet): payload["latest_tweet"],
+                },
+            )
+
+            event = Event.SKIP_FIRST_TWEET if payload["skip_next_tweet"] else Event.DONE
+
+            return synchronized_data, event
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+
+        return None
 
 
 class PostTweetRound(CollectSameUntilThresholdRound):
@@ -141,21 +172,24 @@ class PostTweetRound(CollectSameUntilThresholdRound):
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
 
+        # This needs to be mentioned for static checkers
+        # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
         if self.threshold_reached:
-            synchronized_data = self.synchronized_data
             latest_tweet = json.loads(self.most_voted_payload)
 
             if latest_tweet is None:
                 return self.synchronized_data, Event.API_ERROR
 
             # Remove posted tweets from pending and into latest
-            synchronized_data = synchronized_data.update(
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
                 **{
                     get_name(SynchronizedData.pending_tweet): None,
                     get_name(SynchronizedData.latest_tweet): json.dumps(
                         latest_tweet, sort_keys=True
                     ),
-                }
+                },
             )
 
             return synchronized_data, Event.DONE
@@ -197,11 +231,12 @@ class CollectFeedbackRound(CollectSameUntilThresholdRound):
                 return self.synchronized_data, Event.NOT_ENOUGH_FEEDBACK
 
             synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
                 **{
                     get_name(SynchronizedData.feedback): json.dumps(
                         feedback, sort_keys=True
                     )
-                }
+                },
             )
             return synchronized_data, Event.DONE
 
@@ -230,11 +265,21 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
 
             analysis = json.loads(self.most_voted_payload)
 
+            # TODO: REMOVE, TESTING ONLY
+            analysis = {
+                "deploy": True,
+                "persona": "",
+                "token_name": "Supreme Meowjesty",
+                "token_ticker": "$MEOW",
+                "tweet": "The people have spoken! 😹👑 Get ready to unleash your inner feline overlord with $MEOW, the new meme token for all cat lovers and aspiring Supreme Meowjesty candidates! 🚀  #catlife #felineoverlords #crypto",
+            }
+
             # Update persona
             if not analysis["deploy"]:
                 self.context.logger.info(f"Updated persona: {analysis['persona']}")
                 synchronized_data = self.synchronized_data.update(
-                    **{get_name(SynchronizedData.persona): analysis["persona"]}
+                    synchronized_data_class=SynchronizedData,
+                    **{get_name(SynchronizedData.persona): analysis["persona"]},
                 )
                 return synchronized_data, Event.REFINE
 
@@ -245,7 +290,8 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
                 "tweet": analysis["tweet"],
             }
             synchronized_data = self.synchronized_data.update(
-                **{get_name(SynchronizedData.token_data): token_data}
+                synchronized_data_class=SynchronizedData,
+                **{get_name(SynchronizedData.token_data): token_data},
             )
 
             return synchronized_data, Event.DONE
@@ -268,8 +314,7 @@ class CheckFundsRound(CollectSameUntilThresholdRound):
         if self.threshold_reached:
             # This needs to be mentioned for static checkers
             # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.NO_FUNDS
-            payload = json.loads(self.most_voted_payload)
-            event = Event(payload["event"])
+            event = Event(self.most_voted_payload)
             return self.synchronized_data, event
 
         if not self.is_majority_possible(
@@ -296,10 +341,11 @@ class DeploymentRound(CollectSameUntilThresholdRound):
                 return self.synchronized_data, Event.API_ERROR
 
             synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
                 **{
                     get_name(SynchronizedData.most_voted_tx_hash): payload.tx_hash,
                     get_name(SynchronizedData.tx_flag): payload.tx_flag,
-                }
+                },
             )
 
             event = Event.DONE if payload.tx_flag == "done" else Event.SETTLE
@@ -329,6 +375,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
             Event.DONE: PostTweetRound,
+            Event.SKIP_FIRST_TWEET: CollectFeedbackRound,
             Event.NO_MAJORITY: LoadDatabaseRound,
             Event.ROUND_TIMEOUT: LoadDatabaseRound,
         },

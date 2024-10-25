@@ -126,7 +126,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
     def _read_kv(
         self,
-        keys: Tuple[str],
+        keys: Tuple[str, ...],
     ) -> Generator[None, None, Optional[Dict]]:
         """Send a request message from the skill context."""
         self.context.logger.info(f"Reading keys from db: {keys}")

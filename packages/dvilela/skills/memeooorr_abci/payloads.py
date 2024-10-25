@@ -31,6 +31,7 @@ class LoadDatabasePayload(BaseTxPayload):
 
     persona: str
     latest_tweet: Optional[str]
+    skip_next_tweet: bool
 
 
 @dataclass(frozen=True)

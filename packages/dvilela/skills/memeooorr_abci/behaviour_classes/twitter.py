@@ -31,7 +31,6 @@ from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     CollectFeedbackPayload,
     CollectFeedbackRound,
-    Event,
     PostAnnouncementtRound,
     PostTweetPayload,
     PostTweetRound,
@@ -71,7 +70,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
     def post_tweet(  # pylint: disable=too-many-locals
         self,
-    ) -> Generator[None, None, Optional[str]]:
+    ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
 
         tweet = self.synchronized_data.pending_tweet
@@ -106,10 +105,13 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             return None
 
         # Write latest tweet to the database
-        yield from self._write_kv({"latest_tweet": tweet})
+        latest_tweet = {"tweet_id": tweet_ids[0], "text": tweet}
+        yield from self._write_kv(
+            {"latest_tweet": json.dumps(latest_tweet, sort_keys=True)}
+        )
         self.context.logger.info("Wrote latest tweet to db")
 
-        return {"tweet_id": tweet_ids[0], "text": tweet}
+        return latest_tweet
 
 
 class PostAnnouncementtBehaviour(
@@ -157,11 +159,11 @@ class CollectFeedbackBehaviour(
             {
                 "id": "1849853239392600458",
                 "user_name": "",
-                "text": "This is shit, dogs rule and are way better!",
+                "text": "This is absolutely amazing! I love it!",
                 "created_at": "1",
-                "view_count": 2,
-                "retweet_count": 1,
-                "quote_count": 1,
+                "view_count": 2000,
+                "retweet_count": 1000,
+                "quote_count": 1000,
                 "view_count_state": "",
             }
         ] * 10
@@ -177,5 +179,19 @@ class CollectFeedbackBehaviour(
             return []
 
         self.context.logger.info(f"Retrieved {len(feedback)} replies")
+
+        # Sort tweets by popularity using a weighted sum (views + quotes + retweets)
+        feedback = list(
+            sorted(
+                feedback,
+                key=lambda t: int(t["view_count"])
+                + 3 * int(t["retweet_count"])
+                + 5 * int(t["quote_count"]),
+                reverse=True,
+            )
+        )
+
+        # Keep only the most relevant tweet to avoid sending too many tokens to the LLM
+        feedback = feedback[:10]
 
         return feedback

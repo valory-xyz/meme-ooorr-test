@@ -7,13 +7,15 @@ alphabet_in:
 - REFINE
 - ROUND_TIMEOUT
 - SETTLE
-default_start_state: PostTweetRound
+- SKIP_FIRST_TWEET
+default_start_state: LoadDatabaseRound
 final_states:
 - FinishedToResetRound
 - FinishedToSettlementRound
 label: MemeooorrAbciApp
 start_states:
 - DeploymentRound
+- LoadDatabaseRound
 - PostTweetRound
 states:
 - AnalizeFeedbackRound
@@ -22,14 +24,14 @@ states:
 - DeploymentRound
 - FinishedToResetRound
 - FinishedToSettlementRound
+- LoadDatabaseRound
 - PostAnnouncementtRound
 - PostTweetRound
-- PostRefinedTweetRound
 transition_func:
     (AnalizeFeedbackRound, API_ERROR): AnalizeFeedbackRound
     (AnalizeFeedbackRound, DONE): CheckFundsRound
     (AnalizeFeedbackRound, NO_MAJORITY): AnalizeFeedbackRound
-    (AnalizeFeedbackRound, REFINE): PostRefinedTweetRound
+    (AnalizeFeedbackRound, REFINE): FinishedToResetRound
     (AnalizeFeedbackRound, ROUND_TIMEOUT): AnalizeFeedbackRound
     (CheckFundsRound, DONE): DeploymentRound
     (CheckFundsRound, NO_FUNDS): CheckFundsRound
@@ -45,6 +47,10 @@ transition_func:
     (DeploymentRound, NO_MAJORITY): DeploymentRound
     (DeploymentRound, ROUND_TIMEOUT): DeploymentRound
     (DeploymentRound, SETTLE): FinishedToSettlementRound
+    (LoadDatabaseRound, DONE): PostTweetRound
+    (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
+    (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound
+    (LoadDatabaseRound, SKIP_FIRST_TWEET): CollectFeedbackRound
     (PostAnnouncementtRound, API_ERROR): PostAnnouncementtRound
     (PostAnnouncementtRound, DONE): FinishedToResetRound
     (PostAnnouncementtRound, NO_MAJORITY): PostAnnouncementtRound
@@ -53,7 +59,3 @@ transition_func:
     (PostTweetRound, DONE): CollectFeedbackRound
     (PostTweetRound, NO_MAJORITY): PostTweetRound
     (PostTweetRound, ROUND_TIMEOUT): PostTweetRound
-    (PostRefinedTweetRound, API_ERROR): PostRefinedTweetRound
-    (PostRefinedTweetRound, DONE): FinishedToResetRound
-    (PostRefinedTweetRound, NO_MAJORITY): PostRefinedTweetRound
-    (PostRefinedTweetRound, ROUND_TIMEOUT): PostRefinedTweetRound
