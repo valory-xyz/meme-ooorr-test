@@ -95,11 +95,6 @@ public_id: valory/ledger:0.19.0
 type: connection
 config:
   ledger_apis:
-    ethereum:
-      address: ${str:http://localhost:8545}
-      chain_id: ${int:31337}
-      poa_chain: ${bool:false}
-      default_gas_price_strategy: ${str:eip1559}
     base:
       address: ${str:http://localhost:8545}
       chain_id: ${int:31337}

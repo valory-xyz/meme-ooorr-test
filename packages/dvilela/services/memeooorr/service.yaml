@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeict5jehzi4fio34vbg36okg3wpxbgv3qkov7i4p3qtedidmczwaqi
+agent: dvilela/memeooorr:0.1.0:bafybeibwn2iqfsu2bdafgdyiokacspzajyzh4fwjxs3mjgjzurueyy3urm
 number_of_agents: 1
 deployment:
   agent:
@@ -97,11 +97,6 @@ public_id: valory/ledger:0.19.0
 type: connection
 config:
   ledger_apis:
-    ethereum:
-      address: ${ETHEREUM_LEDGER_RPC:str:http://host.docker.internal:8545}
-      chain_id: ${ETHEREUM_LEDGER_CHAIN_ID:int:31337}
-      poa_chain: ${ETHEREUM_LEDGER_IS_POA_CHAIN:bool:false}
-      default_gas_price_strategy: ${ETHEREUM_LEDGER_PRICING:str:eip1559}
     base:
       address: ${BASE_LEDGER_RPC:str:http://host.docker.internal:8545}
       chain_id: ${BASE_LEDGER_CHAIN_ID:int:8453}
