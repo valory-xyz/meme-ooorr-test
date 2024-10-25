@@ -112,11 +112,22 @@ class TwikitConnection(BaseSyncConnection):
 
     def run_task(self, method: Callable, **kwargs: Any) -> Any:
         """Run asyncio task"""
+        # try:
+        #     asyncio.get_running_loop()  # check that there is an active loop
+        #     return asyncio.ensure_future(method(**kwargs))
+        # except RuntimeError:
+        #     return asyncio.run(method(**kwargs))
+
         try:
-            asyncio.get_running_loop()  # check that there is an active loop
+            # Get the loop
+            loop = asyncio.get_running_loop()
+            if loop.is_closed():
+                raise RuntimeError("Loop is closed")
+            # Run the task
             return asyncio.ensure_future(method(**kwargs))
         except RuntimeError:
             return asyncio.run(method(**kwargs))
+
 
     def main(self) -> None:
         """

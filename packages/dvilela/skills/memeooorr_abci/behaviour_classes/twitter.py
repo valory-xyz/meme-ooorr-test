@@ -79,6 +79,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         if not tweet:
             self.context.logger.info("Preparing tweet...")
             persona = self.get_persona()
+
             llm_response = yield from self._call_genai(
                 prompt=DEFAULT_TWEET_PROMPT.format(persona=persona)
             )
@@ -146,6 +147,20 @@ class CollectFeedbackBehaviour(
         latest_tweet = self.synchronized_data.latest_tweet
         query = f"conversation_id:{latest_tweet['tweet_id']}"
         feedback = yield from self._call_twikit(method="search", query=query, count=100)
+
+        # REMOVE, FOR TESTING ONLY
+        feedback = [
+            {
+                "id": "1849853239392600458",
+                "user_name": "",
+                "text": "This is shit, dogs rule and are way better!",
+                "created_at": "1",
+                "view_count": 2,
+                "retweet_count": 1,
+                "quote_count": 1,
+                "view_count_state": "",
+            }
+        ] * 10
 
         if feedback is None:
             self.context.logger.error(

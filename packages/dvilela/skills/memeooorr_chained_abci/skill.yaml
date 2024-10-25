@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/termination_abci:0.1.0:bafybeid54buqxipiuduw7b6nnliiwsxajnltseuroad53wukfonpxca2om
-- dvilela/memeooorr_abci:0.1.0:bafybeialnldgu7bmiwhu74hvtbwuow5jm2lgnkd7lry53b3b6lwvpgqiiy
+- dvilela/memeooorr_abci:0.1.0:bafybeih7osi5idwb7nbpftjwgytuegif6rmcjy3jwhsrk4mwqh2hzwzqxy
 behaviours:
   main:
     args: {}
@@ -150,7 +150,7 @@ models:
       meme_factory_address: '0x0000000000000000000000000000000000000000'
       olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
       uniswap_v2_router_address: '0x0000000000000000000000000000000000000000'
-      persona: A cat lover that is crazy about all-things cats.
+      persona: a cat lover that is crazy about all-things cats.
     class_name: Params
   randomness_api:
     args:

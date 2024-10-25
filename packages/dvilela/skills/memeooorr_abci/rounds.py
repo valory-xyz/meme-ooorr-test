@@ -124,14 +124,7 @@ class PostTweetRound(CollectSameUntilThresholdRound):
             latest_tweet = json.loads(self.most_voted_payload)
 
             if latest_tweet is None:
-                synchronized_data = synchronized_data.update(
-                    **{
-                        get_name(SynchronizedData.pending_tweet): json.dumps(
-                            latest_tweet, sort_keys=True
-                        )
-                    }
-                )
-                return synchronized_data, Event.API_ERROR
+                return self.synchronized_data, Event.API_ERROR
 
             # Remove posted tweets from pending and into latest
             synchronized_data = synchronized_data.update(
@@ -217,6 +210,7 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
 
             # Update persona
             if not analysis["deploy"]:
+                self.context.logger.info(f"Updated persona: {analysis['persona']}")
                 synchronized_data = self.synchronized_data.update(
                     **{get_name(SynchronizedData.persona): analysis["persona"]}
                 )
@@ -354,7 +348,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
     }
     final_states: Set[AppState] = {FinishedToResetRound, FinishedToSettlementRound}
     event_to_timeout: EventToTimeout = {}
-    cross_period_persisted_keys: FrozenSet[str] = frozenset()
+    cross_period_persisted_keys: FrozenSet[str] = frozenset(["persona", "latest_tweet"])
     db_pre_conditions: Dict[AppState, Set[str]] = {
         PostTweetRound: set(),
         DeploymentRound: set(),

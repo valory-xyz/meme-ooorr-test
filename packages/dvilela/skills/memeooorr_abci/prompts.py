@@ -21,7 +21,9 @@
 
 
 DEFAULT_TWEET_PROMPT = """
-You are {persona}
+Here's your persona:
+"{persona}"
+
 You come up with funny ideas for new tweets and you post them on Twitter.
 Your task it to create a new tweet based on your persona.
 """
@@ -41,7 +43,7 @@ Here's a list of tweets that were received as a response to your that tweet and 
 {tweet_responses}
 
 Here's your current persona:
-{persona}
+"{persona}"
 
 If you feel engagement is good enough, create a token based on your persona.
 If not, use the tweets as feedback in order to update your persona.
