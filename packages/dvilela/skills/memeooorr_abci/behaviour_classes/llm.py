@@ -28,7 +28,7 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     is_tweet_valid,
 )
-from packages.dvilela.skills.memeooorr_abci.prompts import ANALYZE_PROPOSAL_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import ANALYZE_FEEDBACK_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     AnalizeFeedbackPayload,
     AnalizeFeedbackRound,
@@ -47,11 +47,11 @@ class AnalizeFeedbackBehaviour(
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            token_proposal = yield from self.get_updated_token_proposal()
+            analysis = yield from self.get_analysis()
 
             payload = AnalizeFeedbackPayload(
                 sender=self.context.agent_address,
-                token_proposal=json.dumps(token_proposal, sort_keys=True),
+                analysis=json.dumps(analysis, sort_keys=True),
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -60,14 +60,26 @@ class AnalizeFeedbackBehaviour(
 
         self.set_done()
 
-    def get_updated_token_proposal(  # pylint: disable=too-many-locals
+    def get_analysis(  # pylint: disable=too-many-locals
         self,
     ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
 
-        token_proposal = self.synchronized_data.token_proposal
+        tweet_responses = "\n\n".join(
+            [
+                f"tweet: {t['text']}\nviews: {t['view_count']}\nquotes: {t['quote_count']}\nretweets{t['retweet_count']}"
+                for t in self.synchronized_data.feedback
+            ]
+        )
+
+        prompt_data = {
+            "latest_tweet": self.synchronized_data.latest_tweet["text"],
+            "tweet_responses": tweet_responses,
+            "persona": self.get_persona(),
+        }
+
         llm_response = yield from self._call_genai(
-            prompt=ANALYZE_PROPOSAL_PROMPT.format(**token_proposal)
+            prompt=ANALYZE_FEEDBACK_PROMPT.format(**prompt_data)
         )
         self.context.logger.info(f"LLM response: {llm_response}")
 
@@ -81,14 +93,24 @@ class AnalizeFeedbackBehaviour(
             self.context.logger.error(f"Error loading the LLM response: {e}")
             return None
 
-        if response["deploy"] and not is_tweet_valid(response["announcement"]):
+        if (
+            response["deploy"]
+            and "tweet" not in response
+            and not is_tweet_valid(response["tweet"])
+        ):
             self.context.logger.error("Announcement tweet is too long.")
             return None
 
-        if not response["deploy"] and not is_tweet_valid(response["new_proposal"]):
-            self.context.logger.error("Refined proposal tweet is too long.")
+        if (
+            response["deploy"]
+            and "token_name" not in response
+            or "token_ticker" not in response
+        ):
+            self.context.logger.error("Missing some token data from the respons.")
             return None
 
-        token_proposal.update(**response)
+        if not response["deploy"] and "persona" not in response:
+            self.context.logger.error("Missing the new persona from the response.")
+            return None
 
-        return token_proposal
+        return response

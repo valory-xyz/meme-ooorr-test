@@ -8,23 +8,23 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeic4qox6mszzxnrbfb46d62eyq4dugflukhmonq7urr644t3ihnl4y
+  behaviour_classes/base.py: bafybeigesqbyavhd63szccndgqbiluze3qrlxhooaiaclkevlxmhlyolqm
   behaviour_classes/chain.py: bafybeibddjfwerlhkpgan7crrccj762zhzlb7bqb42btz6qmpyg6z7cb7e
-  behaviour_classes/llm.py: bafybeid5kf7oy6wx67i3oujcp4ndfv7p2w52qss2uy6lczkvkrq3yfkhh4
-  behaviour_classes/twitter.py: bafybeiei67ht6lva56oi3xnjntkxk6blwjluykgvzamex22bzcjeejuaqy
-  behaviours.py: bafybeigusdtci6ieggqsgpngjzcxjrbqzn34kesdrqyk5h4ywq3umharom
+  behaviour_classes/llm.py: bafybeiady47caja7sz2z5ngr5y6u5qgf5ksaq6oxpujr7kg4q3fzemw4jm
+  behaviour_classes/twitter.py: bafybeiazdynkuj5eiuygie5wieixmqwm3tlncnt2ibwb4h3ijqvqsd5wsu
+  behaviours.py: bafybeic3unz2dw2b722levpaxqlc3ozl44xfaizmedcidtuos3hjm3zaxi
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
-  fsm_specification.yaml: bafybeidt6dtrxqir5gafxsfpqcpm2tk5w5jusnepxekyknlu4kcessz4cq
+  fsm_specification.yaml: bafybeiccc74i46qhljvi667wpwohn4pa6mwc3bcuumplxyqxklwpwamnai
   handlers.py: bafybeia3ew422w57ot7jpbrhmagepm7pcoqkkc53p5w4jm4co4yh4tz7em
-  models.py: bafybeibjxaaysjrj4h7je4qfpqa2uwobxgyr7wvpby6oyl5hnh6xaool6a
-  payloads.py: bafybeign2ig66f7n4ijx2tw3eaiqhl72aht4h556xdasn2r4jegtjcejau
-  prompts.py: bafybeie7ansvrdaib3h7x325iuxgs45ldlg25etru3qxebabje23at7qfy
-  rounds.py: bafybeigklwrgfmhiafufoy75kvqhmeglywwopub2qcfwkvoaaa2dwm536u
+  models.py: bafybeictfgpkdycdjhupgrajmbqjglyvrmc36v7vx44py4bgr633cmxevy
+  payloads.py: bafybeibwgnzb64br5xsk32cgpd6kzoqaontetmd3p3btfg43jj526xdzde
+  prompts.py: bafybeidksliwtawkvi7yucfqvapod55g4xjh2ke2acfrwmo34wzfjux2py
+  rounds.py: bafybeidtc5lrxnjpmwv3lloqbgzegg3kww7c2svs62mqyhacbm5y4pujuy
   subgraph.py: bafybeigme6r3cwiiu5l7r55rcbj7y37b62cxtlsnewpkbjqcbadwte32xm
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
-- dvilela/twikit:0.1.0:bafybeiff76iqbiwfmlrixollynsjib66dxvj6gnprltcf5tvfvs6wm3x54
+- dvilela/twikit:0.1.0:bafybeiazv3ck7unr6opezfklrtyj2v2jpnzgjxtokqmxu4lym3zcizmy3m
 - dvilela/genai:0.1.0:bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
@@ -158,6 +158,7 @@ models:
       meme_factory_address: '0x0000000000000000000000000000000000000000'
       olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
       uniswap_v2_router_address: '0x0000000000000000000000000000000000000000'
+      persona: A cat lover that is crazy about all-things cats.
     class_name: Params
   requests:
     args: {}

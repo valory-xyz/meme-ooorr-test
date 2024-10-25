@@ -173,3 +173,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         ).round_sequence.last_round_transition_timestamp.timestamp()
 
         return now
+
+    def get_persona(self) -> str:
+        """Get the agent persona"""
+        return self.synchronized_data.persona or self.params.persona

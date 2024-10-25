@@ -31,10 +31,10 @@ from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     CollectFeedbackPayload,
     CollectFeedbackRound,
-    PostDeploymentRound,
-    PostInitialTweetRound,
-    PostRefinedTweetRound,
+    Event,
+    PostAnnouncementtRound,
     PostTweetPayload,
+    PostTweetRound,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
@@ -47,22 +47,20 @@ def is_tweet_valid(tweet: str) -> bool:
     return parse_tweet(tweet).asdict()["weightedLength"] <= MAX_TWEET_CHARS
 
 
-class PostInitialTweetBehaviour(
-    MemeooorrBaseBehaviour
-):  # pylint: disable=too-many-ancestors
-    """PostInitialTweetBehaviour"""
+class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-ancestors
+    """PostTweetBehaviour"""
 
-    matching_round: Type[AbstractRound] = PostInitialTweetRound
+    matching_round: Type[AbstractRound] = PostTweetRound
 
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            token_proposal = yield from self.post_tweet()
+            tweet = yield from self.post_tweet()
 
             payload = PostTweetPayload(
                 sender=self.context.agent_address,
-                token_proposal=json.dumps(token_proposal, sort_keys=True),
+                tweet=json.dumps(tweet, sort_keys=True),
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -73,76 +71,48 @@ class PostInitialTweetBehaviour(
 
     def post_tweet(  # pylint: disable=too-many-locals
         self,
-    ) -> Generator[None, None, Optional[Dict]]:
+    ) -> Generator[None, None, Optional[str]]:
         """Post a tweet"""
 
-        token_proposal = self.synchronized_data.token_proposal
-        tweet_text = None
+        tweet = self.synchronized_data.pending_tweet
 
-        # INITIAL PROPOSAL
-        # If a tweet token proposal does not exist, prepare one
-        if not token_proposal:
-            self.context.logger.info("Preparing initial tweet...")
-
-            llm_response = yield from self._call_genai(prompt=DEFAULT_TWEET_PROMPT)
+        if not tweet:
+            self.context.logger.info("Preparing tweet...")
+            persona = self.get_persona()
+            llm_response = yield from self._call_genai(
+                prompt=DEFAULT_TWEET_PROMPT.format(persona=persona)
+            )
             self.context.logger.info(f"LLM response: {llm_response}")
 
             if llm_response is None:
                 self.context.logger.error("Error getting a response from the LLM.")
                 return None
 
-            try:
-                response = json.loads(llm_response)
-            except json.JSONDecodeError as e:
-                self.context.logger.error(f"Error loading the LLM response: {e}")
+            if not is_tweet_valid(llm_response):
+                self.context.logger.error("The tweet is too long.")
                 return None
 
-            token_proposal = {
-                "token_name": response["token_name"],
-                "token_ticker": response["token_name"],
-                "proposal": response["proposal"],
-                "announcement": None,
-                "deploy": None,
-                "token_address": None,
-                "pool_address": None,
-            }
+            tweet = llm_response
 
-            tweet_text = token_proposal["proposal"]
-
-        # Post either the announcement or the refined proposal
-        else:
-            tweet_text = token_proposal["announcement"] or token_proposal["proposal"]
-
+        # Post the tweet
         tweet_ids = yield from self._call_twikit(
             method="post",
-            tweets=[{"text": tweet_text}],
+            tweets=[{"text": tweet}],
         )
 
         if not tweet_ids:
             self.context.logger.error("Failed posting to Twitter.")
             return None
 
-        # Reset the proposal if we have finished the cycle
-        if token_proposal["announcement"]:
-            token_proposal = {}
-
-        return token_proposal
+        return {"tweet_id": tweet_ids[0], "text": tweet}
 
 
-class PostRefinedTweetBehaviour(
-    PostInitialTweetBehaviour
+class PostAnnouncementtBehaviour(
+    PostTweetBehaviour
 ):  # pylint: disable=too-many-ancestors
-    """PostRefinedTweetBehaviour"""
+    """PostAnnouncementtBehaviour"""
 
-    matching_round: Type[AbstractRound] = PostRefinedTweetRound
-
-
-class PostDeploymentBehaviour(
-    PostInitialTweetBehaviour
-):  # pylint: disable=too-many-ancestors
-    """PostDeploymentBehaviour"""
-
-    matching_round: Type[AbstractRound] = PostDeploymentRound
+    matching_round: Type[AbstractRound] = PostAnnouncementtRound
 
 
 class CollectFeedbackBehaviour(
@@ -173,11 +143,9 @@ class CollectFeedbackBehaviour(
         """Get the responses"""
 
         # Search new replies
-        token_proposal = self.synchronized_data.token_proposal
-        query = f"conversation_id:{token_proposal['tweet']['id']}"
-        feedback = yield from self._call_twikit(
-            method="search", query=query, max_results=100
-        )
+        latest_tweet = self.synchronized_data.latest_tweet
+        query = f"conversation_id:{latest_tweet['tweet_id']}"
+        feedback = yield from self._call_twikit(method="search", query=query, count=100)
 
         if feedback is None:
             self.context.logger.error(

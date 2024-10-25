@@ -112,22 +112,11 @@ class TwikitConnection(BaseSyncConnection):
 
     def run_task(self, method: Callable, **kwargs: Any) -> Any:
         """Run asyncio task"""
-        loop = None
-
         try:
-            # Get the loop if it is already running
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            # Start a new loop
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        if loop.is_running():
-            # Do not stop the loop if it is already running
+            asyncio.get_running_loop()  # check that there is an active loop
             return asyncio.ensure_future(method(**kwargs))
-        else:
-            # If there is no loop, use run_until_complete
-            return loop.run_until_complete(method(**kwargs))
+        except RuntimeError:
+            return asyncio.run(method(**kwargs))
 
     def main(self) -> None:
         """
@@ -271,6 +260,7 @@ class TwikitConnection(BaseSyncConnection):
         """Post tweets"""
         tweet_ids = []
         for tweet_kwargs in tweets:
+            print(f"Posting: {tweet_kwargs}")
             result = await self.client.create_tweet(**tweet_kwargs)
             tweet_ids.append(result.id)
         return tweet_ids

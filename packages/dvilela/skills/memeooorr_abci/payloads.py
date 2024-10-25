@@ -29,7 +29,7 @@ from packages.valory.skills.abstract_round_abci.base import BaseTxPayload
 class PostTweetPayload(BaseTxPayload):
     """Represent a transaction payload for the PostTweetRound."""
 
-    token_proposal: Optional[str]
+    tweet: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,7 @@ class CollectFeedbackPayload(BaseTxPayload):
 class AnalizeFeedbackPayload(BaseTxPayload):
     """Represent a transaction payload for the AnalizeFeedbackRound."""
 
-    token_proposal: Optional[str]
+    analysis: Optional[str]
 
 
 @dataclass(frozen=True)
