@@ -83,16 +83,19 @@ class AnalizeFeedbackBehaviour(
         )
         self.context.logger.info(f"LLM response: {llm_response}")
 
+        # We didnt get a response
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
             return None
 
+        # The response is not a valid jsoon
         try:
             response = json.loads(llm_response)
         except json.JSONDecodeError as e:
             self.context.logger.error(f"Error loading the LLM response: {e}")
             return None
 
+        # Tweet too long
         if (
             response["deploy"]
             and "tweet" not in response
@@ -101,6 +104,7 @@ class AnalizeFeedbackBehaviour(
             self.context.logger.error("Announcement tweet is too long.")
             return None
 
+        # Missing token data
         if (
             response["deploy"]
             and "token_name" not in response
@@ -109,8 +113,14 @@ class AnalizeFeedbackBehaviour(
             self.context.logger.error("Missing some token data from the respons.")
             return None
 
+        # Missing persona
         if not response["deploy"] and "persona" not in response:
             self.context.logger.error("Missing the new persona from the response.")
             return None
+
+        # Write new persona to the database
+        if not response["deploy"]:
+            yield from self._write_kv({"persona": response["persona"]})
+            self.context.logger.info("Wrote persona to db")
 
         return response

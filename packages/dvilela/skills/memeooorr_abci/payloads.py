@@ -26,6 +26,14 @@ from packages.valory.skills.abstract_round_abci.base import BaseTxPayload
 
 
 @dataclass(frozen=True)
+class LoadDatabasePayload(BaseTxPayload):
+    """Represent a transaction payload for the LoadDatabaseRound."""
+
+    persona: str
+    latest_tweet: Optional[str]
+
+
+@dataclass(frozen=True)
 class PostTweetPayload(BaseTxPayload):
     """Represent a transaction payload for the PostTweetRound."""
 

@@ -105,6 +105,10 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             self.context.logger.error("Failed posting to Twitter.")
             return None
 
+        # Write latest tweet to the database
+        yield from self._write_kv({"latest_tweet": tweet})
+        self.context.logger.info("Wrote latest tweet to db")
+
         return {"tweet_id": tweet_ids[0], "text": tweet}
 
 

@@ -38,6 +38,9 @@ from packages.valory.skills.abstract_round_abci.behaviours import (
     AbstractRoundBehaviour,
     BaseBehaviour,
 )
+from packages.dvilela.skills.memeooorr_abci.behaviour_classes.db import (
+    LoadDatabaseBehaviour,
+)
 
 
 class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
@@ -46,6 +49,7 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
     initial_behaviour_cls = CollectFeedbackBehaviour
     abci_app_cls = MemeooorrAbciApp  # type: ignore
     behaviours: Set[Type[BaseBehaviour]] = [  # type: ignore
+        LoadDatabaseBehaviour,
         PostTweetBehaviour,
         CollectFeedbackBehaviour,
         AnalizeFeedbackBehaviour,

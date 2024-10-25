@@ -29,6 +29,7 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     CollectFeedbackPayload,
     DeploymentPayload,
     PostTweetPayload,
+    LoadDatabasePayload
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -70,6 +71,11 @@ class SynchronizedData(BaseSynchronizedData):
         return CollectionRound.deserialize_collection(serialized)
 
     @property
+    def participants_to_db(self) -> DeserializedCollection:
+        """Get the participants_to_db."""
+        return self._get_deserialized("participants_to_db")
+
+    @property
     def persona(self) -> Optional[str]:
         """Get the persona."""
         return cast(str, self.db.get("persona", None))
@@ -108,6 +114,22 @@ class SynchronizedData(BaseSynchronizedData):
     def final_tx_hash(self) -> str:
         """Get the verified tx hash."""
         return cast(str, self.db.get_strict("final_tx_hash"))
+
+
+class LoadDatabaseRound(CollectSameUntilThresholdRound):
+    """LoadDatabaseRound"""
+
+    payload_class = LoadDatabasePayload
+    synchronized_data_class = SynchronizedData
+    done_event = Event.DONE
+    no_majority_event = Event.NO_MAJORITY
+    collection_key = get_name(SynchronizedData.participants_to_db)
+    selection_key = (
+        get_name(SynchronizedData.persona),
+        get_name(SynchronizedData.latest_tweet)
+    )
+
+    # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
 
 
 class PostTweetRound(CollectSameUntilThresholdRound):
@@ -281,6 +303,7 @@ class DeploymentRound(CollectSameUntilThresholdRound):
             )
 
             event = Event.DONE if payload.tx_flag == "done" else Event.SETTLE
+
             return synchronized_data, event
 
         if not self.is_majority_possible(
@@ -301,9 +324,14 @@ class FinishedToSettlementRound(DegenerateRound):
 class MemeooorrAbciApp(AbciApp[Event]):
     """MemeooorrAbciApp"""
 
-    initial_round_cls: AppState = PostTweetRound
-    initial_states: Set[AppState] = {PostTweetRound, DeploymentRound}
+    initial_round_cls: AppState = LoadDatabaseRound
+    initial_states: Set[AppState] = {LoadDatabaseRound, PostTweetRound, DeploymentRound}
     transition_function: AbciAppTransitionFunction = {
+        LoadDatabaseRound: {
+            Event.DONE: PostTweetRound,
+            Event.NO_MAJORITY: LoadDatabaseRound,
+            Event.ROUND_TIMEOUT: LoadDatabaseRound,
+        },
         PostTweetRound: {
             Event.DONE: CollectFeedbackRound,
             Event.API_ERROR: PostTweetRound,
@@ -350,6 +378,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
     event_to_timeout: EventToTimeout = {}
     cross_period_persisted_keys: FrozenSet[str] = frozenset(["persona", "latest_tweet"])
     db_pre_conditions: Dict[AppState, Set[str]] = {
+        LoadDatabaseRound: set(),
         PostTweetRound: set(),
         DeploymentRound: set(),
     }
