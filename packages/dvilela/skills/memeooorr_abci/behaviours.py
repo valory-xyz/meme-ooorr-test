@@ -25,14 +25,16 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
     CheckFundsBehaviour,
     DeploymentBehaviour,
 )
+from packages.dvilela.skills.memeooorr_abci.behaviour_classes.db import (
+    LoadDatabaseBehaviour,
+)
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.llm import (
     AnalizeFeedbackBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     CollectFeedbackBehaviour,
-    PostDeploymentBehaviour,
-    PostInitialTweetBehaviour,
-    PostRefinedTweetBehaviour,
+    PostAnnouncementtBehaviour,
+    PostTweetBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.behaviours import (
@@ -47,11 +49,11 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
     initial_behaviour_cls = CollectFeedbackBehaviour
     abci_app_cls = MemeooorrAbciApp  # type: ignore
     behaviours: Set[Type[BaseBehaviour]] = [  # type: ignore
-        PostInitialTweetBehaviour,
+        LoadDatabaseBehaviour,
+        PostTweetBehaviour,
         CollectFeedbackBehaviour,
         AnalizeFeedbackBehaviour,
         CheckFundsBehaviour,
         DeploymentBehaviour,
-        PostDeploymentBehaviour,
-        PostRefinedTweetBehaviour,
+        PostAnnouncementtBehaviour,
     ]

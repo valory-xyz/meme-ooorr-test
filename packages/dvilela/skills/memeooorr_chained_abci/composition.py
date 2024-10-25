@@ -38,12 +38,12 @@ from packages.valory.skills.termination_abci.rounds import (
 # Here we define how the transition between the FSMs should happen
 # more information here: https://docs.autonolas.network/fsm_app_introduction/#composition-of-fsm-apps
 abci_app_transition_mapping: AbciAppTransitionMapping = {
-    RegistrationAbci.FinishedRegistrationRound: MemeooorrAbci.PostInitialTweetRound,
+    RegistrationAbci.FinishedRegistrationRound: MemeooorrAbci.LoadDatabaseRound,
     MemeooorrAbci.FinishedToResetRound: ResetAndPauseAbci.ResetAndPauseRound,
     MemeooorrAbci.FinishedToSettlementRound: TransactionSettlementAbci.RandomnessTransactionSubmissionRound,
     TransactionSettlementAbci.FinishedTransactionSubmissionRound: MemeooorrAbci.DeploymentRound,
     TransactionSettlementAbci.FailedRound: TransactionSettlementAbci.RandomnessTransactionSubmissionRound,
-    ResetAndPauseAbci.FinishedResetAndPauseRound: MemeooorrAbci.PostInitialTweetRound,
+    ResetAndPauseAbci.FinishedResetAndPauseRound: MemeooorrAbci.PostTweetRound,
     ResetAndPauseAbci.FinishedResetAndPauseErrorRound: ResetAndPauseAbci.ResetAndPauseRound,
 }
 
