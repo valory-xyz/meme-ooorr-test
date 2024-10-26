@@ -126,7 +126,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
     def _read_kv(
         self,
-        keys: Tuple[str],
+        keys: Tuple[str, ...],
     ) -> Generator[None, None, Optional[Dict]]:
         """Send a request message from the skill context."""
         self.context.logger.info(f"Reading keys from db: {keys}")
@@ -173,3 +173,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         ).round_sequence.last_round_transition_timestamp.timestamp()
 
         return now
+
+    def get_persona(self) -> str:
+        """Get the agent persona"""
+        return self.synchronized_data.persona or self.params.persona
