@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeibwn2iqfsu2bdafgdyiokacspzajyzh4fwjxs3mjgjzurueyy3urm
+agent: dvilela/memeooorr:0.1.0:bafybeidz34rpns7mwnlpuf5uf3xpyzyujijwixup5zy5vvkl5wgvnavfry
 number_of_agents: 1
 deployment:
   agent:
@@ -80,7 +80,7 @@ extra:
         validate_timeout: 1205
         multisend_batch_size: ${MULTISEND_BATCH_SIZE:int:5}
         ipfs_address: ${IPFS_ADDRESS:str:https://gateway.autonolas.tech/ipfs/}
-        default_chain_id: ${DEFAULT_CHAIN_ID:str:ethereum}
+        default_chain_id: ${DEFAULT_CHAIN_ID:str:base}
         termination_from_block: ${TERMINATION_FROM_BLOCK:int:0}
         minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.01}
         olas_per_pool: ${OLAS_PER_POOL:int:10}
