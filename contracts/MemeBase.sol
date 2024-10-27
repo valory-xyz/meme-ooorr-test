@@ -2,8 +2,33 @@
 pragma solidity ^0.8.28;
 
 import {Meme} from "./Meme.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+
+interface IBalancer {
+    enum SwapKind { GIVEN_IN, GIVEN_OUT }
+
+    struct SingleSwap {
+        bytes32 poolId;
+        SwapKind kind;
+        address assetIn;
+        address assetOut;
+        uint256 amount;
+        bytes userData;
+    }
+
+    struct FundManagement {
+        address sender;
+        bool fromInternalBalance;
+        address payable recipient;
+        bool toInternalBalance;
+    }
+
+    function swap(
+        SingleSwap memory singleSwap,
+        FundManagement memory funds,
+        uint256 limit,
+        uint256 deadline
+    ) external payable returns (uint256);
+}
 
 interface IERC20 {
     /// @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
@@ -13,8 +38,36 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
+interface IOracle {
+    function latestRoundData() external returns (
+        uint80 roundId,
+        int256 answer,
+        uint256 startedAt,
+        uint256 updatedAt,
+        uint80 answeredInRound
+    );
+}
+
 interface IRollupBridge {
     function bridgeTokens(address token, uint256 amount, bytes memory data) external;
+}
+
+interface UniswapV2 {
+    function createPair(address tokenA, address tokenB) external returns (address pair);
+
+    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
+        external payable returns (uint[] memory amounts);
+
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint amountADesired,
+        uint amountBDesired,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountA, uint amountB, uint liquidity);
 }
 
 /* 
@@ -27,6 +80,12 @@ interface IRollupBridge {
 * The remainder of the ETH contributed (90%) is converted to USDC and contributed to an LP, together with 50% of the token supply of the meme.
 */
 contract MemeBase {
+    event OLASBridgedForBurn(address indexed olas, uint256 amount);
+    event Summoned(address indexed deployer, address indexed memeToken, uint256 ethContributed);
+    event Hearted(address indexed user, uint256 amount);
+    event Unleashed(address indexed memeToken, address indexed lpPairAddress);
+    event Purged(address indexed memeToken, uint256 remainingAmount);
+
     // Version number
     string public constant VERSION = "0.1.0";
     // Meme decimals
@@ -41,54 +100,65 @@ contract MemeBase {
     uint256 public constant COLLECT_PERIOD = 48 hours;
     // Purge period
     uint256 public constant PURGE_PERIOD = 48 hours;
+    // Balancer Pool Id
+    bytes32 public constant BALANCER_POOL_ID = 0x5332584890d6e415a6dc910254d6430b8aab7e69000200000000000000000103;
+    // Balancer Vault address
+    address public constant BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
 
     // OLAS token address
-    address public olas;
+    address public immutable olas;
     // USDC token address
-    address public usdc;
+    address public immutable usdc;
+    // WETH token address
+    address public immutable weth;
     // Uniswap V2 router address
-    address public router;
+    address public immutable router;
     // Uniswap V2 factory address
-    address public factory;
+    address public immutable factory;
     // Rollup bridge address
-    address public rollupBridge;
+    address public immutable rollupBridge;
+    // Oracle address
+    address public immutable oracle;
 
     // Percentage of OLAS to burn (10%)
     uint256 public immutable burnPercentage;
     // Percentage of initial supply for liquidity pool (50%)
     uint256 public immutable lpPercentage;
+    // Slippage parameter
+    uint256 public immutable slippage;
 
     struct MemeSummon {
         uint256 ethContributed;
         uint256 summonTime;
         uint256 unleashTime;
     }
+    // Number of meme tokens
+    uint256 public numTokens;
     mapping(address => MemeSummon) public memeSummons;
     mapping(address => mapping(address => uint256)) public memeHearts;
-
-    event OLASBridgedForBurn(address indexed olas, uint256 amount);
-    event Summoned(address indexed deployer, address indexed memeToken, uint256 ethContributed);
-    event Hearted(address indexed user, uint256 amount);
-    event Unleashed(address indexed memeToken, address indexed lpPairAddress);
-    event Purged(address indexed memeToken, uint256 remainingAmount);
+    address[] public memeTokens;
 
     constructor(
         address _olas,
         address _usdc,
+        address _weth,
         address _router,
         address _factory,
         address _rollupBridge,
         uint256 _burnPercentage,
-        uint256 _lpPercentage
+        uint256 _lpPercentage,
+        uint256 _slippage
     ) {
         olas = _olas;
         usdc = _usdc;
+        weth = _weth;
         router = _router;
         factory = _factory;
         rollupBridge = _rollupBridge;
 
         burnPercentage = _burnPercentage;
         lpPercentage = _lpPercentage;
+        slippage = _slippage;
     }
 
     function summonThisMeme(
@@ -105,7 +175,12 @@ contract MemeBase {
             ethContributed: msg.value,
             summonTime: block.timestamp
         });
+        memeSummons[memeToken].ethContributed += msg.value;
         memeHearts[address(newToken)][msg.sender] = msg.value;
+
+        // Push token into the global list of tokens
+        memeTokens.push(address(newToken));
+        numTokens = memeTokens.length;
 
         emit Summoned(msg.sender, address(newToken), msg.value);
     }
@@ -113,6 +188,7 @@ contract MemeBase {
     function heartThisMeme(address memeToken) external payable {
         require(msg.value > 0, "ETH amount must be greater than zero");
         require(memeSummons[memeToken].ethContributed > 0, "Meme not yet summoned");
+        // TODO
         require(block.timestamp < memeSummons[memeToken].unleashTime, "Meme already unleashed");
 
         memeSummons[memeToken].ethContributed += msg.value;
@@ -121,7 +197,7 @@ contract MemeBase {
         emit Hearted(msg.sender, msg.value);
     }
 
-    function unleashThisMeme(address memeToken) external {
+    function unleashThisMeme(address memeToken, uint256 olasSpotPrice) external {
         // Check if the meme has been summoned
         require(memeSummons[memeToken].ethContributed > 0, "Meme not yet summoned");
         // Check the unleash timestamp
@@ -131,11 +207,11 @@ contract MemeBase {
         uint256 totalETHCommitted = memeSummons[memeToken].ethContributed;
 
         // Buy USDC with the the total ETH committed
-        uint256 USDCAmount = _buyTokenUniswap(totalETHCommitted, usdc);
+        uint256 usdcAmount = _buyUSDCUniswap(totalETHCommitted);
 
         // Buy OLAS with the burn percentage of the total ETH committed
-        uint256 burnPercentageOfUSDC = (USDCAmount * burnPercentage) / 100;
-        uint256 OLASAmount = _buyTokenBalancer(burnPercentageOfUSDC, olas);
+        uint256 burnPercentageOfUSDC = (usdcAmount * burnPercentage) / 100;
+        uint256 OLASAmount = _buyOLASBalancer(burnPercentageOfUSDC, olasSpotPrice);
 
         // Burn OLAS
         _bridgeAndBurn(OLASAmount);
@@ -147,7 +223,7 @@ contract MemeBase {
         uint256 heartersAmount = totalSupply - lpNewTokenAmount;
 
         // Create Uniswap pair with LP allocation
-        address pool = _createUniswapPair(memeToken, USDCAmount, lpNewTokenAmount);
+        address pool = _createUniswapPair(memeToken, usdcAmount, lpNewTokenAmount);
 
         // Distribute the remaining proportional to the ETH committed by each supporter
         // Contributors need to withdraw manually
@@ -184,7 +260,7 @@ contract MemeBase {
         // Check if the meme has been unleashed
         require(memeSummons[memeToken].unleashTime > 0, "Meme not unleashed");
         // Check if enough time has passed since the meme was summoned
-        require(block.timestamp >= memeSummons[memeToken].summonTime + PURGE_PERIOD, "Purge only allowed from 48 hours after unleash.");
+        require(block.timestamp >= memeSummons[memeToken].summonTime + PURGE_PERIOD, "Purge only allowed from 48 hours after summon.");
 
         Meme memeToken = Meme(memeToken);
 
@@ -198,36 +274,41 @@ contract MemeBase {
         emit Purged(memeToken, remainingBalance);
     }
 
-    function _buyTokenUniswap(uint256 ethAmount, address token) internal returns (uint256) {
+    function _buyUSDCUniswap(uint256 ethAmount) internal returns (uint256) {
         address[] memory path = new address[](2);
-        path[0] = IUniswapV2Router02(router).WETH();
-        path[1] = token;
-
+        path[0] = weth;
+        path[1] = usdc;
+        
+        // Calculate price by Oracle
+        (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
+        // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100
+        uint256 limit = uint256(answerPrice) * slippage / 10000;
+        // Compare with slippage
         uint256[] memory amounts = IUniswapV2Router02(router).swapExactETHForTokens{ value: ethAmount }(
-            0, // Accept any amount of token
+            limit,
             path,
             address(this),
-            block.timestamp + 1000
+            block.timestamp
         );
 
         return amounts[1]; // Return the token amount bought
     }
 
-    function _createUniswapPair(address memeToken, uint256 USDCAmount, uint256 memeTokenAmount) internal returns (address pair) {
+    function _createUniswapPair(address memeToken, uint256 usdcAmount, uint256 memeTokenAmount) internal returns (address pair) {
         pair = IUniswapV2Factory(factory).createPair(usdc, memeToken);
 
-        IERC20(usdc).approve(router, USDCAmount);
+        IERC20(usdc).approve(router, usdcAmount);
         IERC20(memeToken).approve(router, memeTokenAmount);
 
         IUniswapV2Router02(router).addLiquidity(
             usdc,
             memeToken,
-            USDCAmount,
+            usdcAmount,
             memeTokenAmount,
             0, // Accept any amount of USDC
             0, // Accept any amount of meme token
             address(this),
-            block.timestamp + 1000
+            block.timestamp
         );
     }
 
@@ -244,8 +325,20 @@ contract MemeBase {
         emit OLASBridgedForBurn(olas, OLASAmount);
     }
 
-    function burnFees() external {
+    function _buyOLASBalancer(uint256 usdcAmount, uint256 olasSpotPrice) internal returns (uint256) {
+        // Approve usdc for the Balancer Vault
+        IERC20(usdc).approve(BALANCER_VAULT, usdcAmount);
 
+        // Prepare Balancer data
+        SingleSwap memory singleSwap = IBalancer.SingleSwap(BALANCER_POOL_ID, IBalancer.SwapKind.GIVEN_IN, usdc, olas,
+            usdcAmount, "0x");
+
+        FundManagement memory fundManagement = IBalancer.FundManagement(address(this), false, address(this), false);
+
+        // Get token out limit
+        uint256 limit = usdcAmount * olasSpotPrice;
+        // Perform swap
+        return IBalancer(BALANCER_VAULT).swap(singleSwap, fundManagement, limit, block.timestamp);
     }
 
     // Allow the contract to receive ETH
