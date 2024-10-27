@@ -108,4 +108,11 @@ all-linters:
 	tox -e pylint
 	tox -e mypy
 
+.PHONY: push-image
+push-image:
+	IMAGE_ID=78a6f8407a53 && \
+	SERVICE_HASH=$(shell jq -r ".dev[\"service/dvilela/memeooorr/0.1.0\"]" packages/packages.json) && \
+	docker tag $$IMAGE_ID valory/oar-memeooorr:$$SERVICE_HASH && \
+	docker push valory/oar-memeooorr:$$SERVICE_HASH
+
 v := $(shell pip -V | grep virtualenvs)
