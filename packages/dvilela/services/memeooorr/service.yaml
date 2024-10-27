@@ -81,7 +81,7 @@ extra:
         multisend_batch_size: ${MULTISEND_BATCH_SIZE:int:5}
         ipfs_address: ${IPFS_ADDRESS:str:https://gateway.autonolas.tech/ipfs/}
         default_chain_id: ${DEFAULT_CHAIN_ID:str:base}
-        termination_from_block: ${TERMINATION_FROM_BLOCK:int:0}
+        termination_from_block: ${TERMINATION_FROM_BLOCK:int:21629820}
         minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.01}
         min_feedback_replies: ${MIN_FEEDBACK_REPLIES:int:10}
         total_supply: ${TOTAL_SUPPLY:int:1000000000000000000000000}
