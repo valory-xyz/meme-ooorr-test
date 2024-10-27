@@ -125,7 +125,7 @@ contract MemeBase {
     }
 
     function collect(address tokenAddress_) external {
-        require(block.timestamp < memeSummons[tokenAddress].timestamp + 48 hours, "Purge only allowed after 48 hours");
+        require(block.timestamp < memeSummons[tokenAddress].timestamp + 48 hours, "Collect only allowed until 48 hours after summon.");
         CustomERC20 memeToken = CustomERC20(tokenAddress_);
         uint256 totalETHCommitted = memeSummons[tokenAddress_].ethContributed;
         uint256 totalSupply_ = memeToken.totalSupply();
@@ -142,7 +142,7 @@ contract MemeBase {
     function purge(address tokenAddress) external {
         // Check if 48 hours have passed since the meme was summoned
         require(memeSummons[tokenAddress].timestamp > 0, "Meme not summoned");
-        require(block.timestamp >= memeSummons[tokenAddress].timestamp + 48 hours, "Purge only allowed after 48 hours");
+        require(block.timestamp >= memeSummons[tokenAddress].timestamp + 48 hours, "Purge only allowed from 48 hours after summon.");
         
         // Check if the meme has not been unleashed
         require(memeSummons[tokenAddress].timestamp != 0, "Meme already unleashed");
