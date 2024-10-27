@@ -4,94 +4,206 @@ pragma solidity ^0.8.0;
 import "./CustomERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+interface IRollupBridge {
+    function bridgeTokens(address token, uint256 amount, bytes memory data) external;
+}
+
+/* 
+* This contract let's:
+* 1) any msg.sender summon a meme.
+* 2) within 24h of a meme being summoned, any msg.sender can heart a meme. This requires the msg.sender to send a non-zero ETH value, which gets recorded as a contribution. 
+* 3) after 24h of a meme being summoned, any msg.sender can unleash the meme. This creates a liquidity pool for the meme and distributes the rest of the tokens to the hearters, proportional to their contributions.
+* 4) anyone burn the accumulated OLAS by bridging it to Ethereum where it is burned.
+* 10% of the ETH contributed to a meme gets converted into OLAS and scheduled for burning upon unleashing of the meme.
+* The remainder of the ETH contributed (90%) is converted to USDC and contributed to an LP, together with 50% of the token supply of the meme.
+*/
 contract MemeBase {
     address public olasAddress; // Address of OLAS token
+    address public USDCAddress; // Address of USDC token
     address public uniswapV2Router;
     address public uniswapV2Factory;
-    
+    address public rollupBridge;
+
     uint256 public burnPercentage = 10; // Percentage of OLAS to burn (10%)
-    uint256 public lpPercentage = 90;   // Percentage of OLAS for liquidity pool (90%)
+    uint256 public lpPercentage = 50;   // Percentage of initial supply for liquidity pool (50%)
+
+    struct MemeSummon {
+        uint256 ethContributed;
+        uint256 timestamp;
+    }
+    mapping(address => MemeSummon) public memeSummons;
+    mapping(address => mapping(address => uint256)) public memeHearts;
 
     event TokenDeployed(address tokenAddress, address deployer, uint256 lpTokens, address lpPool);
+    event OLASScheduledForBurn(uint256 amount);
+    event OLASBridgedForBurn(uint256 amount);
+    event Summoned(address indexed deployer, uint256 ethContributed, address tokenAddress);
+    event Hearted(address indexed user, uint256 amount);
+    event Unleashed(address lpPairAddress);
+    event Purged(address tokenAddress, uint256 remainingAmount);
 
-    constructor(address _olasAddress, address _uniswapV2Router, address _uniswapV2Factory) {
+    constructor(address _olasAddress, address _USDCAddress, address _uniswapV2Router, address _uniswapV2Factory, address _rollupBridge) {
         olasAddress = _olasAddress;
+        USDCAddress = _USDCAddress;
         uniswapV2Router = _uniswapV2Router;
         uniswapV2Factory = _uniswapV2Factory;
+        rollupBridge = _rollupBridge;
     }
 
-    function deploy(
+    function summonThisMeme(
         string memory name_,
         string memory symbol_,
-        address[] memory holders_,
-        uint256[] memory allocations_,
-        uint256 totalSupply_,
-        uint256 userAllocation_
+        uint256 totalSupply_
     ) external payable {
-        require(msg.value > 0, "ETH required to deploy");
+        require(msg.value >= 0.1 ether, "Minimum of 0.1 ETH required to summon");
+        require(totalSupply_ >= 1_000_000 * 10**18, "Total supply must be at least 1 million tokens");
 
-        // Buy OLAS from Uniswap with 100% of the sent ETH
-        uint256 olasAmount = _buyOLAS(msg.value);
+        CustomERC20 newToken = new CustomERC20(name_, symbol_, totalSupply_, address(this));
 
-        // Burn 10% of OLAS
-        uint256 burnAmount = (olasAmount * burnPercentage) / 100;
-        _burnOLAS(burnAmount);
+        memeSummons[address(newToken)] = MemeSummon({
+            ethContributed: msg.value,
+            timestamp: block.timestamp
+        });
+        memeHearts[address(newToken)][msg.sender] = msg.value;
 
-        // Distribute the remaining OLAS to LP
-        uint256 lpOLASAmount = olasAmount - burnAmount;
-        
-        // Deploy new ERC20 token
-        CustomERC20 newToken = new CustomERC20(name_, symbol_, holders_, allocations_, totalSupply_);
-        
-        // Pair the new token with OLAS in Uniswap to create LP
-        uint256 lpTokens = (totalSupply_ * lpPercentage) / 100;
-        _createUniswapPair(address(newToken), lpOLASAmount, lpTokens);
-
-        // Mint the rest of the user's allocation
-        newToken.mint(msg.sender, userAllocation_);
-
-        emit TokenDeployed(address(newToken), msg.sender, lpTokens, address(uniswapV2Factory));
+        emit Summoned(msg.sender, msg.value, address(newToken));
     }
 
-    function _buyOLAS(uint256 ethAmount) internal returns (uint256) {
-        address;
+    function heartThisMeme(address tokenAddress_) external payable {
+        require(msg.value > 0, "ETH amount must be greater than zero");
+        require(memeSummons[tokenAddress_].ethContributed > 0, "Meme not yet summoned");
+        require(memeSummons[tokenAddress_].timestamp != 0, "Meme already unleashed");
+
+        memeSummons[tokenAddress_].ethContributed += msg.value;
+        memeHearts[tokenAddress_][msg.sender] += msg.value;
+
+        emit Hearted(msg.sender, msg.value);
+    }
+
+    function unleashThisMeme(address tokenAddress_) external {
+        require(memeSummons[tokenAddress_].timestamp > 0, "Meme not summoned");
+        require(block.timestamp >= memeSummons[tokenAddress_].timestamp + 24 hours, "Cannot unleash before 24 hours");
+
+        // Calculate the total ETH committed to this meme
+        uint256 totalETHCommitted = memeSummons[tokenAddress_].ethContributed;
+
+        // Buy OLAS with 10% of the total ETH committed
+        uint256 tenPercentOfETH = (totalETHCommitted * burnPercentage) / 100;
+        uint256 OLASAmount = _buyERC20(tenPercentOfETH, olasAddress);
+
+        // Buy USDC with the remaining 90% of the total ETH committed
+        uint256 USDCAmount = _buyERC20(totalETHCommitted - tenPercentOfETH, USDCAddress);
+
+        // Burn OLAS
+        _bridgeAndBurn(OLASAmount);
+
+        // Calculate LP token allocation (50% of total supply) and distribution to supporters
+        CustomERC20 memeToken = CustomERC20(tokenAddress_);
+        uint256 totalSupply_ = memeToken.totalSupply();
+        uint256 lpNewTokenAmount = (totalSupply_ * lpPercentage) / 100;
+        uint256 heartersAmount = totalSupply_ - lpNewTokenAmount;
+
+       // Create Uniswap pair with 50% allocated for LP
+        address pool = _createUniswapPair(tokenAddress_, USDCAmount, lpNewTokenAmount);
+
+
+        // Distribute the remaining 50% proportional to the ETH committed by each supporter
+        // Contributors need to withdraw manually
+        if (memeHearts[tokenAddress][msg.sender] > 0) {
+            uint256 userContribution = memeHearts[tokenAddress][msg.sender];
+            uint256 allocation = (heartersAmount * userContribution) / totalETHCommitted;
+            memeHearts[tokenAddress][msg.sender] = 0;
+            memeToken.transfer(msg.sender, allocation);
+        }
+
+        // Record meme is unleashed;
+        memeSummons[tokenAddress_].timestamp = 0;
+
+        emit Unleashed(pool);
+    }
+
+    function collect(address tokenAddress_) external {
+        require(block.timestamp < memeSummons[tokenAddress].timestamp + 48 hours, "Collect only allowed until 48 hours after summon.");
+        CustomERC20 memeToken = CustomERC20(tokenAddress_);
+        uint256 totalETHCommitted = memeSummons[tokenAddress_].ethContributed;
+        uint256 totalSupply_ = memeToken.totalSupply();
+        uint256 lpNewTokenAmount = (totalSupply_ * lpPercentage) / 100;
+        uint256 heartersAmount = totalSupply_ - lpNewTokenAmount;
+        if (memeHearts[tokenAddress][msg.sender] > 0) {
+            uint256 userContribution = memeHearts[tokenAddress][msg.sender];
+            uint256 allocation = (heartersAmount * userContribution) / totalETHCommitted;
+            memeHearts[tokenAddress][msg.sender] = 0;
+            memeToken.transfer(msg.sender, allocation);
+        }
+    }
+
+    function purge(address tokenAddress) external {
+        // Check if 48 hours have passed since the meme was summoned
+        require(memeSummons[tokenAddress].timestamp > 0, "Meme not summoned");
+        require(block.timestamp >= memeSummons[tokenAddress].timestamp + 48 hours, "Purge only allowed from 48 hours after summon.");
+        
+        // Check if the meme has not been unleashed
+        require(memeSummons[tokenAddress].timestamp != 0, "Meme already unleashed");
+
+        CustomERC20 memeToken = CustomERC20(tokenAddress);
+
+        // Burn all remaining tokens in this contract
+        uint256 remainingBalance = memeToken.balanceOf(address(this));
+        memeToken.burn(remainingBalance);
+
+        // Clear meme data to prevent re-purge
+        delete memeSummons[tokenAddress];
+        delete memeHearts[tokenAddress];
+
+        emit Purged(tokenAddress, remainingBalance);
+    }
+
+    function _buyERC20(uint256 ethAmount, address token) internal returns (uint256) {
+        address[] memory path = new address[](2);
         path[0] = IUniswapV2Router02(uniswapV2Router).WETH();
-        path[1] = olasAddress;
+        path[1] = token;
 
         uint256[] memory amounts = IUniswapV2Router02(uniswapV2Router).swapExactETHForTokens{ value: ethAmount }(
-            0, // Accept any amount of OLAS
+            0, // Accept any amount of token
             path,
             address(this),
             block.timestamp
         );
 
-        return amounts[1]; // Return the OLAS amount bought
+        return amounts[1]; // Return the token amount bought
     }
 
-    function _burnOLAS(uint256 amount) internal {
-        ERC20(olasAddress).transfer(address(0x0), amount);
-    }
+    function _createUniswapPair(address tokenAddress, uint256 USDCAmount, uint256 tokenAmount) internal returns (address pair) {
+        pair = IUniswapV2Factory(uniswapV2Factory).createPair(USDCAddress, tokenAddress);
 
-    function _createUniswapPair(address tokenAddress, uint256 olasAmount, uint256 tokenAmount) internal {
-        address pair = IUniswapV2Factory(uniswapV2Factory).getPair(olasAddress, tokenAddress);
-        if (pair == address(0)) {
-            pair = IUniswapV2Factory(uniswapV2Factory).createPair(olasAddress, tokenAddress);
-        }
-
-        ERC20(olasAddress).approve(uniswapV2Router, olasAmount);
-        ERC20(tokenAddress).approve(uniswapV2Router, tokenAmount);
+        IERC20(USDCAddress).approve(uniswapV2Router, USDCAmount);
+        IERC20(tokenAddress).approve(uniswapV2Router, tokenAmount);
 
         IUniswapV2Router02(uniswapV2Router).addLiquidity(
-            olasAddress,
+            USDCAddress,
             tokenAddress,
-            olasAmount,
+            USDCAmount,
             tokenAmount,
-            0, // Accept any amount of OLAS
-            0, // Accept any amount of new tokens
+            0, // Accept any amount of USDC
+            0, // Accept any amount of meme token
             address(this),
             block.timestamp
         );
+    }
+
+    function _bridgeAndBurn(uint256 scheduledBurnAmount) internal {
+        // Approve bridge to use OLAS
+        IERC20(olasAddress).approve(rollupBridge, scheduledBurnAmount);
+
+        // Data for the mainnet to execute OLAS burn
+        bytes memory data = abi.encodeWithSignature("burn(uint256)", scheduledBurnAmount);
+
+        // Bridge OLAS to mainnet
+        IRollupBridge(rollupBridge).bridgeTokens(olasAddress, scheduledBurnAmount, data);
+
+        emit OLASBridgedForBurn(scheduledBurnAmount);
     }
 
     // Allow the contract to receive ETH
