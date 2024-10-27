@@ -161,9 +161,9 @@ contract MemeBase {
         address _router,
         address _factory,
         address _l2TokenRelayer,
+        address _oracle,
         address _balancerVault,
-        bytes32 _balancerPoolId,
-        address _oracle
+        bytes32 _balancerPoolId
     ) {
         olas = _olas;
         usdc = _usdc;
@@ -171,9 +171,9 @@ contract MemeBase {
         router = _router;
         factory = _factory;
         l2TokenRelayer = _l2TokenRelayer;
+        oracle = _oracle;
         balancerVault = _balancerVault;
         balancerPoolId = _balancerPoolId;
-        oracle = _oracle;
     }
 
     /// @dev Summons meme token.
