@@ -11,5 +11,6 @@ module.exports = [
     parsedData.factoryAddress,
     parsedData.l2StandardBridgeAddress,
     parsedData.balancerVaultAddress,
-    parsedData.balancerPoolId
+    parsedData.balancerPoolId,
+    parsedData.oracleAddress
 ];
