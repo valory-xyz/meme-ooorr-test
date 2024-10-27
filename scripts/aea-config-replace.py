@@ -32,8 +32,8 @@ AGENT_NAME = "memeooorr"
 
 PATH_TO_VAR = {
     # Chains
-    "config/ledger_apis/ethereum/address": "ETHEREUM_LEDGER_RPC",
-    "config/ledger_apis/ethereum/chain_id": "ETHEREUM_LEDGER_CHAIN_ID",
+    # "config/ledger_apis/ethereum/address": "ETHEREUM_LEDGER_RPC",
+    # "config/ledger_apis/ethereum/chain_id": "ETHEREUM_LEDGER_CHAIN_ID",
     "config/ledger_apis/base/address": "BASE_LEDGER_RPC",
     "config/ledger_apis/base/chain_id": "BASE_LEDGER_CHAIN_ID",
     # Params
@@ -79,6 +79,9 @@ def find_and_replace(config, path, new_value):
             section_index = i
         except KeyError:
             continue
+
+    if section_index is None:
+        raise ValueError(f"Could not update {path}")
 
     # To persist the changes in the config variable,
     # access iterating the path parts but the last part

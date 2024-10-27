@@ -152,7 +152,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
         # Write latest tweet to the database
         latest_tweet = {
-            "tweet_id": tweet_ids[0]["id"],
+            "tweet_id": tweet_ids[0],
             "text": tweet,
             "timestamp": self.get_sync_timestamp(),
         }
