@@ -20,6 +20,7 @@
 
 REPO_PATH=$PWD
 MEMEOOORR_DB=$REPO_PATH/memeooorr/abci_build/persistent_data/logs/memeooorr.db
+TWITTER_COOKIES=$REPO_PATH/memeooorr/abci_build/persistent_data/logs/twikit_cookies.json
 
 # poetry run autonomy deploy stop --build-dir memeooorr/abci_build; cd ..
 docker container stop memeooorr_abci_0 memeooorr_tm_0
@@ -28,4 +29,10 @@ docker container stop memeooorr_abci_0 memeooorr_tm_0
 if test -e $MEMEOOORR_DB; then
   echo "Creating database backup"
   cp $MEMEOOORR_DB $REPO_PATH
+fi
+
+# Backup cookies
+if test -e $TWITTER_COOKIES; then
+  echo "Creating cookies backup"
+  cp $TWITTER_COOKIES $REPO_PATH
 fi

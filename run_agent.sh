@@ -9,7 +9,6 @@ cleanup() {
 
 # Load env vars
 source .env
-repo_path=$PWD
 
 # Link cleanup to the exit signal
 trap cleanup EXIT
