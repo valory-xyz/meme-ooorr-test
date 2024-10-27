@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeigwx3n4qry7skbehommj2a5yin7o22zhedat456nwyg3fpqtnwagq
+agent: dvilela/memeooorr:0.1.0:bafybeihny6t36ajzdjq5c4m7gfcta7ugcyebjobapoqlisgo4tqwbijri4
 number_of_agents: 1
 deployment:
   agent:
@@ -83,14 +83,10 @@ extra:
         default_chain_id: ${DEFAULT_CHAIN_ID:str:base}
         termination_from_block: ${TERMINATION_FROM_BLOCK:int:0}
         minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.01}
-        olas_per_pool: ${OLAS_PER_POOL:int:10}
-        percentage_supply_for_pool: ${PERCENTAGE_SUPPLY_FOR_POOL:float:0.95}
         min_feedback_replies: ${MIN_FEEDBACK_REPLIES:int:10}
         total_supply: ${TOTAL_SUPPLY:int:1000000000000000000000000}
-        user_allocation: ${USER_ALLOCATION:int:1000000000000000000000000}
         meme_factory_address: ${MEME_FACTORY_ADDRESS:str:0x0000000000000000000000000000000000000000}
         olas_token_address: ${OLAS_TOKEN_ADDRESS:str:0x54330d28ca3357F294334BDC454a032e7f353416}
-        uniswap_v2_router_address: ${UNISWAP_V2_ROUTER_ADDRESS:str:0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD}
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
         feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
 ---

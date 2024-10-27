@@ -177,13 +177,13 @@ class PostTweetRound(CollectSameUntilThresholdRound):
 
             feedback = cast(SynchronizedData, self.synchronized_data).feedback
 
+            # Wait
+            if latest_tweet.get("wait", False):
+                return self.synchronized_data, Event.WAIT
+
             # Collect feedback
             if latest_tweet == {} and not feedback:
                 return self.synchronized_data, Event.DONE
-
-            # Wait
-            if latest_tweet == {}:
-                return self.synchronized_data, Event.WAIT
 
             # Remove posted tweets from pending and into latest, then reset
             synchronized_data = self.synchronized_data.update(
@@ -288,7 +288,9 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
-                    get_name(SynchronizedData.token_data): token_data,
+                    get_name(SynchronizedData.token_data): json.dumps(
+                        token_data, sort_keys=True
+                    ),
                     get_name(SynchronizedData.pending_tweet): analysis["tweet"],
                 },
             )

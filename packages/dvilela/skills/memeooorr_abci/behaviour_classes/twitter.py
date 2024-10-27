@@ -97,7 +97,10 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
         # If we have posted befored, but not enough time has passed to collect feedback, we wait
         if hours_since_last_tweet < self.params.feedback_period_hours:
-            return {}
+            self.context.logger.info(
+                f"{hours_since_last_tweet:.1f} hours have passed since last tweet. Awaiting for the feedback period..."
+            )
+            return {"wait": True}
 
         # Enough time has passed, collect feedback
         if not self.synchronized_data.feedback:

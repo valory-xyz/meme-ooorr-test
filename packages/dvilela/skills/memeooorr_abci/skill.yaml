@@ -12,7 +12,7 @@ fingerprint:
   behaviour_classes/chain.py: bafybeibh6cy2l7syvrqmztmlz522ujfr6z536obqqzhhp2e6obp4nh2dqe
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
   behaviour_classes/llm.py: bafybeidlajxpr442vptqvzbdiv7zlaypllnpssrlar5fm3n4lp3pnzjvby
-  behaviour_classes/twitter.py: bafybeifvluu4lvoeabledzx6vyjyfryuswnysv3myjkes3q6iu4ttrl3lq
+  behaviour_classes/twitter.py: bafybeihwwmketmnaqxngifxt6wcse4lzgcr364367rr47blhob5jumbjti
   behaviours.py: bafybeieicsjfnjwm6ijgrqep4fxw26n3pei2bvvlavqjl4w2axr5wxfjdi
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeihxr32tlovwo6j32bcrkjlev7u5bk4rb2jtt5sxvbp5qq7lhf3jey
@@ -20,7 +20,7 @@ fingerprint:
   models.py: bafybeibhzbntvsqxqfngikbrw25daz3jxv7h2o7im7jo7s72dq3n4yz3ti
   payloads.py: bafybeic77jlpjhrpv6kyq5ksd6xwm7nwkh7vlw4vbxtjobwnopidvsdf6i
   prompts.py: bafybeiccjmv4n74nkghzeqnijhm2buhu7rn6tf5ynlrc74gfqbl7izm2jm
-  rounds.py: bafybeib5qc4bf462nbwy5jqak55qnlh4r2o267jeo76bls3bvqh7w4bt7a
+  rounds.py: bafybeicqbmujw4z4i4dpzxdh6bwvvoiqdukiup3yarghnsbjuqylvozu4m
   subgraph.py: bafybeigme6r3cwiiu5l7r55rcbj7y37b62cxtlsnewpkbjqcbadwte32xm
 fingerprint_ignore_patterns: []
 connections:
@@ -150,14 +150,10 @@ models:
       default_chain_id: ethereum
       service_endpoint: memeooorr.dummy.com/
       minimum_gas_balance: 0.01
-      olas_per_pool: 10
-      percentage_supply_for_pool: 0.95
       min_feedback_replies: 10
       total_supply: 1000000000000000000000000
-      user_allocation: 1000000000000000000000000
       meme_factory_address: '0x0000000000000000000000000000000000000000'
       olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
-      uniswap_v2_router_address: '0x0000000000000000000000000000000000000000'
       persona: a cat lover that is crazy about all-things cats.
       feedback_period_hours: 3
     class_name: Params

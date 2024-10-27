@@ -41,8 +41,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/registration_abci:0.1.0:bafybeicnth5q4httefsusywx3zrrq4al47owvge72dqf2fziruicq6hqta
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
-- dvilela/memeooorr_abci:0.1.0:bafybeig43uiigsz4g6oah674mh7gqbvujkrninyuxxa6onrvps5drx3mqy
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeidofdbdcjstqvosvwtwxwdrycomiqbdzo6defofrsu5rcl5grh6yi
+- dvilela/memeooorr_abci:0.1.0:bafybeibozyjlsycxqkb63hh3ndpkvwj2inqilfyv35odhjommvkuwaw6yy
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeicgdm2cgmhklmn7xs4vqmgeyv2qijj5ssudo6aym6yg2dygpddfna
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -186,14 +186,10 @@ models:
       default_chain_id: ${str:base}
       termination_from_block: ${int:0}
       minimum_gas_balance: ${float:0.01}
-      olas_per_pool: ${int:10}
-      percentage_supply_for_pool: ${float:0.95}
       min_feedback_replies: ${int:10}
       total_supply: ${int:1000000000000000000000000}
-      user_allocation: ${int:1000000000000000000000000}
       meme_factory_address: ${str:0x0000000000000000000000000000000000000000}
       olas_token_address: ${str:0x54330d28ca3357F294334BDC454a032e7f353416}
-      uniswap_v2_router_address: ${str:0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD}
       persona: ${str:a cat lover that is crazy about all-things cats.}
       feedback_period_hours: ${int:3}
 ---

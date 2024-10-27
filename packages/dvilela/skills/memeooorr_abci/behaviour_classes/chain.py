@@ -19,6 +19,7 @@
 
 """This package contains round behaviours of MemeooorrAbciApp."""
 
+import json
 from typing import Generator, Optional, Tuple, Type, cast
 
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
@@ -153,6 +154,23 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
         tx_hash = None
         tx_flag = "done"
         token_address = yield from self.get_token_address()
+
+        # Read previous tokens from db
+        db_data = yield from self._read_kv(keys=("tokens",))
+
+        if db_data is None:
+            self.context.logger.error("Error while loading tokens from the database")
+            tokens = []
+        else:
+            tokens = db_data["tokens"]
+
+        # Write token to db
+        token_data = self.synchronized_data.token_data
+        token_data["token_address"] = token_data
+        tokens.append(token_data)
+        yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
+        self.context.logger.info("Wrote latest token to db")
+
         return tx_hash, tx_flag, token_address
 
     def get_deployment_tx(self) -> Generator[None, None, Optional[str]]:
@@ -177,8 +195,10 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
     def get_deployment_data(self) -> Generator[None, None, Optional[str]]:
         """Get the deployment transaction data"""
 
-        self.context.logger.info("Preparing deployment transaction")
         token_data = self.synchronized_data.token_data
+        self.context.logger.info(
+            f"Preparing deployment transaction. token_data={token_data}"
+        )
 
         # Use the contract api to interact with the ERC20 contract
         response_msg = yield from self.get_contract_api_response(
