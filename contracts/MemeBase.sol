@@ -82,19 +82,19 @@ interface IBridge {
 interface IUniswap {
     function createPair(address tokenA, address tokenB) external returns (address pair);
 
-    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
-        external payable returns (uint[] memory amounts);
+    function swapExactETHForTokens(uint256 amountOutMin, address[] calldata path, address to, uint256 deadline)
+        external payable returns (uint256[] memory amounts);
 
     function addLiquidity(
         address tokenA,
         address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin,
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMin,
+        uint256 amountBMin,
         address to,
-        uint deadline
-    ) external returns (uint amountA, uint amountB, uint liquidity);
+        uint256 deadline
+    ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
 }
 
 /// @title MemeBase - a smart contract factory for Meme Token creation
@@ -112,7 +112,7 @@ contract MemeBase {
     event OLASBridgedForBurn(address indexed olas, uint256 amount);
     event Summoned(address indexed summoner, address indexed memeToken, uint256 ethContributed);
     event Hearted(address indexed hearter, uint256 amount);
-    event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress);
+    event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress, uint256 liquidity);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
 
@@ -201,6 +201,10 @@ contract MemeBase {
         balancerPoolId = _balancerPoolId;
     }
 
+    /// @dev Summons meme token.
+    /// @param name Token name.
+    /// @param symbol Token symbol.
+    /// @param totalSupply Token total supply.
     function summonThisMeme(
         string memory name,
         string memory symbol,
@@ -223,7 +227,8 @@ contract MemeBase {
         emit Summoned(msg.sender, memeToken, msg.value);
     }
 
-    /// @dev
+    /// @dev Hearts the meme token with ETH contribution.
+    /// @param memeToken Meme token address.
     function heartThisMeme(address memeToken) external payable {
         // Check for zero value
         require(msg.value > 0, "ETH amount must be greater than zero");
@@ -247,6 +252,9 @@ contract MemeBase {
         emit Hearted(msg.sender, msg.value);
     }
 
+    /// @dev Unleashes the meme token.
+    /// @param memeToken Meme token address.
+    /// @param olasSpotPrice OLAS spot price.
     function unleashThisMeme(address memeToken, uint256 olasSpotPrice) external {
         // Get the meme summon info
         MemeSummon storage memeSummon = memeSummons[memeToken];
@@ -275,27 +283,52 @@ contract MemeBase {
         uint256 heartersAmount = totalSupply - lpTokenAmount;
 
         // Create Uniswap pair with LP allocation
-        address pool = _createUniswapPair(memeToken, usdcAmount, lpTokenAmount);
+        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, usdcAmount, lpTokenAmount);
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
         // Record the hearters distribution amount for this meme
         memeSummon.heartersAmount = heartersAmount;
 
-        // Distribute the remaining proportional to the ETH committed by each supporter
-        // Contributors need to collect manually
         // Allocate to the token hearter unleashing the meme
-        uint256 hearterContribution = memeHearters[memeToken][msg.sender];
-        if (hearterContribution > 0) {
-            uint256 allocation = (heartersAmount * hearterContribution) / memeSummon.ethContributed;
-            memeHearters[memeToken][msg.sender] = 0;
-            // Transfer the meme token amount
-            memeTokenInstance.transfer(msg.sender, allocation);
-        }
+        _collect(memeToken, memeHearters[memeToken][msg.sender], heartersAmount, memeSummon.ethContributed, true);
 
-        emit Unleashed(msg.sender, memeToken, pool);
+        emit Unleashed(msg.sender, memeToken, pool, liquidity);
     }
 
+    /// @dev Collects meme token allocation.
+    /// @param memeToken Meme token address.
+    /// @param heartersAmount Total hearters meme token amount.
+    /// @param hearterContribution Hearter contribution.
+    /// @param totalETHCommitted Total ETH contributed for the token launch.
+    /// @param unleash Collect during the token unleash.
+    function _collect(
+        address memeToken,
+        uint256 heartersAmount,
+        uint256 hearterContribution,
+        uint256 totalETHCommitted,
+        bool unleash
+    ) internal {
+        // Check for non-zero hearter contribution
+        if (unleash && hearterContribution > 0) {
+            // Get meme token instance
+            Meme memeTokenInstance = Meme(memeToken);
+
+            // Allocate corresponding meme token amount to the hearter
+            uint256 allocation = (heartersAmount * hearterContribution) / totalETHCommitted;
+
+            // Zero the allocation
+            memeHearters[memeToken][msg.sender] = 0;
+
+            // Transfer meme token maount to the msg.sender
+            memeTokenInstance.transfer(msg.sender, allocation);
+
+            emit Collected(msg.sender, memeToken, allocation);
+        }
+    }
+
+    /// @dev Collects meme token allocation.
+    /// @param memeToken Meme token address.
     function collect(address memeToken) external {
         // Get the meme summon info
         MemeSummon memory memeSummon = memeSummons[memeToken];
@@ -308,23 +341,12 @@ contract MemeBase {
         // Check for zero value
         require(hearterContribution > 0, "No token allocation");
 
-        // Get meme token instance
-        Meme memeTokenInstance = Meme(memeToken);
-
-        // Get global token info
-        uint256 totalETHCommitted = memeSummon.ethContributed;
-        uint256 heartersAmount = memeSummon.heartersAmount;
-
-        // Allocate corresponding meme token amount to the hearter
-        uint256 allocation = (heartersAmount * hearterContribution) / totalETHCommitted;
-        memeHearters[memeToken][msg.sender] = 0;
-
-        // Transfer tokens to the msg.sender
-        memeTokenInstance.transfer(msg.sender, allocation);
-
-        emit Collected(msg.sender, memeToken, allocation);
+        // Collect the token
+        _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.ethContributed, false);
     }
 
+    /// @dev Purges uncollected meme token allocation.
+    /// @param memeToken Meme token address.
     function purge(address memeToken) external {
         // Get the meme summon info
         MemeSummon memory memeSummon = memeSummons[memeToken];
@@ -347,6 +369,9 @@ contract MemeBase {
         emit Purged(memeToken, remainingBalance);
     }
 
+    /// @dev Buys USDC on UniswapV2 using ETH amount.
+    /// @param ethAmount Input ETH amount.
+    /// @return USDC amount bought.
     function _buyUSDCUniswap(uint256 ethAmount) internal returns (uint256) {
         address[] memory path = new address[](2);
         path[0] = weth;
@@ -371,7 +396,17 @@ contract MemeBase {
         return amounts[1];
     }
 
-    function _createUniswapPair(address memeToken, uint256 usdcAmount, uint256 memeTokenAmount) internal returns (address pair) {
+    /// @dev Creates USDC + meme token LP and adds liquidity.
+    /// @param memeToken Meme token address.
+    /// @param usdcAmount USDC amount.
+    /// @param memeTokenAmount Meme token amount.
+    /// @return pair USDC + meme token LP address.
+    /// @return liquidity Obtained LP liquidity.
+    function _createUniswapPair(
+        address memeToken,
+        uint256 usdcAmount,
+        uint256 memeTokenAmount
+    ) internal returns (address pair, uint256 liquidity) {
         // Create the LP
         pair = IUniswap(factory).createPair(usdc, memeToken);
 
@@ -380,7 +415,7 @@ contract MemeBase {
         IERC20(memeToken).approve(router, memeTokenAmount);
 
         // Add USDC + meme token liquidity
-        IUniswap(router).addLiquidity(
+        (, , liquidity) = IUniswap(router).addLiquidity(
             usdc,
             memeToken,
             usdcAmount,
@@ -392,6 +427,8 @@ contract MemeBase {
         );
     }
 
+    /// @dev Bridges OLAS amount back to L1 and burns.
+    /// @param OLASAmount OLAS amount.
     function _bridgeAndBurn(uint256 OLASAmount) internal {
         // Approve bridge to use OLAS
         IERC20(olas).approve(l2TokenRelayer, OLASAmount);
@@ -405,6 +442,10 @@ contract MemeBase {
         emit OLASBridgedForBurn(olas, OLASAmount);
     }
 
+    /// @dev Buys OLAS on Balancer.
+    /// @param usdcAmount USDC amount.
+    /// @param olasSpotPrice OLAS spot price.
+    /// @return Obtained OLAS amount.
     function _buyOLASBalancer(uint256 usdcAmount, uint256 olasSpotPrice) internal returns (uint256) {
         // Approve usdc for the Balancer Vault
         IERC20(usdc).approve(balancerVault, usdcAmount);
@@ -421,6 +462,6 @@ contract MemeBase {
         return IBalancer(balancerVault).swap(singleSwap, fundManagement, limit, block.timestamp);
     }
 
-    // Allow the contract to receive ETH
+    /// @dev Allows the contract to receive ETH
     receive() external payable {}
 }
