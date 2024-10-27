@@ -76,7 +76,7 @@ extra:
         tendermint_url: ${TENDERMINT_URL:str:http://localhost:26657}
         tendermint_p2p_url: ${TENDERMINT_P2P_URL_0:str:memeooorr_tm_0:26656}
         tx_timeout: 10.0
-        use_termination: ${USE_TERMINATION:bool:true}
+        use_termination: ${USE_TERMINATION:bool:false}
         validate_timeout: 1205
         multisend_batch_size: ${MULTISEND_BATCH_SIZE:int:5}
         ipfs_address: ${IPFS_ADDRESS:str:https://gateway.autonolas.tech/ipfs/}
