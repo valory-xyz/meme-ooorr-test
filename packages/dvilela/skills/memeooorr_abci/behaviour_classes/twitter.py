@@ -99,10 +99,15 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         if hours_since_last_tweet < self.params.feedback_period_hours:
             return {}
 
-        # Enough time has passed, prepare and send a new tweet
-        self.context.logger.info(
-            "Feedback period has finished. Creating a new tweet..."
-        )
+        # Enough time has passed, collect feedback
+        if not self.synchronized_data.feedback:
+            self.context.logger.info(
+                "Feedback period has finished. Collecting feedback..."
+            )
+            return {}
+
+        # Not enough feedback, prepare and send a new tweet
+        self.context.logger.info("Feedback was not enough. Creating a new tweet...")
         latest_tweet = yield from self.post_tweet(tweet=None)
         return latest_tweet
 

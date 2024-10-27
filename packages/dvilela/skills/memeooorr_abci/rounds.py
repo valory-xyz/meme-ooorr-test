@@ -171,13 +171,21 @@ class PostTweetRound(CollectSameUntilThresholdRound):
         if self.threshold_reached:
             latest_tweet = json.loads(self.most_voted_payload)
 
+            # API errors
             if latest_tweet is None:
                 return self.synchronized_data, Event.API_ERROR
 
+            feedback = cast(SynchronizedData, self.synchronized_data).feedback
+
+            # Collect feedback
+            if latest_tweet == {} and not feedback:
+                return self.synchronized_data, Event.DONE
+
+            # Wait
             if latest_tweet == {}:
                 return self.synchronized_data, Event.WAIT
 
-            # Remove posted tweets from pending and into latest
+            # Remove posted tweets from pending and into latest, then reset
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
@@ -187,8 +195,7 @@ class PostTweetRound(CollectSameUntilThresholdRound):
                     ),
                 },
             )
-
-            return synchronized_data, Event.DONE
+            return synchronized_data, Event.WAIT
 
         if not self.is_majority_possible(
             self.collection, self.synchronized_data.nb_participants
@@ -196,13 +203,6 @@ class PostTweetRound(CollectSameUntilThresholdRound):
             return self.synchronized_data, Event.NO_MAJORITY
 
         return None
-
-
-class PostAnnouncementtRound(PostTweetRound):
-    """PostAnnouncementtRound"""
-
-    # This needs to be mentioned for static checkers
-    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
 
 class CollectFeedbackRound(CollectSameUntilThresholdRound):
@@ -287,7 +287,10 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
             }
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
-                **{get_name(SynchronizedData.token_data): token_data},
+                **{
+                    get_name(SynchronizedData.token_data): token_data,
+                    get_name(SynchronizedData.pending_tweet): analysis["tweet"],
+                },
             )
 
             return synchronized_data, Event.DONE
@@ -367,6 +370,45 @@ class DeploymentRound(CollectSameUntilThresholdRound):
             self.collection, self.synchronized_data.nb_participants
         ):
             return self.synchronized_data, Event.NO_MAJORITY
+        return None
+
+
+class PostAnnouncementtRound(PostTweetRound):
+    """PostAnnouncementtRound"""
+
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
+        """Process the end of the block."""
+
+        # This needs to be mentioned for static checkers
+        # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
+        if self.threshold_reached:
+            latest_tweet = json.loads(self.most_voted_payload)
+
+            # API errors
+            if latest_tweet is None:
+                return self.synchronized_data, Event.API_ERROR
+
+            # Reset everything
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(SynchronizedData.pending_tweet): None,
+                    get_name(SynchronizedData.latest_tweet): "{}",
+                    get_name(SynchronizedData.token_data): "{}",
+                    get_name(SynchronizedData.persona): self.context.params.persona,
+                    get_name(SynchronizedData.feedback): "[]",
+                    get_name(SynchronizedData.tx_flag): None,
+                    get_name(SynchronizedData.most_voted_tx_hash): None,
+                },
+            )
+            return synchronized_data, Event.WAIT
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+
         return None
 
 
