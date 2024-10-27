@@ -124,7 +124,7 @@ contract MemeBase {
     uint256 public immutable burnPercentage;
     // Percentage of initial supply for liquidity pool (50%)
     uint256 public immutable lpPercentage;
-    // Slippage parameter in 1e6 form, since USDC has 6 decimals
+    // Slippage parameter
     uint256 public immutable slippage;
 
     struct MemeSummon {
@@ -285,7 +285,8 @@ contract MemeBase {
         (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
         require(answerPrice > 0, "Oracle price is incorrect");
         // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100
-        uint256 limit = uint256(answerPrice) * ethAmount * slippage / 1e8;
+        // ETH: 18 decimals, USDC: 6 decimals, denominator = 18 + 6 + 2 = 26
+        uint256 limit = uint256(answerPrice) * ethAmount * slippage / 1e26;
         // Compare with slippage
         uint256[] memory amounts = IUniswapV2Router02(router).swapExactETHForTokens{ value: ethAmount }(
             limit,
