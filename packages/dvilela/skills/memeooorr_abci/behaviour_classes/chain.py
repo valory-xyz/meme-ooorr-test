@@ -22,9 +22,6 @@
 from typing import Generator, Optional, Tuple, Type, cast
 
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
-from packages.dvilela.contracts.uniswap_v2_router_02.contract import (
-    UniswapV2Router02Contract,
-)
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )

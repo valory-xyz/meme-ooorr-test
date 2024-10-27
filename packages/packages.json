@@ -1,13 +1,13 @@
 {
     "dev": {
-        "contract/dvilela/meme_factory/0.1.0": "bafybeihp7jkkx24p7wj27h2nc2e7kvpgkiterw2jjxttadwyp4m4jaqpuq",
+        "contract/dvilela/meme_factory/0.1.0": "bafybeif76sfpd7gcvseobp2oteq2kc722jrnqymndc2wstyw75q62tt2vq",
         "contract/valory/erc20/0.1.0": "bafybeibk2y6ldylquuikk3cmtk64e2wnjbtuxy5doorzsp4ysx6uwqbdxm",
         "connection/dvilela/twikit/0.1.0": "bafybeietw4m2t2eliptjh6zuwtcuye6lbo6wttpv4agrf5475uunewvrke",
         "connection/dvilela/genai/0.1.0": "bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq",
-        "skill/dvilela/memeooorr_abci/0.1.0": "bafybeiaugexe4paxyw5krjevwaqe26bcficdqgx5jtir3otp4awqejho7e",
-        "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeie54yk5ngs3bk3ijktsjvjg5awi2m4zmn7itlrlfhyf3xfl3ig3ye",
-        "agent/dvilela/memeooorr/0.1.0": "bafybeidz34rpns7mwnlpuf5uf3xpyzyujijwixup5zy5vvkl5wgvnavfry",
-        "service/dvilela/memeooorr/0.1.0": "bafybeiezfwhkeswfvgzizx5iaonkfakebdsjm75nqqmcu3x57pe32wkmhe"
+        "skill/dvilela/memeooorr_abci/0.1.0": "bafybeicig6otpmamnlctykpxit6kpafuvbmr33lzwcq33jfn3miygd3ly4",
+        "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeiegvl5djtydhkej2w7vkkvzysana3fqn4urnlfwpmy4gtpbkjkj2u",
+        "agent/dvilela/memeooorr/0.1.0": "bafybeihb7gzdmafpcyw5em7thql2rzcobw5nbemj6d4raznoal2d3hgzmu",
+        "service/dvilela/memeooorr/0.1.0": "bafybeidi4oqdjamzm4v6pprvaejhe54bb5seuxqiy7boxkufmapvzzjgku"
     },
     "third_party": {
         "protocol/open_aea/signing/1.0.0": "bafybeihv62fim3wl2bayavfcg3u5e5cxu3b7brtu4cn5xoxd6lqwachasi",
