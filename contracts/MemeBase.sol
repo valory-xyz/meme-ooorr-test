@@ -266,7 +266,9 @@ contract MemeBase {
         memeSummon.heartersAmount = heartersAmount;
 
         // Allocate to the token hearter unleashing the meme
-        _collect(memeToken, memeHearters[memeToken][msg.sender], heartersAmount, memeSummon.ethContributed, true);
+        if (memeHearters[memeToken][msg.sender] > 0) {
+            _collect(memeToken, memeHearters[memeToken][msg.sender], heartersAmount, memeSummon.ethContributed);
+        }
 
         emit Unleashed(msg.sender, memeToken, pool, liquidity);
     }
@@ -276,30 +278,25 @@ contract MemeBase {
     /// @param heartersAmount Total hearters meme token amount.
     /// @param hearterContribution Hearter contribution.
     /// @param totalETHCommitted Total ETH contributed for the token launch.
-    /// @param unleash Collect during the token unleash.
     function _collect(
         address memeToken,
         uint256 heartersAmount,
         uint256 hearterContribution,
-        uint256 totalETHCommitted,
-        bool unleash
+        uint256 totalETHCommitted
     ) internal {
-        // Check for non-zero hearter contribution
-        if (unleash && hearterContribution > 0) {
-            // Get meme token instance
-            Meme memeTokenInstance = Meme(memeToken);
+        // Get meme token instance
+        Meme memeTokenInstance = Meme(memeToken);
 
-            // Allocate corresponding meme token amount to the hearter
-            uint256 allocation = (heartersAmount * hearterContribution) / totalETHCommitted;
+        // Allocate corresponding meme token amount to the hearter
+        uint256 allocation = (heartersAmount * hearterContribution) / totalETHCommitted;
 
-            // Zero the allocation
-            memeHearters[memeToken][msg.sender] = 0;
+        // Zero the allocation
+        memeHearters[memeToken][msg.sender] = 0;
 
-            // Transfer meme token maount to the msg.sender
-            memeTokenInstance.transfer(msg.sender, allocation);
+        // Transfer meme token maount to the msg.sender
+        memeTokenInstance.transfer(msg.sender, allocation);
 
-            emit Collected(msg.sender, memeToken, allocation);
-        }
+        emit Collected(msg.sender, memeToken, allocation);
     }
 
     /// @dev Collects meme token allocation.
@@ -317,7 +314,7 @@ contract MemeBase {
         require(hearterContribution > 0, "No token allocation");
 
         // Collect the token
-        _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.ethContributed, false);
+        _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.ethContributed);
     }
 
     /// @dev Purges uncollected meme token allocation.
