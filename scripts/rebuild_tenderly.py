@@ -169,6 +169,23 @@ def _update_bash_variable(file_path: str, variable_name: str, new_value: str):
         file.writelines(updated_lines)
 
 
+def update_rpc_variable(new_value: str, chain: str = "BASE"):
+    pattern = rf"{chain.upper()}_LEDGER_RPC=(\S+)"
+    env_file = ".env"
+
+    with open(env_file, "r", encoding="utf-8") as file:
+        content = file.read()
+
+    if re.search(pattern, content, re.MULTILINE):
+        content = re.sub(pattern, f"{chain.upper()}_LEDGER_RPC={new_value}", content, flags=re.MULTILINE)
+    else:
+        content += f"{chain.upper()}_LEDGER_RPC={new_value}\n"
+
+    with open(env_file, "w", encoding="utf-8") as file:
+        file.write(content)
+
+
+
 def _fund_wallet(  # nosec
     admin_rpc: str,
     wallet_addresses: list[str],
@@ -279,7 +296,9 @@ def main() -> None:  # pylint: disable=too-many-locals
     # _update_bash_variable(bash_file, "BASE_RPC", vnet_ids["base"]["admin_rpc"])
     # _update_bash_variable(bash_file, "OPTIMISM_RPC", vnet_ids["optimism"]["admin_rpc"])
     # _update_bash_variable(bash_file, "ETHEREUM_RPC", vnet_ids["ethereum"]["admin_rpc"])
-    # print("Done!")
+
+    update_rpc_variable(chain="base", new_value=vnet_ids["base"]["admin_rpc"])
+    print("Done!")
 
 
 if __name__ == "__main__":
