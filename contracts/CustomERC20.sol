@@ -12,4 +12,8 @@ contract CustomERC20 is ERC20 {
     ) ERC20(name_, symbol_) {
         _mint(owner_, totalSupply_);
     }
+
+    function burn(uint256 amount) external {
+        _burn(msg.sender, amount);
+    }
 }
