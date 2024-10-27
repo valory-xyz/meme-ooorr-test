@@ -285,7 +285,7 @@ contract MemeBase {
         (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
         require(answerPrice > 0, "Oracle price is incorrect");
         // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100
-        uint256 limit = uint256(answerPrice) * slippage / 1e8;
+        uint256 limit = uint256(answerPrice) * ethAmount * slippage / 1e8;
         // Compare with slippage
         uint256[] memory amounts = IUniswapV2Router02(router).swapExactETHForTokens{ value: ethAmount }(
             limit,
