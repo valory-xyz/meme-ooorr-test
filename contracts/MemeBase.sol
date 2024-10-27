@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "./CustomERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MemeBase {
     address public olasAddress; // Address of OLAS token
@@ -18,16 +19,24 @@ contract MemeBase {
     uint256 public scheduledBurnAmount;
     uint256 public totalETHHeld;
 
-    mapping(address => [uint256) public memeSummons;
+    struct MemeSummon {
+        uint256 ethContributed;
+        uint256 timestamp;
+    }
+    mapping(address => MemeSummon) public memeSummons;
     mapping(address => mapping(address => uint256)) public memeHearts;
+    mapping(address => address[]) public memeSupporters;
 
     event TokenDeployed(address tokenAddress, address deployer, uint256 lpTokens, address lpPool);
     event OLASScheduledForBurn(uint256 amount);
     event OLASBridgedForBurn(uint256 amount);
-    event DiceRolled(address indexed user, uint256 amount);
+    event Summoned(address indexed deployer, uint256 ethContributed, address tokenAddress);
+    event Hearted(address indexed user, uint256 amount);
+    event Unleashed(address lpPairAddress);
 
-    constructor(address _olasAddress, address _uniswapV2Router, address _uniswapV2Factory, address _rollupBridge) {
+    constructor(address _olasAddress, address _USDCAddress, address _uniswapV2Router, address _uniswapV2Factory, address _rollupBridge) {
         olasAddress = _olasAddress;
+        USDCAddress = _USDCAddress;
         uniswapV2Router = _uniswapV2Router;
         uniswapV2Factory = _uniswapV2Factory;
         rollupBridge = _rollupBridge;
@@ -36,26 +45,30 @@ contract MemeBase {
     function summonThisMeme(
         string memory name_,
         string memory symbol_,
-        uint256 totalSupply_,
+        uint256 totalSupply_
     ) external payable {
-        require(msg.value > 0.1, "Minimum of 0.1 ETH required to deploy");
-
+        require(msg.value >= 0.1 ether, "Minimum of 0.1 ETH required to summon");
         require(totalSupply_ >= 1_000_000 * 10**18, "Total supply must be at least 1 million tokens");
 
-        CustomERC20 newToken = new CustomERC20(name_, symbol_, totalSupply_);
+        CustomERC20 newToken = new CustomERC20(name_, symbol_, totalSupply_, address(this));
 
-        memeSummons[newToken] = msg.value; // also need to safe the block timestamp
-        memeHearts[newToken] = {};
+        memeSummons[address(newToken)] = MemeSummon({
+            ethContributed: msg.value,
+            timestamp: block.timestamp
+        });
+        memeHearts[address(newToken)][msg.sender] = msg.value;
+        memeSupporters[address(newToken)].push(msg.sender);
 
-        emit Summoned(msg.sender, msg.value, newToken);
+        emit Summoned(msg.sender, msg.value, address(newToken));
     }
 
     function heartThisMeme(address tokenAddress_) external payable {
         require(msg.value > 0, "ETH amount must be greater than zero");
-        require(memeHearts[newToken], "Meme not yet summoned");
-        require(memeSummons[tokenAddress_] > 0, "Meme already unleashed");
+        require(memeSummons[tokenAddress_].ethContributed > 0, "Meme not yet summoned");
+        require(memeSummons[tokenAddress_].timestamp != 0, "Meme already unleashed");
 
         memeHearts[tokenAddress_][msg.sender] += msg.value;
+        memeSupporters[tokenAddress_].push(msg.sender);
 
         totalETHHeld += msg.value;
 
@@ -63,40 +76,47 @@ contract MemeBase {
     }
 
     function unleashThisMeme(address tokenAddress_) external {
-        // ensure this can only be done 24h after summoning
-        require(...);
+        require(memeSummons[tokenAddress_].timestamp > 0, "Meme not summoned");
+        require(block.timestamp >= memeSummons[tokenAddress_].timestamp + 24 hours, "Cannot unleash before 24 hours");
 
-        // get the total ETH committed
-        uint256 totalETHCommitted = memeSummons[tokenAddress_];
-        for (uint256 i = 0; i < memeHearts[tokenAddress_].length; i++) {
-            totalETHCommitted += memeHearts[tokenAddress_][i]
+        // Calculate the total ETH committed to this meme
+        uint256 totalETHCommitted = memeSummons[tokenAddress_].ethContributed;
+        for (uint256 i = 0; i < memeSupporters[tokenAddress_].length; i++) {
+            address supporter = memeSupporters[tokenAddress_][i];
+            totalETHCommitted += memeHearts[tokenAddress_][supporter];
         }
 
-        // Buy OLAS from Uniswap with 10% of the sent ETH;
-        // Buy USDC from Uniswap with 90% of the sent ETH;
-        uint256 tenPercentOfETH = totalETHCommitted * 0.1;
+        // Buy OLAS with 10% of the total ETH committed
+        uint256 tenPercentOfETH = (totalETHCommitted * burnPercentage) / 100;
         uint256 OLASAmount = _buyERC20(tenPercentOfETH, olasAddress);
-        uint256 USDCAmount = _buyERC20(totalETHCommitted - tenPercentOfETH, usdcAddress);
 
-        // Schedule OLAS for burning;
+        // Buy USDC with the remaining 90% of the total ETH committed
+        uint256 USDCAmount = _buyERC20(totalETHCommitted - tenPercentOfETH, USDCAddress);
+
+        // Schedule OLAS for burning
         scheduledBurnAmount += OLASAmount;
         emit OLASScheduledForBurn(OLASAmount);
 
-        // Calculate LP token allocation (50% of total supply)
+        // Calculate LP token allocation (50% of total supply) and distribution to supporters
+        CustomERC20 memeToken = CustomERC20(tokenAddress_);
+        uint256 totalSupply_ = memeToken.totalSupply();
         uint256 lpNewTokenAmount = (totalSupply_ * lpPercentage) / 100;
         uint256 heartersAmount = totalSupply_ - lpNewTokenAmount;
 
-        // create the Uniswap pair
-        _createUniswapPair(address(newToken), USDCAmount, lpNewTokenAmount);
+       // Create Uniswap pair with 50% allocated for LP
+        _createUniswapPair(tokenAddress_, USDCAmount, lpNewTokenAmount);
 
-        // distribute the remaining 50% proportional to the ETH committed to the specific meme 
+        // Distribute the remaining 50% proportional to the ETH committed by each supporter
+        _distributeMemeTokens(tokenAddress_, heartersAmount);
+
+        // Record meme is unleashed;
+        memeSummons[tokenAddress_].timestamp = 0;
 
         emit Unleashed(address(uniswapV2Factory));
     }
 
-
-    function _buyOLAS(uint256 ethAmount,address token) internal returns (uint256) {
-        address;
+    function _buyERC20(uint256 ethAmount, address token) internal returns (uint256) {
+        address[] memory path = new address[](2);
         path[0] = IUniswapV2Router02(uniswapV2Router).WETH();
         path[1] = token;
 
@@ -111,21 +131,42 @@ contract MemeBase {
     }
 
     function _createUniswapPair(address tokenAddress, uint256 USDCAmount, uint256 tokenAmount) internal {
-        address pair = IUniswapV2Factory(uniswapV2Factory).createPair(USDCAddress, tokenAddress);
+        address pair = IUniswapV2Factory(uniswapV2Factory).getPair(USDCAddress, tokenAddress);
+        if (pair == address(0)) {
+            pair = IUniswapV2Factory(uniswapV2Factory).createPair(USDCAddress, tokenAddress);
+        }
 
-        ERC20(USDCAddress).approve(uniswapV2Router, USDCAmount);
-        ERC20(tokenAddress).approve(uniswapV2Router, tokenAmount);
+        IERC20(USDCAddress).approve(uniswapV2Router, USDCAmount);
+        IERC20(tokenAddress).approve(uniswapV2Router, tokenAmount);
 
         IUniswapV2Router02(uniswapV2Router).addLiquidity(
             USDCAddress,
             tokenAddress,
             USDCAmount,
             tokenAmount,
-            0, // Accept any amount of OLAS
-            0, // Accept any amount of new tokens
+            0, // Accept any amount of USDC
+            0, // Accept any amount of meme token
             address(this),
             block.timestamp
         );
+    }
+
+    function _distributeMemeTokens(address tokenAddress, uint256 heartersAmount) internal {
+        CustomERC20 memeToken = CustomERC20(tokenAddress);
+
+        uint256 totalContribution = memeSummons[tokenAddress].ethContributed;
+        for (uint256 i = 0; i < memeSupporters[tokenAddress].length; i++) {
+            address supporter = memeSupporters[tokenAddress][i];
+            totalContribution += memeHearts[tokenAddress][supporter];
+        }
+
+        // Distribute tokens proportionally based on ETH contribution
+        for (uint256 i = 0; i < memeSupporters[tokenAddress].length; i++) {
+            address supporter = memeSupporters[tokenAddress][i];
+            uint256 userContribution = memeHearts[tokenAddress][supporter];
+            uint256 allocation = (heartersAmount * userContribution) / totalContribution;
+            memeToken.transfer(address(this), supporter, allocation);
+        }
     }
 
     function bridgeAndBurn() external {

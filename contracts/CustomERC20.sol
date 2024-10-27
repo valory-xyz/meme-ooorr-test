@@ -8,8 +8,9 @@ contract CustomERC20 is ERC20, Ownable {
     constructor(
         string memory name_,
         string memory symbol_,
-        uint256 totalSupply_
+        uint256 totalSupply_,
+        address owner_
     ) ERC20(name_, symbol_) {
-        _mint(msg.sender, totalSupply_);
+        _mint(owner_, totalSupply_);
     }
 }
