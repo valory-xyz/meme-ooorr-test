@@ -102,7 +102,8 @@ class TwikitConnection(BaseSyncConnection):
         self.username = self.configuration.config.get("twikit_username")
         self.email = self.configuration.config.get("twikit_email")
         self.password = self.configuration.config.get("twikit_password")
-        self.cookies = self.configuration.config.get("twikit_cookies")
+        cookies_str = self.configuration.config.get("twikit_cookies")
+        self.cookies = json.loads(cookies_str) if cookies_str else None
         self.client = twikit.Client(language="en-US")
 
         self.run_task(self.twikit_login)
@@ -235,14 +236,14 @@ class TwikitConnection(BaseSyncConnection):
 
     async def twikit_login(self) -> None:
         """Login into Twitter"""
-
         if not self.cookies and cookies_path.exists():
+            self.logger.info(f"Loading Twitter cookies from {cookies_path}")
             with open(cookies_path, "r", encoding="utf-8") as cookies_file:
                 self.cookies = json.load(cookies_file)
 
         if self.cookies:
-            self.logger.info("Loading Twitter cookies")
-            self.client.set_cookies(json.loads(self.cookies))
+            self.logger.info("Set cookies")
+            self.client.set_cookies(self.cookies)
         else:
             self.logger.info("Logging into Twitter with username and password")
             await self.client.login(
