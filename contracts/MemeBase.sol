@@ -183,8 +183,8 @@ contract MemeBase {
         string memory symbol,
         uint256 totalSupply
     ) external payable {
-        require(msg.value >= MIN_ETH_VALUE, "Minimum of 0.1 ETH required to summon");
-        require(totalSupply >= MIN_TOTAL_SUPPLY, "Total supply must be at least 1 million tokens");
+        require(msg.value >= MIN_ETH_VALUE, "Minimum ETH value is required to summon");
+        require(totalSupply >= MIN_TOTAL_SUPPLY, "Minimum total supply is not met");
 
         Meme newTokenInstance = new Meme(name, symbol, DECIMALS, totalSupply);
         address memeToken = address(newTokenInstance);
