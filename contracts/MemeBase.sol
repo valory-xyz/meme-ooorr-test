@@ -125,7 +125,7 @@ contract MemeBase {
     // Meme token decimals
     uint8 public constant DECIMALS = 18;
 
-    // Balancer Pool Id (0x5332584890d6e415a6dc910254d6430b8aab7e69000200000000000000000103 on Base)
+    // Balancer Pool Id
     bytes32 public immutable balancerPoolId;
     // OLAS token address
     address public immutable olas;
@@ -141,7 +141,7 @@ contract MemeBase {
     address public immutable l2TokenRelayer;
     // Oracle address
     address public immutable oracle;
-    // Balancer Vault address (0xBA12222222228d8Ba445958a75a0704d566BF2C8 on Base)
+    // Balancer Vault address
     address public immutable balancerVault;
 
     // Number of meme tokens
