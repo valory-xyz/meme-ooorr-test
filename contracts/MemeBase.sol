@@ -124,7 +124,7 @@ contract MemeBase {
     uint256 public immutable burnPercentage;
     // Percentage of initial supply for liquidity pool (50%)
     uint256 public immutable lpPercentage;
-    // Slippage parameter
+    // Slippage parameter in 1e6 form, since USDC has 6 decimals
     uint256 public immutable slippage;
 
     struct MemeSummon {
@@ -188,7 +188,7 @@ contract MemeBase {
     function heartThisMeme(address memeToken) external payable {
         require(msg.value > 0, "ETH amount must be greater than zero");
         require(memeSummons[memeToken].ethContributed > 0, "Meme not yet summoned");
-        // TODO
+        // Check if the token has been unleashed
         require(block.timestamp < memeSummons[memeToken].unleashTime, "Meme already unleashed");
 
         memeSummons[memeToken].ethContributed += msg.value;
@@ -202,6 +202,8 @@ contract MemeBase {
         require(memeSummons[memeToken].ethContributed > 0, "Meme not yet summoned");
         // Check the unleash timestamp
         require(block.timestamp >= memeSummons[memeToken].summonTime + UNLEASH_PERIOD, "Cannot unleash yet");
+        // Check OLAS spot price
+        require(olasSpotPrice > 0, "OLAS spot price is incorrect");
 
         // Calculate the total ETH committed to this meme
         uint256 totalETHCommitted = memeSummons[memeToken].ethContributed;
@@ -242,7 +244,7 @@ contract MemeBase {
 
     function collect(address memeToken) external {
         // Check if the meme can be collected
-        require(block.timestamp < memeSummons[memeToken].summonTime + COLLECT_PERIOD, "Collect only allowed until 48 hours after summon.");
+        require(block.timestamp < memeSummons[memeToken].summonTime + COLLECT_PERIOD, "Collect only allowed until 48 hours after summon");
         Meme memeToken = Meme(memeToken);
         uint256 totalETHCommitted = memeSummons[memeToken].ethContributed;
         uint256 totalSupply = memeToken.totalSupply();
@@ -260,7 +262,7 @@ contract MemeBase {
         // Check if the meme has been unleashed
         require(memeSummons[memeToken].unleashTime > 0, "Meme not unleashed");
         // Check if enough time has passed since the meme was summoned
-        require(block.timestamp >= memeSummons[memeToken].summonTime + PURGE_PERIOD, "Purge only allowed from 48 hours after summon.");
+        require(block.timestamp >= memeSummons[memeToken].summonTime + PURGE_PERIOD, "Purge only allowed from 48 hours after summon");
 
         Meme memeToken = Meme(memeToken);
 
@@ -278,11 +280,12 @@ contract MemeBase {
         address[] memory path = new address[](2);
         path[0] = weth;
         path[1] = usdc;
-        
+
         // Calculate price by Oracle
         (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
+        require(answerPrice > 0, "Oracle price is incorrect");
         // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100
-        uint256 limit = uint256(answerPrice) * slippage / 10000;
+        uint256 limit = uint256(answerPrice) * slippage / 1e8;
         // Compare with slippage
         uint256[] memory amounts = IUniswapV2Router02(router).swapExactETHForTokens{ value: ethAmount }(
             limit,
