@@ -110,8 +110,8 @@ all-linters:
 
 .PHONY: push-image
 push-image:
+	IMAGE_ID=78a6f8407a53 && \
 	SERVICE_HASH=$(shell jq -r ".dev[\"service/dvilela/memeooorr/0.1.0\"]" packages/packages.json) && \
-	IMAGE_ID=$$(docker image ls | awk -v tag="$$SERVICE_HASH" '$$2 == tag {print $$3}' | head -n 1) && \
 	docker tag $$IMAGE_ID valory/oar-memeooorr:$$SERVICE_HASH && \
 	docker push valory/oar-memeooorr:$$SERVICE_HASH
 
