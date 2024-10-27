@@ -6,6 +6,10 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+interface IRollupBridge {
+    function bridgeTokens(address token, uint256 amount, bytes memory data) external;
+}
+
 /* 
 * This contract let's:
 * 1) any msg.sender summon a meme.
@@ -25,16 +29,12 @@ contract MemeBase {
     uint256 public burnPercentage = 10; // Percentage of OLAS to burn (10%)
     uint256 public lpPercentage = 50;   // Percentage of initial supply for liquidity pool (50%)
 
-    uint256 public scheduledBurnAmount;
-    uint256 public totalETHHeld;
-
     struct MemeSummon {
         uint256 ethContributed;
         uint256 timestamp;
     }
     mapping(address => MemeSummon) public memeSummons;
     mapping(address => mapping(address => uint256)) public memeHearts;
-    mapping(address => address[]) public memeSupporters;
 
     event TokenDeployed(address tokenAddress, address deployer, uint256 lpTokens, address lpPool);
     event OLASScheduledForBurn(uint256 amount);
@@ -66,7 +66,6 @@ contract MemeBase {
             timestamp: block.timestamp
         });
         memeHearts[address(newToken)][msg.sender] = msg.value;
-        memeSupporters[address(newToken)].push(msg.sender);
 
         emit Summoned(msg.sender, msg.value, address(newToken));
     }
@@ -76,10 +75,8 @@ contract MemeBase {
         require(memeSummons[tokenAddress_].ethContributed > 0, "Meme not yet summoned");
         require(memeSummons[tokenAddress_].timestamp != 0, "Meme already unleashed");
 
+        memeSummons[tokenAddress_].ethContributed += msg.value;
         memeHearts[tokenAddress_][msg.sender] += msg.value;
-        memeSupporters[tokenAddress_].push(msg.sender);
-
-        totalETHHeld += msg.value;
 
         emit Hearted(msg.sender, msg.value);
     }
@@ -90,10 +87,6 @@ contract MemeBase {
 
         // Calculate the total ETH committed to this meme
         uint256 totalETHCommitted = memeSummons[tokenAddress_].ethContributed;
-        for (uint256 i = 0; i < memeSupporters[tokenAddress_].length; i++) {
-            address supporter = memeSupporters[tokenAddress_][i];
-            totalETHCommitted += memeHearts[tokenAddress_][supporter];
-        }
 
         // Buy OLAS with 10% of the total ETH committed
         uint256 tenPercentOfETH = (totalETHCommitted * burnPercentage) / 100;
@@ -102,9 +95,8 @@ contract MemeBase {
         // Buy USDC with the remaining 90% of the total ETH committed
         uint256 USDCAmount = _buyERC20(totalETHCommitted - tenPercentOfETH, USDCAddress);
 
-        // Schedule OLAS for burning
-        scheduledBurnAmount += OLASAmount;
-        emit OLASScheduledForBurn(OLASAmount);
+        // Burn OLAS
+        _bridgeAndBurn(OLASAmount);
 
         // Calculate LP token allocation (50% of total supply) and distribution to supporters
         CustomERC20 memeToken = CustomERC20(tokenAddress_);
@@ -115,13 +107,22 @@ contract MemeBase {
        // Create Uniswap pair with 50% allocated for LP
         _createUniswapPair(tokenAddress_, USDCAmount, lpNewTokenAmount);
 
+
         // Distribute the remaining 50% proportional to the ETH committed by each supporter
-        _distributeMemeTokens(tokenAddress_, heartersAmount);
+        _distributeMemeToken(tokenAddress_, heartersAmount, msg.sender);
 
         // Record meme is unleashed;
         memeSummons[tokenAddress_].timestamp = 0;
 
         emit Unleashed(address(uniswapV2Factory));
+    }
+
+    function collect(address tokenAddress_) external {
+        CustomERC20 memeToken = CustomERC20(tokenAddress_);
+        uint256 totalSupply_ = memeToken.totalSupply();
+        uint256 lpNewTokenAmount = (totalSupply_ * lpPercentage) / 100;
+        uint256 heartersAmount = totalSupply_ - lpNewTokenAmount;
+        _distributeMemeToken(tokenAddress_, heartersAmount, msg.sender);
     }
 
     function _buyERC20(uint256 ethAmount, address token) internal returns (uint256) {
@@ -160,27 +161,20 @@ contract MemeBase {
         );
     }
 
-    function _distributeMemeTokens(address tokenAddress, uint256 heartersAmount) internal {
+    function _distributeMemeToken(address tokenAddress, uint256 heartersAmount, address hearter) internal {
         CustomERC20 memeToken = CustomERC20(tokenAddress);
 
         uint256 totalContribution = memeSummons[tokenAddress].ethContributed;
-        for (uint256 i = 0; i < memeSupporters[tokenAddress].length; i++) {
-            address supporter = memeSupporters[tokenAddress][i];
-            totalContribution += memeHearts[tokenAddress][supporter];
-        }
 
-        // Distribute tokens proportionally based on ETH contribution
-        for (uint256 i = 0; i < memeSupporters[tokenAddress].length; i++) {
-            address supporter = memeSupporters[tokenAddress][i];
-            uint256 userContribution = memeHearts[tokenAddress][supporter];
+        if (memeHearts[tokenAddress][hearter] > 0) {
+            uint256 userContribution = memeHearts[tokenAddress][hearter];
             uint256 allocation = (heartersAmount * userContribution) / totalContribution;
-            memeToken.transfer(address(this), supporter, allocation);
+            memeHearts[tokenAddress][hearter] = 0;
+            memeToken.transfer(hearter, allocation);
         }
     }
 
-    function bridgeAndBurn() external {
-        require(scheduledBurnAmount > 0, "No OLAS scheduled for burn");
-
+    function _bridgeAndBurn(uint256 scheduledBurnAmount) internal {
         // Approve bridge to use OLAS
         IERC20(olasAddress).approve(rollupBridge, scheduledBurnAmount);
 
@@ -191,9 +185,6 @@ contract MemeBase {
         IRollupBridge(rollupBridge).bridgeTokens(olasAddress, scheduledBurnAmount, data);
 
         emit OLASBridgedForBurn(scheduledBurnAmount);
-
-        // Reset the scheduled burn amount
-        scheduledBurnAmount = 0;
     }
 
     // Allow the contract to receive ETH
