@@ -23,12 +23,9 @@ interface IBalancer {
         bool toInternalBalance;
     }
 
-    function swap(
-        SingleSwap memory singleSwap,
-        FundManagement memory funds,
-        uint256 limit,
-        uint256 deadline
-    ) external payable returns (uint256);
+    /// @dev Swaps tokens on Balancer.
+    function swap(SingleSwap memory singleSwap, FundManagement memory funds, uint256 limit, uint256 deadline)
+        external payable returns (uint256);
 }
 
 // ERC20 interface
@@ -42,59 +39,35 @@ interface IERC20 {
 
 // Oracle interface
 interface IOracle {
-    function latestRoundData() external returns (
-        uint80 roundId,
-        int256 answer,
-        uint256 startedAt,
-        uint256 updatedAt,
-        uint80 answeredInRound
-    );
+    /// @dev Gets latest round token price data.
+    function latestRoundData()
+        external returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
 }
 
 // Bridge interface
 interface IBridge {
-    /**
-     * @custom:legacy
-     * @notice Initiates a withdrawal from L2 to L1 to a target account on L1.
-     *         Note that if ETH is sent to a contract on L1 and the call fails, then that ETH will
-     *         be locked in the L1StandardBridge. ETH may be recoverable if the call can be
-     *         successfully replayed by increasing the amount of gas supplied to the call. If the
-     *         call will fail for any amount of gas, then the ETH will be locked permanently.
-     *         This function only works with OptimismMintableERC20 tokens or ether. Use the
-     *         `bridgeERC20To` function to bridge native L2 tokens to L1.
-     *
-     * @param _l2Token     Address of the L2 token to withdraw.
-     * @param _to          Recipient account on L1.
-     * @param _amount      Amount of the L2 token to withdraw.
-     * @param _minGasLimit Minimum gas limit to use for the transaction.
-     * @param _extraData   Extra data attached to the withdrawal.
-     */
-    function withdrawTo(
-        address _l2Token,
-        address _to,
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    ) external;
+    /// @dev Initiates a withdrawal from L2 to L1 to a target account on L1.
+    /// @param l2Token Address of the L2 token to withdraw.
+    /// @param to Recipient account on L1.
+    /// @param amount Amount of the L2 token to withdraw.
+    /// @param minGasLimit Minimum gas limit to use for the transaction.
+    /// @param extraData Extra data attached to the withdrawal.
+    function withdrawTo(address l2Token, address to, uint256 amount, uint32 minGasLimit, bytes calldata extraData) external;
 }
 
 // UniswapV2 interface
 interface IUniswap {
+    /// @dev Creates an LP pair.
     function createPair(address tokenA, address tokenB) external returns (address pair);
 
+    /// @dev Swaps exact amount of ETH for a specified token.
     function swapExactETHForTokens(uint256 amountOutMin, address[] calldata path, address to, uint256 deadline)
         external payable returns (uint256[] memory amounts);
 
-    function addLiquidity(
-        address tokenA,
-        address tokenB,
-        uint256 amountADesired,
-        uint256 amountBDesired,
-        uint256 amountAMin,
-        uint256 amountBMin,
-        address to,
-        uint256 deadline
-    ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
+    /// @dev Adds liquidity to the LP consisting of tokenA and tokenB.
+    function addLiquidity(address tokenA, address tokenB, uint256 amountADesired, uint256 amountBDesired,
+        uint256 amountAMin, uint256 amountBMin, address to, uint256 deadline)
+        external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
 }
 
 /// @title MemeBase - a smart contract factory for Meme Token creation
