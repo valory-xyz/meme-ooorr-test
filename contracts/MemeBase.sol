@@ -7,17 +7,19 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 
 contract MemeBase {
     address public olasAddress; // Address of OLAS token
+    address public USDCAddress; // Address of USDC token
     address public uniswapV2Router;
     address public uniswapV2Factory;
     address public rollupBridge;
 
     uint256 public burnPercentage = 10; // Percentage of OLAS to burn (10%)
-    uint256 public lpPercentage = 10;   // Percentage of initial supply for liquidity pool (10%)
+    uint256 public lpPercentage = 50;   // Percentage of initial supply for liquidity pool (50%)
 
     uint256 public scheduledBurnAmount;
-    uint256 public totalETHReceived;
+    uint256 public totalETHHeld;
 
-    mapping(address => uint256) public userEthDeposits;
+    mapping(address => [uint256) public memeSummons;
+    mapping(address => mapping(address => uint256)) public memeHearts;
 
     event TokenDeployed(address tokenAddress, address deployer, uint256 lpTokens, address lpPool);
     event OLASScheduledForBurn(uint256 amount);
@@ -31,155 +33,93 @@ contract MemeBase {
         rollupBridge = _rollupBridge;
     }
 
-    function deploy(
+    function summonThisMeme(
         string memory name_,
-        string memory symbol_
+        string memory symbol_,
+        uint256 totalSupply_,
     ) external payable {
-        require(msg.value > 0, "ETH required to deploy");
+        require(msg.value > 0.1, "Minimum of 0.1 ETH required to deploy");
 
-        // Generate a random total supply between 1 million and 21 million
-        uint256 totalSupply_ = _generateRandomSupply();
+        require(totalSupply_ >= 1_000_000 * 10**18, "Total supply must be at least 1 million tokens");
 
-        // Buy OLAS from Uniswap with 100% of the sent ETH
-        uint256 olasAmount = _buyOLAS(msg.value);
-
-        // Schedule 10% of OLAS for burning
-        uint256 burnAmount = (olasAmount * burnPercentage) / 100;
-        _scheduleBurn(burnAmount);
-
-        // Distribute the remaining OLAS to LP
-        uint256 lpOLASAmount = olasAmount - burnAmount;
-
-        // Calculate LP token allocation (10% of total supply)
-        uint256 lpNewTokenAmount = (totalSupply_ * lpPercentage) / 100;
-
-        // Deploy new ERC20 token
         CustomERC20 newToken = new CustomERC20(name_, symbol_, totalSupply_);
 
-        // Mint 1% of the supply to the deployer
-        uint256 deployerAllocation = (totalSupply_ * 1) / 100;
-        newToken.mint(msg.sender, deployerAllocation);
+        memeSummons[newToken] = msg.value; // also need to safe the block timestamp
+        memeHearts[newToken] = {};
 
-        // Mint 10% to LP pool and create the Uniswap pair
-        _createUniswapPair(address(newToken), lpOLASAmount, lpNewTokenAmount);
-
-        // Distribute remaining 89% of the supply to the top 1,000 users in `userEthDeposits`
-        _distributeToTopDepositors(address(newToken), totalSupply_ - deployerAllocation - lpNewTokenAmount);
-
-        emit TokenDeployed(address(newToken), msg.sender, lpNewTokenAmount, address(uniswapV2Factory));
+        emit Summoned(msg.sender, msg.value, newToken);
     }
 
-    function _distributeToTopDepositors(address tokenAddress, uint256 totalDistributionAmount) internal {
-        // Step 1: Gather top 1,000 depositors based on their ETH deposits
-        address[] memory topDepositors = _getTopDepositors(1000);
-
-        uint256 totalDeposits;
-        uint256[] memory weights = new uint256[](topDepositors.length);
-
-        // Step 2: Calculate the weight for each depositor based on their ETH deposit
-        for (uint256 i = 0; i < topDepositors.length; i++) {
-            uint256 deposit = userEthDeposits[topDepositors[i]];
-            weights[i] = deposit;
-            totalDeposits += deposit;
-        }
-
-        // Step 3: Distribute tokens to top depositors with positive but non-proportional weighting
-        for (uint256 i = 0; i < topDepositors.length; i++) {
-            uint256 allocation = (totalDistributionAmount * weights[i]) / (totalDeposits + weights[i] / 2); // Adjust the weight for non-proportional distribution
-            IERC20(tokenAddress).transfer(topDepositors[i], allocation);
-        }
-    }
-
-    function _getTopDepositors(uint256 limit) internal view returns (address[] memory) {
-        address[] memory topDepositors = new address[](limit);
-        uint256[] memory topDeposits = new uint256[](limit);
-
-        // Populate topDepositors based on the ETH deposits
-        for (uint256 i = 0; i < limit; i++) {
-            uint256 maxDeposit = 0;
-            address maxAddress;
-
-            // Find the maximum depositor not yet in the topDepositors array
-            for (address user in userEthDeposits) {
-                if (userEthDeposits[user] > maxDeposit && !_isInTopDepositors(user, topDepositors)) {
-                    maxDeposit = userEthDeposits[user];
-                    maxAddress = user;
-                }
-            }
-            // Add the user to the top depositors
-            topDepositors[i] = maxAddress;
-            topDeposits[i] = maxDeposit;
-        }
-        return topDepositors;
-    }
-
-    function _isInTopDepositors(address user, address[] memory topDepositors) internal pure returns (bool) {
-        for (uint256 i = 0; i < topDepositors.length; i++) {
-            if (topDepositors[i] == user) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function _generateRandomSupply() internal view returns (uint256) {
-        // Define the minimum and maximum supply values
-        uint256 minSupply = 1_000_000 * 10**18; // 1 million tokens, scaled to 18 decimals
-        uint256 maxSupply = 21_000_000 * 10**18; // 21 million tokens, scaled to 18 decimals
-        
-        // Generate a pseudo-random number between minSupply and maxSupply
-        uint256 randomSupply = minSupply + (uint256(
-            keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender))
-        ) % (maxSupply - minSupply + 1));
-        
-        return randomSupply;
-    }
-
-    function rollDice() external payable {
+    function heartThisMeme(address tokenAddress_) external payable {
         require(msg.value > 0, "ETH amount must be greater than zero");
+        require(memeHearts[newToken], "Meme not yet summoned");
+        require(memeSummons[tokenAddress_] > 0, "Meme already unleashed");
 
-        // Record the ETH sent by the user
-        userEthDeposits[msg.sender] += msg.value;
+        memeHearts[tokenAddress_][msg.sender] += msg.value;
 
-        // Update the total ETH received
-        totalETHReceived += msg.value;
+        totalETHHeld += msg.value;
 
-        emit DiceRolled(msg.sender, msg.value);
+        emit Hearted(msg.sender, msg.value);
     }
 
-    function _buyOLAS(uint256 ethAmount) internal returns (uint256) {
+    function unleashThisMeme(address tokenAddress_) external {
+        // ensure this can only be done 24h after summoning
+        require(...);
+
+        // get the total ETH committed
+        uint256 totalETHCommitted = memeSummons[tokenAddress_];
+        for (uint256 i = 0; i < memeHearts[tokenAddress_].length; i++) {
+            totalETHCommitted += memeHearts[tokenAddress_][i]
+        }
+
+        // Buy OLAS from Uniswap with 10% of the sent ETH;
+        // Buy USDC from Uniswap with 90% of the sent ETH;
+        uint256 tenPercentOfETH = totalETHCommitted * 0.1;
+        uint256 OLASAmount = _buyERC20(tenPercentOfETH, olasAddress);
+        uint256 USDCAmount = _buyERC20(totalETHCommitted - tenPercentOfETH, usdcAddress);
+
+        // Schedule OLAS for burning;
+        scheduledBurnAmount += OLASAmount;
+        emit OLASScheduledForBurn(OLASAmount);
+
+        // Calculate LP token allocation (50% of total supply)
+        uint256 lpNewTokenAmount = (totalSupply_ * lpPercentage) / 100;
+        uint256 heartersAmount = totalSupply_ - lpNewTokenAmount;
+
+        // create the Uniswap pair
+        _createUniswapPair(address(newToken), USDCAmount, lpNewTokenAmount);
+
+        // distribute the remaining 50% proportional to the ETH committed to the specific meme 
+
+        emit Unleashed(address(uniswapV2Factory));
+    }
+
+
+    function _buyOLAS(uint256 ethAmount,address token) internal returns (uint256) {
         address;
         path[0] = IUniswapV2Router02(uniswapV2Router).WETH();
-        path[1] = olasAddress;
+        path[1] = token;
 
         uint256[] memory amounts = IUniswapV2Router02(uniswapV2Router).swapExactETHForTokens{ value: ethAmount }(
-            0, // Accept any amount of OLAS
+            0, // Accept any amount of token
             path,
             address(this),
             block.timestamp
         );
 
-        return amounts[1]; // Return the OLAS amount bought
+        return amounts[1]; // Return the token amount bought
     }
 
-    function _scheduleBurn(uint256 amount) internal {
-        scheduledBurnAmount += amount;
-        emit OLASScheduledForBurn(amount);
-    }
+    function _createUniswapPair(address tokenAddress, uint256 USDCAmount, uint256 tokenAmount) internal {
+        address pair = IUniswapV2Factory(uniswapV2Factory).createPair(USDCAddress, tokenAddress);
 
-    function _createUniswapPair(address tokenAddress, uint256 olasAmount, uint256 tokenAmount) internal {
-        address pair = IUniswapV2Factory(uniswapV2Factory).getPair(olasAddress, tokenAddress);
-        if (pair == address(0)) {
-            pair = IUniswapV2Factory(uniswapV2Factory).createPair(olasAddress, tokenAddress);
-        }
-
-        ERC20(olasAddress).approve(uniswapV2Router, olasAmount);
+        ERC20(USDCAddress).approve(uniswapV2Router, USDCAmount);
         ERC20(tokenAddress).approve(uniswapV2Router, tokenAmount);
 
         IUniswapV2Router02(uniswapV2Router).addLiquidity(
-            olasAddress,
+            USDCAddress,
             tokenAddress,
-            olasAmount,
+            USDCAmount,
             tokenAmount,
             0, // Accept any amount of OLAS
             0, // Accept any amount of new tokens
