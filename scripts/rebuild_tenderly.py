@@ -177,13 +177,17 @@ def update_rpc_variable(new_value: str, chain: str = "BASE"):
         content = file.read()
 
     if re.search(pattern, content, re.MULTILINE):
-        content = re.sub(pattern, f"{chain.upper()}_LEDGER_RPC={new_value}", content, flags=re.MULTILINE)
+        content = re.sub(
+            pattern,
+            f"{chain.upper()}_LEDGER_RPC={new_value}",
+            content,
+            flags=re.MULTILINE,
+        )
     else:
         content += f"{chain.upper()}_LEDGER_RPC={new_value}\n"
 
     with open(env_file, "w", encoding="utf-8") as file:
         file.write(content)
-
 
 
 def _fund_wallet(  # nosec

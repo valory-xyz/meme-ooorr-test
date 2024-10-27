@@ -241,8 +241,10 @@ class TwikitConnection(BaseSyncConnection):
                 self.cookies = json.load(cookies_file)
 
         if self.cookies:
+            self.logger.info("Loading Twitter cookies")
             self.client.set_cookies(json.loads(self.cookies))
         else:
+            self.logger.info("Logging into Twitter with username and password")
             await self.client.login(
                 auth_info_1=self.username,
                 auth_info_2=self.email,
