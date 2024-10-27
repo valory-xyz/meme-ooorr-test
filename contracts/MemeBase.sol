@@ -354,8 +354,8 @@ contract MemeBase {
         require(answerPrice > 0, "Oracle price is incorrect");
 
         // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100
-        // ETH: 18 decimals, denominator = 18 + 2 = 20
-        uint256 limit = uint256(answerPrice) * ethAmount * SLIPPAGE / 1e20;
+        // ETH: 18 decimals, USDC leftovers: 2 decimals, percentage: 2 decimals; denominator = 18 + 2 + 2 = 22
+        uint256 limit = uint256(answerPrice) * ethAmount * SLIPPAGE / 1e22;
         // Swap ETH for USDC
         uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: ethAmount }(
             limit,
