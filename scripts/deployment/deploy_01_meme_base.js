@@ -45,7 +45,7 @@ async function main() {
     console.log("You are signing the following transaction: MemeBase.connect(EOA).deploy()");
     const memeBase = await MemeBase.connect(EOA).deploy(parsedData.olasAddress, parsedData.usdcAddress,
         parsedData.wethAddress, parsedData.routerAddress, parsedData.factoryAddress, parsedData.l2StandardBridgeAddress,
-        parsedData.balancerVaultAddress, parsedData.balancerPoolId, parsedData.oracleAddress);
+        parsedData.oracleAddress, parsedData.balancerVaultAddress, parsedData.balancerPoolId);
     const result = await memeBase.deployed();
 
     // Transaction details
