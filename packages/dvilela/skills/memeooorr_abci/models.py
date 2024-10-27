@@ -66,5 +66,6 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
             "uniswap_v2_router_address", kwargs, str
         )
         self.persona = self._ensure("persona", kwargs, str)
+        self.feedback_period_hours = self._ensure("feedback_period_hours", kwargs, int)
 
         super().__init__(*args, **kwargs)

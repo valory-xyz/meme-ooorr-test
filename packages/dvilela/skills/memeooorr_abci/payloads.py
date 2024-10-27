@@ -31,14 +31,13 @@ class LoadDatabasePayload(BaseTxPayload):
 
     persona: str
     latest_tweet: Optional[str]
-    skip_next_tweet: bool
 
 
 @dataclass(frozen=True)
 class PostTweetPayload(BaseTxPayload):
     """Represent a transaction payload for the PostTweetRound."""
 
-    tweet: Optional[str]
+    latest_tweet: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -68,3 +67,4 @@ class DeploymentPayload(BaseTxPayload):
 
     tx_hash: Optional[str]
     tx_flag: Optional[str]
+    token_address: Optional[str] = None

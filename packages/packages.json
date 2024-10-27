@@ -1,6 +1,5 @@
 {
     "dev": {
-        "contract/dvilela/uniswap_v2_router_02/0.1.0": "bafybeialmwsra3oiwoitdzqdt6o3tyt2awpgvfeqcc3xxfnozcewk4n7bi",
         "contract/dvilela/meme_factory/0.1.0": "bafybeihp7jkkx24p7wj27h2nc2e7kvpgkiterw2jjxttadwyp4m4jaqpuq",
         "contract/valory/erc20/0.1.0": "bafybeibk2y6ldylquuikk3cmtk64e2wnjbtuxy5doorzsp4ysx6uwqbdxm",
         "connection/dvilela/twikit/0.1.0": "bafybeietw4m2t2eliptjh6zuwtcuye6lbo6wttpv4agrf5475uunewvrke",

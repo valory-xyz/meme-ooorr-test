@@ -83,51 +83,7 @@ class CheckFundsBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
         if native_balance < self.params.minimum_gas_balance:
             return Event.NO_FUNDS.value
 
-        # ERC20 check
-        erc20_balance = yield from self.get_erc20_balance()
-        if erc20_balance < self.params.olas_per_pool:
-            return Event.NO_FUNDS.value
-
         return Event.DONE.value
-
-    def get_erc20_balance(self) -> Generator[None, None, Optional[float]]:
-        """Get ERC20 balance"""
-        self.context.logger.info(
-            f"Getting Olas balance for Safe {self.synchronized_data.safe_contract_address}"
-        )
-
-        # Use the contract api to interact with the ERC20 contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
-            contract_address=self.params.olas_token_address,
-            contract_id=str(ERC20.contract_id),
-            contract_callable="check_balance",
-            account=self.synchronized_data.safe_contract_address,
-            chain_id=BASE_CHAIN_ID,
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.RAW_TRANSACTION:
-            self.context.logger.error(
-                f"Error while retrieving the balance: {response_msg}"
-            )
-            return None
-
-        balance_wei = cast(dict, response_msg.raw_transaction.body.get("token", None))
-
-        # Ensure that the balance is not None
-        if balance_wei is None:
-            self.context.logger.error(
-                f"Error while retrieving the balance:  {response_msg}"
-            )
-            return None
-
-        balance = cast(int, balance_wei) / 10**18  # from wei
-
-        self.context.logger.info(
-            f"Account {self.synchronized_data.safe_contract_address} has {balance} Olas"
-        )
-        return balance
 
     def get_native_balance(self) -> Generator[None, None, Optional[float]]:
         """Get the native balance"""
@@ -165,10 +121,13 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            tx_hash, tx_flag = yield from self.get_tx_hash()
+            tx_hash, tx_flag, token_address = yield from self.get_tx_hash()
 
             payload = DeploymentPayload(
-                sender=self.context.agent_address, tx_hash=tx_hash, tx_flag=tx_flag
+                sender=self.context.agent_address,
+                tx_hash=tx_hash,
+                tx_flag=tx_flag,
+                token_address=token_address,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -177,7 +136,9 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
 
         self.set_done()
 
-    def get_tx_hash(self) -> Generator[None, None, Tuple[Optional[str], Optional[str]]]:
+    def get_tx_hash(
+        self,
+    ) -> Generator[None, None, Tuple[Optional[str], Optional[str], Optional[str]]]:
         """Prepare the next transaction"""
 
         tx_flag: Optional[str] = self.synchronized_data.tx_flag
@@ -187,19 +148,15 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
         if not tx_flag:
             tx_hash = yield from self.get_deployment_tx()
             tx_flag = "deploy"
-            return tx_hash, tx_flag
-
-        # Liquidity
-        if tx_flag == "deploy":
-            tx_hash = yield from self.get_add_liquidity_tx()
-            tx_flag = "liquidity"
-            return tx_hash, tx_flag
+            token_address = None
+            return tx_hash, tx_flag, token_address
 
         # Finished
         self.context.logger.info("The deployment has finished")
         tx_hash = None
         tx_flag = "done"
-        return tx_hash, tx_flag
+        token_address = yield from self.get_token_address()
+        return tx_hash, tx_flag, token_address
 
     def get_deployment_tx(self) -> Generator[None, None, Optional[str]]:
         """Prepare a deployment tx"""
@@ -231,13 +188,10 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
             contract_address=self.params.meme_factory_address,
             contract_id=str(MemeFactoryContract.contract_id),
-            contract_callable="deploy",
+            contract_callable="build_summon_tx",
             token_name=token_data["token_name"],
             token_ticker=token_data["token_ticker"],
-            holders=[],
-            allocations=[],
             total_supply=int(self.params.total_supply),
-            user_allocation=int(self.params.user_allocation),
             chain_id=BASE_CHAIN_ID,
         )
 
@@ -261,78 +215,6 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
 
         data_hex = data_bytes.hex()
         self.context.logger.info(f"Deployment data is {data_hex}")
-        return data_hex
-
-    def get_add_liquidity_tx(self) -> Generator[None, None, Optional[str]]:
-        """Prepare a tx to add liquidity to the pool"""
-
-        # Extract the token and pool addresses from the TokenDeployed event
-        token_address, pool_address = yield from self.get_event_data()
-
-        if token_address is None or pool_address is None:
-            self.context.logger.error("Error while getting the event data")
-            return None
-
-        # Transaction data
-        data_hex = yield from self.get_add_liquidity_data(token_address, pool_address)
-
-        # Check for errors
-        if data_hex is None:
-            return None
-
-        # Prepare safe transaction
-        safe_tx_hash = yield from self._build_safe_tx_hash(
-            to_address=pool_address, data=bytes.fromhex(data_hex)
-        )
-
-        self.context.logger.info(f"Add liquidity hash is {safe_tx_hash}")
-
-        return safe_tx_hash
-
-    def get_add_liquidity_data(
-        self, token_address: str, pool_address: str
-    ) -> Generator[None, None, Optional[str]]:
-        """Get the add liquidity transaction data"""
-
-        self.context.logger.info("Preparing add liquidity transaction")
-
-        # Use the contract api to interact with the ERC20 contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
-            contract_address=self.params.uniswap_v2_router_address,
-            contract_id=str(UniswapV2Router02Contract.contract_id),
-            contract_callable="add_liquidity",
-            token_a=self.params.olas_token_address,
-            token_b=token_address,
-            amount_a_desired=self.params.olas_per_pool,
-            amount_b_desired=1,  # TODO
-            amount_a_min=self.params.olas_per_pool,
-            amount_b_min=1,  # TODO
-            to_address=pool_address,  # TODO
-            deadline=self.get_sync_timestamp() + TWO_MINUTES,
-            chain_id=BASE_CHAIN_ID,
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.RAW_TRANSACTION:
-            self.context.logger.error(
-                f"Error while preparing the liquidity tx: {response_msg}"
-            )
-            return None
-
-        data_bytes: Optional[bytes] = cast(
-            bytes, response_msg.raw_transaction.body.get("data", None)
-        )
-
-        # Ensure that the data is not None
-        if data_bytes is None:
-            self.context.logger.error(
-                f"Error while preparing the liquidity tx: {response_msg}"
-            )
-            return None
-
-        data_hex = data_bytes.hex()
-        self.context.logger.info(f"Liquidity tx data is {data_hex}")
         return data_hex
 
     def _build_safe_tx_hash(
@@ -394,9 +276,9 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
 
         return safe_tx_hash
 
-    def get_event_data(
+    def get_token_address(
         self,
-    ) -> Generator[None, None, Tuple[Optional[str], Optional[str]]]:
+    ) -> Generator[None, None, Optional[str]]:
         """Get the data from the deployment event"""
 
         # Use the contract api to interact with the ERC20 contract
@@ -412,12 +294,9 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
         # Check that the response is what we expect
         if response_msg.performative != ContractApiMessage.Performative.STATE:
             self.context.logger.error(f"Could not get the event data: {response_msg}")
-            return None, None
+            return None
 
         token_address = cast(
             str, response_msg.raw_transaction.body.get("token_address", None)
         )
-        pool_address = cast(
-            str, response_msg.raw_transaction.body.get("pool_address", None)
-        )
-        return token_address, pool_address
+        return token_address

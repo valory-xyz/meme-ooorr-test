@@ -57,6 +57,7 @@ class Event(Enum):
     ROUND_TIMEOUT = "round_timeout"
     NOT_ENOUGH_FEEDBACK = "not_enough_feedback"
     SKIP_FIRST_TWEET = "skip_first_tweet"
+    WAIT = "wait"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -85,11 +86,6 @@ class SynchronizedData(BaseSynchronizedData):
     def pending_tweet(self) -> Optional[str]:
         """Get the pending tweet."""
         return cast(str, self.db.get("pending_tweet", None))
-
-    @property
-    def skip_next_tweet(self) -> bool:
-        """Get the skip_next_tweet."""
-        return cast(bool, self.db.get_strict("skip_next_tweet"))
 
     @property
     def latest_tweet(self) -> Dict:
@@ -131,7 +127,6 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
     selection_key = (
         get_name(SynchronizedData.persona),
         get_name(SynchronizedData.latest_tweet),
-        get_name(SynchronizedData.skip_next_tweet),
     )
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
@@ -151,9 +146,7 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
                 },
             )
 
-            event = Event.SKIP_FIRST_TWEET if payload["skip_next_tweet"] else Event.DONE
-
-            return synchronized_data, event
+            return synchronized_data, Event.DONE
 
         if not self.is_majority_possible(
             self.collection, self.synchronized_data.nb_participants
@@ -180,6 +173,9 @@ class PostTweetRound(CollectSameUntilThresholdRound):
 
             if latest_tweet is None:
                 return self.synchronized_data, Event.API_ERROR
+
+            if latest_tweet == {}:
+                return self.synchronized_data, Event.WAIT
 
             # Remove posted tweets from pending and into latest
             synchronized_data = self.synchronized_data.update(
@@ -337,9 +333,27 @@ class DeploymentRound(CollectSameUntilThresholdRound):
             # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
             payload = json.loads(self.most_voted_payload)
 
+            # The token has been deployed
+            if payload.token_address:
+                token_data = cast(SynchronizedData, self.synchronized_data).token_data
+                token_data["token_address"] = payload.token_address
+
+                synchronized_data = self.synchronized_data.update(
+                    synchronized_data_class=SynchronizedData,
+                    **{
+                        get_name(SynchronizedData.token_data): json.dumps(
+                            token_data, sort_keys=True
+                        ),
+                        get_name(SynchronizedData.tx_flag): None,
+                    },
+                )
+                return synchronized_data, Event.DONE
+
+            # Error preparing the deployment transaction
             if payload.tx_flag is None:
                 return self.synchronized_data, Event.API_ERROR
 
+            # The deployment tx has been prepared
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
@@ -347,10 +361,7 @@ class DeploymentRound(CollectSameUntilThresholdRound):
                     get_name(SynchronizedData.tx_flag): payload.tx_flag,
                 },
             )
-
-            event = Event.DONE if payload.tx_flag == "done" else Event.SETTLE
-
-            return synchronized_data, event
+            return synchronized_data, Event.SETTLE
 
         if not self.is_majority_possible(
             self.collection, self.synchronized_data.nb_participants
@@ -382,6 +393,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         PostTweetRound: {
             Event.DONE: CollectFeedbackRound,
             Event.API_ERROR: PostTweetRound,
+            Event.WAIT: FinishedToResetRound,
             Event.NO_MAJORITY: PostTweetRound,
             Event.ROUND_TIMEOUT: PostTweetRound,
         },

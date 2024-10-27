@@ -51,6 +51,7 @@ PATH_TO_VAR = {
     "models/params/args/meme_factory_address": "MEME_FACTORY_ADDRESS",
     "models/params/args/uniswap_v2_router_address": "UNISWAP_V2_ROUTER_ADDRESS",
     "models/params/args/setup/safe_contract_address": "SAFE_CONTRACT_ADDRESS",
+    "models/params/args/feedback_period_hours": "FEEDBACK_PERIOD_HOURS",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",
