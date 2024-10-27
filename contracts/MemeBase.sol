@@ -110,9 +110,10 @@ interface IUniswap {
 ///         together with 50% of the token supply of the meme.
 contract MemeBase {
     event OLASBridgedForBurn(address indexed olas, uint256 amount);
-    event Summoned(address indexed deployer, address indexed memeToken, uint256 ethContributed);
-    event Hearted(address indexed user, uint256 amount);
-    event Unleashed(address indexed memeToken, address indexed lpPairAddress);
+    event Summoned(address indexed summoner, address indexed memeToken, uint256 ethContributed);
+    event Hearted(address indexed hearter, uint256 amount);
+    event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress);
+    event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
 
     // Meme Summon struct
@@ -226,31 +227,39 @@ contract MemeBase {
     function heartThisMeme(address memeToken) external payable {
         // Check for zero value
         require(msg.value > 0, "ETH amount must be greater than zero");
+
+        // Get the meme summon info
+        MemeSummon storage memeSummon = memeSummons[memeToken];
+
+        // Get the total ETH committed to this meme
+        uint256 totalETHCommitted = memeSummon.ethContributed;
+
         // Check that the meme has been summoned
-        require(memeSummons[memeToken].ethContributed > 0, "Meme not yet summoned");
+        require(totalETHCommitted > 0, "Meme not yet summoned");
         // Check if the token has been unleashed
-        require(block.timestamp < memeSummons[memeToken].unleashTime, "Meme already unleashed");
+        require(block.timestamp < memeSummon.unleashTime, "Meme already unleashed");
 
         // Update meme token map values
-        memeSummons[memeToken].ethContributed += msg.value;
+        totalETHCommitted += msg.value;
+        memeSummon.ethContributed = totalETHCommitted;
         memeHearters[memeToken][msg.sender] += msg.value;
 
         emit Hearted(msg.sender, msg.value);
     }
 
     function unleashThisMeme(address memeToken, uint256 olasSpotPrice) external {
+        // Get the meme summon info
+        MemeSummon storage memeSummon = memeSummons[memeToken];
+
         // Check if the meme has been summoned
-        require(memeSummons[memeToken].ethContributed > 0, "Meme not yet summoned");
+        require(memeSummon.ethContributed > 0, "Meme not yet summoned");
         // Check the unleash timestamp
-        require(block.timestamp >= memeSummons[memeToken].summonTime + UNLEASH_PERIOD, "Cannot unleash yet");
+        require(block.timestamp >= memeSummon.summonTime + UNLEASH_PERIOD, "Cannot unleash yet");
         // Check OLAS spot price
         require(olasSpotPrice > 0, "OLAS spot price is incorrect");
 
-        // Calculate the total ETH committed to this meme
-        uint256 totalETHCommitted = memeSummons[memeToken].ethContributed;
-
         // Buy USDC with the the total ETH committed
-        uint256 usdcAmount = _buyUSDCUniswap(totalETHCommitted);
+        uint256 usdcAmount = _buyUSDCUniswap(memeSummon.ethContributed);
 
         // Buy OLAS with the burn percentage of the total ETH committed
         uint256 burnPercentageOfUSDC = (usdcAmount * OLAS_BURN_PERCENTAGE) / 100;
@@ -268,26 +277,31 @@ contract MemeBase {
         // Create Uniswap pair with LP allocation
         address pool = _createUniswapPair(memeToken, usdcAmount, lpTokenAmount);
 
+        // Record the actual meme unleash time
+        memeSummon.unleashTime = block.timestamp;
+        // Record the hearters distribution amount for this meme
+        memeSummon.heartersAmount = heartersAmount;
+
         // Distribute the remaining proportional to the ETH committed by each supporter
-        // Contributors need to colect manually
-        if (memeHearters[memeToken][msg.sender] > 0) {
-            uint256 hearterContribution = memeHearters[memeToken][msg.sender];
-            uint256 allocation = (heartersAmount * hearterContribution) / totalETHCommitted;
+        // Contributors need to collect manually
+        // Allocate to the token hearter unleashing the meme
+        uint256 hearterContribution = memeHearters[memeToken][msg.sender];
+        if (hearterContribution > 0) {
+            uint256 allocation = (heartersAmount * hearterContribution) / memeSummon.ethContributed;
             memeHearters[memeToken][msg.sender] = 0;
+            // Transfer the meme token amount
             memeTokenInstance.transfer(msg.sender, allocation);
         }
 
-        // Record the actual meme unleash time
-        memeSummons[memeToken].unleashTime = block.timestamp;
-        // Record the hearters distribution amount for this meme
-        memeSummons[memeToken].heartersAmount = heartersAmount;
-
-        emit Unleashed(memeToken, pool);
+        emit Unleashed(msg.sender, memeToken, pool);
     }
 
     function collect(address memeToken) external {
+        // Get the meme summon info
+        MemeSummon memory memeSummon = memeSummons[memeToken];
+
         // Check if the meme can be collected
-        require(block.timestamp < memeSummons[memeToken].summonTime + COLLECT_PERIOD, "Collect only allowed until 48 hours after summon");
+        require(block.timestamp < memeSummon.summonTime + COLLECT_PERIOD, "Collect only allowed until 48 hours after summon");
 
         // Get hearter contribution
         uint256 hearterContribution = memeHearters[memeToken][msg.sender];
@@ -298,8 +312,8 @@ contract MemeBase {
         Meme memeTokenInstance = Meme(memeToken);
 
         // Get global token info
-        uint256 totalETHCommitted = memeSummons[memeToken].ethContributed;
-        uint256 heartersAmount = memeSummons[memeToken].heartersAmount;
+        uint256 totalETHCommitted = memeSummon.ethContributed;
+        uint256 heartersAmount = memeSummon.heartersAmount;
 
         // Allocate corresponding meme token amount to the hearter
         uint256 allocation = (heartersAmount * hearterContribution) / totalETHCommitted;
@@ -307,13 +321,18 @@ contract MemeBase {
 
         // Transfer tokens to the msg.sender
         memeTokenInstance.transfer(msg.sender, allocation);
+
+        emit Collected(msg.sender, memeToken, allocation);
     }
 
     function purge(address memeToken) external {
+        // Get the meme summon info
+        MemeSummon memory memeSummon = memeSummons[memeToken];
+
         // Check if the meme has been unleashed
-        require(memeSummons[memeToken].unleashTime > 0, "Meme not unleashed");
+        require(memeSummon.unleashTime > 0, "Meme not unleashed");
         // Check if enough time has passed since the meme was summoned
-        require(block.timestamp >= memeSummons[memeToken].summonTime + PURGE_PERIOD, "Purge only allowed from 48 hours after summon");
+        require(block.timestamp >= memeSummon.summonTime + PURGE_PERIOD, "Purge only allowed from 48 hours after summon");
 
         // Get meme token instance
         Meme memeTokenInstance = Meme(memeToken);
