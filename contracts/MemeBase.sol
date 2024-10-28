@@ -79,8 +79,8 @@ interface IUniswap {
 ///         the meme and schedules the distribution of the rest of the tokens to the hearters, proportional to their contributions.
 ///      4) After the meme is being unleashed any hearter can collect their share of the meme token.
 ///      5) After 48h of a meme being summoned, any msg.sender can purge the uncollected meme token allocations of hearters.
-/// @notice 10% of the ETH contributed to a meme gets converted into OLAS and scheduled for burning (on Ethereum mainnet) upon unleashing of
-///         the meme. The remainder of the ETH contributed (90%) is converted to USDC and contributed to an LP,
+/// @notice 10% of the ETH contributed to a meme gets converted into USDC upon unleashing of the meme, that can later be convered to OLAS and
+///         scheduled for burning (on Ethereum mainnet). The remainder of the ETH contributed (90%) is converted to USDC and contributed to an LP,
 ///         together with 50% of the token supply of the meme. The remaining 50% of the meme token supply goes to hearters.
 ///         The LP token is held forever by MemeBase, guaranteeing lasting liquidity in the meme token.
 ///
@@ -96,7 +96,7 @@ interface IUniswap {
 ///         - Agent Jones would forget to collectThisMeme
 ///         - Any agent would call purgeThisMeme, which would cause Agent Jones's allocation of 125_000_000 worth of $SMTH to be burned.
 contract MemeBase {
-    event OLASBridgedForBurn(address indexed olas, uint256 amount);
+    event OLASJourneyToAscendance(address indexed olas, uint256 amount);
     event Summoned(address indexed summoner, address indexed memeToken, uint256 ethContributed);
     event Hearted(address indexed hearter, , address indexed memeToken, uint256 amount);
     event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress, uint256 liquidity);
@@ -164,6 +164,8 @@ contract MemeBase {
     mapping(address => mapping(address => uint256)) public memeHearters;
     // Set of all meme tokens created by this contract
     address[] public memeTokens;
+    // USDC scheduled to be converted to OLAS for Ascendance
+    uint256 public scheduledForAscendance;
 
     /// @dev MemeBase constructor
     constructor(
@@ -247,7 +249,7 @@ contract MemeBase {
         // Bridge OLAS to mainnet to get burned
         IBridge(l2TokenRelayer).withdrawTo(olas, address(0), OLASAmount, TOKEN_GAS_LIMIT, data);
 
-        emit OLASBridgedForBurn(olas, OLASAmount);
+        emit OLASJourneyToAscendance(olas, OLASAmount);
     }
 
     /// @dev Creates USDC + meme token LP and adds liquidity.
@@ -360,8 +362,7 @@ contract MemeBase {
 
     /// @dev Unleashes the meme token.
     /// @param memeToken Meme token address.
-    /// @param olasSpotPrice OLAS spot price.
-    function unleashThisMeme(address memeToken, uint256 olasSpotPrice) external {
+    function unleashThisMeme(address memeToken) external {
         // Get the meme summon info
         MemeSummon storage memeSummon = memeSummons[memeToken];
 
@@ -375,12 +376,9 @@ contract MemeBase {
         // Buy USDC with the the total ETH committed
         uint256 usdcAmount = _buyUSDCUniswap(memeSummon.ethContributed);
 
-        // Buy OLAS with the burn percentage of the total ETH committed
+        // Put aside USDC to buy OLAS with the burn percentage of the total ETH committed
         uint256 burnPercentageOfUSDC = (usdcAmount * OLAS_BURN_PERCENTAGE) / 100;
-        uint256 OLASAmount = _buyOLASBalancer(burnPercentageOfUSDC, olasSpotPrice);
-
-        // Burn OLAS
-        _bridgeAndBurn(OLASAmount);
+        scheduledForAscendance += burnPercentageOfUSDC;
 
         // Adjust USDC amount
         usdcAmount -= burnPercentageOfUSDC;
@@ -449,6 +447,17 @@ contract MemeBase {
         memeTokenInstance.burn(remainingBalance);
 
         emit Purged(memeToken, remainingBalance);
+    }
+
+    /// @dev Converts collected USDC to OLAS and bridges OLAS to Ethereum mainnet for burn.
+    /// @param olasSpotPrice OLAS spot price.
+    function scheduleOLASForAscendance(uint256 olasSpotPrice) external {
+        require(scheduledForAscendance > 0, "Nothing to burn");
+        uint256 OLASAmount = _buyOLASBalancer(scheduledForAscendance, olasSpotPrice);
+
+        scheduledForAscendance = 0;
+        // Burn OLAS
+        _bridgeAndBurn(OLASAmount);
     }
 
     /// @dev Allows the contract to receive ETH
