@@ -117,4 +117,9 @@ push-image:
 	docker tag $$IMAGE_ID valory/oar-memeooorr:$$AGENT_HASH && \
 	docker push valory/oar-memeooorr:$$AGENT_HASH
 
+.PHONY: deploy-contracts
+deploy-contracts:
+	npx hardhat run scripts/deployment/deploy_01_meme_base.js --network base
+
+
 v := $(shell pip -V | grep virtualenvs)

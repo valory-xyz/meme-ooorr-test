@@ -58,7 +58,7 @@ import os
 import random
 import re
 import string
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 import requests
 from dotenv import load_dotenv
@@ -170,6 +170,8 @@ def _update_bash_variable(file_path: str, variable_name: str, new_value: str):
 
 
 def update_rpc_variable(new_value: str, chain: str = "BASE"):
+
+    # .env file
     pattern = rf"{chain.upper()}_LEDGER_RPC=(\S+)"
     env_file = ".env"
 
@@ -189,10 +191,36 @@ def update_rpc_variable(new_value: str, chain: str = "BASE"):
     with open(env_file, "w", encoding="utf-8") as file:
         file.write(content)
 
+    # globals.json
+    globals_file = "globals.json"
+
+    with open(globals_file, "r", encoding="utf-8") as file:
+        content = json.load(file)
+
+    content["networkURL"] = new_value
+
+    with open(globals_file, "w", encoding="utf-8") as file:
+        json.dump(content, file, indent=4)
+
+    # hardhat.config
+    pattern = r'base: {\n\s+url: "(.*)",'
+    hardhat_file = "hardhat.config.js"
+
+    with open(hardhat_file, "r", encoding="utf-8") as file:
+        content = file.read()
+
+    match = re.search(pattern, content, re.MULTILINE)
+    if match:
+        old_value = match.groups()[0]
+        content = content.replace(old_value, new_value)
+
+    with open(hardhat_file, "w", encoding="utf-8") as file:
+        file.write(content)
+
 
 def _fund_wallet(  # nosec
     admin_rpc: str,
-    wallet_addresses: list[str],
+    wallet_addresses: List[str],
     amount: int,
     native_or_token_address: str = "native",
 ) -> None:
