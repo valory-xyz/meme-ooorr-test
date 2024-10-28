@@ -164,14 +164,17 @@ contract MemeBase {
 
     // Number of meme tokens
     uint256 public numTokens;
+    // USDC scheduled to be converted to OLAS for Ascendance
+    uint256 public scheduledForAscendance;
+
     // Map of meme token => Meme summon struct
     mapping(address => MemeSummon) public memeSummons;
     // Map of mem token => (map of hearter => ETH balance)
     mapping(address => mapping(address => uint256)) public memeHearters;
+    // Map of account => activity counter
+    mapping(address => uint256) public mapAccountActivities;
     // Set of all meme tokens created by this contract
     address[] public memeTokens;
-    // USDC scheduled to be converted to OLAS for Ascendance
-    uint256 public scheduledForAscendance;
 
     /// @dev MemeBase constructor
     constructor(
@@ -342,6 +345,9 @@ contract MemeBase {
         memeTokens.push(memeToken);
         numTokens = memeTokens.length;
 
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
+
         emit Summoned(msg.sender, memeToken, msg.value);
     }
 
@@ -366,6 +372,9 @@ contract MemeBase {
         totalETHCommitted += msg.value;
         memeSummon.ethContributed = totalETHCommitted;
         memeHearters[memeToken][msg.sender] += msg.value;
+
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
 
         emit Hearted(msg.sender, memeToken, msg.value);
     }
@@ -408,6 +417,9 @@ contract MemeBase {
         // Record the hearters distribution amount for this meme
         memeSummon.heartersAmount = heartersAmount;
 
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
+
         // Allocate to the token hearter unleashing the meme
         uint256 hearterContribution = memeHearters[memeToken][msg.sender];
         if (hearterContribution > 0) {
@@ -433,6 +445,9 @@ contract MemeBase {
         // Check for zero value
         require(hearterContribution > 0, "No token allocation");
 
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
+
         // Collect the token
         _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.ethContributed);
     }
@@ -447,6 +462,9 @@ contract MemeBase {
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check if enough time has passed since the meme was summoned
         require(block.timestamp > memeSummon.summonTime + COLLECT_DEADLINE, "Purge only allowed from 48 hours after summon");
+
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
 
         // Get meme token instance
         Meme memeTokenInstance = Meme(memeToken);
@@ -465,6 +483,10 @@ contract MemeBase {
     /// @param olasSpotPrice OLAS spot price.
     function scheduleOLASForAscendance(uint256 olasSpotPrice) external {
         require(scheduledForAscendance > 0, "Nothing to burn");
+
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
+
         uint256 OLASAmount = _buyOLASBalancer(scheduledForAscendance, olasSpotPrice);
 
         scheduledForAscendance = 0;
