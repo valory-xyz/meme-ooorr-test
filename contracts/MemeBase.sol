@@ -28,6 +28,17 @@ interface IBalancer {
         external payable returns (uint256);
 }
 
+// Bridge interface
+interface IBridge {
+    /// @dev Initiates a withdrawal from L2 to L1 to a target account on L1.
+    /// @param l2Token Address of the L2 token to withdraw.
+    /// @param to Recipient account on L1.
+    /// @param amount Amount of the L2 token to withdraw.
+    /// @param minGasLimit Minimum gas limit to use for the transaction.
+    /// @param extraData Extra data attached to the withdrawal.
+    function withdrawTo(address l2Token, address to, uint256 amount, uint32 minGasLimit, bytes calldata extraData) external;
+}
+
 // ERC20 interface
 interface IERC20 {
     /// @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
@@ -42,17 +53,6 @@ interface IOracle {
     /// @dev Gets latest round token price data.
     function latestRoundData()
         external returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
-}
-
-// Bridge interface
-interface IBridge {
-    /// @dev Initiates a withdrawal from L2 to L1 to a target account on L1.
-    /// @param l2Token Address of the L2 token to withdraw.
-    /// @param to Recipient account on L1.
-    /// @param amount Amount of the L2 token to withdraw.
-    /// @param minGasLimit Minimum gas limit to use for the transaction.
-    /// @param extraData Extra data attached to the withdrawal.
-    function withdrawTo(address l2Token, address to, uint256 amount, uint32 minGasLimit, bytes calldata extraData) external;
 }
 
 // UniswapV2 interface
