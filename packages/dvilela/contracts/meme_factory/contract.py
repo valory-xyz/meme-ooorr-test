@@ -19,8 +19,9 @@
 
 """This module contains the class to connect to an MemeFactory contract."""
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
+import web3
 from aea.configurations.base import PublicId
 from aea.contracts.base import Contract
 from aea_ledger_ethereum import EthereumApi
@@ -68,9 +69,14 @@ class MemeFactoryContract(Contract):
         tx_receipt = ledger_api.api.eth.get_transaction_receipt(tx_hash)  # type: ignore
 
         for log in tx_receipt["logs"]:
-            event = contract_instance.events.Summoned().processLog(log)
-            return {
-                "token_address": event["newToken"],
-            }
+            try:
+                event = contract_instance.events.Summoned().process_log(log)
+                return {
+                    "token_address": event.args["memeToken"],
+                    "summoner": event.args["summoner"],
+                    "eth_contributed": event.args["ethContributed"],
+                }
+            except web3.exceptions.MismatchedABI:
+                continue
 
-        return {"token_address": None, "pool_address": None}
+        return {"token_address": None, "summoner": None, "eth_contributed": None}

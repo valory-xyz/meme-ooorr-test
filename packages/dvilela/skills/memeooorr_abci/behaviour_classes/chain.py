@@ -162,11 +162,11 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             self.context.logger.error("Error while loading tokens from the database")
             tokens = []
         else:
-            tokens = db_data["tokens"]
+            tokens = json.loads(db_data["tokens"]) if db_data["tokens"] else []
 
         # Write token to db
         token_data = self.synchronized_data.token_data
-        token_data["token_address"] = token_data
+        token_data["token_address"] = token_address
         tokens.append(token_data)
         yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
         self.context.logger.info("Wrote latest token to db")
@@ -305,17 +305,16 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
             contract_address=self.params.meme_factory_address,
             contract_id=str(MemeFactoryContract.contract_id),
-            contract_callable="get_event_data",
+            contract_callable="get_token_data",
             tx_hash=self.synchronized_data.final_tx_hash,
             chain_id=BASE_CHAIN_ID,
         )
 
         # Check that the response is what we expect
         if response_msg.performative != ContractApiMessage.Performative.STATE:
-            self.context.logger.error(f"Could not get the event data: {response_msg}")
+            self.context.logger.error(f"Could not get the token data: {response_msg}")
             return None
 
-        token_address = cast(
-            str, response_msg.raw_transaction.body.get("token_address", None)
-        )
+        token_address = cast(str, response_msg.state.body.get("token_address", None))
+        self.context.logger.info(f"Token address is {token_address}")
         return token_address

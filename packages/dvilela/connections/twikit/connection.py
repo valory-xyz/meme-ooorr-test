@@ -266,7 +266,13 @@ class TwikitConnection(BaseSyncConnection):
     async def post(self, tweets: List[Dict]) -> List[str]:
         """Post tweets"""
         tweet_ids = []
+        is_first_tweet = True
+
         for tweet_kwargs in tweets:
+            if not is_first_tweet:
+                # If we have more than 1 tweet, we treat this as a thread
+                tweet_kwargs["reply_to"] = tweet_ids[-1]
+
             self.logger.info(f"Posting: {tweet_kwargs}")
 
             while True:
@@ -276,6 +282,7 @@ class TwikitConnection(BaseSyncConnection):
                 try:
                     await self.client.get_tweet_by_id(result.id)
                     tweet_ids.append(result.id)
+                    is_first_tweet = False
                     break
                 except twikit.errors.TweetNotAvailable:
                     self.logger.error("Failed to verify the tweet. Retrying...")

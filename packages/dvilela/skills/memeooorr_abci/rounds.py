@@ -83,9 +83,10 @@ class SynchronizedData(BaseSynchronizedData):
         return cast(str, self.db.get("persona", None))
 
     @property
-    def pending_tweet(self) -> Optional[str]:
+    def pending_tweet(self) -> Optional[List]:
         """Get the pending tweet."""
-        return cast(str, self.db.get("pending_tweet", None))
+        pending_tweet_str = self.db.get("pending_tweet", None)
+        return json.loads(pending_tweet_str) if pending_tweet_str else []
 
     @property
     def latest_tweet(self) -> Dict:
@@ -189,7 +190,7 @@ class PostTweetRound(CollectSameUntilThresholdRound):
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
-                    get_name(SynchronizedData.pending_tweet): None,
+                    get_name(SynchronizedData.pending_tweet): "[]",
                     get_name(SynchronizedData.latest_tweet): json.dumps(
                         latest_tweet, sort_keys=True
                     ),
@@ -291,7 +292,9 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
                     get_name(SynchronizedData.token_data): json.dumps(
                         token_data, sort_keys=True
                     ),
-                    get_name(SynchronizedData.pending_tweet): analysis["tweet"],
+                    get_name(SynchronizedData.pending_tweet): json.dumps(
+                        [analysis["tweet"]]
+                    ),
                 },
             )
 
@@ -358,6 +361,9 @@ class DeploymentRound(CollectSameUntilThresholdRound):
                             token_data, sort_keys=True
                         ),
                         get_name(SynchronizedData.tx_flag): None,
+                        get_name(SynchronizedData.pending_tweet): json.dumps(
+                            token_data["tweet"]
+                        ),
                     },
                 )
                 return synchronized_data, Event.DONE
@@ -383,8 +389,8 @@ class DeploymentRound(CollectSameUntilThresholdRound):
         return None
 
 
-class PostAnnouncementtRound(PostTweetRound):
-    """PostAnnouncementtRound"""
+class PostAnnouncementRound(PostTweetRound):
+    """PostAnnouncementRound"""
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -403,7 +409,7 @@ class PostAnnouncementtRound(PostTweetRound):
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
-                    get_name(SynchronizedData.pending_tweet): None,
+                    get_name(SynchronizedData.pending_tweet): "[]",
                     get_name(SynchronizedData.latest_tweet): "{}",
                     get_name(SynchronizedData.token_data): "{}",
                     get_name(SynchronizedData.persona): self.context.params.persona,
@@ -412,7 +418,7 @@ class PostAnnouncementtRound(PostTweetRound):
                     get_name(SynchronizedData.most_voted_tx_hash): None,
                 },
             )
-            return synchronized_data, Event.WAIT
+            return synchronized_data, Event.DONE
 
         if not self.is_majority_possible(
             self.collection, self.synchronized_data.nb_participants
@@ -470,17 +476,17 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: CheckFundsRound,
         },
         DeploymentRound: {
-            Event.DONE: PostAnnouncementtRound,
+            Event.DONE: PostAnnouncementRound,
             Event.SETTLE: FinishedToSettlementRound,
             Event.API_ERROR: DeploymentRound,
             Event.NO_MAJORITY: DeploymentRound,
             Event.ROUND_TIMEOUT: DeploymentRound,
         },
-        PostAnnouncementtRound: {
+        PostAnnouncementRound: {
             Event.DONE: FinishedToResetRound,
-            Event.API_ERROR: PostAnnouncementtRound,
-            Event.NO_MAJORITY: PostAnnouncementtRound,
-            Event.ROUND_TIMEOUT: PostAnnouncementtRound,
+            Event.API_ERROR: PostAnnouncementRound,
+            Event.NO_MAJORITY: PostAnnouncementRound,
+            Event.ROUND_TIMEOUT: PostAnnouncementRound,
         },
         FinishedToResetRound: {},
         FinishedToSettlementRound: {},

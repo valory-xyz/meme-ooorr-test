@@ -37,7 +37,7 @@ states:
 - DeploymentRound
 - FinalizationRound
 - LoadDatabaseRound
-- PostAnnouncementtRound
+- PostAnnouncementRound
 - PostTweetRound
 - RandomnessTransactionSubmissionRound
 - RegistrationRound
@@ -80,7 +80,7 @@ transition_func:
     (CollectSignatureRound, NO_MAJORITY): ResetRound
     (CollectSignatureRound, ROUND_TIMEOUT): CollectSignatureRound
     (DeploymentRound, API_ERROR): DeploymentRound
-    (DeploymentRound, DONE): PostAnnouncementtRound
+    (DeploymentRound, DONE): PostAnnouncementRound
     (DeploymentRound, NO_MAJORITY): DeploymentRound
     (DeploymentRound, ROUND_TIMEOUT): DeploymentRound
     (DeploymentRound, SETTLE): RandomnessTransactionSubmissionRound
@@ -94,10 +94,10 @@ transition_func:
     (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
     (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound
     (LoadDatabaseRound, SKIP_FIRST_TWEET): CollectFeedbackRound
-    (PostAnnouncementtRound, API_ERROR): PostAnnouncementtRound
-    (PostAnnouncementtRound, DONE): ResetAndPauseRound
-    (PostAnnouncementtRound, NO_MAJORITY): PostAnnouncementtRound
-    (PostAnnouncementtRound, ROUND_TIMEOUT): PostAnnouncementtRound
+    (PostAnnouncementRound, API_ERROR): PostAnnouncementRound
+    (PostAnnouncementRound, DONE): ResetAndPauseRound
+    (PostAnnouncementRound, NO_MAJORITY): PostAnnouncementRound
+    (PostAnnouncementRound, ROUND_TIMEOUT): PostAnnouncementRound
     (PostTweetRound, API_ERROR): PostTweetRound
     (PostTweetRound, DONE): CollectFeedbackRound
     (PostTweetRound, NO_MAJORITY): PostTweetRound

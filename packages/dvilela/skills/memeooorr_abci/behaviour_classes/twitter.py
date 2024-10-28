@@ -32,7 +32,7 @@ from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     CollectFeedbackPayload,
     CollectFeedbackRound,
-    PostAnnouncementtRound,
+    PostAnnouncementRound,
     PostTweetPayload,
     PostTweetRound,
 )
@@ -137,12 +137,13 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         return tweet
 
     def post_tweet(
-        self, tweet: Optional[str] = None
+        self, tweet: Optional[List] = None
     ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
         # Prepare a tweet if needed
         if tweet is None:
-            tweet = yield from self.prepare_tweet()
+            new_tweet = yield from self.prepare_tweet()
+            tweet = [new_tweet]
 
             # We fail to prepare the tweet
             if not tweet:
@@ -151,7 +152,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         # Post the tweet
         tweet_ids = yield from self._call_twikit(
             method="post",
-            tweets=[{"text": tweet}],
+            tweets=[{"text": t} for t in tweet],
         )
 
         if not tweet_ids:
@@ -172,12 +173,12 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         return latest_tweet
 
 
-class PostAnnouncementtBehaviour(
+class PostAnnouncementBehaviour(
     PostTweetBehaviour
 ):  # pylint: disable=too-many-ancestors
-    """PostAnnouncementtBehaviour"""
+    """PostAnnouncementBehaviour"""
 
-    matching_round: Type[AbstractRound] = PostAnnouncementtRound
+    matching_round: Type[AbstractRound] = PostAnnouncementRound
 
 
 class CollectFeedbackBehaviour(
