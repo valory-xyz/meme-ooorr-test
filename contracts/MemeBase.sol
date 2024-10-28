@@ -251,6 +251,9 @@ contract MemeBase {
         // Burn OLAS
         _bridgeAndBurn(OLASAmount);
 
+        // Adjust USDC amount
+        usdcAmount -= burnPercentageOfUSDC;
+
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         Meme memeTokenInstance = Meme(memeToken);
         uint256 totalSupply = memeTokenInstance.totalSupply();
