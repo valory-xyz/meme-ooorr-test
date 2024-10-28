@@ -265,7 +265,7 @@ class TwikitConnection(BaseSyncConnection):
 
     async def post(self, tweets: List[Dict]) -> List[str]:
         """Post tweets"""
-        tweet_ids = []
+        tweet_ids: List[str] = []
         is_first_tweet = True
 
         for tweet_kwargs in tweets:

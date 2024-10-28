@@ -7,7 +7,7 @@ alphabet_in:
 - REFINE
 - ROUND_TIMEOUT
 - SETTLE
-- SKIP_FIRST_TWEET
+- WAIT
 default_start_state: LoadDatabaseRound
 final_states:
 - FinishedToResetRound
@@ -50,12 +50,13 @@ transition_func:
     (LoadDatabaseRound, DONE): PostTweetRound
     (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
     (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound
-    (LoadDatabaseRound, SKIP_FIRST_TWEET): CollectFeedbackRound
     (PostAnnouncementRound, API_ERROR): PostAnnouncementRound
     (PostAnnouncementRound, DONE): FinishedToResetRound
     (PostAnnouncementRound, NO_MAJORITY): PostAnnouncementRound
     (PostAnnouncementRound, ROUND_TIMEOUT): PostAnnouncementRound
+    (PostAnnouncementRound, WAIT): PostAnnouncementRound
     (PostTweetRound, API_ERROR): PostTweetRound
     (PostTweetRound, DONE): CollectFeedbackRound
     (PostTweetRound, NO_MAJORITY): PostTweetRound
     (PostTweetRound, ROUND_TIMEOUT): PostTweetRound
+    (PostTweetRound, WAIT): FinishedToResetRound

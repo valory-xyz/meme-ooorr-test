@@ -33,7 +33,6 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     DeploymentRound,
     Event,
 )
-from packages.valory.contracts.erc20.contract import ERC20
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.protocols.contract_api import ContractApiMessage
 from packages.valory.protocols.ledger_api import LedgerApiMessage
@@ -202,7 +201,7 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
             f"Preparing deployment transaction. token_data={token_data}"
         )
 
-        # Use the contract api to interact with the ERC20 contract
+        # Use the contract api to interact with the factory contract
         response_msg = yield from self.get_contract_api_response(
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
             contract_address=self.params.meme_factory_address,
@@ -300,7 +299,7 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
     ) -> Generator[None, None, Optional[str]]:
         """Get the data from the deployment event"""
 
-        # Use the contract api to interact with the ERC20 contract
+        # Use the contract api to interact with the factory contract
         response_msg = yield from self.get_contract_api_response(
             performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
             contract_address=self.params.meme_factory_address,

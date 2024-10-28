@@ -18,9 +18,9 @@ alphabet_in:
 - RESET_TIMEOUT
 - ROUND_TIMEOUT
 - SETTLE
-- SKIP_FIRST_TWEET
 - SUSPICIOUS_ACTIVITY
 - VALIDATE_TIMEOUT
+- WAIT
 default_start_state: RegistrationStartupRound
 final_states: []
 label: MemeooorrChainedSkillAbciApp
@@ -93,15 +93,16 @@ transition_func:
     (LoadDatabaseRound, DONE): PostTweetRound
     (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
     (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound
-    (LoadDatabaseRound, SKIP_FIRST_TWEET): CollectFeedbackRound
     (PostAnnouncementRound, API_ERROR): PostAnnouncementRound
     (PostAnnouncementRound, DONE): ResetAndPauseRound
     (PostAnnouncementRound, NO_MAJORITY): PostAnnouncementRound
     (PostAnnouncementRound, ROUND_TIMEOUT): PostAnnouncementRound
+    (PostAnnouncementRound, WAIT): PostAnnouncementRound
     (PostTweetRound, API_ERROR): PostTweetRound
     (PostTweetRound, DONE): CollectFeedbackRound
     (PostTweetRound, NO_MAJORITY): PostTweetRound
     (PostTweetRound, ROUND_TIMEOUT): PostTweetRound
+    (PostTweetRound, WAIT): ResetAndPauseRound
     (RandomnessTransactionSubmissionRound, DONE): SelectKeeperTransactionSubmissionARound
     (RandomnessTransactionSubmissionRound, NO_MAJORITY): RandomnessTransactionSubmissionRound
     (RandomnessTransactionSubmissionRound, ROUND_TIMEOUT): RandomnessTransactionSubmissionRound

@@ -56,7 +56,6 @@ class Event(Enum):
     NO_MAJORITY = "no_majority"
     ROUND_TIMEOUT = "round_timeout"
     NOT_ENOUGH_FEEDBACK = "not_enough_feedback"
-    SKIP_FIRST_TWEET = "skip_first_tweet"
     WAIT = "wait"
 
 
@@ -444,7 +443,6 @@ class MemeooorrAbciApp(AbciApp[Event]):
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
             Event.DONE: PostTweetRound,
-            Event.SKIP_FIRST_TWEET: CollectFeedbackRound,
             Event.NO_MAJORITY: LoadDatabaseRound,
             Event.ROUND_TIMEOUT: LoadDatabaseRound,
         },
@@ -487,6 +485,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.API_ERROR: PostAnnouncementRound,
             Event.NO_MAJORITY: PostAnnouncementRound,
             Event.ROUND_TIMEOUT: PostAnnouncementRound,
+            Event.WAIT: PostAnnouncementRound,  # This will never happen. Just for static analysys.
         },
         FinishedToResetRound: {},
         FinishedToSettlementRound: {},
