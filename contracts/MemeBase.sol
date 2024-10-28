@@ -249,15 +249,21 @@ contract MemeBase {
 
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param OLASAmount OLAS amount.
-    function _bridgeAndBurn(uint256 OLASAmount) internal {
+    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
+    function _bridgeAndBurn(uint256 OLASAmount, uint256 tokenGasLimit) internal {
         // Approve bridge to use OLAS
         IERC20(olas).approve(l2TokenRelayer, OLASAmount);
+
+        // Check for sufficient minimum gas limit
+        if (tokenGasLimit < TOKEN_GAS_LIMIT) {
+            tokenGasLimit = TOKEN_GAS_LIMIT;
+        }
 
         // Data for the mainnet validate the OLAS burn
         bytes memory data = abi.encodeWithSignature("burn(uint256)", OLASAmount);
 
         // Bridge OLAS to mainnet to get burned
-        IBridge(l2TokenRelayer).withdrawTo(olas, OLAS_BURNER, OLASAmount, TOKEN_GAS_LIMIT, data);
+        IBridge(l2TokenRelayer).withdrawTo(olas, OLAS_BURNER, OLASAmount, uint32(tokenGasLimit), data);
 
         emit OLASJourneyToAscendance(olas, OLASAmount);
     }
@@ -481,7 +487,8 @@ contract MemeBase {
 
     /// @dev Converts collected USDC to OLAS and bridges OLAS to Ethereum mainnet for burn.
     /// @param olasSpotPrice OLAS spot price.
-    function scheduleOLASForAscendance(uint256 olasSpotPrice) external {
+    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
+    function scheduleOLASForAscendance(uint256 olasSpotPrice, uint256 tokenGasLimit) external {
         require(scheduledForAscendance > 0, "Nothing to burn");
 
         // Record msg.sender activity
@@ -491,7 +498,7 @@ contract MemeBase {
 
         scheduledForAscendance = 0;
         // Burn OLAS
-        _bridgeAndBurn(OLASAmount);
+        _bridgeAndBurn(OLASAmount, tokenGasLimit);
     }
 
     /// @dev Allows the contract to receive ETH
