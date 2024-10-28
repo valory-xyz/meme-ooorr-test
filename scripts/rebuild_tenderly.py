@@ -58,7 +58,7 @@ import os
 import random
 import re
 import string
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
 import requests
 from dotenv import load_dotenv
@@ -170,7 +170,6 @@ def _update_bash_variable(file_path: str, variable_name: str, new_value: str):
 
 
 def update_rpc_variable(new_value: str, chain: str = "BASE"):
-
     # .env file
     pattern = rf"{chain.upper()}_LEDGER_RPC=(\S+)"
     env_file = ".env"

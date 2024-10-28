@@ -59,5 +59,8 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.olas_token_address = self._ensure("olas_token_address", kwargs, str)
         self.persona = self._ensure("persona", kwargs, str)
         self.feedback_period_hours = self._ensure("feedback_period_hours", kwargs, int)
+        self.deployment_amount_eth = self._ensure(
+            "deployment_amount_eth", kwargs, float
+        )
 
         super().__init__(*args, **kwargs)

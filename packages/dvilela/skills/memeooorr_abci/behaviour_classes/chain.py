@@ -185,7 +185,9 @@ class DeploymentBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-a
 
         # Prepare safe transaction
         safe_tx_hash = yield from self._build_safe_tx_hash(
-            to_address=self.params.meme_factory_address, data=bytes.fromhex(data_hex)
+            to_address=self.params.meme_factory_address,
+            data=bytes.fromhex(data_hex),
+            value=int(self.params.deployment_amount_eth * 1e18),
         )
 
         self.context.logger.info(f"Deployment hash is {safe_tx_hash}")

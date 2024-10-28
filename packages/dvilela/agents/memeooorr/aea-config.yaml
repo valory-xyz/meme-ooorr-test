@@ -192,6 +192,7 @@ models:
       olas_token_address: ${str:0x54330d28ca3357F294334BDC454a032e7f353416}
       persona: ${str:a cat lover that is crazy about all-things cats.}
       feedback_period_hours: ${int:3}
+      deployment_amount_eth: ${float:0.01}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection
