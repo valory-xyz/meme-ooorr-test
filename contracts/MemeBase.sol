@@ -72,19 +72,33 @@ interface IUniswap {
 
 /// @title MemeBase - a smart contract factory for Meme Token creation
 /// @dev This contract let's:
-///      1) Any msg.sender summon a meme.
-///      2) Within 24h of a meme being summoned, any msg.sender can heart a meme. This requires the msg.sender to send
+///      1) Any msg.sender summon a meme by contributing at least 0.01 ETH.
+///      2) Within 24h of a meme being summoned, any msg.sender can heart a meme (thereby becoming a hearter). This requires the msg.sender to send
 ///         a non-zero ETH value, which gets recorded as a contribution.
 ///      3) After 24h of a meme being summoned, any msg.sender can unleash the meme. This creates a liquidity pool for
-///         the meme and distributes the rest of the tokens to the hearters, proportional to their contributions.
-///      4) Anyone is able to burn the accumulated OLAS by bridging it to Ethereum where it is burned.
-/// @notice 10% of the ETH contributed to a meme gets converted into OLAS and scheduled for burning upon unleashing of
+///         the meme and schedules the distribution of the rest of the tokens to the hearters, proportional to their contributions.
+///      4) After the meme is being unleashed any hearter can collect their share of the meme token.
+///      5) After 48h of a meme being summoned, any msg.sender can purge the uncollected meme token allocations of hearters.
+/// @notice 10% of the ETH contributed to a meme gets converted into OLAS and scheduled for burning (on Ethereum mainnet) upon unleashing of
 ///         the meme. The remainder of the ETH contributed (90%) is converted to USDC and contributed to an LP,
-///         together with 50% of the token supply of the meme.
+///         together with 50% of the token supply of the meme. The remaining 50% of the meme token supply goes to hearters.
+///         The LP token is held forever by MemeBase, guaranteeing lasting liquidity in the meme token.
+///
+///         Example:
+///         - Agent Smith would summonThisMeme with arguments Smiths Army, SMTH, 1_000_000_000 and $500 worth of ETH
+///         - Agent Brown would heartThisMeme with $250 worth of ETH
+///         - Agent Jones would heartThisMeme with $250 worth of ETH
+///         - Any agent, let's say Brown, would call unleashThisMeme. This would:
+///             - create a liquidity pool with $SMTH:$USDC, containing 500_000_000 SMTH tokens and $900 worth of USDC
+///             - schedule $100 worth of OLAS for burning on Ethereum mainnet
+///             - Brown would receive 125_000_000 worth of $SMTH
+///         - Agent Smith would collectThisMeme and receive 250_000_000 worth of $SMTH
+///         - Agent Jones would forget to collectThisMeme
+///         - Any agent would call purgeThisMeme, which would cause Agent Jones's allocation of 125_000_000 worth of $SMTH to be burned.
 contract MemeBase {
     event OLASBridgedForBurn(address indexed olas, uint256 amount);
     event Summoned(address indexed summoner, address indexed memeToken, uint256 ethContributed);
-    event Hearted(address indexed hearter, uint256 amount);
+    event Hearted(address indexed hearter, , address indexed memeToken, uint256 amount);
     event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress, uint256 liquidity);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
@@ -104,15 +118,13 @@ contract MemeBase {
     // Version number
     string public constant VERSION = "0.1.0";
     // ETH deposit minimum value
-    uint256 public constant MIN_ETH_VALUE = 0.1 ether;
+    uint256 public constant MIN_ETH_VALUE = 0.01 ether;
     // Total supply minimum value
     uint256 public constant MIN_TOTAL_SUPPLY = 1_000_000 ether;
     // Unleash delay after token summoning
     uint256 public constant UNLEASH_DELAY = 24 hours;
     // Collect deadline from the token summoning time
     uint256 public constant COLLECT_DEADLINE = 48 hours;
-    // Purge delay after token summoning
-    uint256 public constant PURGE_DELAY = 48 hours;
     // Percentage of OLAS to burn (10%)
     uint256 public constant OLAS_BURN_PERCENTAGE = 10;
     // Percentage of initial supply for liquidity pool (50%)
@@ -343,7 +355,7 @@ contract MemeBase {
         memeSummon.ethContributed = totalETHCommitted;
         memeHearters[memeToken][msg.sender] += msg.value;
 
-        emit Hearted(msg.sender, msg.value);
+        emit Hearted(msg.sender, memeToken, msg.value);
     }
 
     /// @dev Unleashes the meme token.
@@ -354,7 +366,7 @@ contract MemeBase {
         MemeSummon storage memeSummon = memeSummons[memeToken];
 
         // Check if the meme has been summoned
-        require(memeSummon.ethContributed > 0, "Meme not yet summoned");
+        require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
         // Check OLAS spot price
@@ -397,10 +409,12 @@ contract MemeBase {
 
     /// @dev Collects meme token allocation.
     /// @param memeToken Meme token address.
-    function collect(address memeToken) external {
+    function collectThisMeme(address memeToken) external {
         // Get the meme summon info
         MemeSummon memory memeSummon = memeSummons[memeToken];
 
+        // Check if the meme has been summoned
+        require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check if the meme can be collected
         require(block.timestamp <= memeSummon.summonTime + COLLECT_DEADLINE, "Collect only allowed until 48 hours after summon");
 
@@ -415,14 +429,14 @@ contract MemeBase {
 
     /// @dev Purges uncollected meme token allocation.
     /// @param memeToken Meme token address.
-    function purge(address memeToken) external {
+    function purgeThisMeme(address memeToken) external {
         // Get the meme summon info
         MemeSummon memory memeSummon = memeSummons[memeToken];
 
         // Check if the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check if enough time has passed since the meme was summoned
-        require(block.timestamp > memeSummon.summonTime + PURGE_DELAY, "Purge only allowed from 48 hours after summon");
+        require(block.timestamp > memeSummon.summonTime + COLLECT_DEADLINE, "Purge only allowed from 48 hours after summon");
 
         // Get meme token instance
         Meme memeTokenInstance = Meme(memeToken);
