@@ -41,8 +41,6 @@ from packages.valory.protocols.srr.message import SrrMessage
 
 PUBLIC_ID = PublicId.from_str("dvilela/twikit:0.1.0")
 
-cookies_path = Path("/", "tmp", "twikit_cookies.json")
-
 
 class SrrDialogues(BaseSrrDialogues):
     """A class to keep track of SRR dialogues."""
@@ -102,7 +100,13 @@ class TwikitConnection(BaseSyncConnection):
         self.username = self.configuration.config.get("twikit_username")
         self.email = self.configuration.config.get("twikit_email")
         self.password = self.configuration.config.get("twikit_password")
-        self.cookies = self.configuration.config.get("twikit_cookies")
+        cookies_str = self.configuration.config.get("twikit_cookies")
+        self.cookies_path = Path(
+            self.configuration.config.get(
+                "twikit_cookies_path", "/tmp/twikit_cookies.json"
+            )
+        )
+        self.cookies = json.loads(cookies_str) if cookies_str else None
         self.client = twikit.Client(language="en-US")
 
         self.run_task(self.twikit_login)
@@ -235,21 +239,23 @@ class TwikitConnection(BaseSyncConnection):
 
     async def twikit_login(self) -> None:
         """Login into Twitter"""
-
-        if not self.cookies and cookies_path.exists():
-            with open(cookies_path, "r", encoding="utf-8") as cookies_file:
+        if not self.cookies and self.cookies_path.exists():
+            self.logger.info(f"Loading Twitter cookies from {self.cookies_path}")
+            with open(self.cookies_path, "r", encoding="utf-8") as cookies_file:
                 self.cookies = json.load(cookies_file)
 
         if self.cookies:
-            self.client.set_cookies(json.loads(self.cookies))
+            self.logger.info("Set cookies")
+            self.client.set_cookies(self.cookies)
         else:
+            self.logger.info("Logging into Twitter with username and password")
             await self.client.login(
                 auth_info_1=self.username,
                 auth_info_2=self.email,
                 password=self.password,
             )
 
-        self.client.save_cookies(cookies_path)
+        self.client.save_cookies(self.cookies_path)
 
     async def search(
         self, query: str, product: str = "Top", count: int = 10
@@ -262,8 +268,14 @@ class TwikitConnection(BaseSyncConnection):
 
     async def post(self, tweets: List[Dict]) -> List[str]:
         """Post tweets"""
-        tweet_ids = []
+        tweet_ids: List[str] = []
+        is_first_tweet = True
+
         for tweet_kwargs in tweets:
+            if not is_first_tweet:
+                # If we have more than 1 tweet, we treat this as a thread
+                tweet_kwargs["reply_to"] = tweet_ids[-1]
+
             self.logger.info(f"Posting: {tweet_kwargs}")
 
             while True:
@@ -273,6 +285,7 @@ class TwikitConnection(BaseSyncConnection):
                 try:
                     await self.client.get_tweet_by_id(result.id)
                     tweet_ids.append(result.id)
+                    is_first_tweet = False
                     break
                 except twikit.errors.TweetNotAvailable:
                     self.logger.error("Failed to verify the tweet. Retrying...")

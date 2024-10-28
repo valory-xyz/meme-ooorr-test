@@ -10,7 +10,7 @@ fingerprint:
   behaviours.py: bafybeidabq5scnvljux2732bdbg7xnpnnz54y6t2kdooltd2jgugkz2voi
   composition.py: bafybeiehr5the2ujonp3ajdfvcs6mvialzb2u2kyzf35vjvvajcpwxcdwi
   dialogues.py: bafybeiawrgmlra5f6o63nhv5kc77wvzoqmcareub3lf4qceuwpjso4pjbe
-  fsm_specification.yaml: bafybeiberoroq62ryq3bf4ugni3pjluujewb23iy55bktdoje4daz52vie
+  fsm_specification.yaml: bafybeigwzjkf7to6hotzgko3fgv62tphjb6fkdqrfpqnoaw5sccr5h4tae
   handlers.py: bafybeibw5nfno2scl5qzly3fpvodgoovikl6h3hoiiu6e4sqpbbczbzfim
   models.py: bafybeihmxfjz6irdm5xje6mvnhfc6rwlehzyvhds5shyzz2okrzgac2xde
 fingerprint_ignore_patterns: []
@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/termination_abci:0.1.0:bafybeid54buqxipiuduw7b6nnliiwsxajnltseuroad53wukfonpxca2om
-- dvilela/memeooorr_abci:0.1.0:bafybeiaugexe4paxyw5krjevwaqe26bcficdqgx5jtir3otp4awqejho7e
+- dvilela/memeooorr_abci:0.1.0:bafybeidl7ifpyoyzk472poxbg3kb2c76j7jbafhfxxil2su32wbyjzv4lq
 behaviours:
   main:
     args: {}
@@ -142,15 +142,13 @@ models:
       default_chain_id: ethereum
       service_endpoint: memeooorr.dummy.com/
       minimum_gas_balance: 0.01
-      olas_per_pool: 10
-      percentage_supply_for_pool: 0.95
       min_feedback_replies: 10
       total_supply: 1000000000000000000000000
-      user_allocation: 1000000000000000000000000
       meme_factory_address: '0x0000000000000000000000000000000000000000'
       olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
-      uniswap_v2_router_address: '0x0000000000000000000000000000000000000000'
       persona: a cat lover that is crazy about all-things cats.
+      feedback_period_hours: 3
+      deployment_amount_eth: 0.01
     class_name: Params
   randomness_api:
     args:

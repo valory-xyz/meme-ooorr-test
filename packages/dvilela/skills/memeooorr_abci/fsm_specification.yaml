@@ -7,7 +7,7 @@ alphabet_in:
 - REFINE
 - ROUND_TIMEOUT
 - SETTLE
-- SKIP_FIRST_TWEET
+- WAIT
 default_start_state: LoadDatabaseRound
 final_states:
 - FinishedToResetRound
@@ -25,7 +25,7 @@ states:
 - FinishedToResetRound
 - FinishedToSettlementRound
 - LoadDatabaseRound
-- PostAnnouncementtRound
+- PostAnnouncementRound
 - PostTweetRound
 transition_func:
     (AnalizeFeedbackRound, API_ERROR): AnalizeFeedbackRound
@@ -43,19 +43,20 @@ transition_func:
     (CollectFeedbackRound, NO_MAJORITY): CollectFeedbackRound
     (CollectFeedbackRound, ROUND_TIMEOUT): CollectFeedbackRound
     (DeploymentRound, API_ERROR): DeploymentRound
-    (DeploymentRound, DONE): PostAnnouncementtRound
+    (DeploymentRound, DONE): PostAnnouncementRound
     (DeploymentRound, NO_MAJORITY): DeploymentRound
     (DeploymentRound, ROUND_TIMEOUT): DeploymentRound
     (DeploymentRound, SETTLE): FinishedToSettlementRound
     (LoadDatabaseRound, DONE): PostTweetRound
     (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
     (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound
-    (LoadDatabaseRound, SKIP_FIRST_TWEET): CollectFeedbackRound
-    (PostAnnouncementtRound, API_ERROR): PostAnnouncementtRound
-    (PostAnnouncementtRound, DONE): FinishedToResetRound
-    (PostAnnouncementtRound, NO_MAJORITY): PostAnnouncementtRound
-    (PostAnnouncementtRound, ROUND_TIMEOUT): PostAnnouncementtRound
+    (PostAnnouncementRound, API_ERROR): PostAnnouncementRound
+    (PostAnnouncementRound, DONE): FinishedToResetRound
+    (PostAnnouncementRound, NO_MAJORITY): PostAnnouncementRound
+    (PostAnnouncementRound, ROUND_TIMEOUT): PostAnnouncementRound
+    (PostAnnouncementRound, WAIT): PostAnnouncementRound
     (PostTweetRound, API_ERROR): PostTweetRound
     (PostTweetRound, DONE): CollectFeedbackRound
     (PostTweetRound, NO_MAJORITY): PostTweetRound
     (PostTweetRound, ROUND_TIMEOUT): PostTweetRound
+    (PostTweetRound, WAIT): FinishedToResetRound

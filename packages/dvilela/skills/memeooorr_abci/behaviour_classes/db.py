@@ -42,13 +42,12 @@ class LoadDatabaseBehaviour(
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            persona, latest_tweet, skip_next_tweet = yield from self.load_db()
+            persona, latest_tweet = yield from self.load_db()
 
             payload = LoadDatabasePayload(
                 sender=self.context.agent_address,
                 persona=persona,
                 latest_tweet=latest_tweet,
-                skip_next_tweet=skip_next_tweet,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -57,7 +56,7 @@ class LoadDatabaseBehaviour(
 
         self.set_done()
 
-    def load_db(self) -> Generator[None, None, Tuple[str, str, bool]]:
+    def load_db(self) -> Generator[None, None, Tuple[str, str]]:
         """Load the data"""
         db_data = yield from self._read_kv(keys=("persona", "latest_tweet"))
 
@@ -65,23 +64,18 @@ class LoadDatabaseBehaviour(
             self.context.logger.error("Error while loading the database")
             persona = self.get_persona()
             latest_tweet = "{}"
-            skip_next_tweet = False
-            return persona, latest_tweet, skip_next_tweet
+            return persona, latest_tweet
 
         persona = db_data["persona"]
+        latest_tweet = db_data["latest_tweet"]
+
         if not persona:
             persona = self.get_persona()
 
-        latest_tweet = db_data["latest_tweet"]
-        if latest_tweet:
-            skip_next_tweet = True
-        else:
+        if not latest_tweet:
             latest_tweet = "{}"
-            skip_next_tweet = False
 
         self.context.logger.info(
             f"Loaded from the db\npersona={persona}\nlatest_tweet={latest_tweet}"
         )
-        if skip_next_tweet:
-            self.context.logger.info("Skipping the initial tweet...")
-        return persona, latest_tweet, skip_next_tweet
+        return persona, latest_tweet

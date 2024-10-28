@@ -20,6 +20,7 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
+from datetime import datetime
 from typing import Dict, Generator, List, Optional, Type
 
 from twitter_text import parse_tweet  # type: ignore
@@ -31,7 +32,7 @@ from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     CollectFeedbackPayload,
     CollectFeedbackRound,
-    PostAnnouncementtRound,
+    PostAnnouncementRound,
     PostTweetPayload,
     PostTweetRound,
 )
@@ -55,11 +56,11 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            tweet = yield from self.post_tweet()
+            latest_tweet = yield from self.decide_post_tweet()
 
             payload = PostTweetPayload(
                 sender=self.context.agent_address,
-                tweet=json.dumps(tweet, sort_keys=True),
+                latest_tweet=json.dumps(latest_tweet, sort_keys=True),
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -68,36 +69,90 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
         self.set_done()
 
-    def post_tweet(  # pylint: disable=too-many-locals
+    def decide_post_tweet(  # pylint: disable=too-many-locals
         self,
     ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
 
-        tweet = self.synchronized_data.pending_tweet
+        pending_tweet = self.synchronized_data.pending_tweet
 
-        if not tweet:
-            self.context.logger.info("Preparing tweet...")
-            persona = self.get_persona()
+        # If there is a pending tweet, we send it
+        if pending_tweet:
+            self.context.logger.info("Sending a pending tweet...")
+            latest_tweet = yield from self.post_tweet(tweet=pending_tweet)
+            return latest_tweet
 
-            llm_response = yield from self._call_genai(
-                prompt=DEFAULT_TWEET_PROMPT.format(persona=persona)
+        # If we have not posted before, we prepare and send a new tweet
+        if self.synchronized_data.latest_tweet == {}:
+            self.context.logger.info("Creating a new tweet for the first time...")
+            latest_tweet = yield from self.post_tweet(tweet=None)
+            return latest_tweet
+
+        # Calculate time since the latest tweet
+        latest_tweet_time = datetime.fromtimestamp(
+            self.synchronized_data.latest_tweet["timestamp"]
+        )
+        now = datetime.fromtimestamp(self.get_sync_timestamp())
+        hours_since_last_tweet = (now - latest_tweet_time).total_seconds() / 3600
+
+        # If we have posted befored, but not enough time has passed to collect feedback, we wait
+        if hours_since_last_tweet < self.params.feedback_period_hours:
+            self.context.logger.info(
+                f"{hours_since_last_tweet:.1f} hours have passed since last tweet. Awaiting for the feedback period..."
             )
-            self.context.logger.info(f"LLM response: {llm_response}")
+            return {"wait": True}
 
-            if llm_response is None:
-                self.context.logger.error("Error getting a response from the LLM.")
+        # Enough time has passed, collect feedback
+        if not self.synchronized_data.feedback:
+            self.context.logger.info(
+                "Feedback period has finished. Collecting feedback..."
+            )
+            return {}
+
+        # Not enough feedback, prepare and send a new tweet
+        self.context.logger.info("Feedback was not enough. Creating a new tweet...")
+        latest_tweet = yield from self.post_tweet(tweet=None)
+        return latest_tweet
+
+    def prepare_tweet(self) -> Generator[None, None, Optional[str]]:
+        """Prepare a tweet"""
+
+        self.context.logger.info("Preparing tweet...")
+        persona = self.get_persona()
+
+        llm_response = yield from self._call_genai(
+            prompt=DEFAULT_TWEET_PROMPT.format(persona=persona)
+        )
+        self.context.logger.info(f"LLM response: {llm_response}")
+
+        if llm_response is None:
+            self.context.logger.error("Error getting a response from the LLM.")
+            return None
+
+        if not is_tweet_valid(llm_response):
+            self.context.logger.error("The tweet is too long.")
+            return None
+
+        tweet = llm_response
+        return tweet
+
+    def post_tweet(
+        self, tweet: Optional[List] = None
+    ) -> Generator[None, None, Optional[Dict]]:
+        """Post a tweet"""
+        # Prepare a tweet if needed
+        if tweet is None:
+            new_tweet = yield from self.prepare_tweet()
+            tweet = [new_tweet]
+
+            # We fail to prepare the tweet
+            if not tweet:
                 return None
-
-            if not is_tweet_valid(llm_response):
-                self.context.logger.error("The tweet is too long.")
-                return None
-
-            tweet = llm_response
 
         # Post the tweet
         tweet_ids = yield from self._call_twikit(
             method="post",
-            tweets=[{"text": tweet}],
+            tweets=[{"text": t} for t in tweet],
         )
 
         if not tweet_ids:
@@ -105,7 +160,11 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             return None
 
         # Write latest tweet to the database
-        latest_tweet = {"tweet_id": tweet_ids[0], "text": tweet}
+        latest_tweet = {
+            "tweet_id": tweet_ids[0],
+            "text": tweet,
+            "timestamp": self.get_sync_timestamp(),
+        }
         yield from self._write_kv(
             {"latest_tweet": json.dumps(latest_tweet, sort_keys=True)}
         )
@@ -114,12 +173,12 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         return latest_tweet
 
 
-class PostAnnouncementtBehaviour(
+class PostAnnouncementBehaviour(
     PostTweetBehaviour
 ):  # pylint: disable=too-many-ancestors
-    """PostAnnouncementtBehaviour"""
+    """PostAnnouncementBehaviour"""
 
-    matching_round: Type[AbstractRound] = PostAnnouncementtRound
+    matching_round: Type[AbstractRound] = PostAnnouncementRound
 
 
 class CollectFeedbackBehaviour(

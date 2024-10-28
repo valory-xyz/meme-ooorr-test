@@ -18,9 +18,9 @@ alphabet_in:
 - RESET_TIMEOUT
 - ROUND_TIMEOUT
 - SETTLE
-- SKIP_FIRST_TWEET
 - SUSPICIOUS_ACTIVITY
 - VALIDATE_TIMEOUT
+- WAIT
 default_start_state: RegistrationStartupRound
 final_states: []
 label: MemeooorrChainedSkillAbciApp
@@ -37,7 +37,7 @@ states:
 - DeploymentRound
 - FinalizationRound
 - LoadDatabaseRound
-- PostAnnouncementtRound
+- PostAnnouncementRound
 - PostTweetRound
 - RandomnessTransactionSubmissionRound
 - RegistrationRound
@@ -80,7 +80,7 @@ transition_func:
     (CollectSignatureRound, NO_MAJORITY): ResetRound
     (CollectSignatureRound, ROUND_TIMEOUT): CollectSignatureRound
     (DeploymentRound, API_ERROR): DeploymentRound
-    (DeploymentRound, DONE): PostAnnouncementtRound
+    (DeploymentRound, DONE): PostAnnouncementRound
     (DeploymentRound, NO_MAJORITY): DeploymentRound
     (DeploymentRound, ROUND_TIMEOUT): DeploymentRound
     (DeploymentRound, SETTLE): RandomnessTransactionSubmissionRound
@@ -93,15 +93,16 @@ transition_func:
     (LoadDatabaseRound, DONE): PostTweetRound
     (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
     (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound
-    (LoadDatabaseRound, SKIP_FIRST_TWEET): CollectFeedbackRound
-    (PostAnnouncementtRound, API_ERROR): PostAnnouncementtRound
-    (PostAnnouncementtRound, DONE): ResetAndPauseRound
-    (PostAnnouncementtRound, NO_MAJORITY): PostAnnouncementtRound
-    (PostAnnouncementtRound, ROUND_TIMEOUT): PostAnnouncementtRound
+    (PostAnnouncementRound, API_ERROR): PostAnnouncementRound
+    (PostAnnouncementRound, DONE): ResetAndPauseRound
+    (PostAnnouncementRound, NO_MAJORITY): PostAnnouncementRound
+    (PostAnnouncementRound, ROUND_TIMEOUT): PostAnnouncementRound
+    (PostAnnouncementRound, WAIT): PostAnnouncementRound
     (PostTweetRound, API_ERROR): PostTweetRound
     (PostTweetRound, DONE): CollectFeedbackRound
     (PostTweetRound, NO_MAJORITY): PostTweetRound
     (PostTweetRound, ROUND_TIMEOUT): PostTweetRound
+    (PostTweetRound, WAIT): ResetAndPauseRound
     (RandomnessTransactionSubmissionRound, DONE): SelectKeeperTransactionSubmissionARound
     (RandomnessTransactionSubmissionRound, NO_MAJORITY): RandomnessTransactionSubmissionRound
     (RandomnessTransactionSubmissionRound, ROUND_TIMEOUT): RandomnessTransactionSubmissionRound

@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeict5jehzi4fio34vbg36okg3wpxbgv3qkov7i4p3qtedidmczwaqi
+agent: dvilela/memeooorr:0.1.0:bafybeid4miptgcak6benuv7tdfo3qe7uh4ldwlmwh5gwfag5z7is33w6na
 number_of_agents: 1
 deployment:
   agent:
@@ -76,32 +76,25 @@ extra:
         tendermint_url: ${TENDERMINT_URL:str:http://localhost:26657}
         tendermint_p2p_url: ${TENDERMINT_P2P_URL_0:str:memeooorr_tm_0:26656}
         tx_timeout: 10.0
-        use_termination: ${USE_TERMINATION:bool:true}
+        use_termination: ${USE_TERMINATION:bool:false}
         validate_timeout: 1205
         multisend_batch_size: ${MULTISEND_BATCH_SIZE:int:5}
         ipfs_address: ${IPFS_ADDRESS:str:https://gateway.autonolas.tech/ipfs/}
-        default_chain_id: ${DEFAULT_CHAIN_ID:str:ethereum}
-        termination_from_block: ${TERMINATION_FROM_BLOCK:int:0}
+        default_chain_id: ${DEFAULT_CHAIN_ID:str:base}
+        termination_from_block: ${TERMINATION_FROM_BLOCK:int:21629820}
         minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.01}
-        olas_per_pool: ${OLAS_PER_POOL:int:10}
-        percentage_supply_for_pool: ${PERCENTAGE_SUPPLY_FOR_POOL:float:0.95}
         min_feedback_replies: ${MIN_FEEDBACK_REPLIES:int:10}
         total_supply: ${TOTAL_SUPPLY:int:1000000000000000000000000}
-        user_allocation: ${USER_ALLOCATION:int:1000000000000000000000000}
         meme_factory_address: ${MEME_FACTORY_ADDRESS:str:0x0000000000000000000000000000000000000000}
         olas_token_address: ${OLAS_TOKEN_ADDRESS:str:0x54330d28ca3357F294334BDC454a032e7f353416}
-        uniswap_v2_router_address: ${UNISWAP_V2_ROUTER_ADDRESS:str:0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD}
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
+        feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
+        deployment_amount_eth: ${DEPLOYMENT_AMOUNT_ETH:float:0.01}
 ---
 public_id: valory/ledger:0.19.0
 type: connection
 config:
   ledger_apis:
-    ethereum:
-      address: ${ETHEREUM_LEDGER_RPC:str:http://host.docker.internal:8545}
-      chain_id: ${ETHEREUM_LEDGER_CHAIN_ID:int:31337}
-      poa_chain: ${ETHEREUM_LEDGER_IS_POA_CHAIN:bool:false}
-      default_gas_price_strategy: ${ETHEREUM_LEDGER_PRICING:str:eip1559}
     base:
       address: ${BASE_LEDGER_RPC:str:http://host.docker.internal:8545}
       chain_id: ${BASE_LEDGER_CHAIN_ID:int:8453}
@@ -135,6 +128,7 @@ config:
   twikit_email: ${TWIKIT_EMAIL:str:null}
   twikit_password: ${TWIKIT_PASSWORD:str:null}
   twikit_cookies: ${TWIKIT_COOKIES:str:null}
+  twikit_cookies_path: ${TWIKIT_COOKIES_PATH:str:/tmp/twikit_cookies.json}
 ---
 public_id: dvilela/kv_store:0.1.0
 type: connection

@@ -108,4 +108,18 @@ all-linters:
 	tox -e pylint
 	tox -e mypy
 
+.PHONY: push-image
+push-image:
+	@AGENT_HASH=$$(jq -r ".dev[\"agent/dvilela/memeooorr/0.1.0\"]" packages/packages.json) && \
+	SERVICE_HASH=$$(jq -r ".dev[\"service/dvilela/memeooorr/0.1.0\"]" packages/packages.json) && \
+	IMAGE_ID=$$(docker image ls | awk -v tag="$$SERVICE_HASH" '$$2 == tag {print $$3}' | head -n 1) && \
+	echo "Tagging image $$IMAGE_ID -> valory/oar-memeooorr:$$AGENT_HASH" && \
+	docker tag $$IMAGE_ID valory/oar-memeooorr:$$AGENT_HASH && \
+	docker push valory/oar-memeooorr:$$AGENT_HASH
+
+.PHONY: deploy-contracts
+deploy-contracts:
+	npx hardhat run scripts/deployment/deploy_01_meme_base.js --network base
+
+
 v := $(shell pip -V | grep virtualenvs)

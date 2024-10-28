@@ -7,7 +7,8 @@ coverage.xml
 htmlcov
 *.egg-info
 packages/open_aea
-packages/valory/contracts/
+packages/valory/contracts/*
+!packages/valory/contracts/erc20
 packages/valory/protocols/
 packages/valory/skills/
 packages/valory/connections/*
@@ -32,3 +33,13 @@ memeooorr.db
 TODO.md
 
 tenderly_vnets.json
+
+twikit_cookies.json
+
+node_modules/
+
+artifacts/
+
+cache/
+
+globals.json

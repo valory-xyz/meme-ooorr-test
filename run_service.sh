@@ -2,6 +2,7 @@
 
 REPO_PATH=$PWD
 MEMEOOORR_DB=$REPO_PATH/memeooorr.db
+TWITTER_COOKIES=$REPO_PATH/twikit_cookies.db
 
 # Remove previous service build
 if test -d memeooorr; then
@@ -32,6 +33,12 @@ autonomy deploy build -ltm --agent-cpu-limit 4.0 --agent-memory-limit 8192 --age
 if test -e $MEMEOOORR_DB; then
   echo "Copying backup database"
   cp $MEMEOOORR_DB abci_build/persistent_data/logs
+fi
+
+# Copy the cookies
+if test -e $TWITTER_COOKIES; then
+  echo "Copying Twitter cookies"
+  cp $TWITTER_COOKIES abci_build/persistent_data/logs
 fi
 
 # Run the deployment

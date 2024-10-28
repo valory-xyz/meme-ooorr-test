@@ -32,8 +32,8 @@ AGENT_NAME = "memeooorr"
 
 PATH_TO_VAR = {
     # Chains
-    "config/ledger_apis/ethereum/address": "ETHEREUM_LEDGER_RPC",
-    "config/ledger_apis/ethereum/chain_id": "ETHEREUM_LEDGER_CHAIN_ID",
+    # "config/ledger_apis/ethereum/address": "ETHEREUM_LEDGER_RPC",
+    # "config/ledger_apis/ethereum/chain_id": "ETHEREUM_LEDGER_CHAIN_ID",
     "config/ledger_apis/base/address": "BASE_LEDGER_RPC",
     "config/ledger_apis/base/chain_id": "BASE_LEDGER_CHAIN_ID",
     # Params
@@ -43,19 +43,18 @@ PATH_TO_VAR = {
     "models/params/args/termination_from_block": "TERMINATION_FROM_BLOCK",
     "models/params/args/on_chain_service_id": "ON_CHAIN_SERVICE_ID",
     "models/params/args/minimum_gas_balance": "MINIMUM_GAS_BALANCE",
-    "models/params/args/olas_per_pool": "OLAS_PER_POOL",
-    "models/params/args/percentage_supply_for_pool": "PERCENTAGE_SUPPLY_FOR_POOL",
     "models/params/args/min_feedback_replies": "MIN_FEEDBACK_REPLIES",
     "models/params/args/total_supply": "TOTAL_SUPPLY",
-    "models/params/args/user_allocation": "USER_ALLOCATION",
     "models/params/args/meme_factory_address": "MEME_FACTORY_ADDRESS",
-    "models/params/args/uniswap_v2_router_address": "UNISWAP_V2_ROUTER_ADDRESS",
     "models/params/args/setup/safe_contract_address": "SAFE_CONTRACT_ADDRESS",
+    "models/params/args/feedback_period_hours": "FEEDBACK_PERIOD_HOURS",
+    "models/params/args/deployment_amount_eth": "DEPLOYMENT_AMOUNT_ETH",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",
     "config/twikit_password": "TWIKIT_PASSWORD",
     "config/twikit_cookies": "TWIKIT_COOKIES",
+    "config/twikit_cookies_path": "TWIKIT_COOKIES_PATH",
     # Genai connection
     "config/genai_api_key": "GENAI_API_KEY",
     # DB
@@ -78,6 +77,9 @@ def find_and_replace(config, path, new_value):
             section_index = i
         except KeyError:
             continue
+
+    if section_index is None:
+        raise ValueError(f"Could not update {path}")
 
     # To persist the changes in the config variable,
     # access iterating the path parts but the last part

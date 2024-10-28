@@ -19,8 +19,9 @@
 
 """This module contains the class to connect to an MemeFactory contract."""
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
+import web3
 from aea.configurations.base import PublicId
 from aea.contracts.base import Contract
 from aea_ledger_ethereum import EthereumApi
@@ -35,55 +36,47 @@ class MemeFactoryContract(Contract):
     contract_id = PUBLIC_ID
 
     @classmethod
-    def build_deposit_tx(  # pylint: disable=too-many-arguments
+    def build_summon_tx(  # pylint: disable=too-many-arguments
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
         token_name: str,
         token_ticker: str,
-        holders: Optional[List[int]] = None,
-        allocations: Optional[List[int]] = None,
         total_supply: int = 1000000000000000000000000,  # 1 million tokens for default 18 decimals
-        user_allocation: int = 1,
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
 
-        if holders is None:
-            holders = []
-
-        if allocations is None:
-            allocations = []
-
         contract_instance = cls.get_instance(ledger_api, contract_address)
         data = contract_instance.encodeABI(
-            fn_name="deploy",
+            fn_name="summonThisMeme",
             args=[
                 token_name,
                 token_ticker,
-                holders,
-                allocations,
                 total_supply,
-                user_allocation,
             ],
         )
         return {"data": bytes.fromhex(data[2:])}
 
     @classmethod
-    def get_event_data(
+    def get_token_data(
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
         tx_hash: str,
     ) -> Dict[str, Optional[str]]:
-        """Get the data from the TokenDeployed event."""
+        """Get the data from the Summoned event."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
         tx_receipt = ledger_api.api.eth.get_transaction_receipt(tx_hash)  # type: ignore
 
         for log in tx_receipt["logs"]:
-            event = contract_instance.events.TokenDeployed().processLog(log)
-            return {
-                "token_address": event["newToken"],
-                "pool_address": event["uniswapV2Factory"],
-            }
+            try:
+                event = contract_instance.events.Summoned().process_log(log)
+                return {
+                    "token_address": event.args["memeToken"],
+                    "summoner": event.args["summoner"],
+                    "eth_contributed": event.args["ethContributed"],
+                }
+            except web3.exceptions.MismatchedABI:
+                continue
 
-        return {"token_address": None, "pool_address": None}
+        return {"token_address": None, "summoner": None, "eth_contributed": None}

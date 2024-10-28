@@ -33,7 +33,7 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.llm import (
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     CollectFeedbackBehaviour,
-    PostAnnouncementtBehaviour,
+    PostAnnouncementBehaviour,
     PostTweetBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
@@ -55,5 +55,5 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
         AnalizeFeedbackBehaviour,
         CheckFundsBehaviour,
         DeploymentBehaviour,
-        PostAnnouncementtBehaviour,
+        PostAnnouncementBehaviour,
     ]
