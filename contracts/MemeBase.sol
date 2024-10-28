@@ -102,7 +102,8 @@ contract MemeBase {
     event OLASJourneyToAscendance(address indexed olas, uint256 amount);
     event Summoned(address indexed summoner, address indexed memeToken, uint256 ethContributed);
     event Hearted(address indexed hearter, address indexed memeToken, uint256 amount);
-    event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress, uint256 liquidity);
+    event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress,
+        uint256 liquidity, uint256  burnPercentageOfUSDC);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
 
@@ -135,8 +136,7 @@ contract MemeBase {
     // Slippage parameter (3%)
     uint256 public constant SLIPPAGE = 97;
     // L1 OLAS Burner address
-    // TODO Correct before production
-    address public constant OLAS_BURNER = address(0);
+    address public constant OLAS_BURNER = 0x51eb65012ca5cEB07320c497F4151aC207FEa4E0;
     // Token transfer gas limit for L1
     // This is safe as the value is practically bigger than observed ones on numerous chains
     uint32 public constant TOKEN_GAS_LIMIT = 300_000;
@@ -228,9 +228,9 @@ contract MemeBase {
 
     /// @dev Buys OLAS on Balancer.
     /// @param usdcAmount USDC amount.
-    /// @param olasSpotPrice OLAS spot price.
+    /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
-    function _buyOLASBalancer(uint256 usdcAmount, uint256 olasSpotPrice) internal returns (uint256) {
+    function _buyOLASBalancer(uint256 usdcAmount, uint256 limit) internal returns (uint256) {
         // Approve usdc for the Balancer Vault
         IERC20(usdc).approve(balancerVault, usdcAmount);
 
@@ -240,9 +240,6 @@ contract MemeBase {
         IBalancer.FundManagement memory fundManagement = IBalancer.FundManagement(address(this), false,
             payable(address(this)), false);
 
-        // Get token out limit
-        // TODO Check math
-        uint256 limit = usdcAmount * olasSpotPrice;
         // Perform swap
         return IBalancer(balancerVault).swap(singleSwap, fundManagement, limit, block.timestamp);
     }
@@ -432,7 +429,7 @@ contract MemeBase {
             _collect(memeToken, hearterContribution, heartersAmount, totalETHCommitted);
         }
 
-        emit Unleashed(msg.sender, memeToken, pool, liquidity);
+        emit Unleashed(msg.sender, memeToken, pool, liquidity, burnPercentageOfUSDC);
     }
 
     /// @dev Collects meme token allocation.
@@ -486,15 +483,15 @@ contract MemeBase {
     }
 
     /// @dev Converts collected USDC to OLAS and bridges OLAS to Ethereum mainnet for burn.
-    /// @param olasSpotPrice OLAS spot price.
+    /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
-    function scheduleOLASForAscendance(uint256 olasSpotPrice, uint256 tokenGasLimit) external {
+    function scheduleOLASForAscendance(uint256 limit, uint256 tokenGasLimit) external {
         require(scheduledForAscendance > 0, "Nothing to burn");
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        uint256 OLASAmount = _buyOLASBalancer(scheduledForAscendance, olasSpotPrice);
+        uint256 OLASAmount = _buyOLASBalancer(scheduledForAscendance, limit);
 
         scheduledForAscendance = 0;
         // Burn OLAS
