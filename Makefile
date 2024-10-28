@@ -112,7 +112,7 @@ all-linters:
 push-image:
 	@AGENT_HASH=$$(jq -r ".dev[\"agent/dvilela/memeooorr/0.1.0\"]" packages/packages.json) && \
 	SERVICE_HASH=$$(jq -r ".dev[\"service/dvilela/memeooorr/0.1.0\"]" packages/packages.json) && \
-	IMAGE_ID=$$(docker image ls | awk -v tag="$$SERVICE_HASH" '$$2 == tag {print $$3}' | head -n 1) && \
+	IMAGE_ID=$$(docker image ls | awk -v tag="$$AGENT_HASH" '$$2 == tag {print $$3}' | head -n 1) && \
 	echo "Tagging image $$IMAGE_ID -> valory/oar-memeooorr:$$AGENT_HASH" && \
 	docker tag $$IMAGE_ID valory/oar-memeooorr:$$AGENT_HASH && \
 	docker push valory/oar-memeooorr:$$AGENT_HASH
