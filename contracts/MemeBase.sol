@@ -72,17 +72,19 @@ interface IUniswap {
 
 /// @title MemeBase - a smart contract factory for Meme Token creation
 /// @dev This contract let's:
-///      1) Any msg.sender summon a meme by contributing at least 0.01 ETH.
-///      2) Within 24h of a meme being summoned, any msg.sender can heart a meme (thereby becoming a hearter). This requires the msg.sender to send
-///         a non-zero ETH value, which gets recorded as a contribution.
+///      1) Any msg.sender summons a meme by contributing at least 0.01 ETH.
+///      2) Within 24h of a meme being summoned, any msg.sender can heart a meme (thereby becoming a hearter).
+///         This requires the msg.sender to send a non-zero ETH value, which gets recorded as a contribution.
 ///      3) After 24h of a meme being summoned, any msg.sender can unleash the meme. This creates a liquidity pool for
-///         the meme and schedules the distribution of the rest of the tokens to the hearters, proportional to their contributions.
+///         the meme and schedules the distribution of the rest of the tokens to the hearters, proportional to their
+///         contributions.
 ///      4) After the meme is being unleashed any hearter can collect their share of the meme token.
 ///      5) After 48h of a meme being summoned, any msg.sender can purge the uncollected meme token allocations of hearters.
-/// @notice 10% of the ETH contributed to a meme gets converted into USDC upon unleashing of the meme, that can later be convered to OLAS and
-///         scheduled for burning (on Ethereum mainnet). The remainder of the ETH contributed (90%) is converted to USDC and contributed to an LP,
-///         together with 50% of the token supply of the meme. The remaining 50% of the meme token supply goes to hearters.
-///         The LP token is held forever by MemeBase, guaranteeing lasting liquidity in the meme token.
+/// @notice 10% of the ETH contributed to a meme gets converted into USDC upon unleashing of the meme, that can later be
+///         converted to OLAS and scheduled for burning (on Ethereum mainnet). The remainder of the ETH contributed (90%)
+///         is converted to USDC and contributed to an LP, together with 50% of the token supply of the meme.
+///         The remaining 50% of the meme token supply goes to hearters. The LP token is held forever by MemeBase,
+///         guaranteeing lasting liquidity in the meme token.
 ///
 ///         Example:
 ///         - Agent Smith would summonThisMeme with arguments Smiths Army, SMTH, 1_000_000_000 and $500 worth of ETH
@@ -94,11 +96,12 @@ interface IUniswap {
 ///             - Brown would receive 125_000_000 worth of $SMTH
 ///         - Agent Smith would collectThisMeme and receive 250_000_000 worth of $SMTH
 ///         - Agent Jones would forget to collectThisMeme
-///         - Any agent would call purgeThisMeme, which would cause Agent Jones's allocation of 125_000_000 worth of $SMTH to be burned.
+///         - Any agent would call purgeThisMeme, which would cause Agent Jones's allocation of 125_000_000 worth of
+///           $SMTH to be burned.
 contract MemeBase {
     event OLASJourneyToAscendance(address indexed olas, uint256 amount);
     event Summoned(address indexed summoner, address indexed memeToken, uint256 ethContributed);
-    event Hearted(address indexed hearter, , address indexed memeToken, uint256 amount);
+    event Hearted(address indexed hearter, address indexed memeToken, uint256 amount);
     event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress, uint256 liquidity);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
@@ -131,6 +134,9 @@ contract MemeBase {
     uint256 public constant LP_PERCENTAGE = 50;
     // Slippage parameter (3%)
     uint256 public constant SLIPPAGE = 97;
+    // L1 OLAS Burner address
+    // TODO Correct before production
+    address public constant OLAS_BURNER = address(0);
     // Token transfer gas limit for L1
     // This is safe as the value is practically bigger than observed ones on numerous chains
     uint32 public constant TOKEN_GAS_LIMIT = 300_000;
@@ -232,6 +238,7 @@ contract MemeBase {
             payable(address(this)), false);
 
         // Get token out limit
+        // TODO Check math
         uint256 limit = usdcAmount * olasSpotPrice;
         // Perform swap
         return IBalancer(balancerVault).swap(singleSwap, fundManagement, limit, block.timestamp);
@@ -247,7 +254,7 @@ contract MemeBase {
         bytes memory data = abi.encodeWithSignature("burn(uint256)", OLASAmount);
 
         // Bridge OLAS to mainnet to get burned
-        IBridge(l2TokenRelayer).withdrawTo(olas, address(0), OLASAmount, TOKEN_GAS_LIMIT, data);
+        IBridge(l2TokenRelayer).withdrawTo(olas, OLAS_BURNER, OLASAmount, TOKEN_GAS_LIMIT, data);
 
         emit OLASJourneyToAscendance(olas, OLASAmount);
     }
@@ -370,8 +377,6 @@ contract MemeBase {
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
-        // Check OLAS spot price
-        require(olasSpotPrice > 0, "OLAS spot price is incorrect");
 
         // Buy USDC with the the total ETH committed
         uint256 usdcAmount = _buyUSDCUniswap(memeSummon.ethContributed);
@@ -412,7 +417,7 @@ contract MemeBase {
         MemeSummon memory memeSummon = memeSummons[memeToken];
 
         // Check if the meme has been summoned
-        require(memeSummon.summonTime > 0, "Meme not summoned");
+        require(memeSummon.unleashTime > 0, "Meme not unleashed");
         // Check if the meme can be collected
         require(block.timestamp <= memeSummon.summonTime + COLLECT_DEADLINE, "Collect only allowed until 48 hours after summon");
 
