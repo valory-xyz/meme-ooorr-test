@@ -19,6 +19,7 @@ config:
   twikit_email: null
   twikit_password: null
   twikit_cookies: null
+  twikit_cookies_path: /tmp/twikit_cookies.json
 excluded_protocols: []
 restricted_to_protocols: []
 dependencies:
