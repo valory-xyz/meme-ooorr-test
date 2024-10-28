@@ -325,9 +325,12 @@ contract MemeBase {
         string memory symbol,
         uint256 totalSupply
     ) external payable {
+        // Check for minimum ETH value
         require(msg.value >= MIN_ETH_VALUE, "Minimum ETH value is required to summon");
+        // Check for minimum total supply
         require(totalSupply >= MIN_TOTAL_SUPPLY, "Minimum total supply is not met");
 
+        // Create a new token
         Meme newTokenInstance = new Meme(name, symbol, DECIMALS, totalSupply);
         address memeToken = address(newTokenInstance);
 
@@ -373,13 +376,16 @@ contract MemeBase {
         // Get the meme summon info
         MemeSummon storage memeSummon = memeSummons[memeToken];
 
+        // Get the total ETH committed to this meme
+        uint256 totalETHCommitted = memeSummon.ethContributed;
+
         // Check if the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
 
         // Buy USDC with the the total ETH committed
-        uint256 usdcAmount = _buyUSDCUniswap(memeSummon.ethContributed);
+        uint256 usdcAmount = _buyUSDCUniswap(totalETHCommitted);
 
         // Put aside USDC to buy OLAS with the burn percentage of the total ETH committed
         uint256 burnPercentageOfUSDC = (usdcAmount * OLAS_BURN_PERCENTAGE) / 100;
@@ -404,7 +410,7 @@ contract MemeBase {
 
         // Allocate to the token hearter unleashing the meme
         if (memeHearters[memeToken][msg.sender] > 0) {
-            _collect(memeToken, memeHearters[memeToken][msg.sender], heartersAmount, memeSummon.ethContributed);
+            _collect(memeToken, memeHearters[memeToken][msg.sender], heartersAmount, totalETHCommitted);
         }
 
         emit Unleashed(msg.sender, memeToken, pool, liquidity);
