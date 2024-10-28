@@ -409,8 +409,9 @@ contract MemeBase {
         memeSummon.heartersAmount = heartersAmount;
 
         // Allocate to the token hearter unleashing the meme
-        if (memeHearters[memeToken][msg.sender] > 0) {
-            _collect(memeToken, memeHearters[memeToken][msg.sender], heartersAmount, totalETHCommitted);
+        uint256 hearterContribution = memeHearters[memeToken][msg.sender];
+        if (hearterContribution > 0) {
+            _collect(memeToken, hearterContribution, heartersAmount, totalETHCommitted);
         }
 
         emit Unleashed(msg.sender, memeToken, pool, liquidity);
