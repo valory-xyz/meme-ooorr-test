@@ -9,7 +9,7 @@ fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeiectbspllsxvcxstrbvyrsfwgqelu6lctopfcu54le3cnee5c5bqi
-  behaviour_classes/chain.py: bafybeieupwsckjdr7gop3nuefakwmpabrg4tjyejcxyjqbpufwjacb4tfe
+  behaviour_classes/chain.py: bafybeiau4bu5ffhxghu7z6avcdked5h6uonsl4g72ts52x5vghjpvsy35q
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
   behaviour_classes/llm.py: bafybeidlajxpr442vptqvzbdiv7zlaypllnpssrlar5fm3n4lp3pnzjvby
   behaviour_classes/twitter.py: bafybeielurdwmhm6b7t7g3ogkvrcnqxsekxcqslsbv4pghkrvnx7clfaga
@@ -17,7 +17,7 @@ fingerprint:
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeihxr32tlovwo6j32bcrkjlev7u5bk4rb2jtt5sxvbp5qq7lhf3jey
   handlers.py: bafybeia3ew422w57ot7jpbrhmagepm7pcoqkkc53p5w4jm4co4yh4tz7em
-  models.py: bafybeibzaniejbztahgcwxofkx52ouiunzwdzy7mr7v7bxbbl4kezrl23e
+  models.py: bafybeieiq2ybant5vzkvqxxbv3jk5ihapculcuyqdd4aiwiam727wygr5y
   payloads.py: bafybeic77jlpjhrpv6kyq5ksd6xwm7nwkh7vlw4vbxtjobwnopidvsdf6i
   prompts.py: bafybeiccjmv4n74nkghzeqnijhm2buhu7rn6tf5ynlrc74gfqbl7izm2jm
   rounds.py: bafybeiamf52xc3n4eliiaw3iictsyrtcjojy57cabqzckpjlc4sdatgata
@@ -30,7 +30,7 @@ connections:
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiho6sbfts3zk3mftrngw37d5qnlvkqtnttt3fzexmcwkeevhu4wwi
-- dvilela/meme_factory:0.1.0:bafybeif76sfpd7gcvseobp2oteq2kc722jrnqymndc2wstyw75q62tt2vq
+- dvilela/meme_factory:0.1.0:bafybeibpb4ozqqm2i6gqloo5wpzfwsdnvanfuan7tp63exijw4ytgpvws4
 - valory/erc20:0.1.0:bafybeibk2y6ldylquuikk3cmtk64e2wnjbtuxy5doorzsp4ysx6uwqbdxm
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
