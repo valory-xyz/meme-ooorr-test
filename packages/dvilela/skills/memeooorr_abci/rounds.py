@@ -336,12 +336,20 @@ class DeploymentRound(CollectSameUntilThresholdRound):
         if self.threshold_reached:
             # This needs to be mentioned for static checkers
             # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
-            payload = json.loads(self.most_voted_payload)
+            payload = DeploymentPayload(
+                *(("dummy_sender",) + self.most_voted_payload_values)
+            )
 
             # The token has been deployed
             if payload.token_address:
                 token_data = cast(SynchronizedData, self.synchronized_data).token_data
                 token_data["token_address"] = payload.token_address
+
+                # Turn the tweet into a thread and add the token address
+                token_data["tweet"] = [
+                    token_data["tweet"],
+                    f"Find the token here: https://basescan.org/token/{payload.token_address}",
+                ]
 
                 synchronized_data = self.synchronized_data.update(
                     synchronized_data_class=SynchronizedData,
