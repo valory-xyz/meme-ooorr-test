@@ -107,12 +107,12 @@ contract MemeBase {
     uint256 public constant MIN_ETH_VALUE = 0.1 ether;
     // Total supply minimum value
     uint256 public constant MIN_TOTAL_SUPPLY = 1_000_000 ether;
-    // Unleash period
-    uint256 public constant UNLEASH_PERIOD = 24 hours;
-    // Collect period
-    uint256 public constant COLLECT_PERIOD = 48 hours;
-    // Purge period
-    uint256 public constant PURGE_PERIOD = 48 hours;
+    // Unleash delay after token summoning
+    uint256 public constant UNLEASH_DELAY = 24 hours;
+    // Collect deadline from the token summoning time
+    uint256 public constant COLLECT_DEADLINE = 48 hours;
+    // Purge delay after token summoning
+    uint256 public constant PURGE_DELAY = 48 hours;
     // Percentage of OLAS to burn (10%)
     uint256 public constant OLAS_BURN_PERCENTAGE = 10;
     // Percentage of initial supply for liquidity pool (50%)
@@ -356,7 +356,7 @@ contract MemeBase {
         // Check if the meme has been summoned
         require(memeSummon.ethContributed > 0, "Meme not yet summoned");
         // Check the unleash timestamp
-        require(block.timestamp >= memeSummon.summonTime + UNLEASH_PERIOD, "Cannot unleash yet");
+        require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
         // Check OLAS spot price
         require(olasSpotPrice > 0, "OLAS spot price is incorrect");
 
@@ -402,7 +402,7 @@ contract MemeBase {
         MemeSummon memory memeSummon = memeSummons[memeToken];
 
         // Check if the meme can be collected
-        require(block.timestamp < memeSummon.summonTime + COLLECT_PERIOD, "Collect only allowed until 48 hours after summon");
+        require(block.timestamp < memeSummon.summonTime + COLLECT_DEADLINE, "Collect only allowed until 48 hours after summon");
 
         // Get hearter contribution
         uint256 hearterContribution = memeHearters[memeToken][msg.sender];
@@ -422,7 +422,7 @@ contract MemeBase {
         // Check if the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check if enough time has passed since the meme was summoned
-        require(block.timestamp >= memeSummon.summonTime + PURGE_PERIOD, "Purge only allowed from 48 hours after summon");
+        require(block.timestamp >= memeSummon.summonTime + PURGE_DELAY, "Purge only allowed from 48 hours after summon");
 
         // Get meme token instance
         Meme memeTokenInstance = Meme(memeToken);
