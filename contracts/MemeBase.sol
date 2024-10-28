@@ -336,7 +336,7 @@ contract MemeBase {
         // Check that the meme has been summoned
         require(totalETHCommitted > 0, "Meme not yet summoned");
         // Check if the token has been unleashed
-        require(block.timestamp < memeSummon.unleashTime, "Meme already unleashed");
+        require(memeSummon.unleashTime == 0, "Meme already unleashed");
 
         // Update meme token map values
         totalETHCommitted += msg.value;
@@ -419,8 +419,8 @@ contract MemeBase {
         // Get the meme summon info
         MemeSummon memory memeSummon = memeSummons[memeToken];
 
-        // Check if the meme has been unleashed
-        require(memeSummon.unleashTime > 0, "Meme not unleashed");
+        // Check if the meme has been summoned
+        require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check if enough time has passed since the meme was summoned
         require(block.timestamp >= memeSummon.summonTime + PURGE_PERIOD, "Purge only allowed from 48 hours after summon");
 
