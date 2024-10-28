@@ -402,7 +402,7 @@ contract MemeBase {
         MemeSummon memory memeSummon = memeSummons[memeToken];
 
         // Check if the meme can be collected
-        require(block.timestamp < memeSummon.summonTime + COLLECT_DEADLINE, "Collect only allowed until 48 hours after summon");
+        require(block.timestamp <= memeSummon.summonTime + COLLECT_DEADLINE, "Collect only allowed until 48 hours after summon");
 
         // Get hearter contribution
         uint256 hearterContribution = memeHearters[memeToken][msg.sender];
@@ -422,7 +422,7 @@ contract MemeBase {
         // Check if the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check if enough time has passed since the meme was summoned
-        require(block.timestamp >= memeSummon.summonTime + PURGE_DELAY, "Purge only allowed from 48 hours after summon");
+        require(block.timestamp > memeSummon.summonTime + PURGE_DELAY, "Purge only allowed from 48 hours after summon");
 
         // Get meme token instance
         Meme memeTokenInstance = Meme(memeToken);
