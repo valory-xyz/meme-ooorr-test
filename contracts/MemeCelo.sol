@@ -46,6 +46,8 @@ abstract contract MemeCelo is MemeFactory {
     // Ethereum mainnet chain Id in Wormhole format
     uint16 public constant WORMHOLE_ETH_CHAIN_ID = 2;
 
+    // WCELO token address
+    address public immutable wcelo;
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
     // Oracle address
@@ -57,15 +59,15 @@ abstract contract MemeCelo is MemeFactory {
     /// @dev MemeBase constructor
     constructor(
         address _olas,
-        address _cusd,
-        address _weth,
+        address _referenceToken,
+        address _wcelo,
         address _router,
         address _factory,
-        address _balancerVault,
+        uint256 _minNativeTokenValue,
         address _l2TokenRelayer,
         address _oracle
-    ) MemeFactory(_olas, _cusd, _router, _factory, _balancerVault) {
-        weth = _weth; // probably wrapped CELO?
+    ) MemeFactory(_olas, _referenceToken, _router, _factory, _minNativeTokenValue) {
+        wcelo = _wcelo;
         l2TokenRelayer = _l2TokenRelayer;
         oracle = _oracle;
     }
@@ -75,8 +77,8 @@ abstract contract MemeCelo is MemeFactory {
     /// @return Stable token amount bought.
     function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal override returns (uint256) {
         address[] memory path = new address[](2);
-        path[0] = weth; // probably wrapped CELO?
-        path[1] = cusd;
+        path[0] = wcelo;
+        path[1] = referenceToken;
 
         // Calculate price by Oracle
         (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
@@ -101,16 +103,13 @@ abstract contract MemeCelo is MemeFactory {
     /// @param referenceTokenAmount CELO amount.
     /// @return Obtained OLAS amount.
     function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal override returns (uint256) {
-        address[] memory path = new address[](2);
-        path[0] = cusd;
-        path[1] = olas;
-
-        // Calculate price by Oracle
-        //(, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
-        //require(answerPrice > 0, "Oracle price is incorrect");
+        address[] memory path = new address[](3);
+        path[0] = referenceToken;
+        path[1] = wcelo;
+        path[2] = olas;
 
         // Swap cUSD for // this will go via two pools - not a problem as ubeswap has both
-        uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: usdcAmount }(
+        uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: referenceTokenAmount }(
             limit,
             path,
             address(this),

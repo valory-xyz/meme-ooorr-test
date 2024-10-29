@@ -99,13 +99,13 @@ abstract contract MemeFactory {
     address public immutable router;
     // Uniswap V2 factory address
     address public immutable factory;
-    // Balancer Vault address
-    address public immutable balancerVault;
 
     // Number of meme tokens
     uint256 public numTokens;
     // Reference token scheduled to be converted to OLAS for Ascendance
     uint256 public scheduledForAscendance;
+    // Reentrancy lock
+    uint256 internal _locked = 1;
 
     // Map of meme token => Meme summon struct
     mapping(address => MemeSummon) public memeSummons;
@@ -116,19 +116,19 @@ abstract contract MemeFactory {
     // Set of all meme tokens created by this contract
     address[] public memeTokens;
 
-    /// @dev MemeBase constructor
+    /// @dev MemeFactory constructor
     constructor(
         address _olas,
         address _referenceToken,
         address _router,
         address _factory,
-        address _balancerVault,
+        uint256 _minNativeTokenValue
     ) {
         olas = _olas;
         referenceToken = _referenceToken;
         router = _router;
         factory = _factory;
-        balancerVault = _balancerVault;
+        minNativeTokenValue = _minNativeTokenValue;
     }
 
     /// @dev Converts contributed native token to reference token.
@@ -137,7 +137,7 @@ abstract contract MemeFactory {
     function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal virtual returns (uint256);
 
     /// @dev Buys OLAS on DEX.
-    /// @param reference token amount.
+    /// @param referenceTokenAmount Reference token amount.
     /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
     function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal virtual returns (uint256);
@@ -240,6 +240,7 @@ abstract contract MemeFactory {
         mapAccountActivities[msg.sender]++;
 
         emit Summoned(msg.sender, memeToken, msg.value);
+        emit Hearted(msg.sender, memeToken, msg.value);
     }
 
     /// @dev Hearts the meme token with native token contribution.
@@ -274,6 +275,9 @@ abstract contract MemeFactory {
     /// @param memeToken Meme token address.
     /// @param limit Reference token minimum amount depending on the desired slippage, if applicable.
     function unleashThisMeme(address memeToken, uint256 limit) external {
+        require(_locked == 1, "Reentrancy guard");
+        _locked == 2;
+
         // Get the meme summon info
         MemeSummon storage memeSummon = memeSummons[memeToken];
 
@@ -320,11 +324,16 @@ abstract contract MemeFactory {
         }
 
         emit Unleashed(msg.sender, memeToken, pool, liquidity, burnPercentageOfReferenceToken);
+
+        _locked = 1;
     }
 
     /// @dev Collects meme token allocation.
     /// @param memeToken Meme token address.
     function collectThisMeme(address memeToken) external {
+        require(_locked == 1, "Reentrancy guard");
+        _locked == 2;
+
         // Get the meme summon info
         MemeSummon memory memeSummon = memeSummons[memeToken];
 
@@ -343,11 +352,16 @@ abstract contract MemeFactory {
 
         // Collect the token
         _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.nativeTokenContributed);
+
+        _locked = 1;
     }
 
     /// @dev Purges uncollected meme token allocation.
     /// @param memeToken Meme token address.
     function purgeThisMeme(address memeToken) external {
+        require(_locked == 1, "Reentrancy guard");
+        _locked == 2;
+
         // Get the meme summon info
         MemeSummon memory memeSummon = memeSummons[memeToken];
 
@@ -370,6 +384,8 @@ abstract contract MemeFactory {
         memeTokenInstance.burn(remainingBalance);
 
         emit Purged(memeToken, remainingBalance);
+
+        _locked = 1;
     }
 
     /// @dev Converts collected reference token to OLAS and bridges OLAS to Ethereum mainnet for burn.
@@ -377,7 +393,9 @@ abstract contract MemeFactory {
     /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
     /// @param bridgePayload Optional additional bridge payload.
     function scheduleOLASForAscendance(uint256 limit, uint256 tokenGasLimit, bytes memory bridgePayload) external payable {
-        // TODO reentrancy throughout the contract
+        require(_locked == 1, "Reentrancy guard");
+        _locked == 2;
+
         require(scheduledForAscendance > 0, "Nothing to burn");
 
         // Record msg.sender activity
@@ -395,6 +413,8 @@ abstract contract MemeFactory {
             // solhint-disable-next-line avoid-low-level-calls
             tx.origin.call{value: leftovers}("");
         }
+
+        _locked == 1;
     }
 
     /// @dev Allows the contract to receive native token

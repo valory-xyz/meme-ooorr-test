@@ -66,34 +66,38 @@ interface IUniswap {
 abstract contract MemeBase is MemeFactory {
     // Slippage parameter (3%)
     uint256 public constant SLIPPAGE = 97;
+    // Token transfer gas limit for L1
+    // This is safe as the value is practically bigger than observed ones on numerous chains
+    uint32 public constant TOKEN_GAS_LIMIT = 300_000;
 
-    // Balancer Pool Id
-    bytes32 public immutable balancerPoolId;
+    // WETH token address
+    address public immutable weth;
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
     // Oracle address
     address public immutable oracle;
-    // Token transfer gas limit for L1
-    // This is safe as the value is practically bigger than observed ones on numerous chains
-    uint32 public constant TOKEN_GAS_LIMIT = 300_000;
-    // WETH token address
-    address public immutable weth;
+    // Balancer Vault address
+    address public immutable balancerVault;
+    // Balancer Pool Id
+    bytes32 public immutable balancerPoolId;
 
     /// @dev MemeBase constructor
     constructor(
         address _olas,
         address _usdc,
-        address _weth,
         address _router,
         address _factory,
-        address _balancerVault,
+        uint256 _minNativeTokenValue,
+        address _weth,
         address _l2TokenRelayer,
         address _oracle,
+        address _balancerVault,
         bytes32 _balancerPoolId
-    ) MemeFactory(_olas, _usdc, _router, _factory, _balancerVault) {
+    ) MemeFactory(_olas, _usdc, _router, _factory, _minNativeTokenValue) {
         weth = _weth;
         l2TokenRelayer = _l2TokenRelayer;
         oracle = _oracle;
+        balancerVault = _balancerVault;
         balancerPoolId = _balancerPoolId;
     }
 
