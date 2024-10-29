@@ -63,7 +63,7 @@ interface IUniswap {
 }
 
 /// @title MemeBase - a smart contract factory for Meme Token creation on Base.
-abstract contract MemeBase is MemeFactory {
+contract MemeBase is MemeFactory {
     // Slippage parameter (3%)
     uint256 public constant SLIPPAGE = 97;
     // Token transfer gas limit for L1
@@ -113,7 +113,7 @@ abstract contract MemeBase is MemeFactory {
         (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
         require(answerPrice > 0, "Oracle price is incorrect");
 
-        // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100
+        // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100 to account for slippage
         // ETH: 18 decimals, USDC leftovers: 2 decimals, percentage: 2 decimals; denominator = 18 + 2 + 2 = 22
         uint256 limit = uint256(answerPrice) * nativeTokenAmount * SLIPPAGE / 1e22;
         // Swap ETH for USDC

@@ -5,13 +5,11 @@ const parsedData = JSON.parse(dataFromJSON);
 
 module.exports = [
     parsedData.olasAddress,
-    parsedData.usdcAddress,
+    parsedData.cusdAddress,
     parsedData.routerAddress,
     parsedData.factoryAddress,
     parsedData.minNativeTokenValue,
-    parsedData.wethAddress,
+    parsedData.celoAddress,
     parsedData.l2TokenBridgeAddress,
-    parsedData.oracleAddress,
-    parsedData.balancerVaultAddress,
-    parsedData.balancerPoolId
+    parsedData.oracleAddress
 ];

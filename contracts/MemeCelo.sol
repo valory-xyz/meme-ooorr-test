@@ -35,19 +35,28 @@ interface IOracle {
 // UniswapV2 interface
 interface IUniswap {
     /// @dev Swaps exact amount of ETH for a specified token.
-    function swapExactETHForTokens(uint256 amountOutMin, address[] calldata path, address to, uint256 deadline)
+    function swapExactTokensForTokens(uint256 amountOutMin, address[] calldata path, address to, uint256 deadline)
         external payable returns (uint256[] memory amounts);
+
+    /// @dev Swaps an exact amount of input tokens along the route determined by the path. 
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
 }
 
 /// @title MemeCelo - a smart contract factory for Meme Token creation on Celo.
-abstract contract MemeCelo is MemeFactory {
+contract MemeCelo is MemeFactory {
     // Slippage parameter (3%)
     uint256 public constant SLIPPAGE = 97;
     // Ethereum mainnet chain Id in Wormhole format
     uint16 public constant WORMHOLE_ETH_CHAIN_ID = 2;
 
-    // WCELO token address
-    address public immutable wcelo;
+    // CELO token address
+    address public immutable celo;
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
     // Oracle address
@@ -63,11 +72,11 @@ abstract contract MemeCelo is MemeFactory {
         address _router,
         address _factory,
         uint256 _minNativeTokenValue,
-        address _wcelo,
+        address _celo,
         address _l2TokenRelayer,
         address _oracle
     ) MemeFactory(_olas, _referenceToken, _router, _factory, _minNativeTokenValue) {
-        wcelo = _wcelo;
+        celo = _celo;
         l2TokenRelayer = _l2TokenRelayer;
         oracle = _oracle;
     }
@@ -77,18 +86,23 @@ abstract contract MemeCelo is MemeFactory {
     /// @return Stable token amount bought.
     function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal override returns (uint256) {
         address[] memory path = new address[](2);
-        path[0] = wcelo;
+        path[0] = celo;
         path[1] = referenceToken;
 
         // Calculate price by Oracle
         (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
         require(answerPrice > 0, "Oracle price is incorrect");
 
-        // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100
-        // ETH: 18 decimals, USDC leftovers: 2 decimals, percentage: 2 decimals; denominator = 18 + 2 + 2 = 22
-        uint256 limit = uint256(answerPrice) * nativeTokenAmount * SLIPPAGE / 1e22;
-        // Swap ETH for USDC
-        uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: nativeTokenAmount }(
+        // Oracle returns 8 decimals, cUSD has 18 decimals, need to additionally divide by 100 to account for slippage
+        // ETH: 18 decimals, cUSD: 18 decimals, percentage: 2 decimals; denominator = 8 + 2 = 10
+        uint256 limit = uint256(answerPrice) * nativeTokenAmount * SLIPPAGE / 1e10;
+
+        // Approve reference token
+        IERC20(celo).approve(router, nativeTokenAmount);
+
+        // Swap CELO for cUSD
+        uint256[] memory amounts = IUniswap(router).swapExactTokensForTokens(
+            nativeTokenAmount,
             limit,
             path,
             address(this),
@@ -105,11 +119,16 @@ abstract contract MemeCelo is MemeFactory {
     function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal override returns (uint256) {
         address[] memory path = new address[](3);
         path[0] = referenceToken;
-        path[1] = wcelo;
+        path[1] = celo;
         path[2] = olas;
 
-        // Swap cUSD for // this will go via two pools - not a problem as ubeswap has both
-        uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: referenceTokenAmount }(
+        // Approve reference token
+        IERC20(referenceToken).approve(router, referenceTokenAmount);
+
+        // Swap cUSD for OLAS
+        // This will go via two pools - not a problem as Ubeswap has both
+        uint256[] memory amounts = IUniswap(router).swapExactTokensForTokens(
+            referenceTokenAmount,
             limit,
             path,
             address(this),

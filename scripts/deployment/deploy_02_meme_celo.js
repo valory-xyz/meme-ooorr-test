@@ -44,7 +44,7 @@ async function main() {
     const MemeCelo = await ethers.getContractFactory("MemeCelo");
     console.log("You are signing the following transaction: MemeCelo.connect(EOA).deploy()");
     const memeCelo = await MemeCelo.connect(EOA).deploy(parsedData.olasAddress, parsedData.cusdAddress,
-        parsedData.routerAddress, parsedData.factoryAddress, parsedData.minNativeTokenValue, parsedData.wceloAddress,
+        parsedData.routerAddress, parsedData.factoryAddress, parsedData.minNativeTokenValue, parsedData.celoAddress,
         parsedData.l2TokenBridgeAddress, parsedData.oracleAddress);
     const result = await memeCelo.deployed();
 
