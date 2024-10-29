@@ -147,11 +147,8 @@ contract MemeCelo is MemeFactory {
     /// @param olasAmount OLAS amount.
     /// @return msg.value leftovers if partially utilized by the bridge.
     function _bridgeAndBurn(uint256 olasAmount, uint256, bytes memory) internal override returns (uint256) {
-        // Get OLAS leftovers from previous transfers
-        uint256 localLeftovers = olasLeftovers;
-
-        // Adjust the amount to transfer
-        olasAmount += localLeftovers;
+        // Get OLAS leftovers from previous transfers and adjust the amount to transfer
+        olasAmount += olasLeftovers;
 
         // Round transfer amount to the cutoff value
         uint256 transferAmount = olasAmount / WORMHOLE_BRIDGING_CUTOFF;
@@ -161,8 +158,7 @@ contract MemeCelo is MemeFactory {
         require(transferAmount > 0, "Amount is too small for bridging");
 
         // Update OLAS leftovers
-        localLeftovers = olasAmount - transferAmount;
-        olasLeftovers = localLeftovers;
+        olasLeftovers = olasAmount - transferAmount;
 
         // Approve bridge to use OLAS
         IERC20(olas).approve(l2TokenRelayer, transferAmount);
