@@ -40,30 +40,30 @@ async function main() {
     console.log("EOA is:", deployer);
 
     // Transaction signing and execution
-    console.log("1. EOA to deploy MemeBase");
-    const MemeBase = await ethers.getContractFactory("MemeBase");
-    console.log("You are signing the following transaction: MemeBase.connect(EOA).deploy()");
-    const memeBase = await MemeBase.connect(EOA).deploy(parsedData.olasAddress, parsedData.usdcAddress,
-        parsedData.routerAddress, parsedData.factoryAddress, parsedData.minNativeTokenValue, parsedData.wethAddress,
-        parsedData.l2TokenBridgeAddress, parsedData.oracleAddress, parsedData.balancerVaultAddress, parsedData.balancerPoolId);
-    const result = await memeBase.deployed();
+    console.log("2. EOA to deploy MemeCelo");
+    const MemeCelo = await ethers.getContractFactory("MemeCelo");
+    console.log("You are signing the following transaction: MemeCelo.connect(EOA).deploy()");
+    const memeCelo = await MemeCelo.connect(EOA).deploy(parsedData.olasAddress, parsedData.cusdAddress,
+        parsedData.routerAddress, parsedData.factoryAddress, parsedData.minNativeTokenValue, parsedData.wceloAddress,
+        parsedData.l2TokenBridgeAddress, parsedData.oracleAddress);
+    const result = await memeCelo.deployed();
 
     // Transaction details
-    console.log("Contract deployment: MemeBase");
-    console.log("Contract address:", memeBase.address);
+    console.log("Contract deployment: MemeCelo");
+    console.log("Contract address:", memeCelo.address);
     console.log("Transaction:", result.deployTransaction.hash);
 
     // Wait for half a minute for the transaction completion
     await new Promise(r => setTimeout(r, 30000));
 
     // Writing updated parameters back to the JSON file
-    parsedData.memeBaseAddress = memeBase.address;
+    parsedData.memeCeloAddress = memeCelo.address;
     fs.writeFileSync(globalsFile, JSON.stringify(parsedData));
 
     // Contract verification
     if (parsedData.contractVerification) {
         const execSync = require("child_process").execSync;
-        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_01_meme_base.js --network " + providerName + " " + memeBase.address, { encoding: "utf-8" });
+        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_02_meme_celo.js --network " + providerName + " " + memeCelo.address, { encoding: "utf-8" });
     }
 }
 

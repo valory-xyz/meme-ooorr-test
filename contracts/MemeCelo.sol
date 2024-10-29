@@ -60,10 +60,10 @@ abstract contract MemeCelo is MemeFactory {
     constructor(
         address _olas,
         address _referenceToken,
-        address _wcelo,
         address _router,
         address _factory,
         uint256 _minNativeTokenValue,
+        address _wcelo,
         address _l2TokenRelayer,
         address _oracle
     ) MemeFactory(_olas, _referenceToken, _router, _factory, _minNativeTokenValue) {

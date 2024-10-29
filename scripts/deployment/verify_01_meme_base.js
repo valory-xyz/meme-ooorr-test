@@ -9,7 +9,7 @@ module.exports = [
     parsedData.wethAddress,
     parsedData.routerAddress,
     parsedData.factoryAddress,
-    parsedData.l2StandardBridgeAddress,
+    parsedData.l2TokenBridgeAddress,
     parsedData.oracleAddress,
     parsedData.balancerVaultAddress,
     parsedData.balancerPoolId
