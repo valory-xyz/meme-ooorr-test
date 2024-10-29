@@ -105,7 +105,7 @@ class TwikitConnection(BaseSyncConnection):
         cookies_str = self.configuration.config.get("twikit_cookies")
         self.cookies_path = Path(
             self.configuration.config.get(
-                "twikit_cookies_path", "/tmp/twikit_cookies.json"
+                "twikit_cookies_path", "/tmp/twikit_cookies.json"  # nosec
             )
         )
         self.cookies = json.loads(cookies_str) if cookies_str else None
