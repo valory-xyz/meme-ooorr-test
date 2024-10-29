@@ -25,7 +25,7 @@ interface IUniswap {
 
 /// @title MemeFactory - a smart contract factory for Meme Token creation
 /// @dev This contract let's:
-///      1) Any msg.sender summons a meme by contributing at least 0.01 ETH.
+///      1) Any msg.sender summons a meme by contributing at least 0.01 ETH (or equivalent native asset for other chains).
 ///      2) Within 24h of a meme being summoned, any msg.sender can heart a meme (thereby becoming a hearter).
 ///         This requires the msg.sender to send a non-zero ETH value, which gets recorded as a contribution.
 ///      3) After 24h of a meme being summoned, any msg.sender can unleash the meme. This creates a liquidity pool for
@@ -33,7 +33,7 @@ interface IUniswap {
 ///         contributions.
 ///      4) After the meme is being unleashed any hearter can collect their share of the meme token.
 ///      5) After 48h of a meme being summoned, any msg.sender can purge the uncollected meme token allocations of hearters.
-/// @notice 10% of the ETH contributed to a meme gets converted into USDC upon unleashing of the meme, that can later be
+/// @notice 10% of the ETH contributed to a meme gets converted into USDC (or other reference token) upon unleashing of the meme, that can later be
 ///         converted to OLAS and scheduled for burning (on Ethereum mainnet). The remainder of the ETH contributed (90%)
 ///         is converted to USDC and contributed to an LP, together with 50% of the token supply of the meme.
 ///         The remaining 50% of the meme token supply goes to hearters. The LP token is held forever by MemeBase,
@@ -53,7 +53,7 @@ interface IUniswap {
 ///           $SMTH to be burned.
 abstract contract MemeFactory {
     event OLASJourneyToAscendance(address indexed olas, uint256 amount);
-    event Summoned(address indexed summoner, address indexed memeToken, uint256 ethContributed);
+    event Summoned(address indexed summoner, address indexed memeToken, uint256 nativeTokenContributed);
     event Hearted(address indexed hearter, address indexed memeToken, uint256 amount);
     event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress,
         uint256 liquidity, uint256  burnPercentageOfStable);
@@ -62,8 +62,8 @@ abstract contract MemeFactory {
 
     // Meme Summon struct
     struct MemeSummon {
-        // ETH contributed to the meme launch
-        uint256 ethContributed;
+        // Native token contributed to the meme launch
+        uint256 nativeTokenContributed;
         // Summon timestamp
         uint256 summonTime;
         // Unleash timestamp
@@ -86,9 +86,6 @@ abstract contract MemeFactory {
     uint256 public constant LP_PERCENTAGE = 50;
     // L1 OLAS Burner address
     address public constant OLAS_BURNER = 0x51eb65012ca5cEB07320c497F4151aC207FEa4E0;
-    // Token transfer gas limit for L1
-    // This is safe as the value is practically bigger than observed ones on numerous chains
-    uint32 public constant TOKEN_GAS_LIMIT = 300_000;
     // Meme token decimals
     uint8 public constant DECIMALS = 18;
 
@@ -96,10 +93,8 @@ abstract contract MemeFactory {
     uint256 public immutable minNativeTokenValue;
     // OLAS token address
     address public immutable olas;
-    // USDC token address
-    address public immutable usdc;
-    // WETH token address
-    address public immutable weth;
+    // Reference token address
+    address public immutable referenceToken;
     // Uniswap V2 router address
     address public immutable router;
     // Uniswap V2 factory address
@@ -109,12 +104,12 @@ abstract contract MemeFactory {
 
     // Number of meme tokens
     uint256 public numTokens;
-    // USDC scheduled to be converted to OLAS for Ascendance
+    // Reference token scheduled to be converted to OLAS for Ascendance
     uint256 public scheduledForAscendance;
 
     // Map of meme token => Meme summon struct
     mapping(address => MemeSummon) public memeSummons;
-    // Map of mem token => (map of hearter => ETH balance)
+    // Map of mem token => (map of hearter => native token balance)
     mapping(address => mapping(address => uint256)) public memeHearters;
     // Map of account => activity counter
     mapping(address => uint256) public mapAccountActivities;
@@ -124,32 +119,30 @@ abstract contract MemeFactory {
     /// @dev MemeBase constructor
     constructor(
         address _olas,
-        address _usdc,
-        address _weth,
+        address _referenceToken,
         address _router,
         address _factory,
         address _balancerVault,
         uint256 _minNativeTokenValue
     ) {
         olas = _olas;
-        usdc = _usdc;
-        weth = _weth;
+        referenceToken = _referenceToken;
         router = _router;
         factory = _factory;
         balancerVault = _balancerVault;
         minNativeTokenValue = _minNativeTokenValue;
     }
 
-    /// @dev Buys USDC on UniswapV2 using ETH amount.
-    /// @param ethAmount Input ETH amount.
-    /// @return USDC amount bought.
-    function _buyStableToken(uint256 ethAmount, uint256) internal virtual returns (uint256);
+    /// @dev Converts contributed native token to reference token.
+    /// @param nativeTokenAmount Input native token amount.
+    /// @return reference token amount converted to.
+    function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal virtual returns (uint256);
 
-    /// @dev Buys OLAS on Balancer.
-    /// @param usdcAmount USDC amount.
+    /// @dev Buys OLAS on DEX.
+    /// @param reference token amount.
     /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 usdcAmount, uint256 limit) internal virtual returns (uint256);
+    function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal virtual returns (uint256);
 
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param OLASAmount OLAS amount.
@@ -162,31 +155,31 @@ abstract contract MemeFactory {
         bytes memory bridgePayload
     ) internal virtual returns (uint256);
 
-    /// @dev Creates USDC + meme token LP and adds liquidity.
+    /// @dev Creates reference token + meme token LP and adds liquidity.
     /// @param memeToken Meme token address.
-    /// @param usdcAmount USDC amount.
+    /// @param referenceTokenAmount Reference token amount.
     /// @param memeTokenAmount Meme token amount.
-    /// @return pair USDC + meme token LP address.
+    /// @return pair reference token + meme token LP address.
     /// @return liquidity Obtained LP liquidity.
     function _createUniswapPair(
         address memeToken,
-        uint256 usdcAmount,
+        uint256 referenceTokenAmount,
         uint256 memeTokenAmount
     ) internal returns (address pair, uint256 liquidity) {
         // Create the LP
-        pair = IUniswap(factory).createPair(usdc, memeToken);
+        pair = IUniswap(factory).createPair(referenceToken, memeToken);
 
         // Approve tokens for router
-        IERC20(usdc).approve(router, usdcAmount);
+        IERC20(referenceToken).approve(router, referenceTokenAmount);
         IERC20(memeToken).approve(router, memeTokenAmount);
 
-        // Add USDC + meme token liquidity
+        // Add reference token + meme token liquidity
         (, , liquidity) = IUniswap(router).addLiquidity(
-            usdc,
+            referenceToken,
             memeToken,
-            usdcAmount,
+            referenceTokenAmount,
             memeTokenAmount,
-            0, // Accept any amount of USDC
+            0, // Accept any amount of reference token
             0, // Accept any amount of meme token
             address(this),
             block.timestamp
@@ -197,18 +190,18 @@ abstract contract MemeFactory {
     /// @param memeToken Meme token address.
     /// @param heartersAmount Total hearters meme token amount.
     /// @param hearterContribution Hearter contribution.
-    /// @param totalETHCommitted Total ETH contributed for the token launch.
+    /// @param totalNativeTokenCommitted Total native token contributed for the token launch.
     function _collect(
         address memeToken,
         uint256 heartersAmount,
         uint256 hearterContribution,
-        uint256 totalETHCommitted
+        uint256 totalNativeTokenCommitted
     ) internal {
         // Get meme token instance
         Meme memeTokenInstance = Meme(memeToken);
 
         // Allocate corresponding meme token amount to the hearter
-        uint256 allocation = (heartersAmount * hearterContribution) / totalETHCommitted;
+        uint256 allocation = (heartersAmount * hearterContribution) / totalNativeTokenCommitted;
 
         // Zero the allocation
         memeHearters[memeToken][msg.sender] = 0;
@@ -228,7 +221,7 @@ abstract contract MemeFactory {
         string memory symbol,
         uint256 totalSupply
     ) external payable {
-        // Check for minimum ETH value
+        // Check for minimum native token value
         require(msg.value >= minNativeTokenValue, "Minimum native token value is required to summon");
         // Check for minimum total supply
         require(totalSupply >= MIN_TOTAL_SUPPLY, "Minimum total supply is not met");
@@ -251,26 +244,26 @@ abstract contract MemeFactory {
         emit Summoned(msg.sender, memeToken, msg.value);
     }
 
-    /// @dev Hearts the meme token with ETH contribution.
+    /// @dev Hearts the meme token with native token contribution.
     /// @param memeToken Meme token address.
     function heartThisMeme(address memeToken) external payable {
         // Check for zero value
-        require(msg.value > 0, "ETH amount must be greater than zero");
+        require(msg.value > 0, "Native token amount must be greater than zero");
 
         // Get the meme summon info
         MemeSummon storage memeSummon = memeSummons[memeToken];
 
-        // Get the total ETH committed to this meme
-        uint256 totalETHCommitted = memeSummon.ethContributed;
+        // Get the total native token committed to this meme
+        uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
 
         // Check that the meme has been summoned
-        require(totalETHCommitted > 0, "Meme not yet summoned");
+        require(totalNativeTokenCommitted > 0, "Meme not yet summoned");
         // Check if the token has been unleashed
         require(memeSummon.unleashTime == 0, "Meme already unleashed");
 
         // Update meme token map values
-        totalETHCommitted += msg.value;
-        memeSummon.ethContributed = totalETHCommitted;
+        totalNativeTokenCommitted += msg.value;
+        memeSummon.nativeTokenContributed = totalNativeTokenCommitted;
         memeHearters[memeToken][msg.sender] += msg.value;
 
         // Record msg.sender activity
@@ -281,29 +274,29 @@ abstract contract MemeFactory {
 
     /// @dev Unleashes the meme token.
     /// @param memeToken Meme token address.
-    /// @param limit Stable token minimum amount depending on the desired slippage, if applicable.
+    /// @param limit Reference token minimum amount depending on the desired slippage, if applicable.
     function unleashThisMeme(address memeToken, uint256 limit) external {
         // Get the meme summon info
         MemeSummon storage memeSummon = memeSummons[memeToken];
 
-        // Get the total ETH committed to this meme
-        uint256 totalETHCommitted = memeSummon.ethContributed;
+        // Get the total native token amount committed to this meme
+        uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
 
         // Check if the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
 
-        // Buy USDC with the the total ETH committed
+        // Buy reference token with the the total native token committed
         // This might not be needed in other implementations, and the function would return the given value
-        uint256 usdcAmount = _buyStableToken(totalETHCommitted, limit);
+        uint256 referenceTokenAmount = _convertToReferenceToken(totalNativeTokenCommitted, limit);
 
-        // Put aside USDC to buy OLAS with the burn percentage of the total ETH committed
-        uint256 burnPercentageOfUSDC = (usdcAmount * OLAS_BURN_PERCENTAGE) / 100;
-        scheduledForAscendance += burnPercentageOfUSDC;
+        // Put aside reference token to buy OLAS with the burn percentage of the total native token amount committed
+        uint256 burnPercentageOfReferenceToken = (referenceTokenAmount * OLAS_BURN_PERCENTAGE) / 100;
+        scheduledForAscendance += burnPercentageOfReferenceToken;
 
-        // Adjust USDC amount
-        usdcAmount -= burnPercentageOfUSDC;
+        // Adjust reference token amount
+        referenceTokenAmount -= burnPercentageOfReferenceToken;
 
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         Meme memeTokenInstance = Meme(memeToken);
@@ -312,7 +305,7 @@ abstract contract MemeFactory {
         uint256 heartersAmount = totalSupply - lpTokenAmount;
 
         // Create Uniswap pair with LP allocation
-        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, usdcAmount, lpTokenAmount);
+        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, referenceTokenAmount, lpTokenAmount);
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
@@ -325,10 +318,10 @@ abstract contract MemeFactory {
         // Allocate to the token hearter unleashing the meme
         uint256 hearterContribution = memeHearters[memeToken][msg.sender];
         if (hearterContribution > 0) {
-            _collect(memeToken, hearterContribution, heartersAmount, totalETHCommitted);
+            _collect(memeToken, hearterContribution, heartersAmount, totalNativeTokenCommitted);
         }
 
-        emit Unleashed(msg.sender, memeToken, pool, liquidity, burnPercentageOfUSDC);
+        emit Unleashed(msg.sender, memeToken, pool, liquidity, burnPercentageOfReferenceToken);
     }
 
     /// @dev Collects meme token allocation.
@@ -351,7 +344,7 @@ abstract contract MemeFactory {
         mapAccountActivities[msg.sender]++;
 
         // Collect the token
-        _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.ethContributed);
+        _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.nativeTokenContributed);
     }
 
     /// @dev Purges uncollected meme token allocation.
@@ -381,7 +374,7 @@ abstract contract MemeFactory {
         emit Purged(memeToken, remainingBalance);
     }
 
-    /// @dev Converts collected USDC to OLAS and bridges OLAS to Ethereum mainnet for burn.
+    /// @dev Converts collected reference token to OLAS and bridges OLAS to Ethereum mainnet for burn.
     /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
     /// @param bridgePayload Optional additional bridge payload.
@@ -406,6 +399,6 @@ abstract contract MemeFactory {
         }
     }
 
-    /// @dev Allows the contract to receive ETH
+    /// @dev Allows the contract to receive native token
     receive() external payable {}
 }

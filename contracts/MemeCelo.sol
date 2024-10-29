@@ -57,7 +57,7 @@ abstract contract MemeCelo is MemeFactory {
     /// @dev MemeBase constructor
     constructor(
         address _olas,
-        address _usdc,
+        address _cusd,
         address _weth,
         address _router,
         address _factory,
@@ -65,18 +65,19 @@ abstract contract MemeCelo is MemeFactory {
         uint256 _minNativeTokenValue,
         address _l2TokenRelayer,
         address _oracle
-    ) MemeFactory(_olas, _usdc, _weth, _router, _factory, _balancerVault, _minNativeTokenValue) {
+    ) MemeFactory(_olas, _cusd, _router, _factory, _balancerVault, _minNativeTokenValue) {
+        weth = _weth; // probably wrapped CELO?
         l2TokenRelayer = _l2TokenRelayer;
         oracle = _oracle;
     }
 
-    /// @dev Buys USDC on UniswapV2 using Celo amount.
-    /// @param celoAmount Input Celo amount.
+    /// @dev Buys cUSD on UniswapV2 using Celo amount.
+    /// @param nativeTokenAmount Input Celo amount.
     /// @return Stable token amount bought.
-    function _buyStableToken(uint256 celoAmount, uint256) internal override returns (uint256) {
+    function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal override returns (uint256) {
         address[] memory path = new address[](2);
-        path[0] = weth;
-        path[1] = usdc;
+        path[0] = weth; // probably wrapped CELO?
+        path[1] = cusd;
 
         // Calculate price by Oracle
         (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
@@ -84,32 +85,32 @@ abstract contract MemeCelo is MemeFactory {
 
         // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100
         // ETH: 18 decimals, USDC leftovers: 2 decimals, percentage: 2 decimals; denominator = 18 + 2 + 2 = 22
-        uint256 limit = uint256(answerPrice) * celoAmount * SLIPPAGE / 1e22;
+        uint256 limit = uint256(answerPrice) * nativeTokenAmount * SLIPPAGE / 1e22;
         // Swap ETH for USDC
-        uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: celoAmount }(
+        uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: nativeTokenAmount }(
             limit,
             path,
             address(this),
             block.timestamp
         );
 
-        // Return the USDC amount bought
+        // Return the cUSD amount bought
         return amounts[1];
     }
 
     /// @dev Buys OLAS on UniswapV2.
-    /// @param usdcAmount USDC amount.
+    /// @param referenceTokenAmount CELO amount.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 usdcAmount, uint256 limit) internal override returns (uint256) {
+    function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal override returns (uint256) {
         address[] memory path = new address[](2);
-        path[0] = usdc;
+        path[0] = cusd;
         path[1] = olas;
 
         // Calculate price by Oracle
         //(, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
         //require(answerPrice > 0, "Oracle price is incorrect");
 
-        // Swap USDC for
+        // Swap cUSD for // this will go via two pools - not a problem as ubeswap has both
         uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: usdcAmount }(
             limit,
             path,
@@ -117,7 +118,7 @@ abstract contract MemeCelo is MemeFactory {
             block.timestamp
         );
 
-        // Return the USDC amount bought
+        // Return the OLAS amount bought
         return amounts[1];
     }
 

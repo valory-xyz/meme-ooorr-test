@@ -73,6 +73,11 @@ abstract contract MemeBase is MemeFactory {
     address public immutable l2TokenRelayer;
     // Oracle address
     address public immutable oracle;
+    // Token transfer gas limit for L1
+    // This is safe as the value is practically bigger than observed ones on numerous chains
+    uint32 public constant TOKEN_GAS_LIMIT = 300_000;
+    // WETH token address
+    address public immutable weth;
 
     /// @dev MemeBase constructor
     constructor(
@@ -86,19 +91,20 @@ abstract contract MemeBase is MemeFactory {
         address _l2TokenRelayer,
         address _oracle,
         bytes32 _balancerPoolId
-    ) MemeFactory(_olas, _usdc, _weth, _router, _factory, _balancerVault, _minNativeTokenValue) {
+    ) MemeFactory(_olas, _usdc, _router, _factory, _balancerVault, _minNativeTokenValue) {
+        weth = _weth;
         l2TokenRelayer = _l2TokenRelayer;
         oracle = _oracle;
         balancerPoolId = _balancerPoolId;
     }
 
     /// @dev Buys USDC on UniswapV2 using ETH amount.
-    /// @param ethAmount Input ETH amount.
+    /// @param nativeTokenAmount Input ETH amount.
     /// @return Stable token amount bought.
-    function _buyStableToken(uint256 ethAmount, uint256) internal override returns (uint256) {
+    function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal override returns (uint256) {
         address[] memory path = new address[](2);
         path[0] = weth;
-        path[1] = usdc;
+        path[1] = referenceToken;
 
         // Calculate price by Oracle
         (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
@@ -106,9 +112,9 @@ abstract contract MemeBase is MemeFactory {
 
         // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100
         // ETH: 18 decimals, USDC leftovers: 2 decimals, percentage: 2 decimals; denominator = 18 + 2 + 2 = 22
-        uint256 limit = uint256(answerPrice) * ethAmount * SLIPPAGE / 1e22;
+        uint256 limit = uint256(answerPrice) * nativeTokenAmount * SLIPPAGE / 1e22;
         // Swap ETH for USDC
-        uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: ethAmount }(
+        uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: nativeTokenAmount }(
             limit,
             path,
             address(this),
@@ -120,16 +126,16 @@ abstract contract MemeBase is MemeFactory {
     }
 
     /// @dev Buys OLAS on Balancer.
-    /// @param usdcAmount USDC amount.
+    /// @param referenceTokenAmount USDC amount.
     /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 usdcAmount, uint256 limit) internal override returns (uint256) {
+    function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal override returns (uint256) {
         // Approve usdc for the Balancer Vault
-        IERC20(usdc).approve(balancerVault, usdcAmount);
+        IERC20(referenceToken).approve(balancerVault, referenceTokenAmount);
 
         // Prepare Balancer data
-        IBalancer.SingleSwap memory singleSwap = IBalancer.SingleSwap(balancerPoolId, IBalancer.SwapKind.GIVEN_IN, usdc,
-            olas, usdcAmount, "0x");
+        IBalancer.SingleSwap memory singleSwap = IBalancer.SingleSwap(balancerPoolId, IBalancer.SwapKind.GIVEN_IN, referenceToken,
+            olas, referenceTokenAmount, "0x");
         IBalancer.FundManagement memory fundManagement = IBalancer.FundManagement(address(this), false,
             payable(address(this)), false);
 
