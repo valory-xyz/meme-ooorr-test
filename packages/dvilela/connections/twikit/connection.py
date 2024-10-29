@@ -41,6 +41,8 @@ from packages.valory.protocols.srr.message import SrrMessage
 
 PUBLIC_ID = PublicId.from_str("dvilela/twikit:0.1.0")
 
+MAX_RETRIES = 5
+
 
 class SrrDialogues(BaseSrrDialogues):
     """A class to keep track of SRR dialogues."""
@@ -103,7 +105,7 @@ class TwikitConnection(BaseSyncConnection):
         cookies_str = self.configuration.config.get("twikit_cookies")
         self.cookies_path = Path(
             self.configuration.config.get(
-                "twikit_cookies_path", "/tmp/twikit_cookies.json"
+                "twikit_cookies_path", "/tmp/twikit_cookies.json"  # nosec
             )
         )
         self.cookies = json.loads(cookies_str) if cookies_str else None
@@ -215,13 +217,21 @@ class TwikitConnection(BaseSyncConnection):
 
         self.logger.info(f"Calling twikit: {payload}")
 
-        try:
-            response = self.run_task(method, **payload.get("kwargs", {}))
-            self.logger.info(f"Twikit response: {response}")
-        except Exception as e:
-            return {"error": f"Exception while calling Twikit:\n{e}"}, True
+        retries = 0
+        while retries < MAX_RETRIES:
+            try:
+                response = self.run_task(method, **payload.get("kwargs", {}))
+                self.logger.info(f"Twikit response: {response}")
+                return {"response": response}, False  # type: ignore
+            except KeyError as e:
+                self.logger.error(f"Exception while calling Twikit:\n{e}. Retrying...")
+                retries += 1
+                time.sleep(1)
+                continue
+            except Exception as e:
+                return {"error": f"Exception while calling Twikit:\n{e}"}, True
 
-        return {"response": response}, False  # type: ignore
+        return {"error": "Error calling Twikit. Max amount of retries reached."}, True
 
     def on_connect(self) -> None:
         """
