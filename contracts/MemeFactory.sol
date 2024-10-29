@@ -123,14 +123,12 @@ abstract contract MemeFactory {
         address _router,
         address _factory,
         address _balancerVault,
-        uint256 _minNativeTokenValue
     ) {
         olas = _olas;
         referenceToken = _referenceToken;
         router = _router;
         factory = _factory;
         balancerVault = _balancerVault;
-        minNativeTokenValue = _minNativeTokenValue;
     }
 
     /// @dev Converts contributed native token to reference token.

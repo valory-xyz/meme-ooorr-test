@@ -87,11 +87,10 @@ abstract contract MemeBase is MemeFactory {
         address _router,
         address _factory,
         address _balancerVault,
-        uint256 _minNativeTokenValue,
         address _l2TokenRelayer,
         address _oracle,
         bytes32 _balancerPoolId
-    ) MemeFactory(_olas, _usdc, _router, _factory, _balancerVault, _minNativeTokenValue) {
+    ) MemeFactory(_olas, _usdc, _router, _factory, _balancerVault) {
         weth = _weth;
         l2TokenRelayer = _l2TokenRelayer;
         oracle = _oracle;

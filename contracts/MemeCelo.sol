@@ -62,10 +62,9 @@ abstract contract MemeCelo is MemeFactory {
         address _router,
         address _factory,
         address _balancerVault,
-        uint256 _minNativeTokenValue,
         address _l2TokenRelayer,
         address _oracle
-    ) MemeFactory(_olas, _cusd, _router, _factory, _balancerVault, _minNativeTokenValue) {
+    ) MemeFactory(_olas, _cusd, _router, _factory, _balancerVault) {
         weth = _weth; // probably wrapped CELO?
         l2TokenRelayer = _l2TokenRelayer;
         oracle = _oracle;
