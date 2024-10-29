@@ -42,7 +42,7 @@ module.exports = {
         local: {
             url: "http://localhost:8545",
         },
-        localcelo: {
+        localFork: {
             url: "http://127.0.0.1:9000",
         },
         mainnet: {

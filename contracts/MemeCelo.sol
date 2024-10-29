@@ -52,6 +52,8 @@ interface IUniswap {
 contract MemeCelo is MemeFactory {
     // Slippage parameter (3%)
     uint256 public constant SLIPPAGE = 97;
+    // Wormhole bridging decimals cutoff
+    uint256 public constant WORMHOLE_BRIDGING_CUTOFF = 10^10;
     // Ethereum mainnet chain Id in Wormhole format
     uint16 public constant WORMHOLE_ETH_CHAIN_ID = 2;
 
@@ -143,6 +145,8 @@ contract MemeCelo is MemeFactory {
     /// @param olasAmount OLAS amount.
     /// @return msg.value leftovers if partially utilized by the bridge.
     function _bridgeAndBurn(uint256 olasAmount, uint256, bytes memory) internal override returns (uint256) {
+        require(olasAmount / WORMHOLE_BRIDGING_CUTOFF > 0, "Amount is too small for bridging");
+
         // Approve bridge to use OLAS
         IERC20(olas).approve(l2TokenRelayer, olasAmount);
 

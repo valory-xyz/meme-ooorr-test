@@ -29,8 +29,6 @@ const main = async () => {
     await meme.deployed();
 
     const celo = await ethers.getContractAt("Meme", parsedData.celoAddress);
-//    console.log(await celo.balanceOf(deployer.address));
-//    console.log(await ethers.provider.getBalance(deployer.address));
 
     const MemeCelo = await ethers.getContractFactory("MemeCelo");
     const memeCelo = await MemeCelo.deploy(parsedData.olasAddress, parsedData.cusdAddress, parsedData.routerAddress,
@@ -42,23 +40,13 @@ const main = async () => {
     await memeCelo.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
     const memeToken = await memeCelo.memeTokens(0);
     console.log("New meme contract:", memeToken);
-//    console.log(await celo.balanceOf(deployer.address));
-//    console.log(await ethers.provider.getBalance(deployer.address));
 
     // Heart a new token by other accounts
     await memeCelo.connect(signers[1]).heartThisMeme(memeToken, {value: defaultDeposit});
     await memeCelo.connect(signers[2]).heartThisMeme(memeToken, {value: defaultDeposit});
 
-    let block = await ethers.provider.getBlock("latest");
-    console.log("Block number before", block.number);
-    console.log("Timestamp before", block.timestamp);
-
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 100);
-
-    block = await ethers.provider.getBlock("latest");
-    console.log("Block number before", block.number);
-    console.log("Timestamp after", block.timestamp);
 
     // Unleash the meme token
     await memeCelo.unleashThisMeme(memeToken, 0);
