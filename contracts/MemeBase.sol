@@ -147,12 +147,12 @@ contract MemeBase is MemeFactory {
     }
 
     /// @dev Bridges OLAS amount back to L1 and burns.
-    /// @param OLASAmount OLAS amount.
+    /// @param olasAmount OLAS amount.
     /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
     /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(uint256 OLASAmount, uint256 tokenGasLimit, bytes memory) internal override returns (uint256) {
+    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory) internal override returns (uint256) {
         // Approve bridge to use OLAS
-        IERC20(olas).approve(l2TokenRelayer, OLASAmount);
+        IERC20(olas).approve(l2TokenRelayer, olasAmount);
 
         // Check for sufficient minimum gas limit
         if (tokenGasLimit < TOKEN_GAS_LIMIT) {
@@ -160,12 +160,12 @@ contract MemeBase is MemeFactory {
         }
 
         // Data for the mainnet validate the OLAS burn
-        bytes memory data = abi.encodeWithSignature("burn(uint256)", OLASAmount);
+        bytes memory data = abi.encodeWithSignature("burn(uint256)", olasAmount);
 
         // Bridge OLAS to mainnet to get burned
-        IBridge(l2TokenRelayer).withdrawTo(olas, OLAS_BURNER, OLASAmount, uint32(tokenGasLimit), data);
+        IBridge(l2TokenRelayer).withdrawTo(olas, OLAS_BURNER, olasAmount, uint32(tokenGasLimit), data);
 
-        emit OLASJourneyToAscendance(olas, OLASAmount);
+        emit OLASJourneyToAscendance(olas, olasAmount);
 
         return msg.value;
     }

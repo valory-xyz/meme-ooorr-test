@@ -140,23 +140,23 @@ contract MemeCelo is MemeFactory {
     }
 
     /// @dev Bridges OLAS amount back to L1 and burns.
-    /// @param OLASAmount OLAS amount.
+    /// @param olasAmount OLAS amount.
     /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(uint256 OLASAmount, uint256, bytes memory) internal override returns (uint256) {
+    function _bridgeAndBurn(uint256 olasAmount, uint256, bytes memory) internal override returns (uint256) {
         // Approve bridge to use OLAS
-        IERC20(olas).approve(l2TokenRelayer, OLASAmount);
+        IERC20(olas).approve(l2TokenRelayer, olasAmount);
 
         // Bridge arguments
         bytes32 olasBurner = bytes32(uint256(uint160(OLAS_BURNER)));
         uint256 localNonce = nonce;
 
         // Bridge OLAS to mainnet to get burned
-        IBridge(l2TokenRelayer).transferTokens(olas, OLASAmount, WORMHOLE_ETH_CHAIN_ID, olasBurner, 0, uint32(nonce));
+        IBridge(l2TokenRelayer).transferTokens(olas, olasAmount, WORMHOLE_ETH_CHAIN_ID, olasBurner, 0, uint32(nonce));
 
         // Adjust nonce
         nonce = localNonce + 1;
 
-        emit OLASJourneyToAscendance(olas, OLASAmount);
+        emit OLASJourneyToAscendance(olas, olasAmount);
 
         return msg.value;
     }
