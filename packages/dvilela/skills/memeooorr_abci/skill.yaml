@@ -2,7 +2,7 @@ name: memeooorr_abci
 author: dvilela
 version: 0.1.0
 type: skill
-description: A skill that fact-checks misleading information online.
+description: A skill that deploys memecoins.
 license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:

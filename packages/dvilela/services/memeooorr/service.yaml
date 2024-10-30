@@ -1,7 +1,7 @@
 name: memeooorr
 author: dvilela
 version: 0.1.0
-description: A service that fact-checks misleading information online.
+description: A service that deploys memecoins.
 aea_version: '>=1.0.0, <2.0.0'
 license: Apache-2.0
 fingerprint:

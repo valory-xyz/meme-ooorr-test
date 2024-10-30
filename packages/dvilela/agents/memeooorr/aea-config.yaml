@@ -2,7 +2,7 @@ agent_name: memeooorr
 author: dvilela
 version: 0.1.0
 license: Apache-2.0
-description: An agent that fact-checks misleading information online.
+description: An agent that deploys memecoins.
 aea_version: '>=1.19.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeid4555nbqrben3bbz62jsycrtssy5mqso4w23q7bjorln3qur7baq

@@ -3,11 +3,11 @@
         "hash": "bafybeifd4whpcody5bkccjz2pes6ha5lqaqlmluesu65n4qzgvrgfdrcza",
         "token_id": null,
         "image_hash": "Qmc5DKqGMonG8god6p1RqcQayhTKhT2REnbRRTwHJSWR6A",
-        "agent_id": null
+        "agent_id": 43
     },
     "agent/dvilela/memeooorr/0.1.0": {
         "hash": "bafybeihrwcqlyv5v4e2geu7ktrspwadivhnwisifu5ircaaid6xzfpdcpa",
-        "token_id": null,
+        "token_id": 43,
         "image_hash": "Qmc5DKqGMonG8god6p1RqcQayhTKhT2REnbRRTwHJSWR6A",
         "dependencies": {
             "connections": {
@@ -25,7 +25,7 @@
                 "valory/gnosis_safe_proxy_factory:0.1.0": 18,
                 "valory/gnosis_safe": 19,
                 "valory/multisend:0.1.0": 20,
-                "contract/dvilela/meme_factory/0.1.0": null
+                "contract/dvilela/meme_factory/0.1.0": 251
             },
             "protocols": {
                 "valory/abci:0.1.0": 1,
@@ -46,14 +46,14 @@
                 "valory/reset_pause_abci:0.1.0": 17,
                 "valory/transaction_settlement_abci:0.1.0": 22,
                 "valory/termination_abci:0.1.0": 33,
-                "dvilela/memeooorr_abci:0.1.0": null,
-                "dvilela/memeooorr_abci_chained:0.1.0": null
+                "dvilela/memeooorr_abci:0.1.0": 252,
+                "dvilela/memeooorr_abci_chained:0.1.0": 253
             }
         }
     },
     "skill/dvilela/memeooorr_chained_abci/0.1.0": {
         "hash": "bafybeia3bssfayn5ho2hxji2m7a5e2565pp54fbriak4kear2g2bb3d24u",
-        "token_id": null,
+        "token_id": 253,
         "image_hash": "QmYe9z3bFoGLXbr5GnnFsAXAANqhph8a9v692werZqtTRD",
         "dependencies": {
             "skills": {
@@ -62,13 +62,13 @@
                 "valory/reset_pause_abci:0.1.0": 17,
                 "valory/transaction_settlement_abci": 22,
                 "valory/termination_abci:0.1.0": 33,
-                "dvilela/memeooorr_abci:0.1.0": null
+                "dvilela/memeooorr_abci:0.1.0": 252
             }
         }
     },
     "skill/dvilela/memeooorr_abci/0.1.0": {
         "hash": "bafybeia33p7kvcraa7regbaxli6oqas7764pm2lki5ndxjcowufrgfow6a",
-        "token_id": null,
+        "token_id": 252,
         "image_hash": "QmYe9z3bFoGLXbr5GnnFsAXAANqhph8a9v692werZqtTRD",
         "dependencies": {
             "connections": {
@@ -79,7 +79,7 @@
             },
             "contracts": {
                 "valory/gnosis_safe": 19,
-                "contract/dvilela/meme_factory/0.1.0": null
+                "contract/dvilela/meme_factory/0.1.0": 251
             },
             "protocols": {
                 "valory/contract_api:1.0.0": 3,
@@ -97,7 +97,7 @@
     },
     "contract/dvilela/meme_factory/0.1.0": {
         "hash": "bafybeib4nhqakpesjmllgpavjtl5sjblyozbo4yvfrxkfiasqr6h3qh3va",
-        "token_id": null,
+        "token_id": 251,
         "image_hash": "QmeLevGtPVK8sbATiJxuuE2rMtc3FsGHqS1UMecPpRYEVj"
     }
 }
