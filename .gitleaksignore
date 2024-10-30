@@ -19,3 +19,11 @@
 0339df3390012034dae8a4590d4eff7f811f1f83:scripts/deployment/globals_base_mainnet_meme_alpha.json:generic-api-key:15
 0339df3390012034dae8a4590d4eff7f811f1f83:scripts/deployment/globals_base_mainnet_meme_alpha.json:generic-api-key:16
 0339df3390012034dae8a4590d4eff7f811f1f83:scripts/deployment/globals_base_mainnet_meme_alpha.json:generic-api-key:18
+1c8343a62aa824db3f2df74cb874ec56c93126a6:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
+5de00cb9815c2643cb5ce3ec778aa35af924225e:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
+67a87719ecbbda02b78abc79384bb9c1f4dc6cef:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
+bcf95ffdbf9a2bf091313ecd1a150e0275d1ff3c:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
+1c8343a62aa824db3f2df74cb874ec56c93126a6:scripts/deployment/globals_celo_mainnet.json:generic-api-key:2
+5de00cb9815c2643cb5ce3ec778aa35af924225e:scripts/deployment/globals_celo_mainnet.json:generic-api-key:2
+67a87719ecbbda02b78abc79384bb9c1f4dc6cef:scripts/deployment/globals_celo_mainnet.json:generic-api-key:2
+bcf95ffdbf9a2bf091313ecd1a150e0275d1ff3c:scripts/deployment/globals_celo_mainnet.json:generic-api-key:2
