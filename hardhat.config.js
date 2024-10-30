@@ -42,6 +42,9 @@ module.exports = {
         local: {
             url: "http://localhost:8545",
         },
+        localFork: {
+            url: "http://127.0.0.1:9000",
+        },
         mainnet: {
             url: "https://eth-mainnet.g.alchemy.com/v2/" + ALCHEMY_API_KEY_MAINNET,
             accounts: accounts,
