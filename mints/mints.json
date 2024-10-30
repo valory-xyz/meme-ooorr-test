@@ -1,0 +1,103 @@
+{
+    "service/dvilela/memeooorr/0.1.0": {
+        "hash": "bafybeifd4whpcody5bkccjz2pes6ha5lqaqlmluesu65n4qzgvrgfdrcza",
+        "token_id": null,
+        "image_hash": "Qmc5DKqGMonG8god6p1RqcQayhTKhT2REnbRRTwHJSWR6A",
+        "agent_id": null
+    },
+    "agent/dvilela/memeooorr/0.1.0": {
+        "hash": "bafybeihrwcqlyv5v4e2geu7ktrspwadivhnwisifu5ircaaid6xzfpdcpa",
+        "token_id": null,
+        "image_hash": "Qmc5DKqGMonG8god6p1RqcQayhTKhT2REnbRRTwHJSWR6A",
+        "dependencies": {
+            "connections": {
+                "valory/abci:0.1.0": 8,
+                "valory/http_client:0.23.0": 9,
+                "valory/ledger:0.19.0": 10,
+                "valory/p2p_libp2p_client:0.1.0": 11,
+                "valory/ipfs": 50,
+                "valory/http_server": 60,
+                "dvilela/kv_store:0.1.0": 189,
+                "dvilela/twikit:0.1.0": 234,
+                "dvilela/genai:0.1.0": 235
+            },
+            "contracts": {
+                "valory/gnosis_safe_proxy_factory:0.1.0": 18,
+                "valory/gnosis_safe": 19,
+                "valory/multisend:0.1.0": 20,
+                "contract/dvilela/meme_factory/0.1.0": null
+            },
+            "protocols": {
+                "valory/abci:0.1.0": 1,
+                "valory/acn:1.1.0": 2,
+                "valory/contract_api:1.0.0": 3,
+                "valory/http:1.0.0": 4,
+                "valory/ledger_api:1.0.0": 5,
+                "valory/tendermint:0.1.0": 6,
+                "open_aea/signing:1.0.0": 7,
+                "valory/ipfs:0.1.0": 39,
+                "dvilela/kv_store:0.1.0": 188,
+                "valory/srr:0.1.0": 192
+
+            },
+            "skills": {
+                "valory/abstract_round_abci:0.1.0": 14,
+                "valory/registration_abci:0.1.0": 16,
+                "valory/reset_pause_abci:0.1.0": 17,
+                "valory/transaction_settlement_abci:0.1.0": 22,
+                "valory/termination_abci:0.1.0": 33,
+                "dvilela/memeooorr_abci:0.1.0": null,
+                "dvilela/memeooorr_abci_chained:0.1.0": null
+            }
+        }
+    },
+    "skill/dvilela/memeooorr_chained_abci/0.1.0": {
+        "hash": "bafybeia3bssfayn5ho2hxji2m7a5e2565pp54fbriak4kear2g2bb3d24u",
+        "token_id": null,
+        "image_hash": "QmYe9z3bFoGLXbr5GnnFsAXAANqhph8a9v692werZqtTRD",
+        "dependencies": {
+            "skills": {
+                "valory/abstract_round_abci:0.1.0": 14,
+                "valory/registration_abci:0.1.0": 16,
+                "valory/reset_pause_abci:0.1.0": 17,
+                "valory/transaction_settlement_abci": 22,
+                "valory/termination_abci:0.1.0": 33,
+                "dvilela/memeooorr_abci:0.1.0": null
+            }
+        }
+    },
+    "skill/dvilela/memeooorr_abci/0.1.0": {
+        "hash": "bafybeia33p7kvcraa7regbaxli6oqas7764pm2lki5ndxjcowufrgfow6a",
+        "token_id": null,
+        "image_hash": "QmYe9z3bFoGLXbr5GnnFsAXAANqhph8a9v692werZqtTRD",
+        "dependencies": {
+            "connections": {
+                "valory/http_server": 60,
+                "dvilela/kv_store:0.1.0": 189,
+                "dvilela/twikit:0.1.0": 234,
+                "dvilela/genai:0.1.0": 235
+            },
+            "contracts": {
+                "valory/gnosis_safe": 19,
+                "contract/dvilela/meme_factory/0.1.0": null
+            },
+            "protocols": {
+                "valory/contract_api:1.0.0": 3,
+                "valory/http:1.0.0": 4,
+                "valory/ledger_api:1.0.0": 5,
+                "dvilela/kv_store:0.1.0": 188,
+                "valory/srr:0.1.0": 192
+
+            },
+            "skills": {
+                "valory/abstract_round_abci:0.1.0": 14,
+                "valory/transaction_settlement_abci:0.1.0": 22
+            }
+        }
+    },
+    "contract/dvilela/meme_factory/0.1.0": {
+        "hash": "bafybeib4nhqakpesjmllgpavjtl5sjblyozbo4yvfrxkfiasqr6h3qh3va",
+        "token_id": null,
+        "image_hash": "QmeLevGtPVK8sbATiJxuuE2rMtc3FsGHqS1UMecPpRYEVj"
+    }
+}

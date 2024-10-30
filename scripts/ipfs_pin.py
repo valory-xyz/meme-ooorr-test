@@ -38,7 +38,7 @@ if __name__ == "__main__":
     image_to_hash = {}
 
     for file in os.listdir(MINT_PATH):
-        if file.endswith(".jpg"):
+        if file.endswith(".jpg") or file.endswith(".png"):
             image_path = Path(MINT_PATH, file)
 
             _, hash_, _ = ipfs_tool.add(  # type: ignore
@@ -48,5 +48,5 @@ if __name__ == "__main__":
             print(f"Successfully stored {file}: {IPFS_GATEWAY}{hash_}")
 
     print(json.dumps(image_to_hash, indent=4, sort_keys=True))
-    with open(Path(MINT_PATH, MINT_FILE), "w", encoding="utf-8") as out_file:
-        json.dump(image_to_hash, out_file, indent=4, sort_keys=True)
+    # with open(Path(MINT_PATH, MINT_FILE), "w", encoding="utf-8") as out_file:
+    #     json.dump(image_to_hash, out_file, indent=4, sort_keys=True)
