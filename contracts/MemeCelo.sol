@@ -53,7 +53,7 @@ contract MemeCelo is MemeFactory {
     // Slippage parameter (3%)
     uint256 public constant SLIPPAGE = 97;
     // Wormhole bridging decimals cutoff
-    uint256 public constant WORMHOLE_BRIDGING_CUTOFF = 10^10;
+    uint256 public constant WORMHOLE_BRIDGING_CUTOFF = 1e10;
     // Ethereum mainnet chain Id in Wormhole format
     uint16 public constant WORMHOLE_ETH_CHAIN_ID = 2;
 
