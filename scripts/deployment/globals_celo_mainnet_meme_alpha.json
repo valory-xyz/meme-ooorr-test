@@ -20,7 +20,7 @@
   "memeActivityCheckerAddress":"0xAe2f766506F6BDF740Cc348a90139EF317Fa7Faf",
   "stakingParams":
     {
-      "metadataHash":"",
+      "metadataHash":"0x00e5bc2c8231616c89cba05679ba67b7ccf34ccc30141453e3ef29e5bc2f9f7c",
       "maxNumServices":"100",
       "rewardsPerSecond":"4398148148152",
       "minStakingDeposit":"50000000000000000000",
@@ -29,12 +29,12 @@
       "livenessPeriod":"86400",
       "timeForEmissions":"2592000",
       "numAgentInstances":"1",
-      "agentIds":[],
+      "agentIds":["43"],
       "threshold":"1",
       "configHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
       "proxyHash":"0xb89c1b3bdf2cf8827818646bce9a8f6e372885f8c55e5c07acbd307cb133b000",
       "serviceRegistry":"0xE3607b00E75f6405248323A9417ff6b39B244b50",
       "activityChecker":"0xAe2f766506F6BDF740Cc348a90139EF317Fa7Faf"
     },
-  "stakingTokenInstanceAddress":""
+  "stakingTokenInstanceAddress":"0xf39cd0eE4C502Df7D26F28cFAdd579724A3CFCe8"
 }
