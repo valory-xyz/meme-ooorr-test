@@ -261,15 +261,6 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
 
             analysis = json.loads(self.most_voted_payload)
 
-            # TODO: REMOVE, TESTING ONLY
-            analysis = {
-                "deploy": True,
-                "persona": "",
-                "token_name": "Supreme Meowjesty",
-                "token_ticker": "$MEOW",
-                "tweet": "The people have spoken! 😹👑 Get ready to unleash your inner feline overlord with $MEOW, the new meme token for all cat lovers and aspiring Supreme Meowjesty candidates! 🚀  #catlife #felineoverlords #crypto",
-            }
-
             # Update persona
             if not analysis["deploy"]:
                 self.context.logger.info(f"Updated persona: {analysis['persona']}")

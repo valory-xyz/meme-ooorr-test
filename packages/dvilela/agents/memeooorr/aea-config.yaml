@@ -2,7 +2,7 @@ agent_name: memeooorr
 author: dvilela
 version: 0.1.0
 license: Apache-2.0
-description: An agent that fact-checks misleading information online.
+description: An agent that deploys memecoins.
 aea_version: '>=1.19.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeid4555nbqrben3bbz62jsycrtssy5mqso4w23q7bjorln3qur7baq
@@ -40,8 +40,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/registration_abci:0.1.0:bafybeicnth5q4httefsusywx3zrrq4al47owvge72dqf2fziruicq6hqta
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
-- dvilela/memeooorr_abci:0.1.0:bafybeibtriy56ucoio4dpkwsunqz5hqdiaqxh2si26mhokl53ycjgeh5nq
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeigwtrobjnv3skcqhijbe5zqdkximpstgsahjypsloyk5t77bar33q
+- dvilela/memeooorr_abci:0.1.0:bafybeibjbpu56bf6dcqdapzqgby3smbmin5y3l6pdfcqpw6qrdrztuq5l4
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeigub2rjwfdemlhommmryd5mqgobbaviehn6uqbmvi4g36xsru624i
 default_ledger: ethereum
 required_ledgers:
 - ethereum

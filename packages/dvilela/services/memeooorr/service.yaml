@@ -1,13 +1,13 @@
 name: memeooorr
 author: dvilela
 version: 0.1.0
-description: A service that fact-checks misleading information online.
+description: A service that deploys memecoins.
 aea_version: '>=1.0.0, <2.0.0'
 license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeiauit5tez4457wowxgetry3ylpug3wvm63yddviv3rv75vvlmohou
+agent: dvilela/memeooorr:0.1.0:bafybeidxk7huapgpnyg4bk4tydfx3dpov7kmkfbvvdn2aabr2ba75unbci
 number_of_agents: 1
 deployment:
   agent:

@@ -213,20 +213,6 @@ class CollectFeedbackBehaviour(
         query = f"conversation_id:{latest_tweet['tweet_id']}"
         feedback = yield from self._call_twikit(method="search", query=query, count=100)
 
-        # REMOVE, FOR TESTING ONLY
-        feedback = [
-            {
-                "id": "1849853239392600458",
-                "user_name": "",
-                "text": "This is absolutely amazing! I love it!",
-                "created_at": "1",
-                "view_count": 2000,
-                "retweet_count": 1000,
-                "quote_count": 1000,
-                "view_count_state": "",
-            }
-        ] * 10
-
         if feedback is None:
             self.context.logger.error(
                 "Could not retrieve any replies due to an API error"
