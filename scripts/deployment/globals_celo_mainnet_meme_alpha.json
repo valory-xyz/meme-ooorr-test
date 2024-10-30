@@ -15,7 +15,7 @@
   "serviceManagerTokenAddress":"0x34C895f302D0b5cf52ec0Edd3945321EB0f83dd5",
   "stakingTokenAddress":"0xe1E1B286EbE95b39F785d8069f2248ae9C41b7a9",
   "stakingFactoryAddress":"0x1c2cD884127b080F940b7546c1e9aaf525b1FA55",
-  "memeFactoryAddress":"",
+  "memeFactoryAddress":"0x42156841253f428cB644Ea1230d4FdDFb70F8891",
   "livenessRatio":"34722222222222",
   "memeActivityCheckerAddress":"",
   "stakingParams":
