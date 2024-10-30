@@ -63,37 +63,41 @@ interface IUniswap {
 }
 
 /// @title MemeBase - a smart contract factory for Meme Token creation on Base.
-abstract contract MemeBase is MemeFactory {
+contract MemeBase is MemeFactory {
     // Slippage parameter (3%)
     uint256 public constant SLIPPAGE = 97;
+    // Token transfer gas limit for L1
+    // This is safe as the value is practically bigger than observed ones on numerous chains
+    uint32 public constant TOKEN_GAS_LIMIT = 300_000;
 
-    // Balancer Pool Id
-    bytes32 public immutable balancerPoolId;
+    // WETH token address
+    address public immutable weth;
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
     // Oracle address
     address public immutable oracle;
-    // Token transfer gas limit for L1
-    // This is safe as the value is practically bigger than observed ones on numerous chains
-    uint32 public constant TOKEN_GAS_LIMIT = 300_000;
-    // WETH token address
-    address public immutable weth;
+    // Balancer Vault address
+    address public immutable balancerVault;
+    // Balancer Pool Id
+    bytes32 public immutable balancerPoolId;
 
     /// @dev MemeBase constructor
     constructor(
         address _olas,
         address _usdc,
-        address _weth,
         address _router,
         address _factory,
-        address _balancerVault,
+        uint256 _minNativeTokenValue,
+        address _weth,
         address _l2TokenRelayer,
         address _oracle,
+        address _balancerVault,
         bytes32 _balancerPoolId
-    ) MemeFactory(_olas, _usdc, _router, _factory, _balancerVault) {
+    ) MemeFactory(_olas, _usdc, _router, _factory, _minNativeTokenValue) {
         weth = _weth;
         l2TokenRelayer = _l2TokenRelayer;
         oracle = _oracle;
+        balancerVault = _balancerVault;
         balancerPoolId = _balancerPoolId;
     }
 
@@ -109,7 +113,7 @@ abstract contract MemeBase is MemeFactory {
         (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
         require(answerPrice > 0, "Oracle price is incorrect");
 
-        // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100
+        // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100 to account for slippage
         // ETH: 18 decimals, USDC leftovers: 2 decimals, percentage: 2 decimals; denominator = 18 + 2 + 2 = 22
         uint256 limit = uint256(answerPrice) * nativeTokenAmount * SLIPPAGE / 1e22;
         // Swap ETH for USDC
@@ -143,12 +147,12 @@ abstract contract MemeBase is MemeFactory {
     }
 
     /// @dev Bridges OLAS amount back to L1 and burns.
-    /// @param OLASAmount OLAS amount.
+    /// @param olasAmount OLAS amount.
     /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
     /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(uint256 OLASAmount, uint256 tokenGasLimit, bytes memory) internal override returns (uint256) {
+    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory) internal override returns (uint256) {
         // Approve bridge to use OLAS
-        IERC20(olas).approve(l2TokenRelayer, OLASAmount);
+        IERC20(olas).approve(l2TokenRelayer, olasAmount);
 
         // Check for sufficient minimum gas limit
         if (tokenGasLimit < TOKEN_GAS_LIMIT) {
@@ -156,12 +160,12 @@ abstract contract MemeBase is MemeFactory {
         }
 
         // Data for the mainnet validate the OLAS burn
-        bytes memory data = abi.encodeWithSignature("burn(uint256)", OLASAmount);
+        bytes memory data = abi.encodeWithSignature("burn(uint256)", olasAmount);
 
         // Bridge OLAS to mainnet to get burned
-        IBridge(l2TokenRelayer).withdrawTo(olas, OLAS_BURNER, OLASAmount, uint32(tokenGasLimit), data);
+        IBridge(l2TokenRelayer).withdrawTo(olas, OLAS_BURNER, olasAmount, uint32(tokenGasLimit), data);
 
-        emit OLASJourneyToAscendance(olas, OLASAmount);
+        emit OLASJourneyToAscendance(olas, olasAmount);
 
         return msg.value;
     }
