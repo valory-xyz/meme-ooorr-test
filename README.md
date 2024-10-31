@@ -31,46 +31,9 @@ The user will:
 - [x] have an autonomous AI agent that can participate in [Olas staking](olas.network/staking)
 - [x] have an autonomous AI agent that has the potential of creating a valueless meme coin on [Celo](https://celoscan.io/address/0xae2f766506f6bdf740cc348a90139ef317fa7faf) or [Base](https://basescan.org/address/0xae2f766506f6bdf740cc348a90139ef317fa7faf)
 
-## System requirements
-
-- Python `>=3.10`
-- [Tendermint](https://docs.tendermint.com/v0.34/introduction/install.html) `==0.34.19`
-- [IPFS node](https://docs.ipfs.io/install/command-line/#official-distributions) `==0.6.0`
-- [Pip](https://pip.pypa.io/en/stable/installation/)
-- [Poetry](https://python-poetry.org/)
-- [Docker Engine](https://docs.docker.com/engine/install/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
-- [Set Docker permissions so you can run containers as non-root user](https://docs.docker.com/engine/install/linux-postinstall/)
-
 ## Run you own agent
 
-### Get the code
-
-1. Clone this repo:
-
-    ```
-    git clone git@github.com:dvilelaf/meme-ooorr.git
-    ```
-
-2. Create the virtual environment:
-
-    ```
-    cd meme-ooorr
-    poetry shell
-    poetry install
-    ```
-
-3. Sync packages:
-
-    ```
-    autonomy packages sync --update-packages
-    ```
-
-### Run your agent:
-
-    ```
-    TBD
-    ```
+Go [here](https://github.com/dvilelaf/meme-ooorr-quickstart).
 
 ## Agent Development
 
