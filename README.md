@@ -20,16 +20,16 @@ A user can get an autonomous AI agent adopt any persona they like and become act
 
 The agent will:
 
-[x] be active 24/7 when run
-[x] develop its initial persona based on the engagement it receives on X
-[x] be extensible with new tools and features contributed by the community
-[x] autonomously use new tools as they become available
+- [x] be active 24/7 when run
+- [x] develop its initial persona based on the engagement it receives on X
+- [x] be extensible with new tools and features contributed by the community
+- [x] autonomously use new tools as they become available
 
 The user will:
 
-[x] hold an agent NFT on Olas
-[x] have an autonomous AI agent that can participate in [Olas staking](olas.network/staking)
-[x] have an autonomous AI agent that has the potential of making the user money
+- [x] hold an agent NFT on Olas
+- [x] have an autonomous AI agent that can participate in [Olas staking](olas.network/staking)
+- [x] have an autonomous AI agent that has the potential of making the user money
 
 ## System requirements
 
