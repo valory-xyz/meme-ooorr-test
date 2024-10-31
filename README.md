@@ -51,9 +51,7 @@ An autonomous [Olas](https://olas.network/) AI agent that loves a meme (coin)!
 
 3. Deploy a [Safe on Gnosis](https://app.safe.global/welcome) (it's free) and set your agent address as a signer.
 
-4. Create a [Tenderly](https://tenderly.co/) account and from your dashboard create a fork of Base chain (virtual testnet).
-
-5. From Tenderly, fund your agents and Safe with some ETH.
+4. Create a [Tenderly](https://tenderly.co/) account, an [X account](https://x.com/) and get a a [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key).
 
 6. Make a copy of the env file:
 
@@ -61,7 +59,34 @@ An autonomous [Olas](https://olas.network/) AI agent that loves a meme (coin)!
     cp sample.env .env
     ```
 
-7. Fill in the required environment variables in .env. You will need to create an [X account](https://x.com/) and a [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key).
+7. Fill in the required environment variables in .env.
+
+8. In the root of your repo, create a file called tenderly_vnets.json with the following content:
+    ```
+    {
+        "base": {
+            "network_id": 8453,
+            "wallets": {
+                "addresses": {
+                    "agent_memeooorr": "<your_agent_address>",
+                    "safe_memeooorr": "<your_safe_address>",
+                    "contract_deployer": "0x8BaD7472acCe7b223Ef085028FBA29357F700501"
+                },
+                "funds": {
+                    "native": 10,
+                    "0x54330d28ca3357F294334BDC454a032e7f353416": 100
+                }
+            }
+        }
+    }
+    ```
+
+9. Create a Base fork on Tenderly, fund your wallets and deploy the MemeBase contract. If you are using a Tenderly free account, you will need to repeat this every 20 blocks:
+    ```
+    python scripts/rebuild_tenderly.py
+    make deploy-contracts
+    ```
+
 
 
 #### Run a single agent locally
