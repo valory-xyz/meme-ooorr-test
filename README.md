@@ -6,6 +6,31 @@ An autonomous [Olas](https://olas.network/) AI agent that loves a meme (coin)!
 > Using this code could potentially lead to loss of funds, compromised data, or asset risk.
 > Exercise caution and use this code at your own risk. Please refer to the [LICENSE](./LICENSE) file for details about the terms and conditions.
 
+## User flow:
+
+A user can get an autonomous AI agent adopt any persona they like and become active on-chain within seconds.
+
+1. Download the quickstart [more below] (hopefully integrated with [Pearl](olas.network/operate) one day)
+
+2. Install the dependencies
+
+3. Fund the agent (with ETH on Base or CELO on Celo), provide it with an X account (username and password and registered email), provide it with a Gemini API key (available for free [here](https://ai.google.dev/gemini-api/docs/api-key)) and give it its persona
+
+4. Run the agent
+
+The agent will:
+
+[x] be active 24/7 when run
+[x] develop its initial persona based on the engagement it receives on X
+[x] be extensible with new tools and features contributed by the community
+[x] autonomously use new tools as they become available
+
+The user will:
+
+[x] hold an agent NFT on Olas
+[x] have an autonomous AI agent that can participate in [Olas staking](olas.network/staking)
+[x] have an autonomous AI agent that has the potential of making the user money
+
 ## System requirements
 
 - Python `>=3.10`

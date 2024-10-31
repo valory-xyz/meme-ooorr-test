@@ -17,6 +17,73 @@
 
 ## Run you own agent
 
+#### Prepare the data
+
+1. Prepare a keys.json file containing wallet address and the private key for the agent.
+
+    ```
+    autonomy generate-key ethereum -n 1
+    ```
+
+2. Prepare a `ethereum_private_key.txt` file containing the same private key from `keys.json`. Ensure that there is no newline at the end.
+
+3. Deploy a [Safe on Gnosis](https://app.safe.global/welcome) (it's free) and set your agent address as a signer.
+
+4. Create a [Tenderly](https://tenderly.co/) account, an [X account](https://x.com/) and get a a [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key).
+
+6. Make a copy of the env file:
+
+    ```
+    cp sample.env .env
+    ```
+
+7. Fill in the required environment variables in .env.
+
+8. In the root of your repo, create a file called tenderly_vnets.json with the following content:
+    ```
+    {
+        "base": {
+            "network_id": 8453,
+            "wallets": {
+                "addresses": {
+                    "agent_memeooorr": "<your_agent_address>",
+                    "safe_memeooorr": "<your_safe_address>",
+                    "contract_deployer": "0x8BaD7472acCe7b223Ef085028FBA29357F700501"
+                },
+                "funds": {
+                    "native": 10,
+                    "0x54330d28ca3357F294334BDC454a032e7f353416": 100
+                }
+            }
+        }
+    }
+    ```
+
+9. Create a Base fork on Tenderly, fund your wallets and deploy the MemeBase contract. If you are using a Tenderly free account, you will need to repeat this every 20 blocks:
+    ```
+    python scripts/rebuild_tenderly.py
+    make deploy-contracts
+    ```
+
+
+
+#### Run a single agent locally
+
+```
+bash run_agent.sh
+```
+
+#### Run the service (4 agents) via Docker Compose deployment
+
+1. Check that Docker is running:
+
+    ```
+    docker
+    ```
+
+2. Run the service:
+
+
 ### Get the code
 
 1. Clone this repo:
