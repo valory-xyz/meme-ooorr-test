@@ -1,9 +1,37 @@
 # Meme-ooorr
 An autonomous [Olas](https://olas.network/) AI agent that loves a meme (coin)!
 
-## Agent Development
+> :warning: **Warning** <br />
+> The code within this repository is provided without any warranties. It is important to note that the code has not been audited for potential security vulnerabilities.
+> Using this code could potentially lead to loss of funds, compromised data, or asset risk.
+> Exercise caution and use this code at your own risk. Please refer to the [LICENSE](./LICENSE) file for details about the terms and conditions.
 
-### System requirements
+## User flow:
+
+A user can get an autonomous AI agent adopt any persona they like and become active on-chain within seconds.
+
+1. Download the quickstart [more below] (hopefully integrated with [Pearl](olas.network/operate) one day)
+
+2. Install the dependencies
+
+3. Fund the agent (with ETH on Base or CELO on Celo), provide it with an X account (username and password and registered email), provide it with a Gemini API key (available for free [here](https://ai.google.dev/gemini-api/docs/api-key)) and give it its persona
+
+4. Run the agent
+
+The agent will:
+
+[x] be active 24/7 when run
+[x] develop its initial persona based on the engagement it receives on X
+[x] be extensible with new tools and features contributed by the community
+[x] autonomously use new tools as they become available
+
+The user will:
+
+[x] hold an agent NFT on Olas
+[x] have an autonomous AI agent that can participate in [Olas staking](olas.network/staking)
+[x] have an autonomous AI agent that has the potential of making the user money
+
+## System requirements
 
 - Python `>=3.10`
 - [Tendermint](https://docs.tendermint.com/v0.34/introduction/install.html) `==0.34.19`
@@ -14,10 +42,9 @@ An autonomous [Olas](https://olas.network/) AI agent that loves a meme (coin)!
 - [Docker Compose](https://docs.docker.com/compose/install/)
 - [Set Docker permissions so you can run containers as non-root user](https://docs.docker.com/engine/install/linux-postinstall/)
 
+## Run you own agent
 
-### Run you own agent
-
-#### Get the code
+### Get the code
 
 1. Clone this repo:
 
@@ -39,117 +66,16 @@ An autonomous [Olas](https://olas.network/) AI agent that loves a meme (coin)!
     autonomy packages sync --update-packages
     ```
 
-#### Prepare the data
-
-1. Prepare a keys.json file containing wallet address and the private key for the agent.
+### Run your agent:
 
     ```
-    autonomy generate-key ethereum -n 1
+    TBD
     ```
 
-2. Prepare a `ethereum_private_key.txt` file containing the same private key from `keys.json`. Ensure that there is no newline at the end.
+## Agent Development
 
-3. Deploy a [Safe on Gnosis](https://app.safe.global/welcome) (it's free) and set your agent address as a signer.
-
-4. Create a [Tenderly](https://tenderly.co/) account, an [X account](https://x.com/) and get a a [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key).
-
-6. Make a copy of the env file:
-
-    ```
-    cp sample.env .env
-    ```
-
-7. Fill in the required environment variables in .env.
-
-8. In the root of your repo, create a file called tenderly_vnets.json with the following content:
-    ```
-    {
-        "base": {
-            "network_id": 8453,
-            "wallets": {
-                "addresses": {
-                    "agent_memeooorr": "<your_agent_address>",
-                    "safe_memeooorr": "<your_safe_address>",
-                    "contract_deployer": "0x8BaD7472acCe7b223Ef085028FBA29357F700501"
-                },
-                "funds": {
-                    "native": 10,
-                    "0x54330d28ca3357F294334BDC454a032e7f353416": 100
-                }
-            }
-        }
-    }
-    ```
-
-9. Create a Base fork on Tenderly, fund your wallets and deploy the MemeBase contract. If you are using a Tenderly free account, you will need to repeat this every 20 blocks:
-    ```
-    python scripts/rebuild_tenderly.py
-    make deploy-contracts
-    ```
-
-
-
-#### Run a single agent locally
-
-```
-bash run_agent.sh
-```
-
-#### Run the service (4 agents) via Docker Compose deployment
-
-1. Check that Docker is running:
-
-    ```
-    docker
-    ```
-
-2. Run the service:
-
-    ```
-    bash run_service.sh
-    ```
-
-3. Look at the service logs for one of the agents (on another terminal):
-
-    ```
-    docker logs -f memeooorr_abci_0
-    ```
-
+See [here](docs/agents.md).
 
 ## Contract Development
 
-### Prerequisites
-- This repository follows the standard [`Hardhat`](https://hardhat.org/tutorial/) development process.
-- The code is written on Solidity starting from version `0.8.28`.
-- The standard versions of Node.js along with Yarn are required to proceed further (confirmed to work with Yarn `1.22.19`, npx/npm `10.9.0` and node `v20.14.0`).
-
-### Install the dependencies
-The project has submodules to get the dependencies. Make sure you run `git clone --recursive` or init the submodules yourself.
-The dependency list is managed by the `package.json` file, and the setup parameters are stored in the `hardhat.config.js` file.
-Simply run the following command to install the project:
-```
-yarn install
-```
-
-### Core components
-The contracts, packages, scripts and tests are located in the following folders respectively:
-```
-contracts
-packages
-scripts
-test
-```
-
-### Compile the code and run
-Compile the code:
-```
-npx hardhat compile
-```
-Run the tests:
-```
-npx hardhat test
-```
-
-## Acknowledgements
-The registries contracts were inspired and based on the following sources:
-- [Rari-Capital](https://github.com/Rari-Capital/solmate). Last known audited version: `eaa7041378f9a6c12f943de08a6c41b31a9870fc`;
+See [here](docs/contracts.md).
