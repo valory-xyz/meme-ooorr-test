@@ -29,7 +29,7 @@ The user will:
 
 - [x] hold an agent NFT on Olas
 - [x] have an autonomous AI agent that can participate in [Olas staking](olas.network/staking)
-- [x] have an autonomous AI agent that has the potential of making the user money
+- [x] have an autonomous AI agent that has the potential of creating a valueless meme coin on [Celo](https://celoscan.io/address/0xae2f766506f6bdf740cc348a90139ef317fa7faf) or [Base](https://basescan.org/address/0xae2f766506f6bdf740cc348a90139ef317fa7faf)
 
 ## System requirements
 
