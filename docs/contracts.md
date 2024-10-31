@@ -1,3 +1,6 @@
+> :warning: **Warning** <br />
+> All commands are assumed to be run from root!
+
 # Contract Development
 
 ## Prerequisites
