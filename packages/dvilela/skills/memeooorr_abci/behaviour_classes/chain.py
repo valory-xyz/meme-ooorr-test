@@ -20,6 +20,7 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
+from abc import ABC
 from copy import copy
 from datetime import datetime
 from typing import Generator, List, Optional, Tuple, Type, cast
@@ -61,7 +62,7 @@ SUMMON_BLOCK_DELTA = 10000
 AVAILABLE_ACTIONS = ["hearth", "unleash", "collect", "purge", "burn"]
 
 
-class ChainBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-ancestors
+class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-ancestors
     """ChainBehaviour"""
 
     def _build_safe_tx_hash(
