@@ -196,7 +196,7 @@ class MemeFactoryContract(Contract):
         }
 
     @classmethod
-    def get_events(
+    def get_events(  # pylint: disable=too-many-arguments
         cls,
         ledger_api: EthereumApi,
         contract_address: str,

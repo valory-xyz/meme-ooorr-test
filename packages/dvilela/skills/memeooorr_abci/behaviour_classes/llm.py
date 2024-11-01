@@ -26,9 +26,6 @@ from typing import Dict, Generator, Optional, Tuple, Type
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
-    AVAILABLE_ACTIONS,
-)
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     is_tweet_valid,
 )
@@ -150,13 +147,14 @@ class ActionDecisionBehaviour(
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            event, token_address, action = yield from self.get_event()
+            event, token_address, action, tweet = yield from self.get_event()
 
             payload = ActionDecisionPayload(
                 sender=self.context.agent_address,
                 event=event,
                 token_address=token_address,
                 action=action,
+                tweet=tweet,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -165,9 +163,9 @@ class ActionDecisionBehaviour(
 
         self.set_done()
 
-    def get_event(
+    def get_event(  # pylint: disable=too-many-return-statements
         self,
-    ) -> Generator[None, None, Tuple[str, Optional[str], Optional[str]]]:
+    ) -> Generator[None, None, Tuple[str, Optional[str], Optional[str], Optional[str]]]:
         """Get the next event"""
 
         meme_coins = "\n".join(
@@ -189,23 +187,24 @@ class ActionDecisionBehaviour(
         # We didnt get a response
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
-            return Event.WAIT.value, None, None
+            return Event.WAIT.value, None, None, None
 
         try:
-            response = llm_response.replace("\n", "").strip()
-            match = re.match(JSON_RESPONSE_REGEX, response)
+            llm_response = llm_response.replace("\n", "").strip()
+            match = re.match(JSON_RESPONSE_REGEX, llm_response)
             if match:
-                response = match.groups()[0]
+                llm_response = match.groups()[0]
             response = json.loads(llm_response)
 
             action = response.get("action", "none")
             token_address = response.get("token_address", None)
+            tweet = response.get("tweet", None)
 
             if action == "none":
-                return Event.WAIT.value, None, None
+                return Event.WAIT.value, None, None, None
 
             if token_address not in valid_addreses:
-                return Event.WAIT.value, None, None
+                return Event.WAIT.value, None, None, None
 
             available_actions = []
             for t in self.synchronized_data.meme_coins:
@@ -214,11 +213,14 @@ class ActionDecisionBehaviour(
                     break
 
             if action not in available_actions:
-                return Event.WAIT.value, None, None
+                return Event.WAIT.value, None, None, None
 
-            return Event.DONE.value, token_address, action
+            if not tweet:
+                return Event.WAIT.value, None, None, None
+
+            return Event.DONE.value, token_address, action, tweet
 
         # The response is not a valid json
         except json.JSONDecodeError as e:
             self.context.logger.error(f"Error loading the LLM response: {e}")
-            return Event.WAIT.value, None, None
+            return Event.WAIT.value, None, None, None

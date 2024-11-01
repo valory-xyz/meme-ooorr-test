@@ -41,6 +41,7 @@ from packages.valory.skills.abstract_round_abci.base import (
     AbciAppTransitionFunction,
     AppState,
     BaseSynchronizedData,
+    BaseTxPayload,
     CollectSameUntilThresholdRound,
     CollectionRound,
     DegenerateRound,
@@ -136,7 +137,7 @@ class SynchronizedData(BaseSynchronizedData):
         return cast(list, json.loads(cast(str, self.db.get("meme_coins", "[]"))))
 
     @property
-    def token_action(self) -> Optional[Dict]:
+    def token_action(self) -> Dict:
         """Get the token action."""
         return cast(dict, json.loads(cast(str, self.db.get("token_action", "{}"))))
 
@@ -324,12 +325,11 @@ class EventRoundBase(CollectSameUntilThresholdRound):
     """EventRoundBase"""
 
     synchronized_data_class = SynchronizedData
+    payload_class = BaseTxPayload  # will be overwritten
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            # This needs to be mentioned for static checkers
-            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.NO_FUNDS
             event = Event(self.most_voted_payload)
             return self.synchronized_data, event
 
@@ -343,7 +343,10 @@ class EventRoundBase(CollectSameUntilThresholdRound):
 class CheckFundsRound(EventRoundBase):
     """CheckFundsRound"""
 
-    payload_class = CheckFundsPayload
+    payload_class = CheckFundsPayload  # type: ignore
+
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.NO_FUNDS
 
 
 class DeploymentRound(CollectSameUntilThresholdRound):
@@ -410,11 +413,14 @@ class DeploymentRound(CollectSameUntilThresholdRound):
 class PostAnnouncementRound(CollectSameUntilThresholdRound):
     """PostAnnouncementRound"""
 
+    payload_class = PostTweetPayload
+    synchronized_data_class = SynchronizedData
+
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
 
         # This needs to be mentioned for static checkers
-        # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+        # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.WAIT
 
         if self.threshold_reached:
             latest_tweet = json.loads(self.most_voted_payload)
@@ -493,12 +499,15 @@ class PullMemesRound(CollectSameUntilThresholdRound):
 class ActionDecisionRound(CollectSameUntilThresholdRound):
     """ActionDecisionRound"""
 
+    payload_class = ActionDecisionPayload
+    synchronized_data_class = SynchronizedData
+
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
 
         if self.threshold_reached:
             # This needs to be mentioned for static checkers
-            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.WAIT
             payload = ActionDecisionPayload(
                 *(("dummy_sender",) + self.most_voted_payload_values)
             )
@@ -573,13 +582,21 @@ class ActionPreparationRound(CollectSameUntilThresholdRound):
 class ActionTweetRound(EventRoundBase):
     """ActionTweetRound"""
 
-    payload_class = ActionTweetPayload
+    payload_class = ActionTweetPayload  # type: ignore
+    synchronized_data_class = SynchronizedData
+
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR
 
 
 class TransactionMultiplexerRound(EventRoundBase):
     """ActionTweetRound"""
 
-    payload_class = TransactionMultiplexerPayload
+    payload_class = TransactionMultiplexerPayload  # type: ignore
+    synchronized_data_class = SynchronizedData
+
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.TO_DEPLOY, Event.TO_ACTION_TWEET
 
 
 class FinishedToResetRound(DegenerateRound):
@@ -660,7 +677,9 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: ActionDecisionRound,
         },
         ActionPreparationRound: {
-            Event.DONE: ActionTweetRound,
+            Event.DONE: ActionTweetRound,  # This will never happen
+            Event.ERROR: FinishedToResetRound,
+            Event.SETTLE: FinishedToSettlementRound,
             Event.NO_MAJORITY: ActionPreparationRound,
             Event.ROUND_TIMEOUT: ActionPreparationRound,
         },

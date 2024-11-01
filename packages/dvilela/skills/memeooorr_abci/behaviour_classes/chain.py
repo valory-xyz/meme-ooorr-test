@@ -337,7 +337,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
     """PullMemesBehaviour"""
 
-    matching_round: Type[AbstractRound] = DeploymentRound
+    matching_round: Type[AbstractRound] = PullMemesRound
 
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""
