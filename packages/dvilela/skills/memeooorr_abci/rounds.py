@@ -24,12 +24,17 @@ from enum import Enum
 from typing import Dict, FrozenSet, List, Optional, Set, Tuple, cast
 
 from packages.dvilela.skills.memeooorr_abci.payloads import (
+    ActionDecisionPayload,
+    ActionPreparationPayload,
+    ActionTweetPayload,
     AnalizeFeedbackPayload,
     CheckFundsPayload,
     CollectFeedbackPayload,
     DeploymentPayload,
     LoadDatabasePayload,
     PostTweetPayload,
+    PullMemesPayload,
+    TransactionMultiplexerPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -52,11 +57,14 @@ class Event(Enum):
     NO_FUNDS = "no_funds"
     SETTLE = "settle"
     REFINE = "refine"
-    API_ERROR = "api_error"
+    ERROR = "ERROR"
     NO_MAJORITY = "no_majority"
     ROUND_TIMEOUT = "round_timeout"
     NOT_ENOUGH_FEEDBACK = "not_enough_feedback"
     WAIT = "wait"
+    NO_MEMES = "no_memes"
+    TO_DEPLOY = "to_deploy"
+    TO_ACTION_TWEET = "to_action_tweet"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -117,6 +125,16 @@ class SynchronizedData(BaseSynchronizedData):
         """Get the verified tx hash."""
         return cast(str, self.db.get_strict("final_tx_hash"))
 
+    @property
+    def participants_to_memes(self) -> DeserializedCollection:
+        """Get the participants_to_memes."""
+        return self._get_deserialized("participants_to_memes")
+
+    @property
+    def meme_coins(self) -> List[Dict]:
+        """Get the meme_coins."""
+        return cast(list, json.loads(cast(str, self.db.get("meme_coins", "[]"))))
+
 
 class LoadDatabaseRound(CollectSameUntilThresholdRound):
     """LoadDatabaseRound"""
@@ -173,7 +191,7 @@ class PostTweetRound(CollectSameUntilThresholdRound):
 
             # API errors
             if latest_tweet is None:
-                return self.synchronized_data, Event.API_ERROR
+                return self.synchronized_data, Event.ERROR
 
             feedback = cast(SynchronizedData, self.synchronized_data).feedback
 
@@ -220,7 +238,7 @@ class CollectFeedbackRound(CollectSameUntilThresholdRound):
 
             # API error
             if feedback is None:
-                return self.synchronized_data, Event.API_ERROR
+                return self.synchronized_data, Event.ERROR
 
             # Not enough replies
             if len(feedback) < self.context.params.min_feedback_replies:
@@ -257,7 +275,7 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
 
             # Errors
             if not self.most_voted_payload:
-                return self.synchronized_data, Event.API_ERROR
+                return self.synchronized_data, Event.ERROR
 
             analysis = json.loads(self.most_voted_payload)
 
@@ -297,10 +315,9 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
         return None
 
 
-class CheckFundsRound(CollectSameUntilThresholdRound):
-    """CheckFundsRound"""
+class EventRoundBase(CollectSameUntilThresholdRound):
+    """EventRoundBase"""
 
-    payload_class = CheckFundsPayload
     synchronized_data_class = SynchronizedData
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
@@ -316,6 +333,12 @@ class CheckFundsRound(CollectSameUntilThresholdRound):
         ):
             return self.synchronized_data, Event.NO_MAJORITY
         return None
+
+
+class CheckFundsRound(EventRoundBase):
+    """CheckFundsRound"""
+
+    payload_class = CheckFundsPayload
 
 
 class DeploymentRound(CollectSameUntilThresholdRound):
@@ -360,7 +383,7 @@ class DeploymentRound(CollectSameUntilThresholdRound):
 
             # Error preparing the deployment transaction
             if payload.tx_flag is None:
-                return self.synchronized_data, Event.API_ERROR
+                return self.synchronized_data, Event.ERROR
 
             # The deployment tx has been prepared
             synchronized_data = self.synchronized_data.update(
@@ -379,7 +402,7 @@ class DeploymentRound(CollectSameUntilThresholdRound):
         return None
 
 
-class PostAnnouncementRound(PostTweetRound):
+class PostAnnouncementRound(CollectSameUntilThresholdRound):
     """PostAnnouncementRound"""
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
@@ -393,7 +416,7 @@ class PostAnnouncementRound(PostTweetRound):
 
             # API errors
             if latest_tweet is None:
-                return self.synchronized_data, Event.API_ERROR
+                return self.synchronized_data, Event.ERROR
 
             # Reset everything
             synchronized_data = self.synchronized_data.update(
@@ -418,6 +441,104 @@ class PostAnnouncementRound(PostTweetRound):
         return None
 
 
+class PullMemesRound(CollectSameUntilThresholdRound):
+    """PullMemesRound"""
+
+    payload_class = PullMemesPayload
+    synchronized_data_class = SynchronizedData
+
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
+        """Process the end of the block."""
+
+        # This needs to be mentioned for static checkers
+        # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
+        if self.threshold_reached:
+            # Error pulling memes
+            if self.most_voted_payload is None:
+                return self.synchronized_data, Event.ERROR
+
+            meme_coins = json.loads(self.most_voted_payload)
+
+            # No memes pulled
+            if not meme_coins:
+                return self.synchronized_data, Event.NO_MEMES
+
+            # Pulled some memes
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(SynchronizedData.meme_coins): json.dumps(
+                        meme_coins, sort_keys=True
+                    ),
+                },
+            )
+            return synchronized_data, Event.DONE
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+
+        return None
+
+    # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
+
+
+class ActionDecisionRound(EventRoundBase):
+    """ActionDecisionRound"""
+
+    payload_class = ActionDecisionPayload
+
+
+class ActionPreparationRound(CollectSameUntilThresholdRound):
+    """ActionPreparationRound"""
+
+    payload_class = ActionPreparationPayload
+    synchronized_data_class = SynchronizedData
+
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
+        """Process the end of the block."""
+        if self.threshold_reached:
+            # This needs to be mentioned for static checkers
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+            payload = ActionPreparationPayload(
+                *(("dummy_sender",) + self.most_voted_payload_values)
+            )
+
+            # Error preparing the transaction
+            if payload.tx_hash is None:
+                return self.synchronized_data, Event.ERROR
+
+            # The deployment tx has been prepared
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(SynchronizedData.most_voted_tx_hash): payload.tx_hash,
+                    get_name(SynchronizedData.tx_flag): payload.tx_flag,
+                },
+            )
+            return synchronized_data, Event.SETTLE
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+        return None
+
+
+class ActionTweetRound(EventRoundBase):
+    """ActionTweetRound"""
+
+    payload_class = ActionTweetPayload
+
+
+class TransactionMultiplexerRound(EventRoundBase):
+    """ActionTweetRound"""
+
+    payload_class = TransactionMultiplexerPayload
+
+
 class FinishedToResetRound(DegenerateRound):
     """FinishedToResetRound"""
 
@@ -430,7 +551,11 @@ class MemeooorrAbciApp(AbciApp[Event]):
     """MemeooorrAbciApp"""
 
     initial_round_cls: AppState = LoadDatabaseRound
-    initial_states: Set[AppState] = {LoadDatabaseRound, PostTweetRound, DeploymentRound}
+    initial_states: Set[AppState] = {
+        LoadDatabaseRound,
+        PostTweetRound,
+        TransactionMultiplexerRound,
+    }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
             Event.DONE: PostTweetRound,
@@ -439,22 +564,22 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         PostTweetRound: {
             Event.DONE: CollectFeedbackRound,
-            Event.API_ERROR: PostTweetRound,
-            Event.WAIT: FinishedToResetRound,
+            Event.ERROR: PostTweetRound,
+            Event.WAIT: PullMemesRound,
             Event.NO_MAJORITY: PostTweetRound,
             Event.ROUND_TIMEOUT: PostTweetRound,
         },
         CollectFeedbackRound: {
             Event.DONE: AnalizeFeedbackRound,
-            Event.API_ERROR: CollectFeedbackRound,
-            Event.NOT_ENOUGH_FEEDBACK: FinishedToResetRound,
+            Event.ERROR: CollectFeedbackRound,
+            Event.NOT_ENOUGH_FEEDBACK: PullMemesRound,
             Event.NO_MAJORITY: CollectFeedbackRound,
             Event.ROUND_TIMEOUT: CollectFeedbackRound,
         },
         AnalizeFeedbackRound: {
             Event.DONE: CheckFundsRound,
-            Event.REFINE: FinishedToResetRound,
-            Event.API_ERROR: AnalizeFeedbackRound,
+            Event.REFINE: PullMemesRound,
+            Event.ERROR: AnalizeFeedbackRound,
             Event.NO_MAJORITY: AnalizeFeedbackRound,
             Event.ROUND_TIMEOUT: AnalizeFeedbackRound,
         },
@@ -467,16 +592,46 @@ class MemeooorrAbciApp(AbciApp[Event]):
         DeploymentRound: {
             Event.DONE: PostAnnouncementRound,
             Event.SETTLE: FinishedToSettlementRound,
-            Event.API_ERROR: DeploymentRound,
+            Event.ERROR: DeploymentRound,
             Event.NO_MAJORITY: DeploymentRound,
             Event.ROUND_TIMEOUT: DeploymentRound,
         },
         PostAnnouncementRound: {
-            Event.DONE: FinishedToResetRound,
-            Event.API_ERROR: PostAnnouncementRound,
+            Event.DONE: PullMemesRound,
+            Event.ERROR: PostAnnouncementRound,
             Event.NO_MAJORITY: PostAnnouncementRound,
             Event.ROUND_TIMEOUT: PostAnnouncementRound,
             Event.WAIT: PostAnnouncementRound,  # This will never happen. Just for static analysys.
+        },
+        PullMemesRound: {
+            Event.DONE: ActionDecisionRound,
+            Event.ERROR: PullMemesRound,
+            Event.NO_MEMES: FinishedToResetRound,
+            Event.NO_MAJORITY: PullMemesRound,
+            Event.ROUND_TIMEOUT: PullMemesRound,
+        },
+        ActionDecisionRound: {
+            Event.DONE: ActionPreparationRound,
+            Event.WAIT: FinishedToResetRound,
+            Event.NO_MAJORITY: ActionDecisionRound,
+            Event.ROUND_TIMEOUT: ActionDecisionRound,
+        },
+        ActionPreparationRound: {
+            Event.DONE: ActionTweetRound,
+            Event.NO_MAJORITY: ActionPreparationRound,
+            Event.ROUND_TIMEOUT: ActionPreparationRound,
+        },
+        ActionTweetRound: {
+            Event.DONE: FinishedToResetRound,
+            Event.NO_MAJORITY: ActionTweetRound,
+            Event.ROUND_TIMEOUT: ActionTweetRound,
+        },
+        TransactionMultiplexerRound: {
+            Event.TO_DEPLOY: DeploymentRound,
+            Event.TO_ACTION_TWEET: ActionTweetRound,
+            Event.DONE: TransactionMultiplexerRound,  # This will never happen
+            Event.NO_MAJORITY: TransactionMultiplexerRound,
+            Event.ROUND_TIMEOUT: TransactionMultiplexerRound,
         },
         FinishedToResetRound: {},
         FinishedToSettlementRound: {},
@@ -487,7 +642,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
         PostTweetRound: set(),
-        DeploymentRound: set(),
+        TransactionMultiplexerRound: set(),
     }
     db_post_conditions: Dict[AppState, Set[str]] = {
         FinishedToResetRound: set(),

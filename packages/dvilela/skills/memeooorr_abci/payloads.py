@@ -68,3 +68,39 @@ class DeploymentPayload(BaseTxPayload):
     tx_hash: Optional[str]
     tx_flag: Optional[str]
     token_address: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class PullMemesPayload(BaseTxPayload):
+    """Represent a transaction payload for the PullMemesRound."""
+
+    meme_coins: Optional[str]
+
+
+@dataclass(frozen=True)
+class ActionDecisionPayload(BaseTxPayload):
+    """Represent a transaction payload for the ActionDecisionRound."""
+
+    event: str
+
+
+@dataclass(frozen=True)
+class ActionPreparationPayload(BaseTxPayload):
+    """Represent a transaction payload for the ActionPreparationRound."""
+
+    tx_hash: Optional[str]
+    tx_flag: Optional[str]
+
+
+@dataclass(frozen=True)
+class ActionTweetPayload(BaseTxPayload):
+    """Represent a transaction payload for the ActionTweetRound."""
+
+    event: str
+
+
+@dataclass(frozen=True)
+class TransactionMultiplexerPayload(BaseTxPayload):
+    """Represent a transaction payload for the TransactionMultiplexerRound."""
+
+    event: str
