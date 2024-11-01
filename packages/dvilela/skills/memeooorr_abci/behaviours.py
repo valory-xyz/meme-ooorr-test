@@ -56,4 +56,9 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
         CheckFundsBehaviour,
         DeploymentBehaviour,
         PostAnnouncementBehaviour,
+        PullMemesBehaviour,
+        ActionDecisionBehaviour,
+        ActionPreparationBehaviour,
+        ActionTweetBehaviour,
+        TransactionMultiplexerBehaviour,
     ]

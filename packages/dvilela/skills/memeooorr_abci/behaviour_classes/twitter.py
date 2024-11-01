@@ -30,8 +30,11 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
+    ActionTweetPayload,
+    ActionTweetRound,
     CollectFeedbackPayload,
     CollectFeedbackRound,
+    Event,
     PostAnnouncementRound,
     PostTweetPayload,
     PostTweetRound,
@@ -240,3 +243,33 @@ class CollectFeedbackBehaviour(
         feedback = feedback[:10]
 
         return feedback
+
+
+class ActionTweetBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
+    """ActionTweetBehaviour"""
+
+    matching_round: Type[AbstractRound] = ActionTweetRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            event = yield from self.get_event()
+
+            payload = ActionTweetPayload(
+                sender=self.context.agent_address,
+                event=event,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+    def get_event(self) -> Generator[None, None, str]:
+        """Get the next event"""
+        pending_tweet = self.synchronized_data.pending_tweet
+        self.context.logger.info("Sending the action tweet...")
+        latest_tweet = yield from self.post_tweet(tweet=pending_tweet)
+        return Event.DONE.value if latest_tweet else Event.ERROR.value

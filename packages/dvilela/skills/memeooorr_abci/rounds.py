@@ -135,6 +135,11 @@ class SynchronizedData(BaseSynchronizedData):
         """Get the meme_coins."""
         return cast(list, json.loads(cast(str, self.db.get("meme_coins", "[]"))))
 
+    @property
+    def token_action(self) -> Optional[Dict]:
+        """Get the token action."""
+        return cast(dict, json.loads(cast(str, self.db.get("token_action", "{}"))))
+
 
 class LoadDatabaseRound(CollectSameUntilThresholdRound):
     """LoadDatabaseRound"""
@@ -485,10 +490,45 @@ class PullMemesRound(CollectSameUntilThresholdRound):
     # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
 
 
-class ActionDecisionRound(EventRoundBase):
+class ActionDecisionRound(CollectSameUntilThresholdRound):
     """ActionDecisionRound"""
 
-    payload_class = ActionDecisionPayload
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
+        """Process the end of the block."""
+
+        if self.threshold_reached:
+            # This needs to be mentioned for static checkers
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+            payload = ActionDecisionPayload(
+                *(("dummy_sender",) + self.most_voted_payload_values)
+            )
+            event = Event(payload.event)
+            synchronized_data = self.synchronized_data
+
+            if event == Event.DONE:
+                token_action = {
+                    "token_address": payload.token_address,
+                    "action": payload.action,
+                    "tweet": payload.tweet,
+                }
+
+                synchronized_data = synchronized_data.update(
+                    synchronized_data_class=SynchronizedData,
+                    **{
+                        get_name(SynchronizedData.token_action): json.dumps(
+                            token_action, sort_keys=True
+                        ),
+                    },
+                )
+
+            return synchronized_data, event
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+
+        return None
 
 
 class ActionPreparationRound(CollectSameUntilThresholdRound):
@@ -510,12 +550,15 @@ class ActionPreparationRound(CollectSameUntilThresholdRound):
             if payload.tx_hash is None:
                 return self.synchronized_data, Event.ERROR
 
-            # The deployment tx has been prepared
+            tweet = cast(SynchronizedData, self.synchronized_data).token_action["tweet"]
+
+            # The tx has been prepared
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
                     get_name(SynchronizedData.most_voted_tx_hash): payload.tx_hash,
                     get_name(SynchronizedData.tx_flag): payload.tx_flag,
+                    get_name(SynchronizedData.pending_tweet): tweet,  # schedule tweet
                 },
             )
             return synchronized_data, Event.SETTLE
@@ -623,13 +666,14 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         ActionTweetRound: {
             Event.DONE: FinishedToResetRound,
+            Event.ERROR: ActionTweetRound,
             Event.NO_MAJORITY: ActionTweetRound,
             Event.ROUND_TIMEOUT: ActionTweetRound,
         },
         TransactionMultiplexerRound: {
+            Event.DONE: TransactionMultiplexerRound,
             Event.TO_DEPLOY: DeploymentRound,
             Event.TO_ACTION_TWEET: ActionTweetRound,
-            Event.DONE: TransactionMultiplexerRound,  # This will never happen
             Event.NO_MAJORITY: TransactionMultiplexerRound,
             Event.ROUND_TIMEOUT: TransactionMultiplexerRound,
         },
