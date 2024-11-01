@@ -201,6 +201,9 @@ class PostTweetRound(CollectSameUntilThresholdRound):
 
             feedback = cast(SynchronizedData, self.synchronized_data).feedback
 
+            # TODO: remove. This is for testing
+            latest_tweet["wait"] = True
+
             # Wait
             if latest_tweet.get("wait", False):
                 return self.synchronized_data, Event.WAIT

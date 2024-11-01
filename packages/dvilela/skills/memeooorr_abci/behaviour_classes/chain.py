@@ -57,7 +57,7 @@ EMPTY_CALL_DATA = b"0x"
 SAFE_GAS = 0
 ZERO_VALUE = 0
 TWO_MINUTES = 120
-SUMMON_BLOCK_DELTA = 10000
+SUMMON_BLOCK_DELTA = 100000
 
 AVAILABLE_ACTIONS = ["hearth", "unleash", "collect", "purge", "burn"]
 
@@ -365,32 +365,40 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         if not current_block:
             return None
 
-        # Get the event from the latest 10k blocks
+        # Get the event from the latest 100k blocks
         from_block = current_block - SUMMON_BLOCK_DELTA
 
         # Use the contract api to interact with the factory contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-            contract_address=self.params.meme_factory_address,
-            contract_id=str(MemeFactoryContract.contract_id),
-            contract_callable="get_events",
-            from_block=from_block,
-            event_name="Summoned",
-            chain_id=BASE_CHAIN_ID,
-        )
+        # response_msg = yield from self.get_contract_api_response(
+        #     performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+        #     contract_address=self.params.meme_factory_address,
+        #     contract_id=str(MemeFactoryContract.contract_id),
+        #     contract_callable="get_events",
+        #     from_block=from_block,
+        #     event_name="Summoned",
+        #     chain_id=BASE_CHAIN_ID,
+        # )
 
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.STATE:
-            self.context.logger.error(
-                f"Could not get the memecoin events: {response_msg}"
-            )
-            return None
+        # # Check that the response is what we expect
+        # if response_msg.performative != ContractApiMessage.Performative.STATE:
+        #     self.context.logger.error(
+        #         f"Could not get the memecoin events: {response_msg}"
+        #     )
+        #     return None
 
-        events = cast(list, response_msg.state.body.get("events", None))
+        # events = cast(list, response_msg.state.body.get("events", None))
 
-        if events is None:
-            self.context.logger.error("Could not get the memecoin events")
-            return None
+        # if events is None:
+        #     self.context.logger.error("Could not get the memecoin events")
+        #     return None
+
+        events = [
+            {
+                "summoner": "0xc8fc73a58966614bf1df91cae1ce795dc8df13f2",
+                "token_address": "0x0f640d10642022251a7753b7af54cdb97b1f3ba0",
+                "eth_contributed": 10000000000000000,
+            }
+        ]
 
         self.context.logger.info(f"Got {len(events)} summon events")
 
@@ -438,7 +446,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             self.context.logger.error("Error while loading the database")
             hearthed_memes = []
         else:
-            hearthed_memes = db_data["hearthed_memes"]
+            hearthed_memes = db_data["hearthed_memes"] or []
 
         for event in events:
             meme_address = event["token_address"]
@@ -448,7 +456,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
                 performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
                 contract_address=self.params.meme_factory_address,
                 contract_id=str(MemeFactoryContract.contract_id),
-                contract_callable="summon_data",
+                contract_callable="get_summon_data",
                 meme_address=meme_address,
                 chain_id=BASE_CHAIN_ID,
             )
@@ -456,13 +464,15 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             # Check that the response is what we expect
             if response_msg.performative != ContractApiMessage.Performative.STATE:
                 self.context.logger.error(
-                    f"Could not get the memecoin dsummon ata: {response_msg}"
+                    f"Could not get the memecoin summon data: {response_msg}"
                 )
                 continue
 
             # Extract the data
             summon_time_ts = cast(int, response_msg.state.body.get("summon_time", 0))
             unleash_time_ts = cast(int, response_msg.state.body.get("unleash_time", 0))
+
+            self.context.logger.info(f"Token {meme_address} summon_time_ts={summon_time_ts} unleash_time_ts={unleash_time_ts}")
 
             # Get the times
             now = datetime.fromtimestamp(self.get_sync_timestamp())
@@ -491,6 +501,8 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             meme_coin = {"token_address": meme_address, "actions": available_actions}
 
             meme_coins.append(meme_coin)
+
+        self.context.logger.info(f"Analyzed meme coins: {meme_coins}")
 
         return meme_coins
 
@@ -537,7 +549,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             kwargs["meme_address"] = token_address
 
         self.context.logger.info(
-            f"Preparing the {action} transaction for token {token_address}"
+            f"Preparing the {action} transaction for token {token_address}. kwargs={kwargs}"
         )
 
         # Use the contract api to interact with the factory contract
@@ -553,7 +565,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         # Check that the response is what we expect
         if response_msg.performative != ContractApiMessage.Performative.RAW_TRANSACTION:
             self.context.logger.error(
-                f"Error while building the deployment tx: {response_msg}"
+                f"Error while building the {action} tx: {response_msg}"
             )
             return None, None
 
@@ -579,10 +591,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,
             data=bytes.fromhex(data_hex),
-            value=int(self.params.deployment_amount_eth * 1e18),
         )
-
-        self.context.logger.info(f"Tx hash is {safe_tx_hash}")
 
         # Optimistic design: we now store the hearthed token address
         # Ideally, this should be done after a succesful hearth transaction

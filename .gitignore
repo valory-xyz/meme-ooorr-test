@@ -23,7 +23,6 @@ memeooorr
 !packages/dvilela/services/memeooorr
 packages/__pycache__/
 packages/dvilela/connections/kv_store
-packages/dvilela/connections/twikit
 packages/dvilela/connections/genai
 packages/dvilela/protocols/kv_store
 __pycache__/

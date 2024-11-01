@@ -173,6 +173,8 @@ class ActionDecisionBehaviour(
             for c in self.synchronized_data.meme_coins
         )
 
+        self.context.logger.info(f"Action options:\n{meme_coins}")
+
         valid_addreses = [c["token_address"] for c in self.synchronized_data.meme_coins]
 
         prompt_data = {

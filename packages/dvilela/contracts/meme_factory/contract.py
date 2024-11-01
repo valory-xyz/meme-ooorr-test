@@ -71,7 +71,7 @@ class MemeFactoryContract(Contract):
         meme_address: str,
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
-
+        meme_address = web3.Web3.to_checksum_address(meme_address)
         contract_instance = cls.get_instance(ledger_api, contract_address)
         data = contract_instance.encodeABI(
             fn_name="heartThisMeme",
@@ -89,7 +89,7 @@ class MemeFactoryContract(Contract):
         meme_address: str,
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
-
+        meme_address = web3.Web3.to_checksum_address(meme_address)
         contract_instance = cls.get_instance(ledger_api, contract_address)
         data = contract_instance.encodeABI(
             fn_name="unleashThisMeme",
@@ -105,7 +105,7 @@ class MemeFactoryContract(Contract):
         meme_address: str,
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
-
+        meme_address = web3.Web3.to_checksum_address(meme_address)
         contract_instance = cls.get_instance(ledger_api, contract_address)
         data = contract_instance.encodeABI(
             fn_name="collectThisMeme",
@@ -123,7 +123,7 @@ class MemeFactoryContract(Contract):
         meme_address: str,
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
-
+        meme_address = web3.Web3.to_checksum_address(meme_address)
         contract_instance = cls.get_instance(ledger_api, contract_address)
         data = contract_instance.encodeABI(
             fn_name="purgeThisMeme",
@@ -183,6 +183,7 @@ class MemeFactoryContract(Contract):
         meme_address: str,
     ) -> Dict[str, Optional[str]]:
         """Get the data from the Summoned event."""
+        meme_address = web3.Web3.to_checksum_address(meme_address)
         contract_instance = cls.get_instance(ledger_api, contract_address)
         meme_summons = getattr(contract_instance.functions, "memeSummons")  # noqa
         eth_contributed, summon_time, unleash_time, hearters_amount = meme_summons(
@@ -216,6 +217,8 @@ class MemeFactoryContract(Contract):
             if to_block == "latest"
             else to_block
         )
+
+        _logger.info(f"Getting {event_name} events from block {from_block} to {to_block}")
 
         ranges: List[int] = list(range(from_block, cast(int, to_block), MAX_BLOCKS)) + [
             cast(int, to_block)
