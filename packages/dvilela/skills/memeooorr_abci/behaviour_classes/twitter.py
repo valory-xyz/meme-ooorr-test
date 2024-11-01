@@ -140,7 +140,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         return tweet
 
     def post_tweet(
-        self, tweet: Optional[List] = None
+        self, tweet: Optional[List] = None, store: bool = True
     ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
         # Prepare a tweet if needed
@@ -162,16 +162,18 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             self.context.logger.error("Failed posting to Twitter.")
             return None
 
-        # Write latest tweet to the database
         latest_tweet = {
             "tweet_id": tweet_ids[0],
             "text": tweet,
             "timestamp": self.get_sync_timestamp(),
         }
-        yield from self._write_kv(
-            {"latest_tweet": json.dumps(latest_tweet, sort_keys=True)}
-        )
-        self.context.logger.info("Wrote latest tweet to db")
+
+        # Write latest tweet to the database
+        if store:
+            yield from self._write_kv(
+                {"latest_tweet": json.dumps(latest_tweet, sort_keys=True)}
+            )
+            self.context.logger.info("Wrote latest tweet to db")
 
         return latest_tweet
 
@@ -271,5 +273,5 @@ class ActionTweetBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ance
         """Get the next event"""
         pending_tweet = self.synchronized_data.pending_tweet
         self.context.logger.info("Sending the action tweet...")
-        latest_tweet = yield from self.post_tweet(tweet=pending_tweet)
+        latest_tweet = yield from self.post_tweet(tweet=pending_tweet, store=False)
         return Event.DONE.value if latest_tweet else Event.ERROR.value

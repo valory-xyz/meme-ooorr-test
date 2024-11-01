@@ -570,7 +570,9 @@ class ActionPreparationRound(CollectSameUntilThresholdRound):
                 **{
                     get_name(SynchronizedData.most_voted_tx_hash): payload.tx_hash,
                     get_name(SynchronizedData.tx_flag): payload.tx_flag,
-                    get_name(SynchronizedData.pending_tweet): tweet,  # schedule tweet
+                    get_name(SynchronizedData.pending_tweet): json.dumps(
+                        {"text": tweet}, sort_keys=True
+                    ),  # schedule tweet
                 },
             )
             return synchronized_data, Event.SETTLE

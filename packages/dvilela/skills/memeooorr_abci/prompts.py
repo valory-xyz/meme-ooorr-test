@@ -95,7 +95,7 @@ OUTPUT_FORMAT
 * The JSON must contain two fields: "action", and "tweet".
     - action: a string with the action you have decided to take. none means do nothing.
     - token_address: a string with the token address of the meme coin you selected, or empty if none
-    - tweet: a short tweet to announce the action taken
+    - tweet: a short tweet to announce the action taken, or empty if none
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```
 * This is correct:"{{response}}"

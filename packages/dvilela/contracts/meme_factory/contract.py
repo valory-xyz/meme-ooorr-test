@@ -218,7 +218,9 @@ class MemeFactoryContract(Contract):
             else to_block
         )
 
-        _logger.info(f"Getting {event_name} events from block {from_block} to {to_block}")
+        _logger.info(
+            f"Getting {event_name} events from block {from_block} to {to_block}"
+        )
 
         ranges: List[int] = list(range(from_block, cast(int, to_block), MAX_BLOCKS)) + [
             cast(int, to_block)

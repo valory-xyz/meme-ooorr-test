@@ -472,7 +472,9 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             summon_time_ts = cast(int, response_msg.state.body.get("summon_time", 0))
             unleash_time_ts = cast(int, response_msg.state.body.get("unleash_time", 0))
 
-            self.context.logger.info(f"Token {meme_address} summon_time_ts={summon_time_ts} unleash_time_ts={unleash_time_ts}")
+            self.context.logger.info(
+                f"Token {meme_address} summon_time_ts={summon_time_ts} unleash_time_ts={unleash_time_ts}"
+            )
 
             # Get the times
             now = datetime.fromtimestamp(self.get_sync_timestamp())
@@ -491,6 +493,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
             # We use 47.5 to be on the safe side
             if seconds_since_summon < 47.5 * 3600:
+                available_actions.remove("unleash")
                 available_actions.remove("purge")
                 available_actions.remove("burn")
 
@@ -588,9 +591,11 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             return None, None
 
         # Prepare safe transaction
+        value = ZERO_VALUE if action != "hearth" else int(1e15)
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,
             data=bytes.fromhex(data_hex),
+            value=value,
         )
 
         # Optimistic design: we now store the hearthed token address
@@ -603,7 +608,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
                 self.context.logger.error("Error while loading the database")
                 hearthed_memes = []
             else:
-                hearthed_memes = db_data["hearthed_memes"]
+                hearthed_memes = json.loads(db_data["hearthed_memes"] or "[]")
 
             # Write the new hearthed token
             hearthed_memes.append(token_address)
