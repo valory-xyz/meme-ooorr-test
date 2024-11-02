@@ -602,7 +602,11 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             return None, None
 
         # Prepare safe transaction
-        value = ZERO_VALUE if action != "hearth" else self.params.hearth_amount_eth * int(1e18)  # to wei
+        value = (
+            ZERO_VALUE
+            if action != "hearth"
+            else self.params.hearth_amount_eth * int(1e18)
+        )  # to wei
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,
             data=bytes.fromhex(data_hex),
