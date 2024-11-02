@@ -62,5 +62,6 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.deployment_amount_eth = self._ensure(
             "deployment_amount_eth", kwargs, float
         )
+        self.hearth_amount_eth = self._ensure("hearth_amount_eth", kwargs, int)
 
         super().__init__(*args, **kwargs)

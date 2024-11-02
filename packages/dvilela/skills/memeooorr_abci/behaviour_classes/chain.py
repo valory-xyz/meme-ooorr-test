@@ -124,6 +124,24 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         return safe_tx_hash
 
+    def store_hearth(self, token_address):
+        """Store a new hearthed token to the db"""
+        # Load previously hearthed memes
+        db_data = yield from self._read_kv(keys=("hearthed_memes",))
+
+        if db_data is None:
+            self.context.logger.error("Error while loading the database")
+            hearthed_memes = []
+        else:
+            hearthed_memes = json.loads(db_data["hearthed_memes"] or "[]")
+
+        # Write the new hearthed token
+        hearthed_memes.append(token_address)
+        yield from self._write_kv(
+            {"hearthed_memes": json.dumps(hearthed_memes, sort_keys=True)}
+        )
+        self.context.logger.info("Wrote latest hearthed token to db")
+
 
 class CheckFundsBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
     """CheckFundsBehaviour"""
@@ -244,6 +262,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         tokens.append(token_data)
         yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
         self.context.logger.info("Wrote latest token to db")
+        self.store_hearth(token_address)
 
         return tx_hash, tx_flag, token_address
 
@@ -591,7 +610,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             return None, None
 
         # Prepare safe transaction
-        value = ZERO_VALUE if action != "hearth" else int(1e15)
+        value = ZERO_VALUE if action != "hearth" else self.params.hearth_amount_eth * int(1e18)  # to wei
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,
             data=bytes.fromhex(data_hex),
@@ -601,21 +620,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         # Optimistic design: we now store the hearthed token address
         # Ideally, this should be done after a succesful hearth transaction
         if action == "hearth":
-            # Load previously hearthed memes
-            db_data = yield from self._read_kv(keys=("hearthed_memes",))
-
-            if db_data is None:
-                self.context.logger.error("Error while loading the database")
-                hearthed_memes = []
-            else:
-                hearthed_memes = json.loads(db_data["hearthed_memes"] or "[]")
-
-            # Write the new hearthed token
-            hearthed_memes.append(token_address)
-            yield from self._write_kv(
-                {"hearthed_memes": json.dumps(hearthed_memes, sort_keys=True)}
-            )
-            self.context.logger.info("Wrote latest hearthed token to db")
+            self.store_hearth(token_address)
 
         tx_flag = "action"
         return safe_tx_hash, tx_flag

@@ -90,6 +90,7 @@ extra:
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
         feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
         deployment_amount_eth: ${DEPLOYMENT_AMOUNT_ETH:float:0.01}
+        hearth_amount_eth: ${HEARTH_AMOUNT_ETH:float:0.001}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

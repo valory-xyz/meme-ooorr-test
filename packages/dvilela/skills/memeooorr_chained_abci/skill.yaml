@@ -149,6 +149,7 @@ models:
       persona: a cat lover that is crazy about all-things cats.
       feedback_period_hours: 3
       deployment_amount_eth: 0.01
+      hearth_amount_eth: 0.001
     class_name: Params
   randomness_api:
     args:
