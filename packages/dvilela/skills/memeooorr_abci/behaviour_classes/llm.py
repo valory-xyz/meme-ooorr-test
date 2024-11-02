@@ -202,11 +202,6 @@ class ActionDecisionBehaviour(
             token_address = response.get("token_address", None)
             tweet = response.get("tweet", None)
 
-            # TODO: remove
-            action = "hearth"
-            token_address = "0x0f640d10642022251a7753b7af54cdb97b1f3ba0"
-            tweet = "test"
-
             if action == "none":
                 return Event.WAIT.value, None, None, None
 

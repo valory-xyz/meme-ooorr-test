@@ -388,36 +388,28 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         from_block = current_block - SUMMON_BLOCK_DELTA
 
         # Use the contract api to interact with the factory contract
-        # response_msg = yield from self.get_contract_api_response(
-        #     performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-        #     contract_address=self.params.meme_factory_address,
-        #     contract_id=str(MemeFactoryContract.contract_id),
-        #     contract_callable="get_events",
-        #     from_block=from_block,
-        #     event_name="Summoned",
-        #     chain_id=BASE_CHAIN_ID,
-        # )
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.params.meme_factory_address,
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_events",
+            from_block=from_block,
+            event_name="Summoned",
+            chain_id=BASE_CHAIN_ID,
+        )
 
-        # # Check that the response is what we expect
-        # if response_msg.performative != ContractApiMessage.Performative.STATE:
-        #     self.context.logger.error(
-        #         f"Could not get the memecoin events: {response_msg}"
-        #     )
-        #     return None
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the memecoin events: {response_msg}"
+            )
+            return None
 
-        # events = cast(list, response_msg.state.body.get("events", None))
+        events = cast(list, response_msg.state.body.get("events", None))
 
-        # if events is None:
-        #     self.context.logger.error("Could not get the memecoin events")
-        #     return None
-
-        events = [
-            {
-                "summoner": "0xc8fc73a58966614bf1df91cae1ce795dc8df13f2",
-                "token_address": "0x0f640d10642022251a7753b7af54cdb97b1f3ba0",
-                "eth_contributed": 10000000000000000,
-            }
-        ]
+        if events is None:
+            self.context.logger.error("Could not get the memecoin events")
+            return None
 
         self.context.logger.info(f"Got {len(events)} summon events")
 
