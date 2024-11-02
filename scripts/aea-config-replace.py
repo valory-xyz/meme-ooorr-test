@@ -112,7 +112,14 @@ def main() -> None:
 
     # Search and replace all the secrets
     for path, var in PATH_TO_VAR.items():
-        config = find_and_replace(config, path.split("/"), os.getenv(var))
+        try:
+            new_value = os.getenv(var)
+            if new_value is None:
+                print(f"Env var {var} is not set")
+                continue
+            config = find_and_replace(config, path.split("/"), new_value)
+        except Exception as e:
+            raise ValueError(f"Could not update {path}") from e
 
     # Dump the updated config
     with open(Path(AGENT_NAME, "aea-config.yaml"), "w", encoding="utf-8") as file:
