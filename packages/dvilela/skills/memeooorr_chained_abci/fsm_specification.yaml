@@ -1,9 +1,9 @@
 alphabet_in:
-- API_ERROR
 - CHECK_HISTORY
 - CHECK_LATE_ARRIVING_MESSAGE
 - CHECK_TIMEOUT
 - DONE
+- ERROR
 - FINALIZATION_FAILED
 - FINALIZE_TIMEOUT
 - INCORRECT_SERIALIZATION
@@ -13,12 +13,15 @@ alphabet_in:
 - NOT_ENOUGH_FEEDBACK
 - NO_FUNDS
 - NO_MAJORITY
+- NO_MEMES
 - REFINE
 - RESET_AND_PAUSE_TIMEOUT
 - RESET_TIMEOUT
 - ROUND_TIMEOUT
 - SETTLE
 - SUSPICIOUS_ACTIVITY
+- TO_ACTION_TWEET
+- TO_DEPLOY
 - VALIDATE_TIMEOUT
 - WAIT
 default_start_state: RegistrationStartupRound
@@ -28,6 +31,9 @@ start_states:
 - RegistrationRound
 - RegistrationStartupRound
 states:
+- ActionDecisionRound
+- ActionPreparationRound
+- ActionTweetRound
 - AnalizeFeedbackRound
 - CheckFundsRound
 - CheckLateTxHashesRound
@@ -39,6 +45,7 @@ states:
 - LoadDatabaseRound
 - PostAnnouncementRound
 - PostTweetRound
+- PullMemesRound
 - RandomnessTransactionSubmissionRound
 - RegistrationRound
 - RegistrationStartupRound
@@ -48,12 +55,26 @@ states:
 - SelectKeeperTransactionSubmissionBAfterTimeoutRound
 - SelectKeeperTransactionSubmissionBRound
 - SynchronizeLateMessagesRound
+- TransactionMultiplexerRound
 - ValidateTransactionRound
 transition_func:
-    (AnalizeFeedbackRound, API_ERROR): AnalizeFeedbackRound
+    (ActionDecisionRound, DONE): ActionPreparationRound
+    (ActionDecisionRound, NO_MAJORITY): ActionDecisionRound
+    (ActionDecisionRound, ROUND_TIMEOUT): ActionDecisionRound
+    (ActionDecisionRound, WAIT): ResetAndPauseRound
+    (ActionPreparationRound, DONE): ActionTweetRound
+    (ActionPreparationRound, ERROR): ResetAndPauseRound
+    (ActionPreparationRound, NO_MAJORITY): ActionPreparationRound
+    (ActionPreparationRound, ROUND_TIMEOUT): ActionPreparationRound
+    (ActionPreparationRound, SETTLE): RandomnessTransactionSubmissionRound
+    (ActionTweetRound, DONE): ResetAndPauseRound
+    (ActionTweetRound, ERROR): ActionTweetRound
+    (ActionTweetRound, NO_MAJORITY): ActionTweetRound
+    (ActionTweetRound, ROUND_TIMEOUT): ActionTweetRound
     (AnalizeFeedbackRound, DONE): CheckFundsRound
+    (AnalizeFeedbackRound, ERROR): AnalizeFeedbackRound
     (AnalizeFeedbackRound, NO_MAJORITY): AnalizeFeedbackRound
-    (AnalizeFeedbackRound, REFINE): ResetAndPauseRound
+    (AnalizeFeedbackRound, REFINE): PullMemesRound
     (AnalizeFeedbackRound, ROUND_TIMEOUT): AnalizeFeedbackRound
     (CheckFundsRound, DONE): DeploymentRound
     (CheckFundsRound, NO_FUNDS): CheckFundsRound
@@ -61,26 +82,26 @@ transition_func:
     (CheckFundsRound, ROUND_TIMEOUT): CheckFundsRound
     (CheckLateTxHashesRound, CHECK_LATE_ARRIVING_MESSAGE): SynchronizeLateMessagesRound
     (CheckLateTxHashesRound, CHECK_TIMEOUT): CheckLateTxHashesRound
-    (CheckLateTxHashesRound, DONE): DeploymentRound
+    (CheckLateTxHashesRound, DONE): TransactionMultiplexerRound
     (CheckLateTxHashesRound, NEGATIVE): RandomnessTransactionSubmissionRound
     (CheckLateTxHashesRound, NONE): RandomnessTransactionSubmissionRound
     (CheckLateTxHashesRound, NO_MAJORITY): RandomnessTransactionSubmissionRound
     (CheckTransactionHistoryRound, CHECK_LATE_ARRIVING_MESSAGE): SynchronizeLateMessagesRound
     (CheckTransactionHistoryRound, CHECK_TIMEOUT): CheckTransactionHistoryRound
-    (CheckTransactionHistoryRound, DONE): DeploymentRound
+    (CheckTransactionHistoryRound, DONE): TransactionMultiplexerRound
     (CheckTransactionHistoryRound, NEGATIVE): SelectKeeperTransactionSubmissionBRound
     (CheckTransactionHistoryRound, NONE): RandomnessTransactionSubmissionRound
     (CheckTransactionHistoryRound, NO_MAJORITY): CheckTransactionHistoryRound
-    (CollectFeedbackRound, API_ERROR): CollectFeedbackRound
     (CollectFeedbackRound, DONE): AnalizeFeedbackRound
-    (CollectFeedbackRound, NOT_ENOUGH_FEEDBACK): ResetAndPauseRound
+    (CollectFeedbackRound, ERROR): CollectFeedbackRound
+    (CollectFeedbackRound, NOT_ENOUGH_FEEDBACK): PullMemesRound
     (CollectFeedbackRound, NO_MAJORITY): CollectFeedbackRound
     (CollectFeedbackRound, ROUND_TIMEOUT): CollectFeedbackRound
     (CollectSignatureRound, DONE): FinalizationRound
     (CollectSignatureRound, NO_MAJORITY): ResetRound
     (CollectSignatureRound, ROUND_TIMEOUT): CollectSignatureRound
-    (DeploymentRound, API_ERROR): DeploymentRound
     (DeploymentRound, DONE): PostAnnouncementRound
+    (DeploymentRound, ERROR): DeploymentRound
     (DeploymentRound, NO_MAJORITY): DeploymentRound
     (DeploymentRound, ROUND_TIMEOUT): DeploymentRound
     (DeploymentRound, SETTLE): RandomnessTransactionSubmissionRound
@@ -93,16 +114,21 @@ transition_func:
     (LoadDatabaseRound, DONE): PostTweetRound
     (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
     (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound
-    (PostAnnouncementRound, API_ERROR): PostAnnouncementRound
-    (PostAnnouncementRound, DONE): ResetAndPauseRound
+    (PostAnnouncementRound, DONE): PullMemesRound
+    (PostAnnouncementRound, ERROR): PostAnnouncementRound
     (PostAnnouncementRound, NO_MAJORITY): PostAnnouncementRound
     (PostAnnouncementRound, ROUND_TIMEOUT): PostAnnouncementRound
     (PostAnnouncementRound, WAIT): PostAnnouncementRound
-    (PostTweetRound, API_ERROR): PostTweetRound
     (PostTweetRound, DONE): CollectFeedbackRound
+    (PostTweetRound, ERROR): PostTweetRound
     (PostTweetRound, NO_MAJORITY): PostTweetRound
     (PostTweetRound, ROUND_TIMEOUT): PostTweetRound
-    (PostTweetRound, WAIT): ResetAndPauseRound
+    (PostTweetRound, WAIT): PullMemesRound
+    (PullMemesRound, DONE): ActionDecisionRound
+    (PullMemesRound, ERROR): PullMemesRound
+    (PullMemesRound, NO_MAJORITY): PullMemesRound
+    (PullMemesRound, NO_MEMES): ResetAndPauseRound
+    (PullMemesRound, ROUND_TIMEOUT): PullMemesRound
     (RandomnessTransactionSubmissionRound, DONE): SelectKeeperTransactionSubmissionARound
     (RandomnessTransactionSubmissionRound, NO_MAJORITY): RandomnessTransactionSubmissionRound
     (RandomnessTransactionSubmissionRound, ROUND_TIMEOUT): RandomnessTransactionSubmissionRound
@@ -133,7 +159,12 @@ transition_func:
     (SynchronizeLateMessagesRound, NONE): SelectKeeperTransactionSubmissionBRound
     (SynchronizeLateMessagesRound, ROUND_TIMEOUT): SynchronizeLateMessagesRound
     (SynchronizeLateMessagesRound, SUSPICIOUS_ACTIVITY): RandomnessTransactionSubmissionRound
-    (ValidateTransactionRound, DONE): DeploymentRound
+    (TransactionMultiplexerRound, DONE): TransactionMultiplexerRound
+    (TransactionMultiplexerRound, NO_MAJORITY): TransactionMultiplexerRound
+    (TransactionMultiplexerRound, ROUND_TIMEOUT): TransactionMultiplexerRound
+    (TransactionMultiplexerRound, TO_ACTION_TWEET): ActionTweetRound
+    (TransactionMultiplexerRound, TO_DEPLOY): DeploymentRound
+    (ValidateTransactionRound, DONE): TransactionMultiplexerRound
     (ValidateTransactionRound, NEGATIVE): CheckTransactionHistoryRound
     (ValidateTransactionRound, NONE): SelectKeeperTransactionSubmissionBRound
     (ValidateTransactionRound, NO_MAJORITY): ValidateTransactionRound

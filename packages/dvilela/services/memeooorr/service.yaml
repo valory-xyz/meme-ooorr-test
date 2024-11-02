@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeidxk7huapgpnyg4bk4tydfx3dpov7kmkfbvvdn2aabr2ba75unbci
+agent: dvilela/memeooorr:0.1.0:bafybeiflf2cgbgpfvqeug6dqfl2eeiuthh2o62kdznengwbjhqgfitcg3q
 number_of_agents: 1
 deployment:
   agent:
@@ -90,6 +90,7 @@ extra:
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
         feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
         deployment_amount_eth: ${DEPLOYMENT_AMOUNT_ETH:float:0.01}
+        hearth_amount_eth: ${HEARTH_AMOUNT_ETH:float:0.001}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

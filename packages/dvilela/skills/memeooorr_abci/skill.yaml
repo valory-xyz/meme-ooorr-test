@@ -9,28 +9,28 @@ fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeiectbspllsxvcxstrbvyrsfwgqelu6lctopfcu54le3cnee5c5bqi
-  behaviour_classes/chain.py: bafybeifwdkp5j2tixebnsxruu3htsbxmevanatwp6ilhtvwqeu53l2okdq
+  behaviour_classes/chain.py: bafybeibbs4co3w3ps7wffp345v3bbubqv4ny54mm2nizpyf3nfcsrq43qe
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
-  behaviour_classes/llm.py: bafybeidlajxpr442vptqvzbdiv7zlaypllnpssrlar5fm3n4lp3pnzjvby
-  behaviour_classes/twitter.py: bafybeidm6upa7p5i3bpmuwug45kjuja3z4533zblw4fh2o5opkwh4esvti
-  behaviours.py: bafybeib6wsrkauh4zprsgwx5geg6e7ktiysgwlrspnc3rs6ydqshrm6u6q
+  behaviour_classes/llm.py: bafybeifitc3ghssmbkj4hdqqehmev5t57cksxitlaswmqjlf3pp47xn52a
+  behaviour_classes/twitter.py: bafybeignbkilvjmrh4dtty4uxn2ntdgfqd6gl6jr7jvy3vv2q4v3ilmcve
+  behaviours.py: bafybeiefnocj7za43ukmg3zecfpytgsqui7nvrh72nfxyubzbtuq35pegq
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
-  fsm_specification.yaml: bafybeicul44blyo4mjffsintqgaa7ygu4b7wfoxxe555b2dycqanbazv24
+  fsm_specification.yaml: bafybeiffskxofn7xtphm3kpzdwfqpma2vcmfgqnf35jrrvzpxzqftyi5sa
   handlers.py: bafybeia3ew422w57ot7jpbrhmagepm7pcoqkkc53p5w4jm4co4yh4tz7em
-  models.py: bafybeieiq2ybant5vzkvqxxbv3jk5ihapculcuyqdd4aiwiam727wygr5y
-  payloads.py: bafybeic77jlpjhrpv6kyq5ksd6xwm7nwkh7vlw4vbxtjobwnopidvsdf6i
-  prompts.py: bafybeiccjmv4n74nkghzeqnijhm2buhu7rn6tf5ynlrc74gfqbl7izm2jm
-  rounds.py: bafybeibmvedxzkn575ynk3ri2hn2vzpca73c7xn3muqtljihap3iozgkky
+  models.py: bafybeiczoqo7iep76qcna4zc3sqhegovxadyxeg3iuz3lko566qoz3nefi
+  payloads.py: bafybeigumk6utsqa24avv3zqvqartukcfpvs7y6hjtr6ukb5l5ps7ahwsi
+  prompts.py: bafybeihtz4wf65issni5paj5ui2x5t6pzgoip44q7g6yzkztalazfir754
+  rounds.py: bafybeicvz5ryr7iaee6ivxtxakwlf2nydqxkxpci46nc7c2fcjbudosjmm
   subgraph.py: bafybeigme6r3cwiiu5l7r55rcbj7y37b62cxtlsnewpkbjqcbadwte32xm
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
-- dvilela/twikit:0.1.0:bafybeibi2mvq6kfuqzub5wlwo6bmztol24o2gxpo667sziyu3x6yr76fby
+- dvilela/twikit:0.1.0:bafybeib7ogtawmjl7zpeu5trqgnugtcvxprvgfgfsmparuh4gpc5lpkwaq
 - dvilela/genai:0.1.0:bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiho6sbfts3zk3mftrngw37d5qnlvkqtnttt3fzexmcwkeevhu4wwi
-- dvilela/meme_factory:0.1.0:bafybeib4nhqakpesjmllgpavjtl5sjblyozbo4yvfrxkfiasqr6h3qh3va
+- dvilela/meme_factory:0.1.0:bafybeihfueb4f5bfsofwwbwjmxg7cdcwg5sq66kividbja7h2pa7i4mkv4
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
@@ -156,6 +156,7 @@ models:
       persona: a cat lover that is crazy about all-things cats.
       feedback_period_hours: 3
       deployment_amount_eth: 0.01
+      hearth_amount_eth: 0.001
     class_name: Params
   requests:
     args: {}
