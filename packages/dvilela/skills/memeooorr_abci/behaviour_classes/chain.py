@@ -25,6 +25,7 @@ from copy import copy
 from datetime import datetime
 from typing import Generator, List, Optional, Tuple, Type, cast
 
+from packages.dvilela.contracts.meme.contract import MemeContract
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
@@ -58,8 +59,26 @@ SAFE_GAS = 0
 ZERO_VALUE = 0
 TWO_MINUTES = 120
 SUMMON_BLOCK_DELTA = 100000
-
+HTTP_OK = 200
 AVAILABLE_ACTIONS = ["hearth", "unleash", "collect", "purge", "burn"]
+
+TOKENS_QUERY = """
+query Tokens {
+  memeTokens {
+    items {
+      blockNumber
+      chain
+      heartCount
+      id
+      isUnleashed
+      liquidity
+      lpPairAddress
+      owner
+      timestamp
+    }
+  }
+}
+"""
 
 
 class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-ancestors
@@ -363,7 +382,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            meme_coins = yield from self.get_meme_coins()
+            meme_coins = yield from self.get_meme_coins_from_subgraph()
 
             payload = PullMemesPayload(
                 sender=self.context.agent_address,
@@ -376,7 +395,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         self.set_done()
 
-    def get_meme_coins(self) -> Generator[None, None, Optional[List]]:
+    def get_meme_coins_from_chain(self) -> Generator[None, None, Optional[List]]:
         """Get a list of meme coins"""
 
         current_block = yield from self.get_block_number()
@@ -461,64 +480,155 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         for event in events:
             meme_address = event["token_address"]
+            available_actions = yield from self.get_meme_available_actions(
+                meme_address, hearthed_memes
+            )
+            meme_coin = {"token_address": meme_address, "actions": available_actions}
+            meme_coins.append(meme_coin)
 
-            # Use the contract api to interact with the factory contract
+        self.context.logger.info(f"Analyzed meme coins: {meme_coins}")
+
+        return meme_coins
+
+    def get_meme_coins_from_subgraph(self) -> Generator[None, None, Optional[List]]:
+        """Get a list of meme coins"""
+
+        url = "https://memeooorr-subgraph-production.up.railway.app/"
+
+        query = {"query": TOKENS_QUERY}
+
+        # Make the HTTP request
+        response = yield from self.get_http_response(
+            method="POST", url=url, content=json.dumps(query).encode()
+        )
+
+        # Handle HTTP errors
+        if response.status_code != HTTP_OK:
+            self.context.logger.error(
+                f"Error while pulling the memes from subgraph: {response.body}"
+            )
+
+        # Load the response
+        response_json = json.loads(response.body)
+        meme_coins = [
+            {
+                "token_address": t["id"],
+                "liquidity": int(t["liquidity"]),
+                "heart_count": int(t["heartCount"]),
+                "is_unleashed": t["isUnleashed"],
+                "timestamp": t["timestamp"],
+            }
+            for t in response_json["data"]["memeTokens"]["items"]
+            if t["chain"] == "base"  # TODO: adapt to Celo
+        ]
+
+        enriched_meme_coins = yield from self.get_extra_meme_info(meme_coins)
+
+        return enriched_meme_coins
+
+    def get_extra_meme_info(self, meme_coins: List) -> Generator[None, None, List]:
+        """Get the meme coin names, symbols and other info"""
+
+        enriched_meme_coins = []
+
+        for meme_coin in meme_coins:
             response_msg = yield from self.get_contract_api_response(
                 performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-                contract_address=self.params.meme_factory_address,
-                contract_id=str(MemeFactoryContract.contract_id),
-                contract_callable="get_summon_data",
-                meme_address=meme_address,
+                contract_address=meme_coin["token_address"],
+                contract_id=str(MemeContract.contract_id),
+                contract_callable="get_token_data",
                 chain_id=BASE_CHAIN_ID,
             )
 
             # Check that the response is what we expect
             if response_msg.performative != ContractApiMessage.Performative.STATE:
                 self.context.logger.error(
-                    f"Could not get the memecoin summon data: {response_msg}"
+                    f"Error while getting the token data: {response_msg}"
                 )
                 continue
 
-            # Extract the data
-            summon_time_ts = cast(int, response_msg.state.body.get("summon_time", 0))
-            unleash_time_ts = cast(int, response_msg.state.body.get("unleash_time", 0))
-
-            self.context.logger.info(
-                f"Token {meme_address} summon_time_ts={summon_time_ts} unleash_time_ts={unleash_time_ts}"
+            meme_coin["name"] = response_msg.raw_transaction.body.get("name")
+            meme_coin["symbol"] = response_msg.raw_transaction.body.get("symbol")
+            meme_coin["total_supply"] = response_msg.raw_transaction.body.get(
+                "total_supply"
             )
+            meme_coin["decimals"] = response_msg.raw_transaction.body.get("decimals")
 
-            # Get the times
-            now = datetime.fromtimestamp(self.get_sync_timestamp())
-            summon_time = datetime.fromtimestamp(summon_time_ts)
-            seconds_since_summon = (now - summon_time).total_seconds()
+            # Load previously hearthed memes
+            db_data = yield from self._read_kv(keys=("hearthed_memes",))
 
-            available_actions = copy(AVAILABLE_ACTIONS)
+            if db_data is None:
+                self.context.logger.error("Error while loading the database")
+                hearthed_memes = []
+            else:
+                hearthed_memes = db_data["hearthed_memes"] or []
 
-            # We can unleash if it has not been unleashed
-            if unleash_time_ts != 0:
-                available_actions.remove("unleash")
+            # Get available actions
+            available_actions = yield from self.get_meme_available_actions(
+                meme_coin["token_address"], hearthed_memes
+            )
+            meme_coin["available_actions"] = available_actions
 
-            # We can hearth during the first 48h
-            if seconds_since_summon > 48 * 3600:
-                available_actions.remove("hearth")
+            enriched_meme_coins.append(meme_coin)
 
-            # We use 47.5 to be on the safe side
-            if seconds_since_summon < 47.5 * 3600:
-                available_actions.remove("unleash")
-                available_actions.remove("purge")
-                available_actions.remove("burn")
+        return enriched_meme_coins
 
-                # We can collect if we have hearthed this token
-                if meme_address not in hearthed_memes:
-                    available_actions.remove("collect")
+    def get_meme_available_actions(
+        self, meme_address, hearthed_memes
+    ) -> Generator[None, None, Optional[List]]:
+        """Get the available actions"""
 
-            meme_coin = {"token_address": meme_address, "actions": available_actions}
+        # Use the contract api to interact with the factory contract
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.params.meme_factory_address,
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_summon_data",
+            meme_address=meme_address,
+            chain_id=BASE_CHAIN_ID,
+        )
 
-            meme_coins.append(meme_coin)
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the memecoin summon data: {response_msg}"
+            )
+            return None
 
-        self.context.logger.info(f"Analyzed meme coins: {meme_coins}")
+        # Extract the data
+        summon_time_ts = cast(int, response_msg.state.body.get("summon_time", 0))
+        unleash_time_ts = cast(int, response_msg.state.body.get("unleash_time", 0))
 
-        return meme_coins
+        self.context.logger.info(
+            f"Token {meme_address} summon_time_ts={summon_time_ts} unleash_time_ts={unleash_time_ts}"
+        )
+
+        # Get the times
+        now = datetime.fromtimestamp(self.get_sync_timestamp())
+        summon_time = datetime.fromtimestamp(summon_time_ts)
+        seconds_since_summon = (now - summon_time).total_seconds()
+
+        available_actions = copy(AVAILABLE_ACTIONS)
+
+        # We can unleash if it has not been unleashed
+        if unleash_time_ts != 0:
+            available_actions.remove("unleash")
+
+        # We can hearth during the first 48h
+        if seconds_since_summon > 48 * 3600:
+            available_actions.remove("hearth")
+
+        # We use 47.5 to be on the safe side
+        if seconds_since_summon < 47.5 * 3600:
+            available_actions.remove("unleash")
+            available_actions.remove("purge")
+            available_actions.remove("burn")
+
+            # We can collect if we have hearthed this token
+            if meme_address not in hearthed_memes:
+                available_actions.remove("collect")
+
+        return available_actions
 
 
 class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
