@@ -41,8 +41,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/registration_abci:0.1.0:bafybeicnth5q4httefsusywx3zrrq4al47owvge72dqf2fziruicq6hqta
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
-- dvilela/memeooorr_abci:0.1.0:bafybeieasplqasrag6bitid2ja6ffauxr3ykowchk5hdjjtnrkve2wtwfi
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeih7qqka6g57it2w2fnzl3qx2gzcattq45vjn3c76rdjra4oj6ccsy
+- dvilela/memeooorr_abci:0.1.0:bafybeihhavir5kfp35qs7zc3il52yds5xxkyoxzqdf73nxu4huslr2sium
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeiag7iw4kgg7vpeuq63tkshe6xrs3cx5rkwdbpim2a2p63eu5k2vxu
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -187,7 +187,7 @@ models:
       termination_from_block: ${int:0}
       minimum_gas_balance: ${float:0.01}
       min_feedback_replies: ${int:10}
-      meme_factory_address: ${str:0x0000000000000000000000000000000000000000}
+      meme_factory_address: ${str:0x42156841253f428cb644ea1230d4fddfb70f8891}
       olas_token_address: ${str:0x54330d28ca3357F294334BDC454a032e7f353416}
       persona: ${str:a cat lover that is crazy about all-things cats.}
       feedback_period_hours: ${int:3}

@@ -48,9 +48,9 @@ JSON_RESPONSE_REGEX = r"json({.*})"
 # fmt: off
 TOKEN_SUMMARY = (  # nosec
     """
-    token_name: {token_name}
-    token_symbol: {token_symbol}
-    total supply: {total_supply}
+    token name: {token_name}
+    token symbol: {token_ticker}
+    total supply (wei): {token_supply}
     decimals: {decimals}
     heath count: {heart_count}
     liquidity: {liquidity}
@@ -196,7 +196,7 @@ class ActionDecisionBehaviour(
     ]:
         """Get the next event"""
 
-        meme_coins = "\n\n".join(
+        meme_coins = "\n".join(
             TOKEN_SUMMARY.format(**meme_coin)
             for meme_coin in self.synchronized_data.meme_coins
         )
@@ -223,7 +223,7 @@ class ActionDecisionBehaviour(
 
         try:
             llm_response = llm_response.replace("\n", "").strip()
-            match = re.match(JSON_RESPONSE_REGEX, llm_response)
+            match = re.search(JSON_RESPONSE_REGEX, llm_response)
             if match:
                 llm_response = match.groups()[0]
             response = json.loads(llm_response)
@@ -242,7 +242,7 @@ class ActionDecisionBehaviour(
             available_actions = []
             for t in self.synchronized_data.meme_coins:
                 if t["token_address"] == token_address:
-                    available_actions = t["actions"]
+                    available_actions = t["available_actions"]
                     break
 
             if action not in available_actions:

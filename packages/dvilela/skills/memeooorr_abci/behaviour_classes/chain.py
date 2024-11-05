@@ -473,9 +473,11 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         query = {"query": TOKENS_QUERY}
 
+        headers = {"Content-Type": "application/json"}
+
         # Make the HTTP request
         response = yield from self.get_http_response(
-            method="POST", url=url, content=json.dumps(query).encode()
+            method="POST", url=url, content=json.dumps(query).encode(), headers=headers
         )
 
         # Handle HTTP errors
@@ -500,6 +502,8 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         enriched_meme_coins = yield from self.get_extra_meme_info(meme_coins)
 
+        self.context.logger.info(f"Got {len(enriched_meme_coins)} tokens")
+
         return enriched_meme_coins
 
     def get_extra_meme_info(self, meme_coins: List) -> Generator[None, None, List]:
@@ -523,12 +527,10 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
                 )
                 continue
 
-            meme_coin["name"] = response_msg.raw_transaction.body.get("name")
-            meme_coin["symbol"] = response_msg.raw_transaction.body.get("symbol")
-            meme_coin["total_supply"] = response_msg.raw_transaction.body.get(
-                "total_supply"
-            )
-            meme_coin["decimals"] = response_msg.raw_transaction.body.get("decimals")
+            meme_coin["token_name"] = response_msg.state.body.get("name")
+            meme_coin["token_ticker"] = response_msg.state.body.get("symbol")
+            meme_coin["token_supply"] = response_msg.state.body.get("total_supply")
+            meme_coin["decimals"] = response_msg.state.body.get("decimals")
 
             # Load previously hearted memes
             db_data = yield from self._read_kv(keys=("hearted_memes",))
