@@ -41,10 +41,14 @@ from packages.dvilela.protocols.kv_store.dialogues import (
 from packages.dvilela.protocols.kv_store.message import KvStoreMessage
 from packages.dvilela.skills.memeooorr_abci.models import Params, SharedState
 from packages.dvilela.skills.memeooorr_abci.rounds import SynchronizedData
+from packages.valory.protocols.ledger_api import LedgerApiMessage
 from packages.valory.protocols.srr.dialogues import SrrDialogue, SrrDialogues
 from packages.valory.protocols.srr.message import SrrMessage
 from packages.valory.skills.abstract_round_abci.behaviours import BaseBehaviour
 from packages.valory.skills.abstract_round_abci.models import Requests
+
+
+BASE_CHAIN_ID = "base"
 
 
 class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-ancestors
@@ -177,3 +181,29 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
     def get_persona(self) -> str:
         """Get the agent persona"""
         return self.synchronized_data.persona or self.params.persona
+
+    def get_native_balance(self) -> Generator[None, None, Optional[float]]:
+        """Get the native balance"""
+        self.context.logger.info(
+            f"Getting native balance for Safe {self.synchronized_data.safe_contract_address}"
+        )
+
+        ledger_api_response = yield from self.get_ledger_api_response(
+            performative=LedgerApiMessage.Performative.GET_STATE,
+            ledger_callable="get_balance",
+            account=self.synchronized_data.safe_contract_address,
+            chain_id=BASE_CHAIN_ID,
+        )
+
+        if ledger_api_response.performative != LedgerApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Error while retrieving the native balance: {ledger_api_response}"
+            )
+            return None
+
+        balance = cast(float, ledger_api_response.state.body["get_balance_result"])
+        balance = balance / 10**18  # from wei
+
+        self.context.logger.error(f"Got native balance: {balance}")
+
+        return balance

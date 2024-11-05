@@ -54,14 +54,9 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.service_endpoint = self._ensure("service_endpoint", kwargs, str)
         self.minimum_gas_balance = self._ensure("minimum_gas_balance", kwargs, float)
         self.min_feedback_replies = self._ensure("min_feedback_replies", kwargs, int)
-        self.total_supply = self._ensure("total_supply", kwargs, int)
         self.meme_factory_address = self._ensure("meme_factory_address", kwargs, str)
         self.olas_token_address = self._ensure("olas_token_address", kwargs, str)
         self.persona = self._ensure("persona", kwargs, str)
         self.feedback_period_hours = self._ensure("feedback_period_hours", kwargs, int)
-        self.deployment_amount_eth = self._ensure(
-            "deployment_amount_eth", kwargs, float
-        )
-        self.hearth_amount_eth = self._ensure("hearth_amount_eth", kwargs, float)
 
         super().__init__(*args, **kwargs)

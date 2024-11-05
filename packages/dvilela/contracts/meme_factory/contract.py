@@ -64,7 +64,7 @@ class MemeFactoryContract(Contract):
         return {"data": bytes.fromhex(data[2:])}
 
     @classmethod
-    def build_hearth_tx(  # pylint: disable=too-many-arguments
+    def build_heart_tx(  # pylint: disable=too-many-arguments
         cls,
         ledger_api: EthereumApi,
         contract_address: str,

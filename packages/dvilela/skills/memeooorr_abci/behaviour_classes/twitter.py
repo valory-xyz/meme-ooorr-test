@@ -271,7 +271,7 @@ class ActionTweetBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ance
 
     def get_event(self) -> Generator[None, None, str]:
         """Get the next event"""
-        pending_tweet = self.synchronized_data.pending_tweet
+        pending_tweet = self.synchronized_data.token_action["tweet"]
         self.context.logger.info("Sending the action tweet...")
-        latest_tweet = yield from self.post_tweet(tweet=pending_tweet, store=False)
+        latest_tweet = yield from self.post_tweet(tweet=[pending_tweet], store=False)
         return Event.DONE.value if latest_tweet else Event.ERROR.value

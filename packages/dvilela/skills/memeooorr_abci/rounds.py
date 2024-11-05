@@ -298,6 +298,8 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
             token_data = {
                 "token_name": analysis["token_name"],
                 "token_ticker": analysis["token_ticker"],
+                "token_supply": analysis["token_supply"],
+                "amount": analysis["amount"],
                 "tweet": analysis["tweet"],
             }
             synchronized_data = self.synchronized_data.update(
@@ -518,6 +520,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
                 token_action = {
                     "token_address": payload.token_address,
                     "action": payload.action,
+                    "amount": payload.amount,
                     "tweet": payload.tweet,
                 }
 
@@ -639,21 +642,15 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: CollectFeedbackRound,
         },
         AnalizeFeedbackRound: {
-            Event.DONE: CheckFundsRound,
+            Event.DONE: DeploymentRound,
             Event.REFINE: PullMemesRound,
             Event.ERROR: AnalizeFeedbackRound,
             Event.NO_MAJORITY: AnalizeFeedbackRound,
             Event.ROUND_TIMEOUT: AnalizeFeedbackRound,
         },
-        CheckFundsRound: {
-            Event.DONE: DeploymentRound,
-            Event.NO_FUNDS: CheckFundsRound,
-            Event.NO_MAJORITY: CheckFundsRound,
-            Event.ROUND_TIMEOUT: CheckFundsRound,
-        },
         DeploymentRound: {
             Event.DONE: PostAnnouncementRound,
-            Event.SETTLE: FinishedToSettlementRound,
+            Event.SETTLE: CheckFundsRound,
             Event.ERROR: DeploymentRound,
             Event.NO_MAJORITY: DeploymentRound,
             Event.ROUND_TIMEOUT: DeploymentRound,
@@ -681,7 +678,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         ActionPreparationRound: {
             Event.DONE: ActionTweetRound,  # This will never happen
             Event.ERROR: FinishedToResetRound,
-            Event.SETTLE: FinishedToSettlementRound,
+            Event.SETTLE: CheckFundsRound,
             Event.NO_MAJORITY: ActionPreparationRound,
             Event.ROUND_TIMEOUT: ActionPreparationRound,
         },
@@ -690,6 +687,12 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ERROR: ActionTweetRound,
             Event.NO_MAJORITY: ActionTweetRound,
             Event.ROUND_TIMEOUT: ActionTweetRound,
+        },
+        CheckFundsRound: {
+            Event.DONE: FinishedToSettlementRound,
+            Event.NO_FUNDS: CheckFundsRound,
+            Event.NO_MAJORITY: CheckFundsRound,
+            Event.ROUND_TIMEOUT: CheckFundsRound,
         },
         TransactionMultiplexerRound: {
             Event.DONE: TransactionMultiplexerRound,

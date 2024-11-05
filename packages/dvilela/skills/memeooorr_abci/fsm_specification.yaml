@@ -44,17 +44,17 @@ transition_func:
     (ActionPreparationRound, ERROR): FinishedToResetRound
     (ActionPreparationRound, NO_MAJORITY): ActionPreparationRound
     (ActionPreparationRound, ROUND_TIMEOUT): ActionPreparationRound
-    (ActionPreparationRound, SETTLE): FinishedToSettlementRound
+    (ActionPreparationRound, SETTLE): CheckFundsRound
     (ActionTweetRound, DONE): FinishedToResetRound
     (ActionTweetRound, ERROR): ActionTweetRound
     (ActionTweetRound, NO_MAJORITY): ActionTweetRound
     (ActionTweetRound, ROUND_TIMEOUT): ActionTweetRound
-    (AnalizeFeedbackRound, DONE): CheckFundsRound
+    (AnalizeFeedbackRound, DONE): DeploymentRound
     (AnalizeFeedbackRound, ERROR): AnalizeFeedbackRound
     (AnalizeFeedbackRound, NO_MAJORITY): AnalizeFeedbackRound
     (AnalizeFeedbackRound, REFINE): PullMemesRound
     (AnalizeFeedbackRound, ROUND_TIMEOUT): AnalizeFeedbackRound
-    (CheckFundsRound, DONE): DeploymentRound
+    (CheckFundsRound, DONE): FinishedToSettlementRound
     (CheckFundsRound, NO_FUNDS): CheckFundsRound
     (CheckFundsRound, NO_MAJORITY): CheckFundsRound
     (CheckFundsRound, ROUND_TIMEOUT): CheckFundsRound
@@ -67,7 +67,7 @@ transition_func:
     (DeploymentRound, ERROR): DeploymentRound
     (DeploymentRound, NO_MAJORITY): DeploymentRound
     (DeploymentRound, ROUND_TIMEOUT): DeploymentRound
-    (DeploymentRound, SETTLE): FinishedToSettlementRound
+    (DeploymentRound, SETTLE): CheckFundsRound
     (LoadDatabaseRound, DONE): PostTweetRound
     (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
     (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound

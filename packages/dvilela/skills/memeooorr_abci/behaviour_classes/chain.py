@@ -25,6 +25,7 @@ from copy import copy
 from datetime import datetime
 from typing import Generator, List, Optional, Tuple, Type, cast
 
+from packages.dvilela.contracts.meme.contract import MemeContract
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
@@ -58,8 +59,26 @@ SAFE_GAS = 0
 ZERO_VALUE = 0
 TWO_MINUTES = 120
 SUMMON_BLOCK_DELTA = 100000
+HTTP_OK = 200
+AVAILABLE_ACTIONS = ["heart", "unleash", "collect", "purge", "burn"]
 
-AVAILABLE_ACTIONS = ["hearth", "unleash", "collect", "purge", "burn"]
+TOKENS_QUERY = """
+query Tokens {
+  memeTokens {
+    items {
+      blockNumber
+      chain
+      heartCount
+      id
+      isUnleashed
+      liquidity
+      lpPairAddress
+      owner
+      timestamp
+    }
+  }
+}
+"""
 
 
 class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-ancestors
@@ -124,23 +143,23 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         return safe_tx_hash
 
-    def store_hearth(self, token_address):
-        """Store a new hearthed token to the db"""
-        # Load previously hearthed memes
-        db_data = yield from self._read_kv(keys=("hearthed_memes",))
+    def store_heart(self, token_address: str) -> Generator[None, None, None]:
+        """Store a new hearted token to the db"""
+        # Load previously hearted memes
+        db_data = yield from self._read_kv(keys=("hearted_memes",))
 
         if db_data is None:
             self.context.logger.error("Error while loading the database")
-            hearthed_memes = []
+            hearted_memes = []
         else:
-            hearthed_memes = json.loads(db_data["hearthed_memes"] or "[]")
+            hearted_memes = json.loads(db_data["hearted_memes"] or "[]")
 
-        # Write the new hearthed token
-        hearthed_memes.append(token_address)
+        # Write the new hearted token
+        hearted_memes.append(token_address)
         yield from self._write_kv(
-            {"hearthed_memes": json.dumps(hearthed_memes, sort_keys=True)}
+            {"hearted_memes": json.dumps(hearted_memes, sort_keys=True)}
         )
-        self.context.logger.info("Wrote latest hearthed token to db")
+        self.context.logger.info("Wrote latest hearted token to db")
 
 
 class CheckFundsBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
@@ -174,32 +193,6 @@ class CheckFundsBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             return Event.NO_FUNDS.value
 
         return Event.DONE.value
-
-    def get_native_balance(self) -> Generator[None, None, Optional[float]]:
-        """Get the native balance"""
-        self.context.logger.info(
-            f"Getting native balance for Safe {self.synchronized_data.safe_contract_address}"
-        )
-
-        ledger_api_response = yield from self.get_ledger_api_response(
-            performative=LedgerApiMessage.Performative.GET_STATE,
-            ledger_callable="get_balance",
-            account=self.synchronized_data.safe_contract_address,
-            chain_id=BASE_CHAIN_ID,
-        )
-
-        if ledger_api_response.performative != LedgerApiMessage.Performative.STATE:
-            self.context.logger.error(
-                f"Error while retrieving the native balance: {ledger_api_response}"
-            )
-            return None
-
-        balance = cast(float, ledger_api_response.state.body["get_balance_result"])
-        balance = balance / 10**18  # from wei
-
-        self.context.logger.error(f"Got native balance: {balance}")
-
-        return balance
 
 
 class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
@@ -246,6 +239,8 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         tx_hash = None
         tx_flag = "done"
         token_address = yield from self.get_token_address()
+        if not token_address:
+            return None, None, None
 
         # Read previous tokens from db
         db_data = yield from self._read_kv(keys=("tokens",))
@@ -262,7 +257,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         tokens.append(token_data)
         yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
         self.context.logger.info("Wrote latest token to db")
-        self.store_hearth(token_address)
+        self.store_heart(token_address)
 
         return tx_hash, tx_flag, token_address
 
@@ -280,7 +275,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,
             data=bytes.fromhex(data_hex),
-            value=int(self.params.deployment_amount_eth * 1e18),
+            value=int(self.synchronized_data.token_data["amount"] * 1e18),
         )
 
         self.context.logger.info(f"Deployment hash is {safe_tx_hash}")
@@ -303,7 +298,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             contract_callable="build_summon_tx",
             token_name=token_data["token_name"],
             token_ticker=token_data["token_ticker"],
-            total_supply=int(self.params.total_supply),
+            total_supply=int(token_data["token_supply"]),
             chain_id=BASE_CHAIN_ID,
         )
 
@@ -363,7 +358,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            meme_coins = yield from self.get_meme_coins()
+            meme_coins = yield from self.get_meme_coins_from_subgraph()
 
             payload = PullMemesPayload(
                 sender=self.context.agent_address,
@@ -376,7 +371,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         self.set_done()
 
-    def get_meme_coins(self) -> Generator[None, None, Optional[List]]:
+    def get_meme_coins_from_chain(self) -> Generator[None, None, Optional[List]]:
         """Get a list of meme coins"""
 
         current_block = yield from self.get_block_number()
@@ -450,75 +445,171 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         meme_coins = []
 
-        # Load previously hearthed memes
-        db_data = yield from self._read_kv(keys=("hearthed_memes",))
+        # Load previously hearted memes
+        db_data = yield from self._read_kv(keys=("hearted_memes",))
 
         if db_data is None:
             self.context.logger.error("Error while loading the database")
-            hearthed_memes = []
+            hearted_memes: List[str] = []
         else:
-            hearthed_memes = db_data["hearthed_memes"] or []
+            hearted_memes = db_data["hearted_memes"] or []
 
         for event in events:
             meme_address = event["token_address"]
+            available_actions = yield from self.get_meme_available_actions(
+                meme_address, hearted_memes
+            )
+            meme_coin = {"token_address": meme_address, "actions": available_actions}
+            meme_coins.append(meme_coin)
 
-            # Use the contract api to interact with the factory contract
+        self.context.logger.info(f"Analyzed meme coins: {meme_coins}")
+
+        return meme_coins
+
+    def get_meme_coins_from_subgraph(self) -> Generator[None, None, Optional[List]]:
+        """Get a list of meme coins"""
+
+        url = "https://memeooorr-subgraph-production.up.railway.app/"
+
+        query = {"query": TOKENS_QUERY}
+
+        headers = {"Content-Type": "application/json"}
+
+        # Make the HTTP request
+        response = yield from self.get_http_response(
+            method="POST", url=url, content=json.dumps(query).encode(), headers=headers
+        )
+
+        # Handle HTTP errors
+        if response.status_code != HTTP_OK:
+            self.context.logger.error(
+                f"Error while pulling the memes from subgraph: {response.body!r}"
+            )
+
+        # Load the response
+        response_json = json.loads(response.body)
+        meme_coins = [
+            {
+                "token_address": t["id"],
+                "liquidity": int(t["liquidity"]),
+                "heart_count": int(t["heartCount"]),
+                "is_unleashed": t["isUnleashed"],
+                "timestamp": t["timestamp"],
+            }
+            for t in response_json["data"]["memeTokens"]["items"]
+            if t["chain"] == "base"  # TODO: adapt to Celo
+        ]
+
+        enriched_meme_coins = yield from self.get_extra_meme_info(meme_coins)
+
+        self.context.logger.info(f"Got {len(enriched_meme_coins)} tokens")
+
+        return enriched_meme_coins
+
+    def get_extra_meme_info(self, meme_coins: List) -> Generator[None, None, List]:
+        """Get the meme coin names, symbols and other info"""
+
+        enriched_meme_coins = []
+
+        for meme_coin in meme_coins:
             response_msg = yield from self.get_contract_api_response(
                 performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-                contract_address=self.params.meme_factory_address,
-                contract_id=str(MemeFactoryContract.contract_id),
-                contract_callable="get_summon_data",
-                meme_address=meme_address,
+                contract_address=meme_coin["token_address"],
+                contract_id=str(MemeContract.contract_id),
+                contract_callable="get_token_data",
                 chain_id=BASE_CHAIN_ID,
             )
 
             # Check that the response is what we expect
             if response_msg.performative != ContractApiMessage.Performative.STATE:
                 self.context.logger.error(
-                    f"Could not get the memecoin summon data: {response_msg}"
+                    f"Error while getting the token data: {response_msg}"
                 )
                 continue
 
-            # Extract the data
-            summon_time_ts = cast(int, response_msg.state.body.get("summon_time", 0))
-            unleash_time_ts = cast(int, response_msg.state.body.get("unleash_time", 0))
+            meme_coin["token_name"] = response_msg.state.body.get("name")
+            meme_coin["token_ticker"] = response_msg.state.body.get("symbol")
+            meme_coin["token_supply"] = response_msg.state.body.get("total_supply")
+            meme_coin["decimals"] = response_msg.state.body.get("decimals")
 
-            self.context.logger.info(
-                f"Token {meme_address} summon_time_ts={summon_time_ts} unleash_time_ts={unleash_time_ts}"
+            # Load previously hearted memes
+            db_data = yield from self._read_kv(keys=("hearted_memes",))
+
+            if db_data is None:
+                self.context.logger.error("Error while loading the database")
+                hearted_memes: List[str] = []
+            else:
+                hearted_memes = db_data["hearted_memes"] or []
+
+            # Get available actions
+            available_actions = yield from self.get_meme_available_actions(
+                meme_coin["token_address"], hearted_memes
             )
+            meme_coin["available_actions"] = available_actions
 
-            # Get the times
-            now = datetime.fromtimestamp(self.get_sync_timestamp())
-            summon_time = datetime.fromtimestamp(summon_time_ts)
-            seconds_since_summon = (now - summon_time).total_seconds()
+            enriched_meme_coins.append(meme_coin)
 
-            available_actions = copy(AVAILABLE_ACTIONS)
+        return enriched_meme_coins
 
-            # We can unleash if it has not been unleashed
-            if unleash_time_ts != 0:
+    def get_meme_available_actions(
+        self, meme_address: str, hearted_memes: List[str]
+    ) -> Generator[None, None, Optional[List]]:
+        """Get the available actions"""
+
+        # Use the contract api to interact with the factory contract
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.params.meme_factory_address,
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_summon_data",
+            meme_address=meme_address,
+            chain_id=BASE_CHAIN_ID,
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the memecoin summon data: {response_msg}"
+            )
+            return None
+
+        # Extract the data
+        summon_time_ts = cast(int, response_msg.state.body.get("summon_time", 0))
+        unleash_time_ts = cast(int, response_msg.state.body.get("unleash_time", 0))
+
+        self.context.logger.info(
+            f"Token {meme_address} summon_time_ts={summon_time_ts} unleash_time_ts={unleash_time_ts}"
+        )
+
+        # Get the times
+        now = datetime.fromtimestamp(self.get_sync_timestamp())
+        summon_time = datetime.fromtimestamp(summon_time_ts)
+        seconds_since_summon = (now - summon_time).total_seconds()
+
+        available_actions = copy(AVAILABLE_ACTIONS)
+
+        is_unleashed = unleash_time_ts != 0
+
+        # We can unleash if it has not been unleashed
+        if is_unleashed:
+            available_actions.remove("unleash")
+
+        # We can heart during the first 48h
+        if is_unleashed or seconds_since_summon > 48 * 3600:
+            available_actions.remove("heart")
+
+        # We use 47.5 to be on the safe side
+        if seconds_since_summon < 47.5 * 3600:
+            if "unleash" in available_actions:
                 available_actions.remove("unleash")
+            available_actions.remove("purge")
+            available_actions.remove("burn")
 
-            # We can hearth during the first 48h
-            if seconds_since_summon > 48 * 3600:
-                available_actions.remove("hearth")
+            # We can collect if we have hearted this token
+            if meme_address not in hearted_memes:
+                available_actions.remove("collect")
 
-            # We use 47.5 to be on the safe side
-            if seconds_since_summon < 47.5 * 3600:
-                available_actions.remove("unleash")
-                available_actions.remove("purge")
-                available_actions.remove("burn")
-
-                # We can collect if we have hearthed this token
-                if meme_address not in hearthed_memes:
-                    available_actions.remove("collect")
-
-            meme_coin = {"token_address": meme_address, "actions": available_actions}
-
-            meme_coins.append(meme_coin)
-
-        self.context.logger.info(f"Analyzed meme coins: {meme_coins}")
-
-        return meme_coins
+        return available_actions
 
 
 class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
@@ -604,8 +695,8 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         # Prepare safe transaction
         value = (
             ZERO_VALUE
-            if action != "hearth"
-            else self.params.hearth_amount_eth * int(1e18)
+            if action != "heart"
+            else int(float(token_action["token_address"]) * 1e18)
         )  # to wei
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,
@@ -613,10 +704,10 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             value=value,
         )
 
-        # Optimistic design: we now store the hearthed token address
-        # Ideally, this should be done after a succesful hearth transaction
-        if action == "hearth":
-            self.store_hearth(token_address)
+        # Optimistic design: we now store the hearted token address
+        # Ideally, this should be done after a succesful heart transaction
+        if action == "heart":
+            self.store_heart(token_address)
 
         tx_flag = "action"
         return safe_tx_hash, tx_flag
