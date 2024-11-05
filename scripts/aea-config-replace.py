@@ -44,11 +44,9 @@ PATH_TO_VAR = {
     "models/params/args/on_chain_service_id": "ON_CHAIN_SERVICE_ID",
     "models/params/args/minimum_gas_balance": "MINIMUM_GAS_BALANCE",
     "models/params/args/min_feedback_replies": "MIN_FEEDBACK_REPLIES",
-    "models/params/args/total_supply": "TOTAL_SUPPLY",
     "models/params/args/meme_factory_address": "MEME_FACTORY_ADDRESS",
     "models/params/args/setup/safe_contract_address": "SAFE_CONTRACT_ADDRESS",
     "models/params/args/feedback_period_hours": "FEEDBACK_PERIOD_HOURS",
-    "models/params/args/deployment_amount_eth": "DEPLOYMENT_AMOUNT_ETH",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",
