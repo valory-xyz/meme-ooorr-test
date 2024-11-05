@@ -298,6 +298,8 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
             token_data = {
                 "token_name": analysis["token_name"],
                 "token_ticker": analysis["token_ticker"],
+                "token_supply": analysis["token_supply"],
+                "amount": analysis["amount"],
                 "tweet": analysis["tweet"],
             }
             synchronized_data = self.synchronized_data.update(
@@ -518,6 +520,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
                 token_action = {
                     "token_address": payload.token_address,
                     "action": payload.action,
+                    "amount": payload.amount,
                     "tweet": payload.tweet,
                 }
 

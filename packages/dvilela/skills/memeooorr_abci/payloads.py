@@ -84,6 +84,7 @@ class ActionDecisionPayload(BaseTxPayload):
     event: str
     token_address: Optional[str]
     action: Optional[str]
+    amount: Optional[float]
     tweet: Optional[str]
 
 
