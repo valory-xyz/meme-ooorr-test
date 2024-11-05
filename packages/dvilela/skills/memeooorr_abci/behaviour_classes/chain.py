@@ -143,7 +143,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         return safe_tx_hash
 
-    def store_hearth(self, token_address):
+    def store_hearth(self, token_address: str) -> Generator[None, None, None]:
         """Store a new hearthed token to the db"""
         # Load previously hearthed memes
         db_data = yield from self._read_kv(keys=("hearthed_memes",))
@@ -265,6 +265,8 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         tx_hash = None
         tx_flag = "done"
         token_address = yield from self.get_token_address()
+        if not token_address:
+            return None, None, None
 
         # Read previous tokens from db
         db_data = yield from self._read_kv(keys=("tokens",))
@@ -474,7 +476,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         if db_data is None:
             self.context.logger.error("Error while loading the database")
-            hearthed_memes = []
+            hearthed_memes: List[str] = []
         else:
             hearthed_memes = db_data["hearthed_memes"] or []
 
@@ -505,7 +507,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         # Handle HTTP errors
         if response.status_code != HTTP_OK:
             self.context.logger.error(
-                f"Error while pulling the memes from subgraph: {response.body}"
+                f"Error while pulling the memes from subgraph: {response.body!r}"
             )
 
         # Load the response
@@ -559,7 +561,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
             if db_data is None:
                 self.context.logger.error("Error while loading the database")
-                hearthed_memes = []
+                hearthed_memes: List[str] = []
             else:
                 hearthed_memes = db_data["hearthed_memes"] or []
 
@@ -574,7 +576,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         return enriched_meme_coins
 
     def get_meme_available_actions(
-        self, meme_address, hearthed_memes
+        self, meme_address: str, hearthed_memes: List[str]
     ) -> Generator[None, None, Optional[List]]:
         """Get the available actions"""
 
