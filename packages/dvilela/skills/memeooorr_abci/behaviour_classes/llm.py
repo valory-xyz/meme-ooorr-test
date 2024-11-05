@@ -45,15 +45,19 @@ from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 JSON_RESPONSE_REGEX = r"json({.*})"
 
-TOKEN_SUMMARY = """
-token_name: {token_name}
-token_symbol: {token_symbol}
-total supply: {total_supply}
-decimals: {decimals}
-heath count: {heart_count}
-liquidity: {liquidity}
-available actions: {available_actions}
-"""
+# fmt: off
+TOKEN_SUMMARY = (  # nosec
+    """
+    token_name: {token_name}
+    token_symbol: {token_symbol}
+    total supply: {total_supply}
+    decimals: {decimals}
+    heath count: {heart_count}
+    liquidity: {liquidity}
+    available actions: {available_actions}
+    """
+)
+# fmt: on
 
 
 class AnalizeFeedbackBehaviour(
@@ -92,7 +96,9 @@ class AnalizeFeedbackBehaviour(
             ]
         )
 
-        native_balance = yield from self.get_native_balance() or 0
+        native_balance = yield from self.get_native_balance()
+        if not native_balance:
+            native_balance = 0
 
         prompt_data = {
             "latest_tweet": self.synchronized_data.latest_tweet["text"],
@@ -199,7 +205,9 @@ class ActionDecisionBehaviour(
 
         valid_addreses = [c["token_address"] for c in self.synchronized_data.meme_coins]
 
-        native_balance = yield from self.get_native_balance() or 0
+        native_balance = yield from self.get_native_balance()
+        if not native_balance:
+            native_balance = 0
 
         prompt_data = {"meme_coins": meme_coins, "balance": native_balance}
 
