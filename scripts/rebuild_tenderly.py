@@ -192,15 +192,15 @@ def update_rpc_variable(new_value: str, chain: str = "BASE"):
         file.write(content)
 
     # globals.json
-    globals_file = "globals.json"
+    # globals_file = "globals.json"
 
-    with open(globals_file, "r", encoding="utf-8") as file:
-        content = json.load(file)
+    # with open(globals_file, "r", encoding="utf-8") as file:
+    #     content = json.load(file)
 
-    content["networkURL"] = new_value
+    # content["networkURL"] = new_value
 
-    with open(globals_file, "w", encoding="utf-8") as file:
-        json.dump(content, file, indent=4)
+    # with open(globals_file, "w", encoding="utf-8") as file:
+    #     json.dump(content, file, indent=4)
 
     # hardhat.config
     pattern = r'base: {\n\s+url: "(.*)",'

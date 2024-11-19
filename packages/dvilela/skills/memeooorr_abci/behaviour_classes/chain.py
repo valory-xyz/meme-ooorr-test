@@ -485,6 +485,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             self.context.logger.error(
                 f"Error while pulling the memes from subgraph: {response.body!r}"
             )
+            return []
 
         # Load the response
         response_json = json.loads(response.body)
