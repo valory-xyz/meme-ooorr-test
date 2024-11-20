@@ -88,6 +88,7 @@ extra:
         olas_token_address: ${OLAS_TOKEN_ADDRESS:str:0x54330d28ca3357F294334BDC454a032e7f353416}
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
         feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
+        home_chain_id: ${HOME_CHAIN_ID:str:BASE}
 ---
 public_id: valory/ledger:0.19.0
 type: connection
