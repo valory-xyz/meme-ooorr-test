@@ -115,7 +115,7 @@ OUTPUT_FORMAT
 * The JSON must contain two fields: "action", and "tweet".
     - action: a string with the action you have decided to take. none means do nothing.
     - token_address: a string with the token address of the meme coin you selected, or empty if none
-    - amount: the amount (in ETH, not wei) to heart (invest) if the action is heart, or 0 otherwise
+    - amount: the amount (in wei units of {ticker}) to heart (invest) if the action is heart, or 0 otherwise
     - tweet: a short tweet to announce the action taken, or empty if none
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```

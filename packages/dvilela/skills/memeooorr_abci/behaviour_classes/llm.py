@@ -105,6 +105,7 @@ class AnalizeFeedbackBehaviour(
             "tweet_responses": tweet_responses,
             "persona": self.get_persona(),
             "balance": native_balance,
+            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO"
         }
 
         llm_response = yield from self._call_genai(
@@ -209,7 +210,11 @@ class ActionDecisionBehaviour(
         if not native_balance:
             native_balance = 0
 
-        prompt_data = {"meme_coins": meme_coins, "balance": native_balance}
+        prompt_data = {
+            "meme_coins": meme_coins,
+            "balance": native_balance,
+            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO"
+        }
 
         llm_response = yield from self._call_genai(
             prompt=ACTION_DECISION_PROMPT.format(**prompt_data)
