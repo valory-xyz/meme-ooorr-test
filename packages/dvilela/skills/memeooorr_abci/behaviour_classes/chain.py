@@ -275,7 +275,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,
             data=bytes.fromhex(data_hex),
-            value=int(self.synchronized_data.token_data["amount"] * 1e18),
+            value=int(self.synchronized_data.token_data["amount"]),
         )
 
         self.context.logger.info(f"Deployment hash is {safe_tx_hash}")
@@ -697,7 +697,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         value = (
             ZERO_VALUE
             if action != "heart"
-            else int(float(token_action["token_address"]) * 1e18)
+            else int(token_action["amount"])
         )  # to wei
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,
