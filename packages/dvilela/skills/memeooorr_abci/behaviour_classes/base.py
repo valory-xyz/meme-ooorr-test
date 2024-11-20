@@ -43,9 +43,6 @@ from packages.dvilela.protocols.kv_store.dialogues import (
     KvStoreDialogues,
 )
 from packages.dvilela.protocols.kv_store.message import KvStoreMessage
-from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
-    AVAILABLE_ACTIONS,
-)
 from packages.dvilela.skills.memeooorr_abci.models import Params, SharedState
 from packages.dvilela.skills.memeooorr_abci.rounds import SynchronizedData
 from packages.valory.protocols.contract_api import ContractApiMessage
@@ -59,6 +56,7 @@ from packages.valory.skills.abstract_round_abci.models import Requests
 BASE_CHAIN_ID = "base"
 CELO_CHAIN_ID = "celo"
 HTTP_OK = 200
+AVAILABLE_ACTIONS = ["heart", "unleash", "collect", "purge", "burn"]
 
 
 TOKENS_QUERY = """

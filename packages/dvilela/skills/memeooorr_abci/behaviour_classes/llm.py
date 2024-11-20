@@ -101,12 +101,13 @@ class AnalizeFeedbackBehaviour(
             native_balance = 0
 
         meme_coins = yield from self.get_meme_coins_from_subgraph()
+        n_memes = len(meme_coins) if meme_coins else "unknown"
 
         prompt_data = {
             "latest_tweet": self.synchronized_data.latest_tweet["text"],
             "tweet_responses": tweet_responses,
             "persona": self.get_persona(),
-            "n_memes": len(meme_coins),
+            "n_memes": n_memes,
             "balance": native_balance,
             "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
         }
