@@ -21,11 +21,12 @@
 
 import json
 from abc import ABC
-from typing import Any, Dict, Generator, Optional, Tuple, cast, List
 from copy import copy
 from datetime import datetime
+from typing import Any, Dict, Generator, List, Optional, Tuple, cast
+
 from aea.protocols.base import Message
-from packages.valory.protocols.contract_api import ContractApiMessage
+
 from packages.dvilela.connections.genai.connection import (
     PUBLIC_ID as GENAI_CONNECTION_PUBLIC_ID,
 )
@@ -35,21 +36,24 @@ from packages.dvilela.connections.kv_store.connection import (
 from packages.dvilela.connections.twikit.connection import (
     PUBLIC_ID as TWIKIT_CONNECTION_PUBLIC_ID,
 )
+from packages.dvilela.contracts.meme.contract import MemeContract
+from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.protocols.kv_store.dialogues import (
     KvStoreDialogue,
     KvStoreDialogues,
 )
 from packages.dvilela.protocols.kv_store.message import KvStoreMessage
+from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
+    AVAILABLE_ACTIONS,
+)
 from packages.dvilela.skills.memeooorr_abci.models import Params, SharedState
 from packages.dvilela.skills.memeooorr_abci.rounds import SynchronizedData
+from packages.valory.protocols.contract_api import ContractApiMessage
 from packages.valory.protocols.ledger_api import LedgerApiMessage
 from packages.valory.protocols.srr.dialogues import SrrDialogue, SrrDialogues
 from packages.valory.protocols.srr.message import SrrMessage
 from packages.valory.skills.abstract_round_abci.behaviours import BaseBehaviour
 from packages.valory.skills.abstract_round_abci.models import Requests
-from packages.dvilela.contracts.meme.contract import MemeContract
-from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
-from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import AVAILABLE_ACTIONS
 
 
 BASE_CHAIN_ID = "base"
@@ -293,7 +297,6 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         return available_actions
 
-
     def get_extra_meme_info(self, meme_coins: List) -> Generator[None, None, List]:
         """Get the meme coin names, symbols and other info"""
 
@@ -379,7 +382,6 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         self.context.logger.info(f"Got {len(enriched_meme_coins)} tokens")
 
         return enriched_meme_coins
-
 
     def get_chain_id(self) -> str:
         """Get chain id"""

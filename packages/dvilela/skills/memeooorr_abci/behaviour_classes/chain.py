@@ -526,9 +526,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
 
         # Prepare safe transaction
         value = (
-            ZERO_VALUE
-            if action != "heart"
-            else int(token_action["amount"])
+            ZERO_VALUE if action != "heart" else int(token_action["amount"])
         )  # to wei
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,

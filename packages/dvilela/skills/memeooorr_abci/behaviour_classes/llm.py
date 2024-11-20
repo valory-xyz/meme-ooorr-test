@@ -108,7 +108,7 @@ class AnalizeFeedbackBehaviour(
             "persona": self.get_persona(),
             "n_memes": len(meme_coins),
             "balance": native_balance,
-            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO"
+            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
         }
 
         llm_response = yield from self._call_genai(
@@ -216,7 +216,7 @@ class ActionDecisionBehaviour(
         prompt_data = {
             "meme_coins": meme_coins,
             "balance": native_balance,
-            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO"
+            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
         }
 
         llm_response = yield from self._call_genai(
