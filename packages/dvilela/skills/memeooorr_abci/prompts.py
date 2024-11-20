@@ -46,7 +46,9 @@ Here's a list of tweets that were received as a response to that latest tweet an
 Here's your current persona:
 "{persona}"
 
-If you feel engagement is good enough, create a token based on your persona.
+Currently, there are {n_memes} meme coins in the market.
+
+If you feel engagement is good enough, or if there only a few meme coins in the market, create a token based on your persona.
 If not, use the tweets as feedback in order to update your persona.
 
 You have {balance} {ticker} currently available. If you decide to deploy a token, also decide how much {ticker} you should invest in it.
