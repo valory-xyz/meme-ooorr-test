@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeibkfosgpuxtob5q2qowndxax7dnjjiuudy6cxiygeugvhirzkzvc4
+agent: dvilela/memeooorr:0.1.0:bafybeifds7gxnojnilszdqeudu7pcsifwldff7z574lugb6m5rl4n4xqgq
 number_of_agents: 1
 deployment:
   agent:
@@ -88,6 +88,7 @@ extra:
         olas_token_address: ${OLAS_TOKEN_ADDRESS:str:0x54330d28ca3357F294334BDC454a032e7f353416}
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
         feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
+        home_chain_id: ${HOME_CHAIN_ID:str:BASE}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

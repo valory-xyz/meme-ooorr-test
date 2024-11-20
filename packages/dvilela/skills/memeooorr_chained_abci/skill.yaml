@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/termination_abci:0.1.0:bafybeid54buqxipiuduw7b6nnliiwsxajnltseuroad53wukfonpxca2om
-- dvilela/memeooorr_abci:0.1.0:bafybeiag7hkxl27vl6ylvkl7375vxkpu46jn75vxi5r2bonytzfk4xpsk4
+- dvilela/memeooorr_abci:0.1.0:bafybeickb2ij4cgrzagrfwtn6psnb43jl3w7gjpu4pmswccga2nwxpjo2m
 behaviours:
   main:
     args: {}
@@ -147,6 +147,7 @@ models:
       olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
       persona: a cat lover that is crazy about all-things cats.
       feedback_period_hours: 3
+      home_chain_id: BASE
     class_name: Params
   randomness_api:
     args:
