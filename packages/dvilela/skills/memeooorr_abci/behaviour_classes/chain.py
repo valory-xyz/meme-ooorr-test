@@ -469,7 +469,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
     def get_meme_coins_from_subgraph(self) -> Generator[None, None, Optional[List]]:
         """Get a list of meme coins"""
 
-        url = "https://memeooorr-subgraph-production.up.railway.app/"
+        url = "https://agentsfun-base-production.up.railway.app"
 
         query = {"query": TOKENS_QUERY}
 
