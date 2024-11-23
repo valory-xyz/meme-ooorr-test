@@ -20,6 +20,7 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
+import re
 from abc import ABC
 from copy import copy
 from datetime import datetime
@@ -57,6 +58,7 @@ BASE_CHAIN_ID = "base"
 CELO_CHAIN_ID = "celo"
 HTTP_OK = 200
 AVAILABLE_ACTIONS = ["heart", "unleash", "collect", "purge", "burn"]
+MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr (@\w+)$"
 
 
 TOKENS_QUERY = """
@@ -74,6 +76,22 @@ query Tokens {
       timestamp
     }
   }
+}
+"""
+
+PACKAGE_QUERY = """
+query getPackages($package_type: String!) {
+    units(where: {packageType: $package_type}) {
+        id,
+        packageType,
+        publicId,
+        packageHash,
+        tokenId,
+        metadataHash,
+        description,
+        owner,
+        image
+    }
 }
 """
 
@@ -384,3 +402,53 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
     def get_chain_id(self) -> str:
         """Get chain id"""
         return BASE_CHAIN_ID if self.params.home_chain_id == "BASE" else CELO_CHAIN_ID
+
+    def get_packages(self, package_type: str) -> Generator[None, None, Optional[Dict]]:
+        """Gets minted packages from the Olas subgraph"""
+
+        self.context.logger.info("Getting packages from Olas subgraph...")
+
+        SUBGRAPH_URL = "https://subgraph.autonolas.tech/subgraphs/name/autonolas"
+
+        headers = {
+            "Content-Type": "application/json",
+        }
+
+        data = {
+            "query": PACKAGE_QUERY,
+            "variables": {
+                "package_type": package_type,
+            },
+        }
+
+        # Get all existing agents from the subgraph
+        self.context.logger.info("Getting agents from subgraph")
+        response = yield from self.get_http_response(  # type: ignore
+            method="POST",
+            url=SUBGRAPH_URL,
+            headers=headers,
+            content=json.dumps(data).encode(),
+        )
+
+        if response.status_code != HTTP_OK:  # type: ignore
+            self.context.logger.error(
+                f"Error getting agents from subgraph: {response}"  # type: ignore
+            )
+            return None
+
+        response_json = json.loads(response.body)["data"]  # type: ignore
+        return response_json
+
+    def get_memeooorr_handles(self):
+        """Get Memeooorr service handles"""
+        handles = []
+        services = yield from self.get_packages("service")
+        if not services:
+            return handles
+
+        for service in services["data"]["units"]:
+            match = re.match(MEMEOOORR_DESCRIPTION_PATTERN, service["description"])
+            if match:
+                handle = match.group(1)
+                handles.append(handle)
+        return handles
