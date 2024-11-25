@@ -28,12 +28,17 @@ from twitter_text import parse_tweet  # type: ignore
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import (
+    DEFAULT_TWEET_PROMPT,
+    ENGAGEMENT_TWEET_PROMPT,
+)
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionTweetPayload,
     ActionTweetRound,
     CollectFeedbackPayload,
     CollectFeedbackRound,
+    EngagePayload,
+    EngageRound,
     Event,
     PostAnnouncementRound,
     PostTweetPayload,
@@ -275,3 +280,86 @@ class ActionTweetBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ance
         self.context.logger.info("Sending the action tweet...")
         latest_tweet = yield from self.post_tweet(tweet=[pending_tweet], store=False)
         return Event.DONE.value if latest_tweet else Event.ERROR.value
+
+
+class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
+    """EngageBehaviour"""
+
+    matching_round: Type[AbstractRound] = EngageRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            event = yield from self.get_event()
+
+            payload = EngagePayload(
+                sender=self.context.agent_address,
+                event=event,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+    def get_event(self) -> Generator[None, None, str]:
+        """Get the next event"""
+
+        # Get other memeooorr handles
+        agent_handles = yield from self.get_memeooorr_handles()
+
+        # Get their latest tweet
+        tweet_id_to_response = {}
+        for agent_handle in agent_handles:
+            latest_tweets = yield from self._call_twikit(
+                method="get_user_tweets",
+                twitter_handle=agent_handle,
+            )
+            tweet_id_to_response[latest_tweets[0]["id"]] = latest_tweets[0]["text"]
+
+        # Build and post responses
+        event = yield from self.respond_tweet(tweet_id_to_response)
+
+        return event
+
+    def respond_tweet(
+        self, tweet_id_to_response: Dict
+    ) -> Generator[None, None, Optional[str]]:
+        """Respond to tweets"""
+
+        self.context.logger.info("Preparing tweet responses...")
+        persona = self.get_persona()
+        tweets = "\n\n".join(
+            [
+                f"tweet id: {t_id}\ntweet: {t}"
+                for t_id, t in tweet_id_to_response.items()
+            ]
+        )
+
+        llm_response = yield from self._call_genai(
+            prompt=ENGAGEMENT_TWEET_PROMPT.format(persona=persona, tweets=tweets)
+        )
+        self.context.logger.info(f"LLM response: {llm_response}")
+
+        if llm_response is None:
+            self.context.logger.error("Error getting a response from the LLM.")
+            return None
+
+        json_response = json.loads(llm_response)
+
+        for response in json_response:
+            self.context.logger.info(f"Processing response: {response}")
+
+            if not is_tweet_valid(llm_response):
+                self.context.logger.error("The tweet is too long.")
+                continue
+
+            # Post the tweet
+            yield from self._call_twikit(
+                method="post",
+                tweets=[{"text": response["text"], "reply_to": response["id"]}],
+            )
+
+        return Event.DONE.value

@@ -89,6 +89,7 @@ extra:
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
         feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
         home_chain_id: ${HOME_CHAIN_ID:str:BASE}
+        twitter_username: ${TWIKIT_USERNAME:str:null}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

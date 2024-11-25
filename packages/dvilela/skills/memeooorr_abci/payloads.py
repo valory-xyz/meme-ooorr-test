@@ -108,3 +108,10 @@ class TransactionMultiplexerPayload(BaseTxPayload):
     """Represent a transaction payload for the TransactionMultiplexerRound."""
 
     event: str
+
+
+@dataclass(frozen=True)
+class EngagePayload(BaseTxPayload):
+    """Represent a transaction payload for the EngageRound."""
+
+    event: str

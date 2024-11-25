@@ -198,7 +198,7 @@ class TwikitConnection(BaseSyncConnection):
         """Get response from Genai."""
 
         REQUIRED_PROPERTIES = ["method", "kwargs"]
-        AVAILABLE_METHODS = ["search", "post"]
+        AVAILABLE_METHODS = ["search", "post", "get_user_tweets"]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
             return {
@@ -354,6 +354,17 @@ class TwikitConnection(BaseSyncConnection):
             except Exception as e:
                 self.logger.error(f"Failed to delete the tweet: {e}. Retrying...")
                 retries += 1
+
+    async def get_user_tweets(
+        self, twitter_handle: str, tweet_type: str = "Tweets", count: int = 1
+    ) -> None:
+        """Get user tweets"""
+
+        user = await self.client.get_user_by_screen_name(twitter_handle)
+        tweets = await self.client.get_user_tweets(
+            user=user.id, tweet_type=tweet_type, count=count
+        )
+        return [tweet_to_json(t) for t in tweets]
 
 
 def tweet_to_json(tweet: Any) -> Dict:

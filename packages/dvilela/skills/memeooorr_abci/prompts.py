@@ -123,3 +123,24 @@ OUTPUT_FORMAT
 * This is incorrect:```json"{{response}}"```
 * This is correct:"{{response}}"
 """
+
+ENGAGEMENT_TWEET_PROMPT = """
+You are a user on Twitter responding to tweets from other users. You create responses.
+You receive a list of tweet ids and tweets from those users and you craft responses to those based on your persona.
+
+Here's your persona:
+"{persona}"
+
+Here's a list of the latest tweets:
+
+{tweets}
+
+OUTPUT_FORMAT
+* Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
+* The JSON must be a list containing your tweet responses. Each response needs to contain two fields only: "user", and "tweet".
+    - id: the id of the tweet you are responding to.
+    - text: a short response to the tweet
+* This is incorrect:"```json{{response}}```"
+* This is incorrect:```json"{{response}}"```
+* This is correct:"{{response}}"
+"""

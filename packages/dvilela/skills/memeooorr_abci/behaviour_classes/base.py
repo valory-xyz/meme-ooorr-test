@@ -448,7 +448,15 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         for service in services["data"]["units"]:
             match = re.match(MEMEOOORR_DESCRIPTION_PATTERN, service["description"])
-            if match:
-                handle = match.group(1)
-                handles.append(handle)
+
+            if not match:
+                continue
+
+            handle = match.group(1)
+
+            # Exclude my own username
+            if handle != self.params.twitter_username:
+                continue
+
+            handles.append(handle)
         return handles

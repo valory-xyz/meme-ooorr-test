@@ -156,6 +156,7 @@ models:
       persona: a cat lover that is crazy about all-things cats.
       feedback_period_hours: 3
       home_chain_id: BASE
+      twitter_username: dummy_twitter_name
     class_name: Params
   requests:
     args: {}
