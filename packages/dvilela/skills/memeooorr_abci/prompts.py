@@ -137,8 +137,8 @@ Here's a list of the latest tweets:
 
 OUTPUT_FORMAT
 * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
-* The JSON must be a list containing your tweet responses. Each response needs to contain two fields only: "user", and "tweet".
-    - id: the id of the tweet you are responding to.
+* The JSON must be a list containing your tweet responses. Each response needs to contain two fields only: "tweet_id", and "text".
+    - tweet_id: the id of the tweet you are responding to.
     - text: a short response to the tweet
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```

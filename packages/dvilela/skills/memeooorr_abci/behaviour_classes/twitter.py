@@ -20,8 +20,9 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
+import re
 from datetime import datetime
-from typing import Dict, Generator, List, Optional, Type
+from typing import Dict, Generator, List, Optional, Type, Union
 
 from twitter_text import parse_tweet  # type: ignore
 
@@ -48,6 +49,22 @@ from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
 MAX_TWEET_CHARS = 280
+JSON_RESPONSE_REGEXES = [r"json({.*})", r"\`\`\`json(.*)\`\`\`"]
+
+
+def parse_json_from_llm(response) -> Optional[Union[Dict, List]]:
+    """Parse JSON from LLM response"""
+    for JSON_RESPONSE_REGEX in JSON_RESPONSE_REGEXES:
+        match = re.search(JSON_RESPONSE_REGEX, response, re.DOTALL)
+        if not match:
+            continue
+
+        try:
+            loaded_response = json.loads(match.groups()[0])
+            return loaded_response
+        except json.JSONDecodeError:
+            continue
+    return None
 
 
 def is_tweet_valid(tweet: str) -> bool:
@@ -319,6 +336,11 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             )
             tweet_id_to_response[latest_tweets[0]["id"]] = latest_tweets[0]["text"]
 
+
+        if not tweet_id_to_response:
+            self.context.logger.info("There are no tweets from other agents yet")
+            return Event.DONE.value
+
         # Build and post responses
         event = yield from self.respond_tweet(tweet_id_to_response)
 
@@ -333,7 +355,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         persona = self.get_persona()
         tweets = "\n\n".join(
             [
-                f"tweet id: {t_id}\ntweet: {t}"
+                f"tweet_id: {t_id}\ntweet: {t}"
                 for t_id, t in tweet_id_to_response.items()
             ]
         )
@@ -347,7 +369,10 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             self.context.logger.error("Error getting a response from the LLM.")
             return None
 
-        json_response = json.loads(llm_response)
+        json_response = parse_json_from_llm(llm_response)
+
+        if not json_response:
+            return Event.ERROR.value
 
         for response in json_response:
             self.context.logger.info(f"Processing response: {response}")
@@ -359,7 +384,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             # Post the tweet
             yield from self._call_twikit(
                 method="post",
-                tweets=[{"text": response["text"], "reply_to": response["id"]}],
+                tweets=[{"text": response["text"], "reply_to": response["tweet_id"]}],
             )
 
         return Event.DONE.value

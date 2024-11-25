@@ -446,7 +446,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         if not services:
             return handles
 
-        for service in services["data"]["units"]:
+        for service in services["units"]:
             match = re.match(MEMEOOORR_DESCRIPTION_PATTERN, service["description"])
 
             if not match:
