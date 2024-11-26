@@ -336,7 +336,6 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             )
             tweet_id_to_response[latest_tweets[0]["id"]] = latest_tweets[0]["text"]
 
-
         if not tweet_id_to_response:
             self.context.logger.info("There are no tweets from other agents yet")
             return Event.DONE.value
