@@ -18,6 +18,8 @@
 #
 # ------------------------------------------------------------------------------
 
+"""Test twikit"""
+
 
 import asyncio
 import json
@@ -42,7 +44,7 @@ def tweet_to_json(tweet: Any) -> Dict:
     }
 
 
-async def get_tweets():
+async def get_tweets() -> None:
     """Get tweets"""
 
     with open(Path("twikit_cookies.json"), "r", encoding="utf-8") as cookies_file:
@@ -53,11 +55,11 @@ async def get_tweets():
 
         user = await client.get_user_by_screen_name(screen_name="percebot")
 
-        tweets = await client.get_user_tweets(
+        latest_tweets = await client.get_user_tweets(
             user_id=user.id, tweet_type="Tweets", count=1
         )
 
-        return [tweet_to_json(t) for t in tweets]
+        return [tweet_to_json(t) for t in latest_tweets]
 
 
 tweets = asyncio.run(get_tweets())
