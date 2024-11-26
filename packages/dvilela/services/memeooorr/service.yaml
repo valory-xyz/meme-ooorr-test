@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeigdvkzky4dqg642nqb42xebhjqluqsak2sksct7clvrwvgrmkqmau
+agent: dvilela/memeooorr:0.1.0:bafybeibngwwiaisodx5rcgp2mhez7jnkk7nhwn5agqaiyil7zcd43vxvee
 number_of_agents: 1
 deployment:
   agent:
@@ -89,6 +89,7 @@ extra:
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
         feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
         home_chain_id: ${HOME_CHAIN_ID:str:BASE}
+        twitter_username: ${TWIKIT_USERNAME:str:null}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

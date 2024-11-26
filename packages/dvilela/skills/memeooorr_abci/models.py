@@ -59,5 +59,6 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.persona = self._ensure("persona", kwargs, str)
         self.feedback_period_hours = self._ensure("feedback_period_hours", kwargs, int)
         self.home_chain_id = self._ensure("home_chain_id", kwargs, str)
+        self.twitter_username = self._ensure("twitter_username", kwargs, str)
 
         super().__init__(*args, **kwargs)

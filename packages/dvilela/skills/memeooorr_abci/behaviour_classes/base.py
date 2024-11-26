@@ -439,16 +439,24 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         response_json = json.loads(response.body)["data"]  # type: ignore
         return response_json
 
-    def get_memeooorr_handles(self):
+    def get_memeooorr_handles(self) -> Generator[None, None, List[str]]:
         """Get Memeooorr service handles"""
-        handles = []
+        handles: List[str] = []
         services = yield from self.get_packages("service")
         if not services:
             return handles
 
-        for service in services["data"]["units"]:
+        for service in services["units"]:
             match = re.match(MEMEOOORR_DESCRIPTION_PATTERN, service["description"])
-            if match:
-                handle = match.group(1)
-                handles.append(handle)
+
+            if not match:
+                continue
+
+            handle = match.group(1)
+
+            # Exclude my own username
+            if handle != self.params.twitter_username:
+                continue
+
+            handles.append(handle)
         return handles

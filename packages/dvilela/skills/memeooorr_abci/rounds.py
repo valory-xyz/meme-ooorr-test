@@ -31,6 +31,7 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     CheckFundsPayload,
     CollectFeedbackPayload,
     DeploymentPayload,
+    EngagePayload,
     LoadDatabasePayload,
     PostTweetPayload,
     PullMemesPayload,
@@ -604,6 +605,16 @@ class TransactionMultiplexerRound(EventRoundBase):
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.TO_DEPLOY, Event.TO_ACTION_TWEET
 
 
+class EngageRound(EventRoundBase):
+    """EngageRound"""
+
+    payload_class = EngagePayload  # type: ignore
+    synchronized_data_class = SynchronizedData
+
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
+
 class FinishedToResetRound(DegenerateRound):
     """FinishedToResetRound"""
 
@@ -665,28 +676,34 @@ class MemeooorrAbciApp(AbciApp[Event]):
         PullMemesRound: {
             Event.DONE: ActionDecisionRound,
             Event.ERROR: PullMemesRound,
-            Event.NO_MEMES: FinishedToResetRound,
+            Event.NO_MEMES: EngageRound,
             Event.NO_MAJORITY: PullMemesRound,
             Event.ROUND_TIMEOUT: PullMemesRound,
         },
         ActionDecisionRound: {
             Event.DONE: ActionPreparationRound,
-            Event.WAIT: FinishedToResetRound,
+            Event.WAIT: EngageRound,
             Event.NO_MAJORITY: ActionDecisionRound,
             Event.ROUND_TIMEOUT: ActionDecisionRound,
         },
         ActionPreparationRound: {
             Event.DONE: ActionTweetRound,  # This will never happen
-            Event.ERROR: FinishedToResetRound,
+            Event.ERROR: EngageRound,
             Event.SETTLE: CheckFundsRound,
             Event.NO_MAJORITY: ActionPreparationRound,
             Event.ROUND_TIMEOUT: ActionPreparationRound,
         },
         ActionTweetRound: {
-            Event.DONE: FinishedToResetRound,
+            Event.DONE: EngageRound,
             Event.ERROR: ActionTweetRound,
             Event.NO_MAJORITY: ActionTweetRound,
             Event.ROUND_TIMEOUT: ActionTweetRound,
+        },
+        EngageRound: {
+            Event.DONE: FinishedToResetRound,
+            Event.ERROR: EngageRound,
+            Event.NO_MAJORITY: EngageRound,
+            Event.ROUND_TIMEOUT: EngageRound,
         },
         CheckFundsRound: {
             Event.DONE: FinishedToSettlementRound,
