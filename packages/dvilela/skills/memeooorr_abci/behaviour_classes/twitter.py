@@ -52,7 +52,7 @@ MAX_TWEET_CHARS = 280
 JSON_RESPONSE_REGEXES = [r"json({.*})", r"\`\`\`json(.*)\`\`\`"]
 
 
-def parse_json_from_llm(response) -> Optional[Union[Dict, List]]:
+def parse_json_from_llm(response: str) -> Optional[Union[Dict, List]]:
     """Parse JSON from LLM response"""
     for JSON_RESPONSE_REGEX in JSON_RESPONSE_REGEXES:
         match = re.search(JSON_RESPONSE_REGEX, response, re.DOTALL)
@@ -345,9 +345,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
         return event
 
-    def respond_tweet(
-        self, tweet_id_to_response: Dict
-    ) -> Generator[None, None, Optional[str]]:
+    def respond_tweet(self, tweet_id_to_response: Dict) -> Generator[None, None, str]:
         """Respond to tweets"""
 
         self.context.logger.info("Preparing tweet responses...")
@@ -366,7 +364,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
-            return None
+            return Event.ERROR.value
 
         json_response = parse_json_from_llm(llm_response)
 

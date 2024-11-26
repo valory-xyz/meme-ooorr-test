@@ -357,7 +357,7 @@ class TwikitConnection(BaseSyncConnection):
 
     async def get_user_tweets(
         self, twitter_handle: str, tweet_type: str = "Tweets", count: int = 1
-    ) -> None:
+    ) -> List[Dict]:
         """Get user tweets"""
 
         user = await self.client.get_user_by_screen_name(twitter_handle)
