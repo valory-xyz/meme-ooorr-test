@@ -330,11 +330,21 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         # Get their latest tweet
         tweet_id_to_response = {}
         for agent_handle in agent_handles:
+            # By defaul only 1 tweet is retrieved (the latest one)
             latest_tweets = yield from self._call_twikit(
                 method="get_user_tweets",
                 twitter_handle=agent_handle,
             )
-            tweet_id_to_response[latest_tweets[0]["id"]] = latest_tweets[0]["text"]
+            tweet_id = latest_tweets[0]["id"]
+            tweet_time = datetime.strptime(
+                latest_tweets[0]["created_at"], "%a %b %d %H:%M:%S %z %Y"
+            )
+
+            # Only respond to new tweets (last hour)
+            if (datetime.now() - tweet_time).total_seconds() >= 3600:
+                continue
+
+            tweet_id_to_response[tweet_id] = latest_tweets[0]["text"]
 
         if not tweet_id_to_response:
             self.context.logger.info("There are no tweets from other agents yet")

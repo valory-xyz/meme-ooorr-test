@@ -362,7 +362,7 @@ class TwikitConnection(BaseSyncConnection):
 
         user = await self.client.get_user_by_screen_name(twitter_handle)
         tweets = await self.client.get_user_tweets(
-            user=user.id, tweet_type=tweet_type, count=count
+            user_id=user.id, tweet_type=tweet_type, count=count
         )
         return [tweet_to_json(t) for t in tweets]
 
