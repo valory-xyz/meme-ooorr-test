@@ -41,6 +41,7 @@ states:
 - CollectFeedbackRound
 - CollectSignatureRound
 - DeploymentRound
+- EngageRound
 - FinalizationRound
 - LoadDatabaseRound
 - PostAnnouncementRound
@@ -61,13 +62,13 @@ transition_func:
     (ActionDecisionRound, DONE): ActionPreparationRound
     (ActionDecisionRound, NO_MAJORITY): ActionDecisionRound
     (ActionDecisionRound, ROUND_TIMEOUT): ActionDecisionRound
-    (ActionDecisionRound, WAIT): ResetAndPauseRound
+    (ActionDecisionRound, WAIT): EngageRound
     (ActionPreparationRound, DONE): ActionTweetRound
-    (ActionPreparationRound, ERROR): ResetAndPauseRound
+    (ActionPreparationRound, ERROR): EngageRound
     (ActionPreparationRound, NO_MAJORITY): ActionPreparationRound
     (ActionPreparationRound, ROUND_TIMEOUT): ActionPreparationRound
     (ActionPreparationRound, SETTLE): CheckFundsRound
-    (ActionTweetRound, DONE): ResetAndPauseRound
+    (ActionTweetRound, DONE): EngageRound
     (ActionTweetRound, ERROR): ActionTweetRound
     (ActionTweetRound, NO_MAJORITY): ActionTweetRound
     (ActionTweetRound, ROUND_TIMEOUT): ActionTweetRound
@@ -105,6 +106,10 @@ transition_func:
     (DeploymentRound, NO_MAJORITY): DeploymentRound
     (DeploymentRound, ROUND_TIMEOUT): DeploymentRound
     (DeploymentRound, SETTLE): CheckFundsRound
+    (EngageRound, DONE): ResetAndPauseRound
+    (EngageRound, ERROR): EngageRound
+    (EngageRound, NO_MAJORITY): EngageRound
+    (EngageRound, ROUND_TIMEOUT): EngageRound
     (FinalizationRound, CHECK_HISTORY): CheckTransactionHistoryRound
     (FinalizationRound, CHECK_LATE_ARRIVING_MESSAGE): SynchronizeLateMessagesRound
     (FinalizationRound, DONE): ValidateTransactionRound
@@ -127,7 +132,7 @@ transition_func:
     (PullMemesRound, DONE): ActionDecisionRound
     (PullMemesRound, ERROR): PullMemesRound
     (PullMemesRound, NO_MAJORITY): PullMemesRound
-    (PullMemesRound, NO_MEMES): ResetAndPauseRound
+    (PullMemesRound, NO_MEMES): EngageRound
     (PullMemesRound, ROUND_TIMEOUT): PullMemesRound
     (RandomnessTransactionSubmissionRound, DONE): SelectKeeperTransactionSubmissionARound
     (RandomnessTransactionSubmissionRound, NO_MAJORITY): RandomnessTransactionSubmissionRound
