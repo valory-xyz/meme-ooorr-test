@@ -612,7 +612,7 @@ class EngageRound(EventRoundBase):
     synchronized_data_class = SynchronizedData
 
     # This needs to be mentioned for static checkers
-    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.TO_DEPLOY, Event.TO_ACTION_TWEET
+    # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
 
 class FinishedToResetRound(DegenerateRound):
