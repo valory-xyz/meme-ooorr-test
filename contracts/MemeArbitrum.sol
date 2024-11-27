@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {MemeBase, IERC20} from "./MemeBase.sol";
+import {MemeBase} from "./MemeBase.sol";
 
 // Bridge interface
 interface IBridge {
@@ -46,20 +46,12 @@ contract MemeArbitrum is MemeBase {
     }
 
     /// @dev Bridges OLAS amount back to L1 and burns.
+    /// @notice OLAS approve is not needed for the bridge since the bridge burns L2 tokens directly.
     /// @param olasAmount OLAS amount.
-    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
     /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory)
+    function _bridgeAndBurn(uint256 olasAmount, uint256, bytes memory)
         internal virtual override returns (uint256)
     {
-        // Approve bridge to use OLAS
-        IERC20(olas).approve(l2TokenRelayer, olasAmount);
-
-        // Check for sufficient minimum gas limit
-        if (tokenGasLimit < TOKEN_GAS_LIMIT) {
-            tokenGasLimit = TOKEN_GAS_LIMIT;
-        }
-
         // Bridge OLAS to mainnet to get burned
         IBridge(l2TokenRelayer).outboundTransfer(olasL1, OLAS_BURNER, olasAmount, "0x");
 
