@@ -46,7 +46,7 @@ contract MemeArbitrum is MemeBase {
     }
 
     /// @dev Bridges OLAS amount back to L1 and burns.
-    /// @notice OLAS approve is not needed for the bridge since the bridge burns L2 tokens directly.
+    /// @notice OLAS approve is not needed for the bridge since the bridge is the burner of L2 tokens by default.
     /// @param olasAmount OLAS amount.
     /// @return msg.value leftovers if partially utilized by the bridge.
     function _bridgeAndBurn(uint256 olasAmount, uint256, bytes memory)
