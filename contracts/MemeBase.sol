@@ -104,7 +104,7 @@ contract MemeBase is MemeFactory {
     /// @dev Buys USDC on UniswapV2 using ETH amount.
     /// @param nativeTokenAmount Input ETH amount.
     /// @return Stable token amount bought.
-    function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal override returns (uint256) {
+    function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal virtual override returns (uint256) {
         address[] memory path = new address[](2);
         path[0] = weth;
         path[1] = referenceToken;
@@ -132,7 +132,7 @@ contract MemeBase is MemeFactory {
     /// @param referenceTokenAmount USDC amount.
     /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal override returns (uint256) {
+    function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal virtual override returns (uint256) {
         // Approve usdc for the Balancer Vault
         IERC20(referenceToken).approve(balancerVault, referenceTokenAmount);
 
@@ -150,7 +150,7 @@ contract MemeBase is MemeFactory {
     /// @param olasAmount OLAS amount.
     /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
     /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory) internal override returns (uint256) {
+    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory) internal virtual override returns (uint256) {
         // Approve bridge to use OLAS
         IERC20(olas).approve(l2TokenRelayer, olasAmount);
 
