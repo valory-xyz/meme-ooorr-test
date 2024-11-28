@@ -12,6 +12,10 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
+interface IWETH {
+    function deposit() external payable;
+}
+
 // UniswapV2 interface
 interface IUniswap {
     /// @dev Creates an LP pair.
@@ -93,8 +97,8 @@ abstract contract MemeFactory {
     uint256 public immutable minNativeTokenValue;
     // OLAS token address
     address public immutable olas;
-    // Reference token address
-    address public immutable referenceToken;
+    // Native token address
+    address public immutable nativeToken;
     // Uniswap V2 router address
     address public immutable router;
     // Uniswap V2 factory address
@@ -102,7 +106,7 @@ abstract contract MemeFactory {
 
     // Number of meme tokens
     uint256 public numTokens;
-    // Reference token scheduled to be converted to OLAS for Ascendance
+    // Native token scheduled to be converted to OLAS for Ascendance
     uint256 public scheduledForAscendance;
     // Tokens to be bridged
     uint256 public bridgeAmount;
@@ -121,32 +125,27 @@ abstract contract MemeFactory {
     /// @dev MemeFactory constructor
     constructor(
         address _olas,
-        address _referenceToken,
+        address _nativeToken,
         address _router,
         address _factory,
         uint256 _minNativeTokenValue
     ) {
         olas = _olas;
-        referenceToken = _referenceToken;
+        nativeToken = _nativeToken;
         router = _router;
         factory = _factory;
         minNativeTokenValue = _minNativeTokenValue;
     }
-
-    /// @dev Converts contributed native token to reference token.
-    /// @param nativeTokenAmount Input native token amount.
-    /// @return reference token amount converted to.
-    function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal virtual returns (uint256);
 
     /// @dev Get safe slippage amount from dex.
     /// @return safe amount of tokens to swap on dex with low slippage.
     function _getLowSlippageSafeSwapAmount() internal virtual returns (uint256);
 
     /// @dev Buys OLAS on DEX.
-    /// @param referenceTokenAmount Reference token amount.
+    /// @param nativeTokenAmount Native token amount.
     /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal virtual returns (uint256);
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 limit) internal virtual returns (uint256);
 
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param OLASAmount OLAS amount.
@@ -161,27 +160,32 @@ abstract contract MemeFactory {
 
     /// @dev Creates reference token + meme token LP and adds liquidity.
     /// @param memeToken Meme token address.
-    /// @param referenceTokenAmount Reference token amount.
+    /// @param nativeTokenAmount Native token amount.
     /// @param memeTokenAmount Meme token amount.
     /// @return pair reference token + meme token LP address.
     /// @return liquidity Obtained LP liquidity.
     function _createUniswapPair(
         address memeToken,
-        uint256 referenceTokenAmount,
+        uint256 nativeTokenAmount,
         uint256 memeTokenAmount
     ) internal returns (address pair, uint256 liquidity) {
-        // Create the LP
-        pair = IUniswap(factory).createPair(referenceToken, memeToken);
+        _wrap(nativeTokenAmount);
 
+        // TODO Check that this LP token doesn't exist
+        // TODO What to do if it exists: add liquidity if one exists, otherwise create it
+        // TODO try-catch
+        // Create the LP
+        pair = IUniswap(factory).createPair(nativeToken, memeToken);
+        
         // Approve tokens for router
-        IERC20(referenceToken).approve(router, referenceTokenAmount);
+        IERC20(nativeToken).approve(router, nativeTokenAmount);
         IERC20(memeToken).approve(router, memeTokenAmount);
 
         // Add reference token + meme token liquidity
         (, , liquidity) = IUniswap(router).addLiquidity(
-            referenceToken,
+            nativeToken,
             memeToken,
-            referenceTokenAmount,
+            nativeTokenAmount,
             memeTokenAmount,
             0, // Accept any amount of reference token
             0, // Accept any amount of meme token
@@ -214,6 +218,11 @@ abstract contract MemeFactory {
         memeTokenInstance.transfer(msg.sender, allocation);
 
         emit Collected(msg.sender, memeToken, allocation);
+    }
+
+    function _wrap(uint256 nativeTokenAmount) internal virtual {
+        // Wrap ETH
+        IWETH(nativeToken).deposit{value: nativeTokenAmount}();
     }
 
     /// @dev Summons meme token.
@@ -279,8 +288,7 @@ abstract contract MemeFactory {
 
     /// @dev Unleashes the meme token.
     /// @param memeToken Meme token address.
-    /// @param limit Reference token minimum amount depending on the desired slippage, if applicable.
-    function unleashThisMeme(address memeToken, uint256 limit) external {
+    function unleashThisMeme(address memeToken) external {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
@@ -352,6 +360,7 @@ abstract contract MemeFactory {
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
+        // TODO: check state in this function
         // Collect the token
         _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.nativeTokenContributed);
 
@@ -391,21 +400,22 @@ abstract contract MemeFactory {
     }
 
     /// @dev Converts collected reference token to OLAS.
-    /// @param limit OLAS minimum amount depending on the desired slippage.
-    function scheduleOLASForAscendance(uint256 limit) external payable {
+    function scheduleOLASForAscendance() external payable {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
-        require(scheduledForAscendance > 0, "Nothing to burn");
+        uint256 localAscendance = scheduledForAscendance;
+        require(localAscendance > 0, "Nothing to burn");
 
-        safeSwapWithLowSlippage = _getLowSlippageSafeSwapAmount();  // apply 3% slippage protection
+        uint256 limit = _getLowSlippageSafeSwapAmount();  // apply 3% slippage protection
 
-        if (scheduledForAscendance > safeSwapWithLowSlippage) {
-            swapAmount = safeSwapWithLowSlippage;
-            scheduledForAscendance -= safeSwapWithLowSlippage;
+        uint256 swapAmount;
+        if (localAscendance > limit) {
+            swapAmount = limit;
+            localAscendance -= limit;
         } else {
-            swapAmount = scheduledForAscendance;
-            scheduledForAscendance = 0;
+            swapAmount = localAscendance;
+            localAscendance = 0;
         }
 
         // Record msg.sender activity
@@ -413,7 +423,9 @@ abstract contract MemeFactory {
 
         uint256 OLASAmount = _buyOLAS(swapAmount, limit);
 
-        bridgeAmount += scheduledForAscendance;
+        bridgeAmount += OLASAmount;
+        scheduledForAscendance = localAscendance;
+
         _locked = 1;
     }
 

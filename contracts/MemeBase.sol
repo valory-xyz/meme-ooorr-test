@@ -48,6 +48,10 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
+interface IWETH {
+    function deposit() external payable;
+}
+
 // Oracle interface
 interface IOracle {
     /// @dev Gets latest round token price data.
@@ -70,8 +74,6 @@ contract MemeBase is MemeFactory {
     // This is safe as the value is practically bigger than observed ones on numerous chains
     uint32 public constant TOKEN_GAS_LIMIT = 300_000;
 
-    // WETH token address
-    address public immutable weth;
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
     // Balancer Vault address
@@ -82,15 +84,14 @@ contract MemeBase is MemeFactory {
     /// @dev MemeBase constructor
     constructor(
         address _olas,
+        address _weth,
         address _router,
         address _factory,
         uint256 _minNativeTokenValue,
-        address _weth,
         address _l2TokenRelayer,
         address _balancerVault,
         bytes32 _balancerPoolId
-    ) MemeFactory(_olas, _usdc, _router, _factory, _minNativeTokenValue) {
-        weth = _weth;
+    ) MemeFactory(_olas, _weth, _router, _factory, _minNativeTokenValue) {
         l2TokenRelayer = _l2TokenRelayer;
         balancerVault = _balancerVault;
         balancerPoolId = _balancerPoolId;
@@ -98,23 +99,26 @@ contract MemeBase is MemeFactory {
 
     /// @dev Get safe slippage amount from dex.
     /// @return safe amount of tokens to swap on dex with low slippage.
-    function _getLowSlippageSafeSwapAmount() internal virtual returns (uint256) {
+    function _getLowSlippageSafeSwapAmount() internal virtual override returns (uint256) {
         /// check on three-sided USDC, ETH, OLAS pool for correct amount with max 3% slippage
+        return 0;
     }
 
 
     /// @dev Buys OLAS on Balancer.
-    /// @param referenceTokenAmount ETH amount.
+    /// @param nativeTokenAmount Native token amount.
     /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal override returns (uint256) {
-        // Approve usdc for the Balancer Vault
-        IERC20(referenceToken).approve(balancerVault, referenceTokenAmount);
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 limit) internal override returns (uint256) {
+        // Wrap ETH
+        IWETH(nativeToken).deposit{value: nativeTokenAmount}();
 
-        /// here we swap through the three-sided USDC, ETH, OLAS pool
-        // Prepare Balancer data
-        IBalancer.SingleSwap memory singleSwap = IBalancer.SingleSwap(balancerPoolId, IBalancer.SwapKind.GIVEN_IN, referenceToken,
-            olas, referenceTokenAmount, "0x");
+        // Approve usdc for the Balancer Vault
+        IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
+        
+        // Prepare Balancer data for the three-sided USDC, ETH, OLAS pool
+        IBalancer.SingleSwap memory singleSwap = IBalancer.SingleSwap(balancerPoolId, IBalancer.SwapKind.GIVEN_IN,
+            nativeToken, olas, nativeTokenAmount, "0x");
         IBalancer.FundManagement memory fundManagement = IBalancer.FundManagement(address(this), false,
             payable(address(this)), false);
 

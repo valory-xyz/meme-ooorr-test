@@ -72,41 +72,39 @@ contract MemeCelo is MemeFactory {
     /// @dev MemeBase constructor
     constructor(
         address _olas,
-        address _referenceToken,
+        address _celo,
         address _router,
         address _factory,
         uint256 _minNativeTokenValue,
-        address _celo,
         address _l2TokenRelayer,
         address _oracle
-    ) MemeFactory(_olas, _referenceToken, _router, _factory, _minNativeTokenValue) {
-        celo = _celo;
+    ) MemeFactory(_olas, _celo, _router, _factory, _minNativeTokenValue) {
         l2TokenRelayer = _l2TokenRelayer;
         oracle = _oracle;
     }
 
     /// @dev Get safe slippage amount from dex.
     /// @return safe amount of tokens to swap on dex with low slippage.
-    function _getLowSlippageSafeSwapAmount() internal virtual returns (uint256) {
+    function _getLowSlippageSafeSwapAmount() internal virtual override returns (uint256) {
         /// check on two-sided CELO, OLAS pool for correct amount with max 3% slippage
+        return 0;
     }
 
     /// @dev Buys OLAS on UniswapV2.
-    /// @param referenceTokenAmount CELO amount.
+    /// @param nativeTokenAmount CELO amount.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal override returns (uint256) {
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 limit) internal override returns (uint256) {
         address[] memory path = new address[](3);
-        path[0] = referenceToken;
-        path[1] = celo;
-        path[2] = olas;
+        path[0] = nativeToken;
+        path[1] = olas;
 
-        // Approve reference token
-        IERC20(referenceToken).approve(router, referenceTokenAmount);
+        // Approve native token
+        IERC20(nativeToken).approve(router, nativeTokenAmount);
 
         // Swap cUSD for OLAS
         // This will go via two pools - not a problem as Ubeswap has both
         uint256[] memory amounts = IUniswap(router).swapExactTokensForTokens(
-            referenceTokenAmount,
+            nativeTokenAmount,
             limit,
             path,
             address(this),
@@ -151,4 +149,6 @@ contract MemeCelo is MemeFactory {
 
         return msg.value;
     }
+
+    function _wrap(uint256) internal virtual override {}
 }
