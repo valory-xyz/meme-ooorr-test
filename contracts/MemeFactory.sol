@@ -32,10 +32,10 @@ interface IUniswap {
 ///         the meme and schedules the distribution of the rest of the tokens to the hearters, proportional to their
 ///         contributions.
 ///      4) After the meme is being unleashed any hearter can collect their share of the meme token.
-///      5) After 48h of a meme being summoned, any msg.sender can purge the uncollected meme token allocations of hearters.
-/// @notice 10% of the ETH contributed to a meme gets converted into USDC (or other reference token) upon unleashing of the meme, that can later be
+///      5) After 24h of a meme being unleashed, any msg.sender can purge the uncollected meme token allocations of hearters.
+/// @notice 10% of the ETH contributed to a meme gets retained upon unleashing of the meme, that can later be
 ///         converted to OLAS and scheduled for burning (on Ethereum mainnet). The remainder of the ETH contributed (90%)
-///         is converted to USDC and contributed to an LP, together with 50% of the token supply of the meme.
+///         is contributed to an LP, together with 50% of the token supply of the meme.
 ///         The remaining 50% of the meme token supply goes to hearters. The LP token is held forever by MemeBase,
 ///         guaranteeing lasting liquidity in the meme token.
 ///
@@ -44,7 +44,7 @@ interface IUniswap {
 ///         - Agent Brown would heartThisMeme with $250 worth of ETH
 ///         - Agent Jones would heartThisMeme with $250 worth of ETH
 ///         - Any agent, let's say Brown, would call unleashThisMeme. This would:
-///             - create a liquidity pool with $SMTH:$USDC, containing 500_000_000 SMTH tokens and $900 worth of USDC
+///             - create a liquidity pool with $SMTH:$ETH, containing 500_000_000 SMTH tokens and $900 worth of ETH
 ///             - schedule $100 worth of OLAS for burning on Ethereum mainnet
 ///             - Brown would receive 125_000_000 worth of $SMTH
 ///         - Agent Smith would collectThisMeme and receive 250_000_000 worth of $SMTH
@@ -78,8 +78,8 @@ abstract contract MemeFactory {
     uint256 public constant MIN_TOTAL_SUPPLY = 1_000_000 ether;
     // Unleash delay after token summoning
     uint256 public constant UNLEASH_DELAY = 24 hours;
-    // Collect deadline from the token summoning time
-    uint256 public constant COLLECT_DEADLINE = 48 hours;
+    // Collect delay after token unleashing
+    uint256 public constant COLLECT_DELAY = 24 hours;
     // Percentage of OLAS to burn (10%)
     uint256 public constant OLAS_BURN_PERCENTAGE = 10;
     // Percentage of initial supply for liquidity pool (50%)
@@ -104,6 +104,8 @@ abstract contract MemeFactory {
     uint256 public numTokens;
     // Reference token scheduled to be converted to OLAS for Ascendance
     uint256 public scheduledForAscendance;
+    // Tokens to be bridged
+    uint256 public bridgeAmount;
     // Reentrancy lock
     uint256 internal _locked = 1;
 
@@ -135,6 +137,10 @@ abstract contract MemeFactory {
     /// @param nativeTokenAmount Input native token amount.
     /// @return reference token amount converted to.
     function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal virtual returns (uint256);
+
+    /// @dev Get safe slippage amount from dex.
+    /// @return safe amount of tokens to swap on dex with low slippage.
+    function _getLowSlippageSafeSwapAmount() internal virtual returns (uint256);
 
     /// @dev Buys OLAS on DEX.
     /// @param referenceTokenAmount Reference token amount.
@@ -276,7 +282,7 @@ abstract contract MemeFactory {
     /// @param limit Reference token minimum amount depending on the desired slippage, if applicable.
     function unleashThisMeme(address memeToken, uint256 limit) external {
         require(_locked == 1, "Reentrancy guard");
-        _locked == 2;
+        _locked = 2;
 
         // Get the meme summon info
         MemeSummon storage memeSummon = memeSummons[memeToken];
@@ -289,16 +295,12 @@ abstract contract MemeFactory {
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
 
-        // Buy reference token with the the total native token committed
-        // This might not be needed in other implementations, and the function would return the given value
-        uint256 referenceTokenAmount = _convertToReferenceToken(totalNativeTokenCommitted, limit);
-
         // Put aside reference token to buy OLAS with the burn percentage of the total native token amount committed
-        uint256 burnPercentageOfReferenceToken = (referenceTokenAmount * OLAS_BURN_PERCENTAGE) / 100;
+        uint256 burnPercentageOfReferenceToken = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
         scheduledForAscendance += burnPercentageOfReferenceToken;
 
         // Adjust reference token amount
-        referenceTokenAmount -= burnPercentageOfReferenceToken;
+        totalNativeTokenCommitted -= burnPercentageOfReferenceToken;
 
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         Meme memeTokenInstance = Meme(memeToken);
@@ -307,7 +309,7 @@ abstract contract MemeFactory {
         uint256 heartersAmount = totalSupply - lpTokenAmount;
 
         // Create Uniswap pair with LP allocation
-        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, referenceTokenAmount, lpTokenAmount);
+        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, totalNativeTokenCommitted, lpTokenAmount);
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
@@ -332,7 +334,7 @@ abstract contract MemeFactory {
     /// @param memeToken Meme token address.
     function collectThisMeme(address memeToken) external {
         require(_locked == 1, "Reentrancy guard");
-        _locked == 2;
+        _locked = 2;
 
         // Get the meme summon info
         MemeSummon memory memeSummon = memeSummons[memeToken];
@@ -340,7 +342,7 @@ abstract contract MemeFactory {
         // Check if the meme has been summoned
         require(memeSummon.unleashTime > 0, "Meme not unleashed");
         // Check if the meme can be collected
-        require(block.timestamp <= memeSummon.summonTime + COLLECT_DEADLINE, "Collect only allowed until 48 hours after summon");
+        require(block.timestamp <= memeSummon.unleashTime + COLLECT_DELAY, "Collect only allowed until 24 hours after unleash");
 
         // Get hearter contribution
         uint256 hearterContribution = memeHearters[memeToken][msg.sender];
@@ -360,15 +362,15 @@ abstract contract MemeFactory {
     /// @param memeToken Meme token address.
     function purgeThisMeme(address memeToken) external {
         require(_locked == 1, "Reentrancy guard");
-        _locked == 2;
+        _locked = 2;
 
         // Get the meme summon info
         MemeSummon memory memeSummon = memeSummons[memeToken];
 
         // Check if the meme has been summoned
-        require(memeSummon.summonTime > 0, "Meme not summoned");
-        // Check if enough time has passed since the meme was summoned
-        require(block.timestamp > memeSummon.summonTime + COLLECT_DEADLINE, "Purge only allowed from 48 hours after summon");
+        require(memeSummon.unleashTime > 0, "Meme not unleashed");
+        // Check if enough time has passed since the meme was unleashed
+        require(block.timestamp > memeSummon.unleashTime + COLLECT_DELAY, "Purge only allowed from 24 hours after unleash");
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
@@ -388,22 +390,48 @@ abstract contract MemeFactory {
         _locked = 1;
     }
 
-    /// @dev Converts collected reference token to OLAS and bridges OLAS to Ethereum mainnet for burn.
+    /// @dev Converts collected reference token to OLAS.
     /// @param limit OLAS minimum amount depending on the desired slippage.
-    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
-    /// @param bridgePayload Optional additional bridge payload.
-    function scheduleOLASForAscendance(uint256 limit, uint256 tokenGasLimit, bytes memory bridgePayload) external payable {
+    function scheduleOLASForAscendance(uint256 limit) external payable {
         require(_locked == 1, "Reentrancy guard");
-        _locked == 2;
+        _locked = 2;
 
         require(scheduledForAscendance > 0, "Nothing to burn");
+
+        safeSwapWithLowSlippage = _getLowSlippageSafeSwapAmount();  // apply 3% slippage protection
+
+        if (scheduledForAscendance > safeSwapWithLowSlippage) {
+            swapAmount = safeSwapWithLowSlippage;
+            scheduledForAscendance -= safeSwapWithLowSlippage;
+        } else {
+            swapAmount = scheduledForAscendance;
+            scheduledForAscendance = 0;
+        }
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        uint256 OLASAmount = _buyOLAS(scheduledForAscendance, limit);
+        uint256 OLASAmount = _buyOLAS(swapAmount, limit);
 
-        scheduledForAscendance = 0;
+        bridgeAmount += scheduledForAscendance;
+        _locked = 1;
+    }
+
+
+    /// @dev Bridges OLAS to Ethereum mainnet for burn.
+    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
+    /// @param bridgePayload Optional additional bridge payload.
+    function sendToHigherHeights(uint256 tokenGasLimit, bytes memory bridgePayload) external payable {
+        require(_locked == 1, "Reentrancy guard");
+        _locked = 2;
+
+        require(bridgeAmount > 0, "Nothing to bridge");
+
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
+
+        uint256 OLASAmount = bridgeAmount;
+        bridgeAmount = 0;
         // Burn OLAS
         uint256 leftovers = _bridgeAndBurn(OLASAmount, tokenGasLimit, bridgePayload);
 
@@ -414,7 +442,7 @@ abstract contract MemeFactory {
             tx.origin.call{value: leftovers}("");
         }
 
-        _locked == 1;
+        _locked = 1;
     }
 
     /// @dev Allows the contract to receive native token

@@ -85,36 +85,10 @@ contract MemeCelo is MemeFactory {
         oracle = _oracle;
     }
 
-    /// @dev Buys cUSD on UniswapV2 using Celo amount.
-    /// @param nativeTokenAmount Input Celo amount.
-    /// @return Stable token amount bought.
-    function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal override returns (uint256) {
-        address[] memory path = new address[](2);
-        path[0] = celo;
-        path[1] = referenceToken;
-
-        // Calculate price by Oracle
-        (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
-        require(answerPrice > 0, "Oracle price is incorrect");
-
-        // Oracle returns 8 decimals, cUSD has 18 decimals, need to additionally divide by 100 to account for slippage
-        // ETH: 18 decimals, cUSD: 18 decimals, percentage: 2 decimals; denominator = 8 + 2 = 10
-        uint256 limit = uint256(answerPrice) * nativeTokenAmount * SLIPPAGE / 1e10;
-
-        // Approve reference token
-        IERC20(celo).approve(router, nativeTokenAmount);
-
-        // Swap CELO for cUSD
-        uint256[] memory amounts = IUniswap(router).swapExactTokensForTokens(
-            nativeTokenAmount,
-            limit,
-            path,
-            address(this),
-            block.timestamp
-        );
-
-        // Return the cUSD amount bought
-        return amounts[1];
+    /// @dev Get safe slippage amount from dex.
+    /// @return safe amount of tokens to swap on dex with low slippage.
+    function _getLowSlippageSafeSwapAmount() internal virtual returns (uint256) {
+        /// check on two-sided CELO, OLAS pool for correct amount with max 3% slippage
     }
 
     /// @dev Buys OLAS on UniswapV2.

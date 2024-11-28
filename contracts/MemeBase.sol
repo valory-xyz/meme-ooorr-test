@@ -65,7 +65,7 @@ interface IUniswap {
 /// @title MemeBase - a smart contract factory for Meme Token creation on Base.
 contract MemeBase is MemeFactory {
     // Slippage parameter (3%)
-    uint256 public constant SLIPPAGE = 97;
+    uint256 public constant SLIPPAGE = 3;
     // Token transfer gas limit for L1
     // This is safe as the value is practically bigger than observed ones on numerous chains
     uint32 public constant TOKEN_GAS_LIMIT = 300_000;
@@ -74,8 +74,6 @@ contract MemeBase is MemeFactory {
     address public immutable weth;
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
-    // Oracle address
-    address public immutable oracle;
     // Balancer Vault address
     address public immutable balancerVault;
     // Balancer Pool Id
@@ -84,58 +82,36 @@ contract MemeBase is MemeFactory {
     /// @dev MemeBase constructor
     constructor(
         address _olas,
-        address _usdc,
         address _router,
         address _factory,
         uint256 _minNativeTokenValue,
         address _weth,
         address _l2TokenRelayer,
-        address _oracle,
         address _balancerVault,
         bytes32 _balancerPoolId
     ) MemeFactory(_olas, _usdc, _router, _factory, _minNativeTokenValue) {
         weth = _weth;
         l2TokenRelayer = _l2TokenRelayer;
-        oracle = _oracle;
         balancerVault = _balancerVault;
         balancerPoolId = _balancerPoolId;
     }
 
-    /// @dev Buys USDC on UniswapV2 using ETH amount.
-    /// @param nativeTokenAmount Input ETH amount.
-    /// @return Stable token amount bought.
-    function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal override returns (uint256) {
-        address[] memory path = new address[](2);
-        path[0] = weth;
-        path[1] = referenceToken;
-
-        // Calculate price by Oracle
-        (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
-        require(answerPrice > 0, "Oracle price is incorrect");
-
-        // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100 to account for slippage
-        // ETH: 18 decimals, USDC leftovers: 2 decimals, percentage: 2 decimals; denominator = 18 + 2 + 2 = 22
-        uint256 limit = uint256(answerPrice) * nativeTokenAmount * SLIPPAGE / 1e22;
-        // Swap ETH for USDC
-        uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: nativeTokenAmount }(
-            limit,
-            path,
-            address(this),
-            block.timestamp
-        );
-
-        // Return the USDC amount bought
-        return amounts[1];
+    /// @dev Get safe slippage amount from dex.
+    /// @return safe amount of tokens to swap on dex with low slippage.
+    function _getLowSlippageSafeSwapAmount() internal virtual returns (uint256) {
+        /// check on three-sided USDC, ETH, OLAS pool for correct amount with max 3% slippage
     }
 
+
     /// @dev Buys OLAS on Balancer.
-    /// @param referenceTokenAmount USDC amount.
+    /// @param referenceTokenAmount ETH amount.
     /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
     function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal override returns (uint256) {
         // Approve usdc for the Balancer Vault
         IERC20(referenceToken).approve(balancerVault, referenceTokenAmount);
 
+        /// here we swap through the three-sided USDC, ETH, OLAS pool
         // Prepare Balancer data
         IBalancer.SingleSwap memory singleSwap = IBalancer.SingleSwap(balancerPoolId, IBalancer.SwapKind.GIVEN_IN, referenceToken,
             olas, referenceTokenAmount, "0x");
