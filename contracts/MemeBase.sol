@@ -116,7 +116,7 @@ contract MemeBase is MemeFactory {
         // Approve usdc for the Balancer Vault
         IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
         
-        // Prepare Balancer data for the three-sided USDC, ETH, OLAS pool
+        // Prepare Balancer data for the WETH-OLAS pool
         IBalancer.SingleSwap memory singleSwap = IBalancer.SingleSwap(balancerPoolId, IBalancer.SwapKind.GIVEN_IN,
             nativeToken, olas, nativeTokenAmount, "0x");
         IBalancer.FundManagement memory fundManagement = IBalancer.FundManagement(address(this), false,

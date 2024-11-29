@@ -137,7 +137,7 @@ abstract contract MemeFactory {
         minNativeTokenValue = _minNativeTokenValue;
     }
 
-    /// @dev Get safe slippage amount from dex.
+    /// @dev Get safe slippage amount from dex with oracle.
     /// @return safe amount of tokens to swap on dex with low slippage.
     function _getLowSlippageSafeSwapAmount() internal virtual returns (uint256);
 
@@ -407,7 +407,9 @@ abstract contract MemeFactory {
         uint256 localAscendance = scheduledForAscendance;
         require(localAscendance > 0, "Nothing to burn");
 
-        uint256 limit = _getLowSlippageSafeSwapAmount();  // apply 3% slippage protection
+        // TODO: needs oracle integration
+        // Apply 3% slippage protection
+        uint256 limit = _getLowSlippageSafeSwapAmount();
 
         uint256 swapAmount;
         if (localAscendance > limit) {
