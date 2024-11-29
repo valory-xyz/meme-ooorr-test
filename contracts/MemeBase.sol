@@ -88,10 +88,12 @@ contract MemeBase is MemeFactory {
         address _router,
         address _factory,
         uint256 _minNativeTokenValue,
+        address[] memory accounts,
+        uint256[] memory amounts,
         address _l2TokenRelayer,
         address _balancerVault,
         bytes32 _balancerPoolId
-    ) MemeFactory(_olas, _weth, _router, _factory, _minNativeTokenValue) {
+    ) MemeFactory(_olas, _weth, _router, _factory, _minNativeTokenValue, accounts, amounts) {
         l2TokenRelayer = _l2TokenRelayer;
         balancerVault = _balancerVault;
         balancerPoolId = _balancerPoolId;
@@ -110,10 +112,7 @@ contract MemeBase is MemeFactory {
     /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
     function _buyOLAS(uint256 nativeTokenAmount, uint256 limit) internal override returns (uint256) {
-        // Wrap ETH
-        IWETH(nativeToken).deposit{value: nativeTokenAmount}();
-
-        // Approve usdc for the Balancer Vault
+        // Approve weth for the Balancer Vault
         IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
         
         // Prepare Balancer data for the WETH-OLAS pool

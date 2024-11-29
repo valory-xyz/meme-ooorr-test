@@ -18,8 +18,8 @@ interface IWETH {
 
 // UniswapV2 interface
 interface IUniswap {
-    /// @dev Creates an LP pair.
-    function createPair(address tokenA, address tokenB) external returns (address pair);
+    /// @dev Gets LP pair address.
+    function getPair(address tokenA, address tokenB) external returns (address pair);
 
     /// @dev Adds liquidity to the LP consisting of tokenA and tokenB.
     function addLiquidity(address tokenA, address tokenB, uint256 amountADesired, uint256 amountBDesired,
@@ -60,7 +60,7 @@ abstract contract MemeFactory {
     event Summoned(address indexed summoner, address indexed memeToken, uint256 nativeTokenContributed);
     event Hearted(address indexed hearter, address indexed memeToken, uint256 amount);
     event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress,
-        uint256 liquidity, uint256  burnPercentageOfStable);
+        uint256 liquidity, uint256  nativeAmountForOLASBurn);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
 
@@ -77,7 +77,7 @@ abstract contract MemeFactory {
     }
 
     // Version number
-    string public constant VERSION = "0.1.0";
+    string public constant VERSION = "0.1.1";
     // Total supply minimum value
     uint256 public constant MIN_TOTAL_SUPPLY = 1_000_000 ether;
     // Unleash delay after token summoning
@@ -92,22 +92,32 @@ abstract contract MemeFactory {
     address public constant OLAS_BURNER = 0x51eb65012ca5cEB07320c497F4151aC207FEa4E0;
     // Meme token decimals
     uint8 public constant DECIMALS = 18;
+    // AGNT redemption amount as per:
+    // https://basescan.org/address/0x42156841253f428cb644ea1230d4fddfb70f8891#readContract#F17
+    // Previous token address: 0x7484a9fB40b16c4DFE9195Da399e808aa45E9BB9
+    // Full collected amount: 141569842100000000000
+    // Redemption amount: collected amount - 10% for burn = 127412857890000000000
+    uint256 public constant REDEMPTION_AMOUNT = 127412857890000000000;
 
     // Minimum value of native token deposit
     uint256 public immutable minNativeTokenValue;
     // OLAS token address
     address public immutable olas;
-    // Native token address
+    // Native token address (ERC-20 equivalent)
     address public immutable nativeToken;
     // Uniswap V2 router address
     address public immutable router;
     // Uniswap V2 factory address
     address public immutable factory;
+    // Redemption token address
+    address public redemptionAddress;
 
     // Number of meme tokens
     uint256 public numTokens;
-    // Native token scheduled to be converted to OLAS for Ascendance
+    // Native token (ERC-20) scheduled to be converted to OLAS for Ascendance
     uint256 public scheduledForAscendance;
+    // Redemption balance
+    uint256 public redemptionBalance;
     // Tokens to be bridged
     uint256 public bridgeAmount;
     // Reentrancy lock
@@ -128,13 +138,19 @@ abstract contract MemeFactory {
         address _nativeToken,
         address _router,
         address _factory,
-        uint256 _minNativeTokenValue
+        uint256 _minNativeTokenValue,
+        address[] memory accounts,
+        uint256[] memory amounts
     ) {
         olas = _olas;
         nativeToken = _nativeToken;
         router = _router;
         factory = _factory;
         minNativeTokenValue = _minNativeTokenValue;
+
+        if (accounts.length > 0) {
+            _redemptionSetup(accounts, amounts);
+        }
     }
 
     /// @dev Get safe slippage amount from dex with oracle.
@@ -169,14 +185,6 @@ abstract contract MemeFactory {
         uint256 nativeTokenAmount,
         uint256 memeTokenAmount
     ) internal returns (address pair, uint256 liquidity) {
-        _wrap(nativeTokenAmount);
-
-        // TODO Check that this LP token doesn't exist
-        // TODO What to do if it exists: add liquidity if one exists, otherwise create it
-        // TODO try-catch
-        // Create the LP
-        pair = IUniswap(factory).createPair(nativeToken, memeToken);
-        
         // Approve tokens for router
         IERC20(nativeToken).approve(router, nativeTokenAmount);
         IERC20(memeToken).approve(router, memeTokenAmount);
@@ -192,6 +200,9 @@ abstract contract MemeFactory {
             address(this),
             block.timestamp
         );
+
+        // Get the pair address
+        pair = IUniswap(factory).getPair(nativeToken, memeToken);
     }
 
     /// @dev Collects meme token allocation.
@@ -220,6 +231,51 @@ abstract contract MemeFactory {
         emit Collected(msg.sender, memeToken, allocation);
     }
 
+    /// @dev Redemption initialization function.
+    /// @param accounts Original accounts.
+    /// @param amounts Corresponding original amounts (without subtraction for burn).
+    function _redemptionSetup(address[] memory accounts, uint256[] memory amounts) internal {
+        require(accounts.length == amounts.length);
+
+        redemptionAddress = address(new Meme("Agent Token", "AGENT", DECIMALS, MIN_TOTAL_SUPPLY));
+
+        // Record all the accounts and amounts
+        uint256 totalAmount;
+        for (uint256 i = 0; i < accounts.length; ++i) {
+            // Adjust amount for already collected burned tokens
+            uint256 adjustedAmount = (amounts[i] * 9) / 10;
+            totalAmount += adjustedAmount;
+            memeHearters[redemptionAddress][accounts[i]] = adjustedAmount;
+        }
+
+        // summonTime is set to zero such that no one is able to heart this token
+        memeSummons[redemptionAddress] = MemeSummon(REDEMPTION_AMOUNT, 0, 0, 0);
+
+        // Push token into the global list of tokens
+        memeTokens.push(redemptionAddress);
+        numTokens = memeTokens.length;
+
+        require(totalAmount == REDEMPTION_AMOUNT, "Total amount must match redemption amount");
+    }
+
+    /// @dev AGNT token redemption unleash.
+    function _redemption() internal {
+        uint256 amountForLP = (MIN_TOTAL_SUPPLY * LP_PERCENTAGE) / 100;
+        uint256 heartersAmount = MIN_TOTAL_SUPPLY - amountForLP;
+
+        // Create Uniswap pair with LP allocation
+        (address pool, uint256 liquidity) = _createUniswapPair(redemptionAddress, REDEMPTION_AMOUNT, amountForLP);
+
+        MemeSummon storage memeSummon = memeSummons[redemptionAddress];
+
+        // Record the actual meme unleash time
+        memeSummon.unleashTime = block.timestamp;
+        // Record the hearters distribution amount for this meme
+        memeSummon.heartersAmount = heartersAmount;
+
+        emit Unleashed(msg.sender, redemptionAddress, pool, liquidity, 0);
+    }
+
     function _wrap(uint256 nativeTokenAmount) internal virtual {
         // Wrap ETH
         IWETH(nativeToken).deposit{value: nativeTokenAmount}();
@@ -242,6 +298,9 @@ abstract contract MemeFactory {
         // Create a new token
         Meme newTokenInstance = new Meme(name, symbol, DECIMALS, totalSupply);
         address memeToken = address(newTokenInstance);
+
+        // Check for non-zero token address
+        require(memeToken != address(0), "Token creation failed");
 
         // Initiate meme token map values
         memeSummons[memeToken] = MemeSummon(msg.value, block.timestamp, 0, 0);
@@ -271,7 +330,7 @@ abstract contract MemeFactory {
         uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
 
         // Check that the meme has been summoned
-        require(totalNativeTokenCommitted > 0, "Meme not yet summoned");
+        require(memeSummon.summonTime > 0, "Meme not yet summoned");
         // Check if the token has been unleashed
         require(memeSummon.unleashTime == 0, "Meme already unleashed");
 
@@ -299,25 +358,51 @@ abstract contract MemeFactory {
         uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
 
         // Check if the meme has been summoned
+        require(memeSummon.unleashTime == 0, "Meme already unleashed");
+        // Check if the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
 
+        // Wrap native token to its ERC-20 version, where applicable
+        _wrap(totalNativeTokenCommitted);
+
         // Put aside reference token to buy OLAS with the burn percentage of the total native token amount committed
-        uint256 burnPercentageOfReferenceToken = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
-        scheduledForAscendance += burnPercentageOfReferenceToken;
+        uint256 nativeAmountForOLASBurn = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
 
         // Adjust reference token amount
-        totalNativeTokenCommitted -= burnPercentageOfReferenceToken;
+        totalNativeTokenCommitted -= nativeAmountForOLASBurn;
+
+        // Redemption collection logic
+        if (redemptionBalance < REDEMPTION_AMOUNT) {
+            // Get the difference of the required redemption amount and redemption balance
+            uint256 diff = REDEMPTION_AMOUNT - redemptionBalance;
+            // Take full nativeAmountForOLASBurn or a missing part to fulfil the redemption amount
+            if (diff > nativeAmountForOLASBurn) {
+                redemptionBalance += nativeAmountForOLASBurn;
+                nativeAmountForOLASBurn = 0;
+            } else {
+                nativeAmountForOLASBurn -= diff;
+                redemptionBalance += diff;
+            }
+
+            // Call redemption if the balance has reached
+            if (redemptionBalance >= REDEMPTION_AMOUNT) {
+                _redemption();
+            }
+        }
+
+        // Schedule native token amount for ascendance
+        scheduledForAscendance += nativeAmountForOLASBurn;
 
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         Meme memeTokenInstance = Meme(memeToken);
         uint256 totalSupply = memeTokenInstance.totalSupply();
-        uint256 lpTokenAmount = (totalSupply * LP_PERCENTAGE) / 100;
-        uint256 heartersAmount = totalSupply - lpTokenAmount;
+        uint256 amountForLP = (totalSupply * LP_PERCENTAGE) / 100;
+        uint256 heartersAmount = totalSupply - amountForLP;
 
         // Create Uniswap pair with LP allocation
-        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, totalNativeTokenCommitted, lpTokenAmount);
+        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, totalNativeTokenCommitted, amountForLP);
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
@@ -333,7 +418,7 @@ abstract contract MemeFactory {
             _collect(memeToken, hearterContribution, heartersAmount, totalNativeTokenCommitted);
         }
 
-        emit Unleashed(msg.sender, memeToken, pool, liquidity, burnPercentageOfReferenceToken);
+        emit Unleashed(msg.sender, memeToken, pool, liquidity, nativeAmountForOLASBurn);
 
         _locked = 1;
     }
@@ -360,7 +445,6 @@ abstract contract MemeFactory {
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        // TODO: check state in this function
         // Collect the token
         _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.nativeTokenContributed);
 
