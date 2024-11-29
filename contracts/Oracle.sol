@@ -1,74 +1,121 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+// ERC20 interface
+interface IERC20 {
+	/// @dev Gets the amount of tokens owned by a specified account.
+	/// @param account Account address.
+	/// @return Amount of tokens owned.
+	function balanceOf(address account) external view returns (uint256);
+}
+
 contract BalancerPriceGuard {
+	event PriceUpdated(address indexed sender, uint256 currentPrice, uint256 cumulativePrice);
+
     struct PriceSnapshot {
-	    uint256 cumulativePrice; // Time-weighted cumulative price
-    	    uint256 lastUpdated;     // Timestamp of the last update
-            uint256 averagePrice;    // Most recent calculated average price
+		// Time-weighted cumulative price
+	    uint256 cumulativePrice;
+		// Timestamp of the last update
+		uint256 lastUpdated;
+		// Most recent calculated average price
+		uint256 averagePrice;
     }
 
     PriceSnapshot public snapshotHistory;
-    uint256 public constant maxSlippageUpdate = 10; // Maximum allowed update slippage in percentage
+	// Maximum allowed update slippage in percentage
+    uint256 public immutable maxSlippage;
+	// Min Update time period
+	uint256 public immutable minUpdateTimePeriod;
 
-    constructor(uint256 _maxSlippageUpdate) {
-        require(_maxSlippage <= 10000, "Slippage must be <= 100%");
-        maxSlippageUpdate = _maxSlippageUpdate; // Default slippage in basis points (e.g., 500 for 5%)
-	updatePrice(pool, tokenIn, tokenOut); // trusted update 
+	address public immutable nativeToken;
+	address public immutable olas;
+	address public immutable pool;
+
+    constructor(address _nativeToken, address _olas, address _pool, uint256 _maxSlippage, uint256 _minUpdateTimePeriod) {
+        require(_maxSlippage <= 100, "Slippage must be <= 100%");
+
+		nativeToken = _nativeToken;
+		olas = _olas;
+		pool = _pool;
+
+		// Default slippage in basis points (e.g., 5 for 5%)
+        maxSlippage = _maxSlippage;
+
+		minUpdateTimePeriod = _minUpdateTimePeriod;
+
+		updatePrice();
     }
 
-
-    function getPrice(address pool, address tokenIn, address tokenOut) public view returns (uint256) {
-    	uint256 balanceIn = IERC20(tokenIn).balanceOf(pool);
-    	uint256 balanceOut = IERC20(tokenOut).balanceOf(pool);
+	/// @dev Gets current OLAS token price in 1e18 format.
+    function getPrice() public view returns (uint256) {
+		uint256 balanceIn = IERC20(nativeToken).balanceOf(pool);
+		uint256 balanceOut = IERC20(olas).balanceOf(pool);
 
     	// Simple ratio for weighted pools (replace with StableSwap formula for stable pools)
-    	return balanceOut / balanceIn;
+		return balanceOut * 1e18 / balanceIn;
     }	
 
-    function updatePrice(address pool, address tokenIn, address tokenOut) external {
-	require(block.timestamp >= lastUpdateTime + 15 minutes, "Update too soon");
-    	uint256 currentPrice = getPrice(pool, tokenIn, tokenOut);
-    	uint256 currentTime = block.timestamp;
-	PriceSnapshot storage snapshot = snapshotHistory;
-	
-	require(
-                currentPrice <= snapshot.averagePrice + (snapshot.averagePrice * maxSlippageUpdate / 10000) &&
-                currentPrice >= snapshot.averagePrice - (snapshot.averagePrice * maxSlippageUpdate / 10000),
-                "Price deviation too high"
-                );
+	/// @dev Updates time average price.
+    function updatePrice() public returns (bool) {
+		uint256 currentPrice = getPrice();
+		PriceSnapshot storage snapshot = snapshotHistory;
 
-	if (snapshot.lastUpdated > 0) {
-        	// Calculate time-weighted average since the last update
-        	uint256 elapsedTime = currentTime - snapshot.lastUpdated;
-        	snapshot.cumulativePrice += snapshot.averagePrice * elapsedTime;
-    	}
+		// Check if update is too soon
+		if (block.timestamp < snapshotHistory.lastUpdated + minUpdateTimePeriod) {
+			return false;
+		}
 
-    	// Update the snapshot with the new price
-    	snapshot.averagePrice = currentPrice;
-    	snapshot.lastUpdated = currentTime;
-	
-	// Events
+		// Check if price deviation is too high
+		uint256 averagePrice = snapshot.averagePrice;
+		if (currentPrice < averagePrice - (averagePrice * maxSlippage / 100) ||
+			currentPrice > averagePrice + (averagePrice * maxSlippage / 100))
+		{
+			return false;
+		}
 
+
+		uint256 cumulativePrice = snapshot.cumulativePrice;
+		if (snapshot.lastUpdated > 0) {
+			// Calculate time-weighted average since the last update
+			uint256 elapsedTime = block.timestamp - snapshot.lastUpdated;
+			cumulativePrice += snapshot.averagePrice * elapsedTime;
+			snapshot.cumulativePrice = cumulativePrice;
+		}
+
+		// Update the snapshot with the new price
+		snapshot.averagePrice = currentPrice;
+		snapshot.lastUpdated = block.timestamp;
+
+		emit PriceUpdated(msg.sender, currentPrice, cumulativePrice);
+
+		return true;
     }
 
+	/// @dev Validates price according to slippage.
+    function validatePrice(uint256 slippage) external view returns (bool) {
+		if (slippage > 100) {
+			return false;
+		}
 
-    function validateTrade(
-	address pool,
-    	address tokenIn,
-    	address tokenOut,
-    	uint256 maxSlippage
-    ) external view returns (bool) {
-	PriceSnapshot memory snapshot = snapshotHistory;
-	require(snapshot.lastUpdated > 0, "No historical price available");
-	
-	uint256 elapsedTime = block.timestamp - snapshot.lastUpdated;
-    	uint256 timeWeightedAverage = (snapshot.cumulativePrice + snapshot.averagePrice * elapsedTime) / elapsedTime;
+		PriceSnapshot memory snapshot = snapshotHistory;
 
-	slippageBorderMin = (10000 - maxSlippage)/10000; // 95
-	slippageBorderMax = (10000 + maxSlippage)/10000; // 105
-    	require(tradePrice >= (timeWeightedAverage * slippageBorderMin) / 100, "Price too low");
-    	require(tradePrice <= (timeWeightedAverage * slippageBorderMax) / 100, "Price too high");
+		// Check for historical price availability
+		if (snapshot.lastUpdated == 0) {
+			return false;
+		}
 
+		uint256 elapsedTime = block.timestamp - snapshot.lastUpdated;
+		uint256 timeWeightedAverage = (snapshot.cumulativePrice + snapshot.averagePrice * elapsedTime) / elapsedTime;
+
+		uint256 tradePrice = getPrice();
+
+		// Check if price is too low or too high
+		if ((tradePrice < (timeWeightedAverage * (100 - slippage)) / 100) ||
+			(tradePrice > (timeWeightedAverage * (100 + slippage)) / 100))
+		{
+			return false;
+		}
+
+		return true;
     }
 }
