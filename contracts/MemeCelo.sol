@@ -76,11 +76,9 @@ contract MemeCelo is MemeFactory {
         address _router,
         address _factory,
         uint256 _minNativeTokenValue,
-        address[] memory accounts,
-        uint256[] memory amounts,
         address _l2TokenRelayer,
         address _oracle
-    ) MemeFactory(_olas, _celo, _router, _factory, _minNativeTokenValue, accounts, amounts) {
+    ) MemeFactory(_olas, _celo, _router, _factory, _minNativeTokenValue) {
         l2TokenRelayer = _l2TokenRelayer;
         oracle = _oracle;
     }
@@ -153,4 +151,6 @@ contract MemeCelo is MemeFactory {
     }
 
     function _wrap(uint256) internal virtual override {}
+
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override {}
 }

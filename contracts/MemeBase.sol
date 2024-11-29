@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {MemeFactory} from "./MemeFactory.sol";
+import {MemeFactory, Meme} from "./MemeFactory.sol";
 
 // Balancer interface
 interface IBalancer {
@@ -73,6 +73,12 @@ contract MemeBase is MemeFactory {
     // Token transfer gas limit for L1
     // This is safe as the value is practically bigger than observed ones on numerous chains
     uint32 public constant TOKEN_GAS_LIMIT = 300_000;
+    // AGNT redemption amount as per:
+    // https://basescan.org/address/0x42156841253f428cb644ea1230d4fddfb70f8891#readContract#F17
+    // Previous token address: 0x7484a9fB40b16c4DFE9195Da399e808aa45E9BB9
+    // Full collected amount: 141569842100000000000
+    // Redemption amount: collected amount - 10% for burn = 127412857890000000000
+    uint256 public constant REDEMPTION_AMOUNT = 127412857890000000000;
 
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
@@ -80,6 +86,11 @@ contract MemeBase is MemeFactory {
     address public immutable balancerVault;
     // Balancer Pool Id
     bytes32 public immutable balancerPoolId;
+
+    // Redemption token address
+    address public redemptionAddress;
+    // Redemption balance
+    uint256 public redemptionBalance;
 
     /// @dev MemeBase constructor
     constructor(
@@ -93,10 +104,12 @@ contract MemeBase is MemeFactory {
         address _l2TokenRelayer,
         address _balancerVault,
         bytes32 _balancerPoolId
-    ) MemeFactory(_olas, _weth, _router, _factory, _minNativeTokenValue, accounts, amounts) {
+    ) MemeFactory(_olas, _weth, _router, _factory, _minNativeTokenValue) {
         l2TokenRelayer = _l2TokenRelayer;
         balancerVault = _balancerVault;
         balancerPoolId = _balancerPoolId;
+
+        _redemptionSetup(accounts, amounts);
     }
 
     /// @dev Get safe slippage amount from dex.
@@ -105,7 +118,6 @@ contract MemeBase is MemeFactory {
         /// check on three-sided USDC, ETH, OLAS pool for correct amount with max 3% slippage
         return 0;
     }
-
 
     /// @dev Buys OLAS on Balancer.
     /// @param nativeTokenAmount Native token amount.
@@ -147,5 +159,71 @@ contract MemeBase is MemeFactory {
         emit OLASJourneyToAscendance(olas, olasAmount);
 
         return msg.value;
+    }
+
+    /// @dev Redemption initialization function.
+    /// @param accounts Original accounts.
+    /// @param amounts Corresponding original amounts (without subtraction for burn).
+    function _redemptionSetup(address[] memory accounts, uint256[] memory amounts) private {
+        require(accounts.length == amounts.length);
+
+        redemptionAddress = address(new Meme("Agent Token", "AGENT", DECIMALS, MIN_TOTAL_SUPPLY));
+
+        // Record all the accounts and amounts
+        uint256 totalAmount;
+        for (uint256 i = 0; i < accounts.length; ++i) {
+            // Adjust amount for already collected burned tokens
+            uint256 adjustedAmount = (amounts[i] * 9) / 10;
+            totalAmount += adjustedAmount;
+            memeHearters[redemptionAddress][accounts[i]] = adjustedAmount;
+        }
+
+        // summonTime is set to zero such that no one is able to heart this token
+        memeSummons[redemptionAddress] = MemeSummon(REDEMPTION_AMOUNT, 0, 0, 0);
+
+        // Push token into the global list of tokens
+        memeTokens.push(redemptionAddress);
+        numTokens = memeTokens.length;
+
+        require(totalAmount == REDEMPTION_AMOUNT, "Total amount must match redemption amount");
+    }
+
+    /// @dev AGNT token redemption unleash.
+    function _redemption() private {
+        uint256 amountForLP = (MIN_TOTAL_SUPPLY * LP_PERCENTAGE) / 100;
+        uint256 heartersAmount = MIN_TOTAL_SUPPLY - amountForLP;
+
+        // Create Uniswap pair with LP allocation
+        (address pool, uint256 liquidity) = _createUniswapPair(redemptionAddress, REDEMPTION_AMOUNT, amountForLP);
+
+        MemeSummon storage memeSummon = memeSummons[redemptionAddress];
+
+        // Record the actual meme unleash time
+        memeSummon.unleashTime = block.timestamp;
+        // Record the hearters distribution amount for this meme
+        memeSummon.heartersAmount = heartersAmount;
+
+        emit Unleashed(msg.sender, redemptionAddress, pool, liquidity, 0);
+    }
+
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override {
+        // Redemption collection logic
+        if (redemptionBalance < REDEMPTION_AMOUNT) {
+            // Get the difference of the required redemption amount and redemption balance
+            uint256 diff = REDEMPTION_AMOUNT - redemptionBalance;
+            // Take full nativeAmountForOLASBurn or a missing part to fulfil the redemption amount
+            if (diff > nativeAmountForOLASBurn) {
+                redemptionBalance += nativeAmountForOLASBurn;
+                nativeAmountForOLASBurn = 0;
+            } else {
+                nativeAmountForOLASBurn -= diff;
+                redemptionBalance += diff;
+            }
+
+            // Call redemption if the balance has reached
+            if (redemptionBalance >= REDEMPTION_AMOUNT) {
+                _redemption();
+            }
+        }
     }
 }
