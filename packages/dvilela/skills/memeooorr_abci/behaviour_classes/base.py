@@ -361,7 +361,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
     def get_meme_coins_from_subgraph(self) -> Generator[None, None, Optional[List]]:
         """Get a list of meme coins"""
 
-        url = "https://agentsfun-base-production.up.railway.app"
+        url = "https://agentsfun-indexer-production-6ab5.up.railway.app"
 
         query = {"query": TOKENS_QUERY}
 
