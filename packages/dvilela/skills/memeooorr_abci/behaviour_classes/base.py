@@ -381,17 +381,24 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         # Load the response
         response_json = json.loads(response.body)
-        meme_coins = [
-            {
-                "token_address": t["id"],
-                "liquidity": int(t["liquidity"]),
-                "heart_count": int(t["heartCount"]),
-                "is_unleashed": t["isUnleashed"],
-                "timestamp": t["timestamp"],
-            }
-            for t in response_json["data"]["memeTokens"]["items"]
-            if t["chain"] == "base"  # TODO: adapt to Celo
-        ]
+
+        try:
+            meme_coins = [
+                {
+                    "token_address": t["id"],
+                    "liquidity": int(t["liquidity"]),
+                    "heart_count": int(t["heartCount"]),
+                    "is_unleashed": t["isUnleashed"],
+                    "timestamp": t["timestamp"],
+                }
+                for t in response_json["data"]["memeTokens"]["items"]
+                if t["chain"] == "base"  # TODO: adapt to Celo
+            ]
+        except KeyError as e:
+            self.context.logger.error(
+                f"Error while pulling the memes from subgraph: {e}"
+            )
+            return []
 
         enriched_meme_coins = yield from self.get_extra_meme_info(meme_coins)
 
