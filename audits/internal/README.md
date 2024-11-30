@@ -40,6 +40,8 @@ This is correctly reflected in TODO
         pair = IUniswap(factory).createPair(nativeToken, memeToken);
         Please, fixing TODO
 ```
+[x] Fixed
+
 #### All critical functions from the FSM that should only be called once must be guaranteed to be called only once. This must be explicitly checked.
 ```
         Example of bad design:
@@ -62,6 +64,7 @@ This is correctly reflected in TODO
 
     By code: race between collectThisMeme and purgeThisMeme. to discussion
 ```
+[x] Fixed
 
 ### Low issue
 #### Rare case = don't create()
@@ -73,8 +76,11 @@ function summonThisMeme(
         +
         require(memeToken != address(0), "Token creation failed"); // This is redundant but good for clarity
 ```
+[x] Fixed
+
 #### Confusing name of variable lpTokenAmount
 ```
 uint256 heartersAmount = totalSupply - lpTokenAmount;
 Because it is NOT amount of LP token.
 ```
+[x] Fixed

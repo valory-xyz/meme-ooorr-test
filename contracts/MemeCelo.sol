@@ -151,4 +151,6 @@ contract MemeCelo is MemeFactory {
     }
 
     function _wrap(uint256) internal virtual override {}
+
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override {}
 }
