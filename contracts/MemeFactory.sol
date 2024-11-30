@@ -245,6 +245,7 @@ abstract contract MemeFactory {
         require(msg.value >= minNativeTokenValue, "Minimum native token value is required to summon");
         // Check for minimum total supply
         require(totalSupply >= MIN_TOTAL_SUPPLY, "Minimum total supply is not met");
+        // TODO: check for max total supply, must be UNI-compatible of uint112 and check for overflow if max(uint112) * big(heartAmount)
 
         // Create a new token
         Meme newTokenInstance = new Meme(name, symbol, DECIMALS, totalSupply);
