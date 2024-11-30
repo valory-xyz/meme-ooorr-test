@@ -418,7 +418,7 @@ abstract contract MemeFactory {
     }
 
     /// @dev Converts collected reference token to OLAS.
-    function scheduleOLASForAscendance(uint256 slippage) external payable {
+    function scheduleOLASForAscendance(uint256 slippage) external virtual {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 

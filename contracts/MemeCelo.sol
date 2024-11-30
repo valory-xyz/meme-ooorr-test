@@ -78,7 +78,7 @@ contract MemeCelo is MemeFactory {
     /// @dev Buys OLAS on UniswapV2.
     /// @param nativeTokenAmount CELO amount.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount) internal override returns (uint256) {
+    function _buyOLAS(uint256 nativeTokenAmount) internal virtual override returns (uint256) {
         address[] memory path = new address[](3);
         path[0] = nativeToken;
         path[1] = olas;
@@ -103,7 +103,7 @@ contract MemeCelo is MemeFactory {
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param olasAmount OLAS amount.
     /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(uint256 olasAmount, uint256, bytes memory) internal override returns (uint256) {
+    function _bridgeAndBurn(uint256 olasAmount, uint256, bytes memory) internal virtual override returns (uint256) {
         // Get OLAS leftovers from previous transfers and adjust the amount to transfer
         olasAmount += olasLeftovers;
 

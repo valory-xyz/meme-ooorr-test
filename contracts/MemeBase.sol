@@ -103,13 +103,15 @@ contract MemeBase is MemeFactory {
         balancerVault = _balancerVault;
         balancerPoolId = _balancerPoolId;
 
-        _redemptionSetup(accounts, amounts);
+        if (accounts.length > 0) {
+            _redemptionSetup(accounts, amounts);
+        }
     }
 
     /// @dev Buys OLAS on Balancer.
     /// @param nativeTokenAmount Native token amount.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount) internal override returns (uint256) {
+    function _buyOLAS(uint256 nativeTokenAmount) internal virtual override returns (uint256) {
         // Approve weth for the Balancer Vault
         IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
         
@@ -127,7 +129,9 @@ contract MemeBase is MemeFactory {
     /// @param olasAmount OLAS amount.
     /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
     /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory) internal override returns (uint256) {
+    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory)
+        internal virtual override returns (uint256)
+    {
         // Approve bridge to use OLAS
         IERC20(olas).approve(l2TokenRelayer, olasAmount);
 
