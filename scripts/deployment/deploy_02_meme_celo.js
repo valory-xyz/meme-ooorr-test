@@ -45,7 +45,7 @@ async function main() {
         router: parsedData.routerAddress,
         factory: parsedData.factoryAddress,
         oracle: parsedData.oracleAddress,
-        maxSlippage: parsedData.maxSlippage,
+        maxSlippageMeme: parsedData.maxSlippageMeme,
         minNativeTokenValue: parsedData.minNativeTokenValue
     }
 
