@@ -174,7 +174,7 @@ contract MemeBase is MemeFactory {
         require(adjustedAmount == REDEMPTION_AMOUNT, "Total amount adjusted for burn allocation must match redemption amount");
 
         // summonTime is set to zero such that no one is able to heart this token
-        memeSummons[redemptionAddress] = MemeSummon(adjustedAmount, 0, 0, 0);
+        memeSummons[redemptionAddress] = MemeSummon(CONTRIBUTION_AGNT, 0, 0, 0);
 
         // Push token into the global list of tokens
         memeTokens.push(redemptionAddress);
