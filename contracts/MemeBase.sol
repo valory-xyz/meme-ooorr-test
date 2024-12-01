@@ -75,6 +75,7 @@ contract MemeBase is MemeFactory {
     // https://basescan.org/address/0x42156841253f428cb644ea1230d4fddfb70f8891#readContract#F17
     // Previous token address: 0x7484a9fB40b16c4DFE9195Da399e808aa45E9BB9
     // Full collected amount: 141569842100000000000
+    uint256 public constant CONTRIBUTION_AGNT = 141569842100000000000;
     // Redemption amount: collected amount - 10% for burn = 127412857890000000000
     uint256 public constant REDEMPTION_AMOUNT = 127412857890000000000;
 
@@ -157,30 +158,41 @@ contract MemeBase is MemeFactory {
     function _redemptionSetup(address[] memory accounts, uint256[] memory amounts) private {
         require(accounts.length == amounts.length);
 
-        redemptionAddress = address(new Meme("Agent Token", "AGENT", DECIMALS, MIN_TOTAL_SUPPLY));
+        redemptionAddress = address(new Meme("Agent Token II", "AGNT II", DECIMALS, 1_000_000_000 ether));
 
         // Record all the accounts and amounts
         uint256 totalAmount;
         for (uint256 i = 0; i < accounts.length; ++i) {
-            // Adjust amount for already collected burned tokens
-            uint256 adjustedAmount = (amounts[i] * 9) / 10;
-            totalAmount += adjustedAmount;
-            memeHearters[redemptionAddress][accounts[i]] = adjustedAmount;
+            totalAmount += amounts[i];
+            memeHearters[redemptionAddress][accounts[i]] = amounts[i];
+            // to match original hearter events
+            emit Hearted(accounts[i], redemptionAddress, amounts[i]);
         }
+        require(totalAmount == CONTRIBUTION_AGNT, "Total amount must match original contribution amount");
+        // Adjust amount for already collected burned tokens
+        uint256 adjustedAmount = (totalAmount * 9) / 10;
+        require(adjustedAmount == REDEMPTION_AMOUNT, "Total amount adjusted for burn allocation must match redemption amount");
 
         // summonTime is set to zero such that no one is able to heart this token
-        memeSummons[redemptionAddress] = MemeSummon(REDEMPTION_AMOUNT, 0, 0, 0);
+        memeSummons[redemptionAddress] = MemeSummon(CONTRIBUTION_AGNT, 0, 0, 0);
 
-        require(totalAmount == REDEMPTION_AMOUNT, "Total amount must match redemption amount");
+        // Push token into the global list of tokens
+        memeTokens.push(redemptionAddress);
+        numTokens = memeTokens.length;
+
+        // To match original summon events
+        emit Summoned(accounts[0], redemptionAddress, amounts[0]);
     }
 
     /// @dev AGNT token redemption unleash.
     function _redemption() private {
-        uint256 amountForLP = (MIN_TOTAL_SUPPLY * LP_PERCENTAGE) / 100;
-        uint256 heartersAmount = MIN_TOTAL_SUPPLY - amountForLP;
+        Meme memeTokenInstance = Meme(redemptionAddress);
+        uint256 totalSupply = memeTokenInstance.totalSupply();
+        uint256 memeAmountForLP = (totalSupply * LP_PERCENTAGE) / 100;
+        uint256 heartersAmount = totalSupply - memeAmountForLP;
 
         // Create Uniswap pair with LP allocation
-        (address pool, uint256 liquidity) = _createUniswapPair(redemptionAddress, REDEMPTION_AMOUNT, amountForLP);
+        (address pool, uint256 liquidity) = _createUniswapPair(redemptionAddress, REDEMPTION_AMOUNT, memeAmountForLP);
 
         MemeSummon storage memeSummon = memeSummons[redemptionAddress];
 
@@ -189,9 +201,11 @@ contract MemeBase is MemeFactory {
         // Record the hearters distribution amount for this meme
         memeSummon.heartersAmount = heartersAmount;
 
-        // Push token into the global list of tokens
-        memeTokens.push(redemptionAddress);
-        numTokens = memeTokens.length;
+        // Allocate to the token hearter unleashing the meme
+        uint256 hearterContribution = memeHearters[redemptionAddress][msg.sender];
+        if (hearterContribution > 0) {
+            _collect(redemptionAddress, hearterContribution, heartersAmount, CONTRIBUTION_AGNT);
+        }
 
         emit Unleashed(msg.sender, redemptionAddress, pool, liquidity, 0);
     }
@@ -215,5 +229,10 @@ contract MemeBase is MemeFactory {
                 _redemption();
             }
         }
+    }
+
+    function _wrap(uint256 nativeTokenAmount) internal virtual override {
+        // Wrap ETH
+        IWETH(nativeToken).deposit{value: nativeTokenAmount}();
     }
 }

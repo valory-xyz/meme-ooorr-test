@@ -15,6 +15,11 @@ interface IVault {
         returns (address[] memory tokens, uint256[] memory balances, uint256 lastChangeBlock);
 }
 
+/// @title BalancerPriceOracle - a smart contract oracle for Balancer V2 pools
+/// @dev This contract acts as an oracle for a specific Balancer V2 pool. It allows:
+///      1) Updating the price by any caller
+///      2) Getting the price by any caller
+///      3) Validating slippage against the oracle
 contract BalancerPriceOracle {
     event PriceUpdated(address indexed sender, uint256 currentPrice, uint256 cumulativePrice);
 
@@ -94,6 +99,7 @@ contract BalancerPriceOracle {
     }
 
     /// @dev Validates the price according to slippage tolerance.
+    /// @param slippage the acceptable slippage tolerance
     function validatePrice(uint256 slippage) external view returns (bool) {
         require(slippage <= 100, "Slippage must be <= 100%");
 
