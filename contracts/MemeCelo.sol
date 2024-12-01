@@ -50,8 +50,6 @@ interface IUniswap {
 
 /// @title MemeCelo - a smart contract factory for Meme Token creation on Celo.
 contract MemeCelo is MemeFactory {
-    // Slippage parameter (3%)
-    uint256 public constant SLIPPAGE = 97;
     // Wormhole bridging decimals cutoff
     uint256 public constant WORMHOLE_BRIDGING_CUTOFF = 1e10;
     // Ethereum mainnet chain Id in Wormhole format
@@ -61,8 +59,6 @@ contract MemeCelo is MemeFactory {
     address public immutable celo;
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
-    // Oracle address
-    address public immutable oracle;
 
     // Contract nonce
     uint256 public nonce;
@@ -71,29 +67,16 @@ contract MemeCelo is MemeFactory {
 
     /// @dev MemeBase constructor
     constructor(
-        address _olas,
-        address _celo,
-        address _router,
-        address _factory,
-        uint256 _minNativeTokenValue,
-        address _l2TokenRelayer,
-        address _oracle
-    ) MemeFactory(_olas, _celo, _router, _factory, _minNativeTokenValue) {
+        FactoryParams memory factoryParams,
+        address _l2TokenRelayer
+    ) MemeFactory(factoryParams) {
         l2TokenRelayer = _l2TokenRelayer;
-        oracle = _oracle;
-    }
-
-    /// @dev Get safe slippage amount from dex.
-    /// @return safe amount of tokens to swap on dex with low slippage.
-    function _getLowSlippageSafeSwapAmount() internal virtual override returns (uint256) {
-        /// check on two-sided CELO, OLAS pool for correct amount with max 3% slippage
-        return 0;
     }
 
     /// @dev Buys OLAS on UniswapV2.
     /// @param nativeTokenAmount CELO amount.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount, uint256 limit) internal override returns (uint256) {
+    function _buyOLAS(uint256 nativeTokenAmount) internal virtual override returns (uint256) {
         address[] memory path = new address[](3);
         path[0] = nativeToken;
         path[1] = olas;
@@ -105,7 +88,7 @@ contract MemeCelo is MemeFactory {
         // This will go via two pools - not a problem as Ubeswap has both
         uint256[] memory amounts = IUniswap(router).swapExactTokensForTokens(
             nativeTokenAmount,
-            limit,
+            0,
             path,
             address(this),
             block.timestamp
@@ -118,7 +101,7 @@ contract MemeCelo is MemeFactory {
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param olasAmount OLAS amount.
     /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(uint256 olasAmount, uint256, bytes memory) internal override returns (uint256) {
+    function _bridgeAndBurn(uint256 olasAmount, uint256, bytes memory) internal virtual override returns (uint256) {
         // Get OLAS leftovers from previous transfers and adjust the amount to transfer
         olasAmount += olasLeftovers;
 

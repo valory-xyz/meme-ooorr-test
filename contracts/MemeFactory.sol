@@ -12,6 +12,10 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
+interface IOracle {
+    function validatePrice(uint256 slippage) external view returns (bool);
+}
+
 interface IWETH {
     function deposit() external payable;
 }
@@ -64,6 +68,17 @@ abstract contract MemeFactory {
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
 
+    // Params struct
+    struct FactoryParams {
+        address olas;
+        address nativeToken;
+        address router;
+        address factory;
+        address oracle;
+        uint256 maxSlippage;
+        uint256 minNativeTokenValue;
+    }
+
     // Meme Summon struct
     struct MemeSummon {
         // Native token contributed to the meme launch
@@ -95,6 +110,8 @@ abstract contract MemeFactory {
 
     // Minimum value of native token deposit
     uint256 public immutable minNativeTokenValue;
+    // Oracle max slippage for ERC-20 native token <=> OLAS
+    uint256 public immutable maxSlippage;
     // OLAS token address
     address public immutable olas;
     // Native token address (ERC-20 equivalent)
@@ -103,6 +120,8 @@ abstract contract MemeFactory {
     address public immutable router;
     // Uniswap V2 factory address
     address public immutable factory;
+    // Oracle address
+    address public immutable oracle;
 
     // Number of meme tokens
     uint256 public numTokens;
@@ -123,29 +142,20 @@ abstract contract MemeFactory {
     address[] public memeTokens;
 
     /// @dev MemeFactory constructor
-    constructor(
-        address _olas,
-        address _nativeToken,
-        address _router,
-        address _factory,
-        uint256 _minNativeTokenValue
-    ) {
-        olas = _olas;
-        nativeToken = _nativeToken;
-        router = _router;
-        factory = _factory;
-        minNativeTokenValue = _minNativeTokenValue;
+    constructor(FactoryParams memory factoryParams) {
+        olas = factoryParams.olas;
+        nativeToken = factoryParams.nativeToken;
+        router = factoryParams.router;
+        factory = factoryParams.factory;
+        oracle = factoryParams.oracle;
+        maxSlippage = factoryParams.maxSlippage;
+        minNativeTokenValue = factoryParams.minNativeTokenValue;
     }
-
-    /// @dev Get safe slippage amount from dex with oracle.
-    /// @return safe amount of tokens to swap on dex with low slippage.
-    function _getLowSlippageSafeSwapAmount() internal virtual returns (uint256);
 
     /// @dev Buys OLAS on DEX.
     /// @param nativeTokenAmount Native token amount.
-    /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount, uint256 limit) internal virtual returns (uint256);
+    function _buyOLAS(uint256 nativeTokenAmount) internal virtual returns (uint256);
 
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param OLASAmount OLAS amount.
@@ -235,6 +245,7 @@ abstract contract MemeFactory {
         require(msg.value >= minNativeTokenValue, "Minimum native token value is required to summon");
         // Check for minimum total supply
         require(totalSupply >= MIN_TOTAL_SUPPLY, "Minimum total supply is not met");
+        // TODO: check for max total supply, must be UNI-compatible of uint112 and check for overflow if max(uint112) * big(heartAmount)
 
         // Create a new token
         Meme newTokenInstance = new Meme(name, symbol, DECIMALS, totalSupply);
@@ -408,33 +419,26 @@ abstract contract MemeFactory {
     }
 
     /// @dev Converts collected reference token to OLAS.
-    function scheduleOLASForAscendance() external payable {
+    function scheduleOLASForAscendance(uint256 slippage) external virtual {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
+
+        // Slippage limit requirement
+        require(slippage <= maxSlippage);
 
         uint256 localAscendance = scheduledForAscendance;
         require(localAscendance > 0, "Nothing to burn");
 
-        // TODO: needs oracle integration
-        // Apply 3% slippage protection
-        uint256 limit = _getLowSlippageSafeSwapAmount();
-
-        uint256 swapAmount;
-        if (localAscendance > limit) {
-            swapAmount = limit;
-            localAscendance -= limit;
-        } else {
-            swapAmount = localAscendance;
-            localAscendance = 0;
-        }
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(slippage));
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        uint256 OLASAmount = _buyOLAS(swapAmount, limit);
+        uint256 OLASAmount = _buyOLAS(localAscendance);
 
         bridgeAmount += OLASAmount;
-        scheduledForAscendance = localAscendance;
+        scheduledForAscendance = 0;
 
         _locked = 1;
     }

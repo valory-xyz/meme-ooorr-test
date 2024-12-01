@@ -68,8 +68,6 @@ interface IUniswap {
 
 /// @title MemeBase - a smart contract factory for Meme Token creation on Base.
 contract MemeBase is MemeFactory {
-    // Slippage parameter (3%)
-    uint256 public constant SLIPPAGE = 3;
     // Token transfer gas limit for L1
     // This is safe as the value is practically bigger than observed ones on numerous chains
     uint32 public constant TOKEN_GAS_LIMIT = 300_000;
@@ -94,36 +92,26 @@ contract MemeBase is MemeFactory {
 
     /// @dev MemeBase constructor
     constructor(
-        address _olas,
-        address _weth,
-        address _router,
-        address _factory,
-        uint256 _minNativeTokenValue,
-        address[] memory accounts,
-        uint256[] memory amounts,
+        FactoryParams memory factoryParams,
         address _l2TokenRelayer,
         address _balancerVault,
-        bytes32 _balancerPoolId
-    ) MemeFactory(_olas, _weth, _router, _factory, _minNativeTokenValue) {
+        bytes32 _balancerPoolId,
+        address[] memory accounts,
+        uint256[] memory amounts
+    ) MemeFactory(factoryParams) {
         l2TokenRelayer = _l2TokenRelayer;
         balancerVault = _balancerVault;
         balancerPoolId = _balancerPoolId;
 
-        _redemptionSetup(accounts, amounts);
-    }
-
-    /// @dev Get safe slippage amount from dex.
-    /// @return safe amount of tokens to swap on dex with low slippage.
-    function _getLowSlippageSafeSwapAmount() internal virtual override returns (uint256) {
-        /// check on three-sided USDC, ETH, OLAS pool for correct amount with max 3% slippage
-        return 0;
+        if (accounts.length > 0) {
+            _redemptionSetup(accounts, amounts);
+        }
     }
 
     /// @dev Buys OLAS on Balancer.
     /// @param nativeTokenAmount Native token amount.
-    /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount, uint256 limit) internal override returns (uint256) {
+    function _buyOLAS(uint256 nativeTokenAmount) internal virtual override returns (uint256) {
         // Approve weth for the Balancer Vault
         IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
         
@@ -134,14 +122,16 @@ contract MemeBase is MemeFactory {
             payable(address(this)), false);
 
         // Perform swap
-        return IBalancer(balancerVault).swap(singleSwap, fundManagement, limit, block.timestamp);
+        return IBalancer(balancerVault).swap(singleSwap, fundManagement, 0, block.timestamp);
     }
 
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param olasAmount OLAS amount.
     /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
     /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory) internal override returns (uint256) {
+    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory)
+        internal virtual override returns (uint256)
+    {
         // Approve bridge to use OLAS
         IERC20(olas).approve(l2TokenRelayer, olasAmount);
 
