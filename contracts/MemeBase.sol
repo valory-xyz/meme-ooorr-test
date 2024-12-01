@@ -180,7 +180,7 @@ contract MemeBase is MemeFactory {
         memeTokens.push(redemptionAddress);
         numTokens = memeTokens.length;
 
-        // to match original summon events
+        // To match original summon events
         emit Summoned(accounts[0], redemptionAddress, amounts[0]);
     }
 

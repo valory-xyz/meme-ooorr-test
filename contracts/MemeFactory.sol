@@ -168,11 +168,11 @@ abstract contract MemeFactory {
         bytes memory bridgePayload
     ) internal virtual returns (uint256);
 
-    /// @dev Creates reference token + meme token LP and adds liquidity.
+    /// @dev Creates native token + meme token LP and adds liquidity.
     /// @param memeToken Meme token address.
     /// @param nativeTokenAmount Native token amount.
     /// @param memeTokenAmount Meme token amount.
-    /// @return pair reference token + meme token LP address.
+    /// @return pair native token + meme token LP address.
     /// @return liquidity Obtained LP liquidity.
     function _createUniswapPair(
         address memeToken,
@@ -183,13 +183,13 @@ abstract contract MemeFactory {
         IERC20(nativeToken).approve(uniV2router, nativeTokenAmount);
         IERC20(memeToken).approve(uniV2router, memeTokenAmount);
 
-        // Add reference token + meme token liquidity
+        // Add native token + meme token liquidity
         (, , liquidity) = IUniswap(uniV2router).addLiquidity(
             nativeToken,
             memeToken,
             nativeTokenAmount,
             memeTokenAmount,
-            0, // Accept any amount of reference token
+            0, // Accept any amount of native token
             0, // Accept any amount of meme token
             address(this),
             block.timestamp
@@ -329,10 +329,10 @@ abstract contract MemeFactory {
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
 
-        // Put aside reference token to buy OLAS with the burn percentage of the total native token amount committed
+        // Put aside native token to buy OLAS with the burn percentage of the total native token amount committed
         uint256 nativeAmountForOLASBurn = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
 
-        // Adjust reference token amount
+        // Adjust native token amount
         uint256 nativeAmountForLP = totalNativeTokenCommitted - nativeAmountForOLASBurn;
 
         _redemptionLogic(nativeAmountForOLASBurn);
@@ -440,7 +440,7 @@ abstract contract MemeFactory {
         _locked = 1;
     }
 
-    /// @dev Converts collected reference token to OLAS.
+    /// @dev Converts collected native token to OLAS.
     function scheduleOLASForAscendance(uint256 amount, uint256 slippage) external virtual {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
