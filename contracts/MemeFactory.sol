@@ -72,8 +72,8 @@ abstract contract MemeFactory {
     struct FactoryParams {
         address olas;
         address nativeToken;
-        address router;
-        address factory;
+        address uniV2router;
+        address uniV2factory;
         address oracle;
         uint256 maxSlippage;
         uint256 minNativeTokenValue;
@@ -117,9 +117,9 @@ abstract contract MemeFactory {
     // Native token address (ERC-20 equivalent)
     address public immutable nativeToken;
     // Uniswap V2 router address
-    address public immutable router;
+    address public immutable uniV2router;
     // Uniswap V2 factory address
-    address public immutable factory;
+    address public immutable uniV2factory;
     // Oracle address
     address public immutable oracle;
 
@@ -145,8 +145,8 @@ abstract contract MemeFactory {
     constructor(FactoryParams memory factoryParams) {
         olas = factoryParams.olas;
         nativeToken = factoryParams.nativeToken;
-        router = factoryParams.router;
-        factory = factoryParams.factory;
+        uniV2router = factoryParams.uniV2router;
+        uniV2factory = factoryParams.uniV2factory;
         oracle = factoryParams.oracle;
         maxSlippage = factoryParams.maxSlippage;
         minNativeTokenValue = factoryParams.minNativeTokenValue;
@@ -180,11 +180,11 @@ abstract contract MemeFactory {
         uint256 memeTokenAmount
     ) internal returns (address pair, uint256 liquidity) {
         // Approve tokens for router
-        IERC20(nativeToken).approve(router, nativeTokenAmount);
-        IERC20(memeToken).approve(router, memeTokenAmount);
+        IERC20(nativeToken).approve(uniV2router, nativeTokenAmount);
+        IERC20(memeToken).approve(uniV2router, memeTokenAmount);
 
         // Add reference token + meme token liquidity
-        (, , liquidity) = IUniswap(router).addLiquidity(
+        (, , liquidity) = IUniswap(uniV2router).addLiquidity(
             nativeToken,
             memeToken,
             nativeTokenAmount,
@@ -196,7 +196,7 @@ abstract contract MemeFactory {
         );
 
         // Get the pair address
-        pair = IUniswap(factory).getPair(nativeToken, memeToken);
+        pair = IUniswap(uniV2factory).getPair(nativeToken, memeToken);
     }
 
     /// @dev Collects meme token allocation.
@@ -263,7 +263,7 @@ abstract contract MemeFactory {
         mapAccountActivities[msg.sender]++;
 
         // Update prices in oracle
-        //IOracle(oracle).updatePrice();
+        IOracle(oracle).updatePrice();
 
         emit Summoned(msg.sender, memeToken, msg.value);
         emit Hearted(msg.sender, memeToken, msg.value);
@@ -295,7 +295,7 @@ abstract contract MemeFactory {
         mapAccountActivities[msg.sender]++;
 
         // Update prices in oracle
-        //IOracle(oracle).updatePrice();
+        IOracle(oracle).updatePrice();
 
         emit Hearted(msg.sender, memeToken, msg.value);
     }
@@ -353,11 +353,11 @@ abstract contract MemeFactory {
         // Allocate to the token hearter unleashing the meme
         uint256 hearterContribution = memeHearters[memeToken][msg.sender];
         if (hearterContribution > 0) {
-            _collect(memeToken, hearterContribution, heartersAmount, totalNativeTokenCommitted);
+            _collect(memeToken, heartersAmount, hearterContribution, totalNativeTokenCommitted);
         }
 
         // Update prices in oracle
-        //IOracle(oracle).updatePrice();
+        IOracle(oracle).updatePrice();
 
         emit Unleashed(msg.sender, memeToken, pool, liquidity, nativeAmountForOLASBurn);
 
@@ -387,10 +387,10 @@ abstract contract MemeFactory {
         mapAccountActivities[msg.sender]++;
 
         // Collect the token
-        _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.nativeTokenContributed);
+        _collect(memeToken, memeSummon.heartersAmount, hearterContribution, memeSummon.nativeTokenContributed);
 
         // Update prices in oracle
-        //IOracle(oracle).updatePrice();
+        IOracle(oracle).updatePrice();
 
         _locked = 1;
     }
@@ -423,7 +423,7 @@ abstract contract MemeFactory {
         memeTokenInstance.burn(remainingBalance);
 
         // Update prices in oracle
-        //IOracle(oracle).updatePrice();
+        IOracle(oracle).updatePrice();
 
         emit Purged(memeToken, remainingBalance);
 
@@ -443,10 +443,9 @@ abstract contract MemeFactory {
         }
         require(amount > 0, "Nothing to burn");
 
-        // shouldn't this be inside _buyOLAS as its chain specific?
+        // TOFIX:shouldn't this be inside _buyOLAS as its chain specific?
         // Apply slippage protection
-        //require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
-        IOracle(oracle).validatePrice(slippage);
+        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
@@ -488,7 +487,7 @@ abstract contract MemeFactory {
         }
 
         // Update prices in oracle
-        //IOracle(oracle).updatePrice();
+        IOracle(oracle).updatePrice();
 
         _locked = 1;
     }
