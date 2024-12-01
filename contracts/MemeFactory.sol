@@ -13,6 +13,10 @@ interface IERC20 {
 }
 
 interface IOracle {
+    /// @dev Updates time average price.
+    function updatePrice() external returns (bool);
+
+    /// @dev Validates price according to slippage.
     function validatePrice(uint256 slippage) external view returns (bool);
 }
 
@@ -265,6 +269,9 @@ abstract contract MemeFactory {
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
+        // Update prices in oracle
+        //IOracle(oracle).updatePrice();
+
         emit Summoned(msg.sender, memeToken, msg.value);
         emit Hearted(msg.sender, memeToken, msg.value);
     }
@@ -293,6 +300,9 @@ abstract contract MemeFactory {
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
+
+        // Update prices in oracle
+        //IOracle(oracle).updatePrice();
 
         emit Hearted(msg.sender, memeToken, msg.value);
     }
@@ -353,6 +363,9 @@ abstract contract MemeFactory {
             _collect(memeToken, hearterContribution, heartersAmount, totalNativeTokenCommitted);
         }
 
+        // Update prices in oracle
+        //IOracle(oracle).updatePrice();
+
         emit Unleashed(msg.sender, memeToken, pool, liquidity, nativeAmountForOLASBurn);
 
         _locked = 1;
@@ -382,6 +395,9 @@ abstract contract MemeFactory {
 
         // Collect the token
         _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.nativeTokenContributed);
+
+        // Update prices in oracle
+        //IOracle(oracle).updatePrice();
 
         _locked = 1;
     }
@@ -413,6 +429,9 @@ abstract contract MemeFactory {
         // Burn the remaining balance
         memeTokenInstance.burn(remainingBalance);
 
+        // Update prices in oracle
+        //IOracle(oracle).updatePrice();
+
         emit Purged(memeToken, remainingBalance);
 
         _locked = 1;
@@ -424,16 +443,17 @@ abstract contract MemeFactory {
         _locked = 2;
 
         // Slippage limit requirement
-        require(slippage <= maxSlippage);
+        require(slippage <= maxSlippage, "Slippage limit overflow");
 
         uint256 localAscendance = scheduledForAscendance;
         require(localAscendance > 0, "Nothing to burn");
 
-        // Apply slippage protection
-        require(IOracle(oracle).validatePrice(slippage));
-
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
+
+        // Apply slippage protection
+        //require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
+        IOracle(oracle).validatePrice(slippage);
 
         uint256 OLASAmount = _buyOLAS(localAscendance);
 
@@ -467,6 +487,9 @@ abstract contract MemeFactory {
             // solhint-disable-next-line avoid-low-level-calls
             tx.origin.call{value: leftovers}("");
         }
+
+        // Update prices in oracle
+        //IOracle(oracle).updatePrice();
 
         _locked = 1;
     }
