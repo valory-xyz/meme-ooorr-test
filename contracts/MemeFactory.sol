@@ -16,10 +16,6 @@ interface IOracle {
     function validatePrice(uint256 slippage) external view returns (bool);
 }
 
-interface IWETH {
-    function deposit() external payable;
-}
-
 // UniswapV2 interface
 interface IUniswap {
     /// @dev Gets LP pair address.
@@ -219,7 +215,7 @@ abstract contract MemeFactory {
         // Zero the allocation
         memeHearters[memeToken][msg.sender] = 0;
 
-        // Transfer meme token maount to the msg.sender
+        // Transfer meme token amount to the msg.sender
         memeTokenInstance.transfer(msg.sender, allocation);
 
         emit Collected(msg.sender, memeToken, allocation);
@@ -227,10 +223,7 @@ abstract contract MemeFactory {
 
     function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal virtual;
 
-    function _wrap(uint256 nativeTokenAmount) internal virtual {
-        // Wrap ETH
-        IWETH(nativeToken).deposit{value: nativeTokenAmount}();
-    }
+    function _wrap(uint256 nativeTokenAmount) internal virtual;
 
     /// @dev Summons meme token.
     /// @param name Token name.
@@ -316,14 +309,11 @@ abstract contract MemeFactory {
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
 
-        // Wrap native token to its ERC-20 version, where applicable
-        _wrap(totalNativeTokenCommitted);
-
         // Put aside reference token to buy OLAS with the burn percentage of the total native token amount committed
         uint256 nativeAmountForOLASBurn = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
 
         // Adjust reference token amount
-        totalNativeTokenCommitted -= nativeAmountForOLASBurn;
+        uint256 nativeAmountForLP = totalNativeTokenCommitted - nativeAmountForOLASBurn;
 
         _redemptionLogic(nativeAmountForOLASBurn);
 
@@ -333,11 +323,14 @@ abstract contract MemeFactory {
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         Meme memeTokenInstance = Meme(memeToken);
         uint256 totalSupply = memeTokenInstance.totalSupply();
-        uint256 amountForLP = (totalSupply * LP_PERCENTAGE) / 100;
-        uint256 heartersAmount = totalSupply - amountForLP;
+        uint256 memeAmountForLP = (totalSupply * LP_PERCENTAGE) / 100;
+        uint256 heartersAmount = totalSupply - memeAmountForLP;
+
+        // Wrap native token to its ERC-20 version, where applicable
+        _wrap(nativeAmountForLP);
 
         // Create Uniswap pair with LP allocation
-        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, totalNativeTokenCommitted, amountForLP);
+        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
@@ -419,26 +412,32 @@ abstract contract MemeFactory {
     }
 
     /// @dev Converts collected reference token to OLAS.
-    function scheduleOLASForAscendance(uint256 slippage) external virtual {
+    function scheduleOLASForAscendance(uint256 amount, uint256 slippage) external virtual {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
         // Slippage limit requirement
         require(slippage <= maxSlippage);
 
-        uint256 localAscendance = scheduledForAscendance;
-        require(localAscendance > 0, "Nothing to burn");
+        if (amount > scheduledForAscendance) {
+            amount = scheduledForAscendance;
+        }
+        require(amount > 0, "Nothing to burn");
 
+        // shouldn't this be inside _buyOLAS as its chain specific?
         // Apply slippage protection
         require(IOracle(oracle).validatePrice(slippage));
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        uint256 OLASAmount = _buyOLAS(localAscendance);
+        // Wrap native token to its ERC-20 version, where applicable
+        _wrap(amount);
+
+        uint256 OLASAmount = _buyOLAS(amount);
 
         bridgeAmount += OLASAmount;
-        scheduledForAscendance = 0;
+        scheduledForAscendance -= amount;
 
         _locked = 1;
     }
