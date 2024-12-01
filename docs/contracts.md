@@ -35,6 +35,25 @@ Run the tests:
 npx hardhat test
 ```
 
+### Test on branch
+
+First, install test setup
+
+```
+curl -L https://foundry.paradigm.xyz | bash
+```
+
+Run forked test chain
+```
+export ANVIL_IP_ADDR=0.0.0.0
+anvil --fork-url https://soft-sly-slug.base-mainnet.quiknode.pro/f13d998d9d68685faeee903499e15b4b386a8b1c/ --port 9000 --chain-id 8543 --no-storage-caching --steps-tracing
+```
+
+On separate terminal run test
+```
+npx hardhat run test/MemeBase.js --network localFork
+```
+
 # Acknowledgements
 The registries contracts were inspired and based on the following sources:
 - [Rari-Capital](https://github.com/Rari-Capital/solmate). Last known audited version: `eaa7041378f9a6c12f943de08a6c41b31a9870fc`;

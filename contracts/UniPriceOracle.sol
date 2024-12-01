@@ -22,7 +22,7 @@ contract UniPriceOracle {
     constructor(
         address _olas,
         address _nativeToken,
-        uint256 _maxSlippage,
+        uint256 _maxSlippage
     ) {
         require(_maxSlippage <= 100, "Slippage must be <= 100%");
         olas = _olas;

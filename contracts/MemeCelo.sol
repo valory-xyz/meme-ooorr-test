@@ -82,11 +82,11 @@ contract MemeCelo is MemeFactory {
         path[1] = olas;
 
         // Approve native token
-        IERC20(nativeToken).approve(router, nativeTokenAmount);
+        IERC20(nativeToken).approve(uniV2router, nativeTokenAmount);
 
         // Swap cUSD for OLAS
         // This will go via two pools - not a problem as Ubeswap has both
-        uint256[] memory amounts = IUniswap(router).swapExactTokensForTokens(
+        uint256[] memory amounts = IUniswap(uniV2router).swapExactTokensForTokens(
             nativeTokenAmount,
             0,
             path,

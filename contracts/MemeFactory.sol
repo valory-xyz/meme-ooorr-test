@@ -459,13 +459,13 @@ abstract contract MemeFactory {
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        bridgeAmount += OLASAmount;
-        scheduledForAscendance -= amount;
-
         // Wrap native token to its ERC-20 version, where applicable
         _wrap(amount);
 
         uint256 OLASAmount = _buyOLAS(amount);
+
+        bridgeAmount += OLASAmount;
+        scheduledForAscendance -= amount;
 
         _locked = 1;
     }
