@@ -238,6 +238,9 @@ abstract contract MemeFactory {
         string memory symbol,
         uint256 totalSupply
     ) external payable {
+        require(_locked == 1, "Reentrancy guard");
+        _locked = 2;
+
         // Check for minimum native token value
         require(msg.value >= minNativeTokenValue, "Minimum native token value is required to summon");
         // Check for minimum total supply
@@ -267,11 +270,16 @@ abstract contract MemeFactory {
 
         emit Summoned(msg.sender, memeToken, msg.value);
         emit Hearted(msg.sender, memeToken, msg.value);
+
+        _locked = 1;
     }
 
     /// @dev Hearts the meme token with native token contribution.
     /// @param memeToken Meme token address.
     function heartThisMeme(address memeToken) external payable {
+        require(_locked == 1, "Reentrancy guard");
+        _locked = 2;
+
         // Check for zero value
         require(msg.value > 0, "Native token amount must be greater than zero");
 
@@ -298,6 +306,8 @@ abstract contract MemeFactory {
         IOracle(oracle).updatePrice();
 
         emit Hearted(msg.sender, memeToken, msg.value);
+
+        _locked = 1;
     }
 
     /// @dev Unleashes the meme token.
@@ -443,20 +453,19 @@ abstract contract MemeFactory {
         }
         require(amount > 0, "Nothing to burn");
 
-        // TOFIX:shouldn't this be inside _buyOLAS as its chain specific?
         // Apply slippage protection
         require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
+        bridgeAmount += OLASAmount;
+        scheduledForAscendance -= amount;
+
         // Wrap native token to its ERC-20 version, where applicable
         _wrap(amount);
 
         uint256 OLASAmount = _buyOLAS(amount);
-
-        bridgeAmount += OLASAmount;
-        scheduledForAscendance -= amount;
 
         _locked = 1;
     }
