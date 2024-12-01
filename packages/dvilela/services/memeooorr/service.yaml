@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeidxk7huapgpnyg4bk4tydfx3dpov7kmkfbvvdn2aabr2ba75unbci
+agent: dvilela/memeooorr:0.1.0:bafybeicsjfcl4s44hitgsmdjqh6qdjlpzwtblxna3xtdglamikux7jxwwa
 number_of_agents: 1
 deployment:
   agent:
@@ -84,12 +84,10 @@ extra:
         termination_from_block: ${TERMINATION_FROM_BLOCK:int:21629820}
         minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.01}
         min_feedback_replies: ${MIN_FEEDBACK_REPLIES:int:10}
-        total_supply: ${TOTAL_SUPPLY:int:1000000000000000000000000}
-        meme_factory_address: ${MEME_FACTORY_ADDRESS:str:0x0000000000000000000000000000000000000000}
+        meme_factory_address: ${MEME_FACTORY_ADDRESS:str:0x42156841253f428cb644ea1230d4fddfb70f8891}
         olas_token_address: ${OLAS_TOKEN_ADDRESS:str:0x54330d28ca3357F294334BDC454a032e7f353416}
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
         feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
-        deployment_amount_eth: ${DEPLOYMENT_AMOUNT_ETH:float:0.01}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

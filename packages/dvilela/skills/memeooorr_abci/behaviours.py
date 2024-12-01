@@ -22,16 +22,21 @@
 from typing import Set, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
+    ActionPreparationBehaviour,
     CheckFundsBehaviour,
     DeploymentBehaviour,
+    PullMemesBehaviour,
+    TransactionMultiplexerBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.db import (
     LoadDatabaseBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.llm import (
+    ActionDecisionBehaviour,
     AnalizeFeedbackBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
+    ActionTweetBehaviour,
     CollectFeedbackBehaviour,
     PostAnnouncementBehaviour,
     PostTweetBehaviour,
@@ -56,4 +61,9 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
         CheckFundsBehaviour,
         DeploymentBehaviour,
         PostAnnouncementBehaviour,
+        PullMemesBehaviour,
+        ActionDecisionBehaviour,
+        ActionPreparationBehaviour,
+        ActionTweetBehaviour,
+        TransactionMultiplexerBehaviour,
     ]

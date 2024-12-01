@@ -44,17 +44,16 @@ PATH_TO_VAR = {
     "models/params/args/on_chain_service_id": "ON_CHAIN_SERVICE_ID",
     "models/params/args/minimum_gas_balance": "MINIMUM_GAS_BALANCE",
     "models/params/args/min_feedback_replies": "MIN_FEEDBACK_REPLIES",
-    "models/params/args/total_supply": "TOTAL_SUPPLY",
     "models/params/args/meme_factory_address": "MEME_FACTORY_ADDRESS",
     "models/params/args/setup/safe_contract_address": "SAFE_CONTRACT_ADDRESS",
     "models/params/args/feedback_period_hours": "FEEDBACK_PERIOD_HOURS",
-    "models/params/args/deployment_amount_eth": "DEPLOYMENT_AMOUNT_ETH",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",
     "config/twikit_password": "TWIKIT_PASSWORD",
     "config/twikit_cookies": "TWIKIT_COOKIES",
     "config/twikit_cookies_path": "TWIKIT_COOKIES_PATH",
+    "config/twikit_disable_tweets": "DISABLE_TWEETS",
     # Genai connection
     "config/genai_api_key": "GENAI_API_KEY",
     # DB
@@ -111,7 +110,14 @@ def main() -> None:
 
     # Search and replace all the secrets
     for path, var in PATH_TO_VAR.items():
-        config = find_and_replace(config, path.split("/"), os.getenv(var))
+        try:
+            new_value = os.getenv(var)
+            if new_value is None:
+                print(f"Env var {var} is not set")
+                continue
+            config = find_and_replace(config, path.split("/"), new_value)
+        except Exception as e:
+            raise ValueError(f"Could not update {path}") from e
 
     # Dump the updated config
     with open(Path(AGENT_NAME, "aea-config.yaml"), "w", encoding="utf-8") as file:

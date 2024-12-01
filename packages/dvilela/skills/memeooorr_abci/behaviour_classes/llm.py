@@ -20,7 +20,8 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
-from typing import Dict, Generator, Optional, Type
+import re
+from typing import Dict, Generator, Optional, Tuple, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
@@ -28,12 +29,35 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     is_tweet_valid,
 )
-from packages.dvilela.skills.memeooorr_abci.prompts import ANALYZE_FEEDBACK_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import (
+    ACTION_DECISION_PROMPT,
+    ANALYZE_FEEDBACK_PROMPT,
+)
 from packages.dvilela.skills.memeooorr_abci.rounds import (
+    ActionDecisionPayload,
+    ActionDecisionRound,
     AnalizeFeedbackPayload,
     AnalizeFeedbackRound,
+    Event,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
+
+
+JSON_RESPONSE_REGEX = r"json({.*})"
+
+# fmt: off
+TOKEN_SUMMARY = (  # nosec
+    """
+    token name: {token_name}
+    token symbol: {token_ticker}
+    total supply (wei): {token_supply}
+    decimals: {decimals}
+    heath count: {heart_count}
+    liquidity: {liquidity}
+    available actions: {available_actions}
+    """
+)
+# fmt: on
 
 
 class AnalizeFeedbackBehaviour(
@@ -72,10 +96,15 @@ class AnalizeFeedbackBehaviour(
             ]
         )
 
+        native_balance = yield from self.get_native_balance()
+        if not native_balance:
+            native_balance = 0
+
         prompt_data = {
             "latest_tweet": self.synchronized_data.latest_tweet["text"],
             "tweet_responses": tweet_responses,
             "persona": self.get_persona(),
+            "balance": native_balance,
         }
 
         llm_response = yield from self._call_genai(
@@ -109,8 +138,12 @@ class AnalizeFeedbackBehaviour(
             response["deploy"]
             and "token_name" not in response
             or "token_ticker" not in response
+            or "token_supply" not in response
+            or "amount" not in response
         ):
-            self.context.logger.error("Missing some token data from the respons.")
+            self.context.logger.error(
+                f"Missing some token data from the response: {response}"
+            )
             return None
 
         # Missing persona
@@ -124,3 +157,103 @@ class AnalizeFeedbackBehaviour(
             self.context.logger.info("Wrote persona to db")
 
         return response
+
+
+class ActionDecisionBehaviour(
+    MemeooorrBaseBehaviour
+):  # pylint: disable=too-many-ancestors
+    """ActionDecisionBehaviour"""
+
+    matching_round: Type[AbstractRound] = ActionDecisionRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            event, token_address, action, amount, tweet = yield from self.get_event()
+
+            payload = ActionDecisionPayload(
+                sender=self.context.agent_address,
+                event=event,
+                token_address=token_address,
+                action=action,
+                amount=amount,
+                tweet=tweet,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+    def get_event(  # pylint: disable=too-many-return-statements
+        self,
+    ) -> Generator[
+        None,
+        None,
+        Tuple[str, Optional[str], Optional[str], Optional[float], Optional[str]],
+    ]:
+        """Get the next event"""
+
+        meme_coins = "\n".join(
+            TOKEN_SUMMARY.format(**meme_coin)
+            for meme_coin in self.synchronized_data.meme_coins
+        )
+
+        self.context.logger.info(f"Action options:\n{meme_coins}")
+
+        valid_addreses = [c["token_address"] for c in self.synchronized_data.meme_coins]
+
+        native_balance = yield from self.get_native_balance()
+        if not native_balance:
+            native_balance = 0
+
+        prompt_data = {"meme_coins": meme_coins, "balance": native_balance}
+
+        llm_response = yield from self._call_genai(
+            prompt=ACTION_DECISION_PROMPT.format(**prompt_data)
+        )
+        self.context.logger.info(f"LLM response: {llm_response}")
+
+        # We didnt get a response
+        if llm_response is None:
+            self.context.logger.error("Error getting a response from the LLM.")
+            return Event.WAIT.value, None, None, None, None
+
+        try:
+            llm_response = llm_response.replace("\n", "").strip()
+            match = re.search(JSON_RESPONSE_REGEX, llm_response)
+            if match:
+                llm_response = match.groups()[0]
+            response = json.loads(llm_response)
+
+            action = response.get("action", "none")
+            token_address = response.get("token_address", None)
+            amount = float(response.get("amount", 0))
+            tweet = response.get("tweet", None)
+
+            if action == "none":
+                return Event.WAIT.value, None, None, None, None
+
+            if token_address not in valid_addreses:
+                return Event.WAIT.value, None, None, None, None
+
+            available_actions = []
+            for t in self.synchronized_data.meme_coins:
+                if t["token_address"] == token_address:
+                    available_actions = t["available_actions"]
+                    break
+
+            if action not in available_actions:
+                return Event.WAIT.value, None, None, None, None
+
+            if not tweet:
+                return Event.WAIT.value, None, None, None, None
+
+            return Event.DONE.value, token_address, action, amount, tweet
+
+        # The response is not a valid json
+        except json.JSONDecodeError as e:
+            self.context.logger.error(f"Error loading the LLM response: {e}")
+            return Event.WAIT.value, None, None, None, None

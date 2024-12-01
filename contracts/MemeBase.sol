@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {MemeFactory} from "./MemeFactory.sol";
+import {MemeFactory, Meme} from "./MemeFactory.sol";
 
 // Balancer interface
 interface IBalancer {
@@ -48,6 +48,10 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
+interface IWETH {
+    function deposit() external payable;
+}
+
 // Oracle interface
 interface IOracle {
     /// @dev Gets latest round token price data.
@@ -64,93 +68,71 @@ interface IUniswap {
 
 /// @title MemeBase - a smart contract factory for Meme Token creation on Base.
 contract MemeBase is MemeFactory {
-    // Slippage parameter (3%)
-    uint256 public constant SLIPPAGE = 97;
     // Token transfer gas limit for L1
     // This is safe as the value is practically bigger than observed ones on numerous chains
     uint32 public constant TOKEN_GAS_LIMIT = 300_000;
+    // AGNT redemption amount as per:
+    // https://basescan.org/address/0x42156841253f428cb644ea1230d4fddfb70f8891#readContract#F17
+    // Previous token address: 0x7484a9fB40b16c4DFE9195Da399e808aa45E9BB9
+    // Full collected amount: 141569842100000000000
+    uint256 public constant CONTRIBUTION_AGNT = 141569842100000000000;
+    // Redemption amount: collected amount - 10% for burn = 127412857890000000000
+    uint256 public constant REDEMPTION_AMOUNT = 127412857890000000000;
 
-    // WETH token address
-    address public immutable weth;
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
-    // Oracle address
-    address public immutable oracle;
     // Balancer Vault address
     address public immutable balancerVault;
     // Balancer Pool Id
     bytes32 public immutable balancerPoolId;
 
+    // Redemption token address
+    address public redemptionAddress;
+    // Redemption balance
+    uint256 public redemptionBalance;
+
     /// @dev MemeBase constructor
     constructor(
-        address _olas,
-        address _usdc,
-        address _router,
-        address _factory,
-        uint256 _minNativeTokenValue,
-        address _weth,
+        FactoryParams memory factoryParams,
         address _l2TokenRelayer,
-        address _oracle,
         address _balancerVault,
-        bytes32 _balancerPoolId
-    ) MemeFactory(_olas, _usdc, _router, _factory, _minNativeTokenValue) {
-        weth = _weth;
+        bytes32 _balancerPoolId,
+        address[] memory accounts,
+        uint256[] memory amounts
+    ) MemeFactory(factoryParams) {
         l2TokenRelayer = _l2TokenRelayer;
-        oracle = _oracle;
         balancerVault = _balancerVault;
         balancerPoolId = _balancerPoolId;
-    }
 
-    /// @dev Buys USDC on UniswapV2 using ETH amount.
-    /// @param nativeTokenAmount Input ETH amount.
-    /// @return Stable token amount bought.
-    function _convertToReferenceToken(uint256 nativeTokenAmount, uint256) internal virtual override returns (uint256) {
-        address[] memory path = new address[](2);
-        path[0] = weth;
-        path[1] = referenceToken;
-
-        // Calculate price by Oracle
-        (, int256 answerPrice, , , ) = IOracle(oracle).latestRoundData();
-        require(answerPrice > 0, "Oracle price is incorrect");
-
-        // Oracle returns 8 decimals, USDC has 6 decimals, need to additionally divide by 100 to account for slippage
-        // ETH: 18 decimals, USDC leftovers: 2 decimals, percentage: 2 decimals; denominator = 18 + 2 + 2 = 22
-        uint256 limit = uint256(answerPrice) * nativeTokenAmount * SLIPPAGE / 1e22;
-        // Swap ETH for USDC
-        uint256[] memory amounts = IUniswap(router).swapExactETHForTokens{ value: nativeTokenAmount }(
-            limit,
-            path,
-            address(this),
-            block.timestamp
-        );
-
-        // Return the USDC amount bought
-        return amounts[1];
+        if (accounts.length > 0) {
+            _redemptionSetup(accounts, amounts);
+        }
     }
 
     /// @dev Buys OLAS on Balancer.
-    /// @param referenceTokenAmount USDC amount.
-    /// @param limit OLAS minimum amount depending on the desired slippage.
+    /// @param nativeTokenAmount Native token amount.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 referenceTokenAmount, uint256 limit) internal virtual override returns (uint256) {
-        // Approve usdc for the Balancer Vault
-        IERC20(referenceToken).approve(balancerVault, referenceTokenAmount);
-
-        // Prepare Balancer data
-        IBalancer.SingleSwap memory singleSwap = IBalancer.SingleSwap(balancerPoolId, IBalancer.SwapKind.GIVEN_IN, referenceToken,
-            olas, referenceTokenAmount, "0x");
+    function _buyOLAS(uint256 nativeTokenAmount) internal virtual override returns (uint256) {
+        // Approve weth for the Balancer Vault
+        IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
+        
+        // Prepare Balancer data for the WETH-OLAS pool
+        IBalancer.SingleSwap memory singleSwap = IBalancer.SingleSwap(balancerPoolId, IBalancer.SwapKind.GIVEN_IN,
+            nativeToken, olas, nativeTokenAmount, "0x");
         IBalancer.FundManagement memory fundManagement = IBalancer.FundManagement(address(this), false,
             payable(address(this)), false);
 
         // Perform swap
-        return IBalancer(balancerVault).swap(singleSwap, fundManagement, limit, block.timestamp);
+        return IBalancer(balancerVault).swap(singleSwap, fundManagement, 0, block.timestamp);
     }
 
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param olasAmount OLAS amount.
     /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
     /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory) internal virtual override returns (uint256) {
+    function _bridgeAndBurn(uint256 olasAmount, uint256 tokenGasLimit, bytes memory)
+        internal virtual override returns (uint256)
+    {
         // Approve bridge to use OLAS
         IERC20(olas).approve(l2TokenRelayer, olasAmount);
 
@@ -168,5 +150,89 @@ contract MemeBase is MemeFactory {
         emit OLASJourneyToAscendance(olas, olasAmount);
 
         return msg.value;
+    }
+
+    /// @dev Redemption initialization function.
+    /// @param accounts Original accounts.
+    /// @param amounts Corresponding original amounts (without subtraction for burn).
+    function _redemptionSetup(address[] memory accounts, uint256[] memory amounts) private {
+        require(accounts.length == amounts.length);
+
+        redemptionAddress = address(new Meme("Agent Token II", "AGNT II", DECIMALS, 1_000_000_000 ether));
+
+        // Record all the accounts and amounts
+        uint256 totalAmount;
+        for (uint256 i = 0; i < accounts.length; ++i) {
+            totalAmount += amounts[i];
+            memeHearters[redemptionAddress][accounts[i]] = amounts[i];
+            // to match original hearter events
+            emit Hearted(accounts[i], redemptionAddress, amounts[i]);
+        }
+        require(totalAmount == CONTRIBUTION_AGNT, "Total amount must match original contribution amount");
+        // Adjust amount for already collected burned tokens
+        uint256 adjustedAmount = (totalAmount * 9) / 10;
+        require(adjustedAmount == REDEMPTION_AMOUNT, "Total amount adjusted for burn allocation must match redemption amount");
+
+        // summonTime is set to zero such that no one is able to heart this token
+        memeSummons[redemptionAddress] = MemeSummon(CONTRIBUTION_AGNT, 0, 0, 0);
+
+        // Push token into the global list of tokens
+        memeTokens.push(redemptionAddress);
+        numTokens = memeTokens.length;
+
+        // To match original summon events
+        emit Summoned(accounts[0], redemptionAddress, amounts[0]);
+    }
+
+    /// @dev AGNT token redemption unleash.
+    function _redemption() private {
+        Meme memeTokenInstance = Meme(redemptionAddress);
+        uint256 totalSupply = memeTokenInstance.totalSupply();
+        uint256 memeAmountForLP = (totalSupply * LP_PERCENTAGE) / 100;
+        uint256 heartersAmount = totalSupply - memeAmountForLP;
+
+        // Create Uniswap pair with LP allocation
+        (address pool, uint256 liquidity) = _createUniswapPair(redemptionAddress, REDEMPTION_AMOUNT, memeAmountForLP);
+
+        MemeSummon storage memeSummon = memeSummons[redemptionAddress];
+
+        // Record the actual meme unleash time
+        memeSummon.unleashTime = block.timestamp;
+        // Record the hearters distribution amount for this meme
+        memeSummon.heartersAmount = heartersAmount;
+
+        // Allocate to the token hearter unleashing the meme
+        uint256 hearterContribution = memeHearters[redemptionAddress][msg.sender];
+        if (hearterContribution > 0) {
+            _collect(redemptionAddress, hearterContribution, heartersAmount, CONTRIBUTION_AGNT);
+        }
+
+        emit Unleashed(msg.sender, redemptionAddress, pool, liquidity, 0);
+    }
+
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override {
+        // Redemption collection logic
+        if (redemptionBalance < REDEMPTION_AMOUNT) {
+            // Get the difference of the required redemption amount and redemption balance
+            uint256 diff = REDEMPTION_AMOUNT - redemptionBalance;
+            // Take full nativeAmountForOLASBurn or a missing part to fulfil the redemption amount
+            if (diff > nativeAmountForOLASBurn) {
+                redemptionBalance += nativeAmountForOLASBurn;
+                nativeAmountForOLASBurn = 0;
+            } else {
+                nativeAmountForOLASBurn -= diff;
+                redemptionBalance += diff;
+            }
+
+            // Call redemption if the balance has reached
+            if (redemptionBalance >= REDEMPTION_AMOUNT) {
+                _redemption();
+            }
+        }
+    }
+
+    function _wrap(uint256 nativeTokenAmount) internal virtual override {
+        // Wrap ETH
+        IWETH(nativeToken).deposit{value: nativeTokenAmount}();
     }
 }

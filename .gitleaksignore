@@ -29,3 +29,8 @@ bcf95ffdbf9a2bf091313ecd1a150e0275d1ff3c:scripts/deployment/globals_celo_mainnet
 bcf95ffdbf9a2bf091313ecd1a150e0275d1ff3c:scripts/deployment/globals_celo_mainnet.json:generic-api-key:2
 75a8dc2cf07759ab174fb7f5f407918f27133285:scripts/deployment/globals_celo_mainnet_meme_alpha.json:generic-api-key:39
 75a8dc2cf07759ab174fb7f5f407918f27133285:scripts/deployment/globals_base_mainnet_meme_alpha.json:generic-api-key:41
+dc61628f56259e7d5e2809cf4729d585cf275269:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
+fccb0c9feb0a00c1d531f9329b036f686a1016f9:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
+9a30edfca28f4b067ff3e9e38b35af935c818baa:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
+b5789a39f91286f083273695da6abab2ed84e167:packages/dvilela/skills/memeooorr_abci/behaviour_classes/llm.py:generic-api-key:207
+e2b7c2175ce8c01ffd9cefebebca9c67db2ef87e:packages/dvilela/skills/memeooorr_abci/behaviour_classes/chain.py:generic-api-key:398
