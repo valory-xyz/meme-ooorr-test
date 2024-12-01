@@ -39,13 +39,21 @@ async function main() {
     const deployer = await EOA.getAddress();
     console.log("EOA is:", deployer);
 
+    const factoryParams = {
+        olas: parsedData.olasAddress,
+        nativeToken: parsedData.celoAddress,
+        router: parsedData.routerAddress,
+        factory: parsedData.factoryAddress,
+        oracle: parsedData.oracleAddress,
+        maxSlippage: parsedData.maxSlippage,
+        minNativeTokenValue: parsedData.minNativeTokenValue
+    }
+
     // Transaction signing and execution
     console.log("2. EOA to deploy MemeCelo");
     const MemeCelo = await ethers.getContractFactory("MemeCelo");
     console.log("You are signing the following transaction: MemeCelo.connect(EOA).deploy()");
-    const memeCelo = await MemeCelo.connect(EOA).deploy(parsedData.olasAddress, parsedData.cusdAddress,
-        parsedData.routerAddress, parsedData.factoryAddress, parsedData.minNativeTokenValue, parsedData.celoAddress,
-        parsedData.l2TokenBridgeAddress, parsedData.oracleAddress);
+    const memeCelo = await MemeCelo.connect(EOA).deploy(factoryParams, parsedData.l2TokenBridgeAddress);
     const result = await memeCelo.deployed();
 
     // Transaction details

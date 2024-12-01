@@ -1,8 +1,232 @@
+// Sources flattened with hardhat v2.22.15 https://hardhat.org
+
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
 
-import {Meme} from "./Meme.sol";
+pragma solidity >=0.8.0;
 
+/// @notice Modern and gas efficient ERC20 + EIP-2612 implementation.
+/// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC20.sol)
+/// @author Modified from Uniswap (https://github.com/Uniswap/uniswap-v2-core/blob/master/contracts/UniswapV2ERC20.sol)
+/// @dev Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it.
+abstract contract ERC20 {
+    /*//////////////////////////////////////////////////////////////
+                                 EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    event Transfer(address indexed from, address indexed to, uint256 amount);
+
+    event Approval(address indexed owner, address indexed spender, uint256 amount);
+
+    /*//////////////////////////////////////////////////////////////
+                            METADATA STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    string public name;
+
+    string public symbol;
+
+    uint8 public immutable decimals;
+
+    /*//////////////////////////////////////////////////////////////
+                              ERC20 STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    uint256 public totalSupply;
+
+    mapping(address => uint256) public balanceOf;
+
+    mapping(address => mapping(address => uint256)) public allowance;
+
+    /*//////////////////////////////////////////////////////////////
+                            EIP-2612 STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    uint256 internal immutable INITIAL_CHAIN_ID;
+
+    bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
+
+    mapping(address => uint256) public nonces;
+
+    /*//////////////////////////////////////////////////////////////
+                               CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals
+    ) {
+        name = _name;
+        symbol = _symbol;
+        decimals = _decimals;
+
+        INITIAL_CHAIN_ID = block.chainid;
+        INITIAL_DOMAIN_SEPARATOR = computeDomainSeparator();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                               ERC20 LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function approve(address spender, uint256 amount) public virtual returns (bool) {
+        allowance[msg.sender][spender] = amount;
+
+        emit Approval(msg.sender, spender, amount);
+
+        return true;
+    }
+
+    function transfer(address to, uint256 amount) public virtual returns (bool) {
+        balanceOf[msg.sender] -= amount;
+
+        // Cannot overflow because the sum of all user
+        // balances can't exceed the max uint256 value.
+        unchecked {
+            balanceOf[to] += amount;
+        }
+
+        emit Transfer(msg.sender, to, amount);
+
+        return true;
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public virtual returns (bool) {
+        uint256 allowed = allowance[from][msg.sender]; // Saves gas for limited approvals.
+
+        if (allowed != type(uint256).max) allowance[from][msg.sender] = allowed - amount;
+
+        balanceOf[from] -= amount;
+
+        // Cannot overflow because the sum of all user
+        // balances can't exceed the max uint256 value.
+        unchecked {
+            balanceOf[to] += amount;
+        }
+
+        emit Transfer(from, to, amount);
+
+        return true;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                             EIP-2612 LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public virtual {
+        require(deadline >= block.timestamp, "PERMIT_DEADLINE_EXPIRED");
+
+        // Unchecked because the only math done is incrementing
+        // the owner's nonce which cannot realistically overflow.
+        unchecked {
+            address recoveredAddress = ecrecover(
+                keccak256(
+                    abi.encodePacked(
+                        "\x19\x01",
+                        DOMAIN_SEPARATOR(),
+                        keccak256(
+                            abi.encode(
+                                keccak256(
+                                    "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+                                ),
+                                owner,
+                                spender,
+                                value,
+                                nonces[owner]++,
+                                deadline
+                            )
+                        )
+                    )
+                ),
+                v,
+                r,
+                s
+            );
+
+            require(recoveredAddress != address(0) && recoveredAddress == owner, "INVALID_SIGNER");
+
+            allowance[recoveredAddress][spender] = value;
+        }
+
+        emit Approval(owner, spender, value);
+    }
+
+    function DOMAIN_SEPARATOR() public view virtual returns (bytes32) {
+        return block.chainid == INITIAL_CHAIN_ID ? INITIAL_DOMAIN_SEPARATOR : computeDomainSeparator();
+    }
+
+    function computeDomainSeparator() internal view virtual returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                    keccak256(bytes(name)),
+                    keccak256("1"),
+                    block.chainid,
+                    address(this)
+                )
+            );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL MINT/BURN LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function _mint(address to, uint256 amount) internal virtual {
+        totalSupply += amount;
+
+        // Cannot overflow because the sum of all user
+        // balances can't exceed the max uint256 value.
+        unchecked {
+            balanceOf[to] += amount;
+        }
+
+        emit Transfer(address(0), to, amount);
+    }
+
+    function _burn(address from, uint256 amount) internal virtual {
+        balanceOf[from] -= amount;
+
+        // Cannot underflow because a user's balance
+        // will never be larger than the total supply.
+        unchecked {
+            totalSupply -= amount;
+        }
+
+        emit Transfer(from, address(0), amount);
+    }
+}
+
+
+// File contracts/Meme.sol
+contract Meme is ERC20 {
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals,
+        uint256 _totalSupply
+    ) ERC20(_name, _symbol, _decimals) {
+        _mint(msg.sender, _totalSupply);
+    }
+
+    function burn(uint256 amount) external {
+        _burn(msg.sender, amount);
+    }
+}
+
+
+// File contracts/MemeFactory.sol
 // ERC20 interface
 interface IERC20 {
     /// @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
@@ -12,23 +236,32 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
-interface IOracle {
-    function validatePrice(uint256 slippage) external view returns (bool);
-}
-
 interface IWETH {
     function deposit() external payable;
 }
 
 // UniswapV2 interface
 interface IUniswap {
-    /// @dev Gets LP pair address.
-    function getPair(address tokenA, address tokenB) external returns (address pair);
+    /// @dev Creates an LP pair.
+    function createPair(address tokenA, address tokenB) external returns (address pair);
 
     /// @dev Adds liquidity to the LP consisting of tokenA and tokenB.
     function addLiquidity(address tokenA, address tokenB, uint256 amountADesired, uint256 amountBDesired,
         uint256 amountAMin, uint256 amountBMin, address to, uint256 deadline)
         external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
+
+    /// @dev Swaps exact amount of ETH for a specified token.
+    function swapExactTokensForTokens(uint256 amountOutMin, address[] calldata path, address to, uint256 deadline)
+        external payable returns (uint256[] memory amounts);
+
+    /// @dev Swaps an exact amount of input tokens along the route determined by the path. 
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
 }
 
 /// @title MemeFactory - a smart contract factory for Meme Token creation
@@ -64,20 +297,9 @@ abstract contract MemeFactory {
     event Summoned(address indexed summoner, address indexed memeToken, uint256 nativeTokenContributed);
     event Hearted(address indexed hearter, address indexed memeToken, uint256 amount);
     event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress,
-        uint256 liquidity, uint256  nativeAmountForOLASBurn);
+        uint256 liquidity, uint256  burnPercentageOfStable);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
-
-    // Params struct
-    struct FactoryParams {
-        address olas;
-        address nativeToken;
-        address router;
-        address factory;
-        address oracle;
-        uint256 maxSlippage;
-        uint256 minNativeTokenValue;
-    }
 
     // Meme Summon struct
     struct MemeSummon {
@@ -92,7 +314,7 @@ abstract contract MemeFactory {
     }
 
     // Version number
-    string public constant VERSION = "0.1.1";
+    string public constant VERSION = "0.1.0";
     // Total supply minimum value
     uint256 public constant MIN_TOTAL_SUPPLY = 1_000_000 ether;
     // Unleash delay after token summoning
@@ -110,22 +332,18 @@ abstract contract MemeFactory {
 
     // Minimum value of native token deposit
     uint256 public immutable minNativeTokenValue;
-    // Oracle max slippage for ERC-20 native token <=> OLAS
-    uint256 public immutable maxSlippage;
     // OLAS token address
     address public immutable olas;
-    // Native token address (ERC-20 equivalent)
+    // Native token address
     address public immutable nativeToken;
     // Uniswap V2 router address
     address public immutable router;
     // Uniswap V2 factory address
     address public immutable factory;
-    // Oracle address
-    address public immutable oracle;
 
     // Number of meme tokens
     uint256 public numTokens;
-    // Native token (ERC-20) scheduled to be converted to OLAS for Ascendance
+    // Native token scheduled to be converted to OLAS for Ascendance
     uint256 public scheduledForAscendance;
     // Tokens to be bridged
     uint256 public bridgeAmount;
@@ -142,20 +360,29 @@ abstract contract MemeFactory {
     address[] public memeTokens;
 
     /// @dev MemeFactory constructor
-    constructor(FactoryParams memory factoryParams) {
-        olas = factoryParams.olas;
-        nativeToken = factoryParams.nativeToken;
-        router = factoryParams.router;
-        factory = factoryParams.factory;
-        oracle = factoryParams.oracle;
-        maxSlippage = factoryParams.maxSlippage;
-        minNativeTokenValue = factoryParams.minNativeTokenValue;
+    constructor(
+        address _olas,
+        address _nativeToken,
+        address _router,
+        address _factory,
+        uint256 _minNativeTokenValue
+    ) {
+        olas = _olas;
+        nativeToken = _nativeToken;
+        router = _router;
+        factory = _factory;
+        minNativeTokenValue = _minNativeTokenValue;
     }
+
+    /// @dev Get safe slippage amount from dex with oracle.
+    /// @return safe amount of tokens to swap on dex with low slippage.
+    function _getLowSlippageSafeSwapAmount() internal virtual returns (uint256);
 
     /// @dev Buys OLAS on DEX.
     /// @param nativeTokenAmount Native token amount.
+    /// @param limit OLAS minimum amount depending on the desired slippage.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount) internal virtual returns (uint256);
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 limit) internal virtual returns (uint256);
 
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param OLASAmount OLAS amount.
@@ -179,6 +406,14 @@ abstract contract MemeFactory {
         uint256 nativeTokenAmount,
         uint256 memeTokenAmount
     ) internal returns (address pair, uint256 liquidity) {
+        _wrap(nativeTokenAmount);
+
+        // TODO Check that this LP token doesn't exist
+        // TODO What to do if it exists: add liquidity if one exists, otherwise create it
+        // TODO try-catch
+        // Create the LP
+        pair = IUniswap(factory).createPair(nativeToken, memeToken);
+        
         // Approve tokens for router
         IERC20(nativeToken).approve(router, nativeTokenAmount);
         IERC20(memeToken).approve(router, memeTokenAmount);
@@ -194,9 +429,6 @@ abstract contract MemeFactory {
             address(this),
             block.timestamp
         );
-
-        // Get the pair address
-        pair = IUniswap(factory).getPair(nativeToken, memeToken);
     }
 
     /// @dev Collects meme token allocation.
@@ -225,8 +457,6 @@ abstract contract MemeFactory {
         emit Collected(msg.sender, memeToken, allocation);
     }
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal virtual;
-
     function _wrap(uint256 nativeTokenAmount) internal virtual {
         // Wrap ETH
         IWETH(nativeToken).deposit{value: nativeTokenAmount}();
@@ -245,14 +475,10 @@ abstract contract MemeFactory {
         require(msg.value >= minNativeTokenValue, "Minimum native token value is required to summon");
         // Check for minimum total supply
         require(totalSupply >= MIN_TOTAL_SUPPLY, "Minimum total supply is not met");
-        // TODO: check for max total supply, must be UNI-compatible of uint112 and check for overflow if max(uint112) * big(heartAmount)
 
         // Create a new token
         Meme newTokenInstance = new Meme(name, symbol, DECIMALS, totalSupply);
         address memeToken = address(newTokenInstance);
-
-        // Check for non-zero token address
-        require(memeToken != address(0), "Token creation failed");
 
         // Initiate meme token map values
         memeSummons[memeToken] = MemeSummon(msg.value, block.timestamp, 0, 0);
@@ -282,7 +508,7 @@ abstract contract MemeFactory {
         uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
 
         // Check that the meme has been summoned
-        require(memeSummon.summonTime > 0, "Meme not yet summoned");
+        require(totalNativeTokenCommitted > 0, "Meme not yet summoned");
         // Check if the token has been unleashed
         require(memeSummon.unleashTime == 0, "Meme already unleashed");
 
@@ -310,34 +536,25 @@ abstract contract MemeFactory {
         uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
 
         // Check if the meme has been summoned
-        require(memeSummon.unleashTime == 0, "Meme already unleashed");
-        // Check if the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
 
-        // Wrap native token to its ERC-20 version, where applicable
-        _wrap(totalNativeTokenCommitted);
-
         // Put aside reference token to buy OLAS with the burn percentage of the total native token amount committed
-        uint256 nativeAmountForOLASBurn = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
+        uint256 burnPercentageOfReferenceToken = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
+        scheduledForAscendance += burnPercentageOfReferenceToken;
 
         // Adjust reference token amount
-        totalNativeTokenCommitted -= nativeAmountForOLASBurn;
-
-        _redemptionLogic(nativeAmountForOLASBurn);
-
-        // Schedule native token amount for ascendance
-        scheduledForAscendance += nativeAmountForOLASBurn;
+        totalNativeTokenCommitted -= burnPercentageOfReferenceToken;
 
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         Meme memeTokenInstance = Meme(memeToken);
         uint256 totalSupply = memeTokenInstance.totalSupply();
-        uint256 amountForLP = (totalSupply * LP_PERCENTAGE) / 100;
-        uint256 heartersAmount = totalSupply - amountForLP;
+        uint256 lpTokenAmount = (totalSupply * LP_PERCENTAGE) / 100;
+        uint256 heartersAmount = totalSupply - lpTokenAmount;
 
         // Create Uniswap pair with LP allocation
-        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, totalNativeTokenCommitted, amountForLP);
+        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, totalNativeTokenCommitted, lpTokenAmount);
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
@@ -353,7 +570,7 @@ abstract contract MemeFactory {
             _collect(memeToken, hearterContribution, heartersAmount, totalNativeTokenCommitted);
         }
 
-        emit Unleashed(msg.sender, memeToken, pool, liquidity, nativeAmountForOLASBurn);
+        emit Unleashed(msg.sender, memeToken, pool, liquidity, burnPercentageOfReferenceToken);
 
         _locked = 1;
     }
@@ -380,6 +597,7 @@ abstract contract MemeFactory {
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
+        // TODO: check state in this function
         // Collect the token
         _collect(memeToken, hearterContribution, memeSummon.heartersAmount, memeSummon.nativeTokenContributed);
 
@@ -419,26 +637,33 @@ abstract contract MemeFactory {
     }
 
     /// @dev Converts collected reference token to OLAS.
-    function scheduleOLASForAscendance(uint256 slippage) external virtual {
+    function scheduleOLASForAscendance() external payable {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
-
-        // Slippage limit requirement
-        require(slippage <= maxSlippage);
 
         uint256 localAscendance = scheduledForAscendance;
         require(localAscendance > 0, "Nothing to burn");
 
-        // Apply slippage protection
-        require(IOracle(oracle).validatePrice(slippage));
+        // TODO: needs oracle integration
+        // Apply 3% slippage protection
+        uint256 limit = _getLowSlippageSafeSwapAmount();
+
+        uint256 swapAmount;
+        if (localAscendance > limit) {
+            swapAmount = limit;
+            localAscendance -= limit;
+        } else {
+            swapAmount = localAscendance;
+            localAscendance = 0;
+        }
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        uint256 OLASAmount = _buyOLAS(localAscendance);
+        uint256 OLASAmount = _buyOLAS(swapAmount, limit);
 
         bridgeAmount += OLASAmount;
-        scheduledForAscendance = 0;
+        scheduledForAscendance = localAscendance;
 
         _locked = 1;
     }
@@ -473,4 +698,131 @@ abstract contract MemeFactory {
 
     /// @dev Allows the contract to receive native token
     receive() external payable {}
+}
+
+
+// File contracts/MemeCelo.sol
+// Bridge interface
+interface IBridge {
+    /// @dev Transfers tokens through Wormhole portal.
+    function transferTokens(
+        address token,
+        uint256 amount,
+        uint16 recipientChain,
+        bytes32 recipient,
+        uint256 arbiterFee,
+        uint32 nonce
+    ) external payable returns (uint64 sequence);
+}
+
+// Oracle interface
+interface IOracle {
+    /// @dev Gets latest round token price data.
+    function latestRoundData()
+        external returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
+}
+
+/// @title MemeCelo - a smart contract factory for Meme Token creation on Celo.
+contract MemeCelo is MemeFactory {
+    // Slippage parameter (3%)
+    uint256 public constant SLIPPAGE = 97;
+    // Wormhole bridging decimals cutoff
+    uint256 public constant WORMHOLE_BRIDGING_CUTOFF = 1e10;
+    // Ethereum mainnet chain Id in Wormhole format
+    uint16 public constant WORMHOLE_ETH_CHAIN_ID = 2;
+
+    // CELO token address
+    address public immutable celo;
+    // L2 token relayer bridge address
+    address public immutable l2TokenRelayer;
+    // Oracle address
+    address public immutable oracle;
+
+    // Contract nonce
+    uint256 public nonce;
+    // OLAS leftovers from bridging
+    uint256 public olasLeftovers;
+
+    /// @dev MemeBase constructor
+    constructor(
+        address _olas,
+        address _celo,
+        address _router,
+        address _factory,
+        uint256 _minNativeTokenValue,
+        address _l2TokenRelayer,
+        address _oracle
+    ) MemeFactory(_olas, _celo, _router, _factory, _minNativeTokenValue) {
+        l2TokenRelayer = _l2TokenRelayer;
+        oracle = _oracle;
+    }
+
+    /// @dev Get safe slippage amount from dex.
+    /// @return safe amount of tokens to swap on dex with low slippage.
+    function _getLowSlippageSafeSwapAmount() internal virtual override returns (uint256) {
+        /// check on two-sided CELO, OLAS pool for correct amount with max 3% slippage
+        return 0;
+    }
+
+    /// @dev Buys OLAS on UniswapV2.
+    /// @param nativeTokenAmount CELO amount.
+    /// @return Obtained OLAS amount.
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 limit) internal override returns (uint256) {
+        address[] memory path = new address[](3);
+        path[0] = nativeToken;
+        path[1] = olas;
+
+        // Approve native token
+        IERC20(nativeToken).approve(router, nativeTokenAmount);
+
+        // Swap cUSD for OLAS
+        // This will go via two pools - not a problem as Ubeswap has both
+        uint256[] memory amounts = IUniswap(router).swapExactTokensForTokens(
+            nativeTokenAmount,
+            limit,
+            path,
+            address(this),
+            block.timestamp
+        );
+
+        // Return the OLAS amount bought
+        return amounts[1];
+    }
+
+    /// @dev Bridges OLAS amount back to L1 and burns.
+    /// @param olasAmount OLAS amount.
+    /// @return msg.value leftovers if partially utilized by the bridge.
+    function _bridgeAndBurn(uint256 olasAmount, uint256, bytes memory) internal override returns (uint256) {
+        // Get OLAS leftovers from previous transfers and adjust the amount to transfer
+        olasAmount += olasLeftovers;
+
+        // Round transfer amount to the cutoff value
+        uint256 transferAmount = olasAmount / WORMHOLE_BRIDGING_CUTOFF;
+        transferAmount *= WORMHOLE_BRIDGING_CUTOFF;
+
+        // Check for zero value
+        require(transferAmount > 0, "Amount is too small for bridging");
+
+        // Update OLAS leftovers
+        olasLeftovers = olasAmount - transferAmount;
+
+        // Approve bridge to use OLAS
+        IERC20(olas).approve(l2TokenRelayer, transferAmount);
+
+        // Bridge arguments
+        bytes32 olasBurner = bytes32(uint256(uint160(OLAS_BURNER)));
+        uint256 localNonce = nonce;
+
+        // Bridge OLAS to mainnet to get burned
+        IBridge(l2TokenRelayer).transferTokens(olas, transferAmount, WORMHOLE_ETH_CHAIN_ID, olasBurner, 0, uint32(nonce));
+
+        // Adjust nonce
+        nonce = localNonce + 1;
+
+        emit OLASJourneyToAscendance(olas, transferAmount);
+
+        return msg.value;
+    }
+
+    function _wrap(uint256) internal virtual override {}
 }

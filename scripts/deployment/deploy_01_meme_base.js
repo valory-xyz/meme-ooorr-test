@@ -6,7 +6,7 @@ const { LedgerSigner } = require("@anders-t/ethers-ledger");
 async function main() {
     const fs = require("fs");
     const globalsFile = "globals.json";
-    const dataFromJSON = fs.readFileSync(globalsFile, "utf8");
+    let dataFromJSON = fs.readFileSync(globalsFile, "utf8");
     let parsedData = JSON.parse(dataFromJSON);
     const useLedger = parsedData.useLedger;
     const derivationPath = parsedData.derivationPath;
@@ -39,13 +39,35 @@ async function main() {
     const deployer = await EOA.getAddress();
     console.log("EOA is:", deployer);
 
+    console.log("Getting redemption data");
+    const redemptionsFile = "scripts/deployment/memebase_redemption.json";
+    dataFromJSON = fs.readFileSync(redemptionsFile, "utf8");
+    const redemptionsData = JSON.parse(dataFromJSON);
+    console.log("Number of entries:", redemptionsData.length);
+
+    const accounts = new Array();
+    const amounts = new Array();
+    for (let i = 0; i < redemptionsData.length; i++) {
+        accounts.push(redemptionsData[i]["hearter"]);
+        amounts.push(redemptionsData[i]["amount"].toString());
+    }
+
+    const factoryParams = {
+        olas: parsedData.olasAddress,
+        nativeToken: parsedData.wethAddress,
+        router: parsedData.routerAddress,
+        factory: parsedData.factoryAddress,
+        oracle: parsedData.oracleAddress,
+        maxSlippage: parsedData.maxSlippage,
+        minNativeTokenValue: parsedData.minNativeTokenValue
+    }
+
     // Transaction signing and execution
     console.log("1. EOA to deploy MemeBase");
     const MemeBase = await ethers.getContractFactory("MemeBase");
     console.log("You are signing the following transaction: MemeBase.connect(EOA).deploy()");
-    const memeBase = await MemeBase.connect(EOA).deploy(parsedData.olasAddress, parsedData.usdcAddress,
-        parsedData.routerAddress, parsedData.factoryAddress, parsedData.minNativeTokenValue, parsedData.wethAddress,
-        parsedData.l2TokenBridgeAddress, parsedData.oracleAddress, parsedData.balancerVaultAddress, parsedData.balancerPoolId);
+    const memeBase = await MemeBase.connect(EOA).deploy(factoryParams, parsedData.l2TokenBridgeAddress,
+        parsedData.balancerVaultAddress, parsedData.balancerPoolId, accounts, amounts);
     const result = await memeBase.deployed();
 
     // Transaction details
