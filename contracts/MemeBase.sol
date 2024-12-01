@@ -171,10 +171,6 @@ contract MemeBase is MemeFactory {
         // summonTime is set to zero such that no one is able to heart this token
         memeSummons[redemptionAddress] = MemeSummon(REDEMPTION_AMOUNT, 0, 0, 0);
 
-        // Push token into the global list of tokens
-        memeTokens.push(redemptionAddress);
-        numTokens = memeTokens.length;
-
         require(totalAmount == REDEMPTION_AMOUNT, "Total amount must match redemption amount");
     }
 
@@ -192,6 +188,10 @@ contract MemeBase is MemeFactory {
         memeSummon.unleashTime = block.timestamp;
         // Record the hearters distribution amount for this meme
         memeSummon.heartersAmount = heartersAmount;
+
+        // Push token into the global list of tokens
+        memeTokens.push(redemptionAddress);
+        numTokens = memeTokens.length;
 
         emit Unleashed(msg.sender, redemptionAddress, pool, liquidity, 0);
     }
