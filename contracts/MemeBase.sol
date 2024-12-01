@@ -52,20 +52,6 @@ interface IWETH {
     function deposit() external payable;
 }
 
-// Oracle interface
-interface IOracle {
-    /// @dev Gets latest round token price data.
-    function latestRoundData()
-        external returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
-}
-
-// UniswapV2 interface
-interface IUniswap {
-    /// @dev Swaps exact amount of ETH for a specified token.
-    function swapExactETHForTokens(uint256 amountOutMin, address[] calldata path, address to, uint256 deadline)
-        external payable returns (uint256[] memory amounts);
-}
-
 /// @title MemeBase - a smart contract factory for Meme Token creation on Base.
 contract MemeBase is MemeFactory {
     // Token transfer gas limit for L1
