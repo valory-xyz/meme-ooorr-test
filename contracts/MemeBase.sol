@@ -46,6 +46,17 @@ interface IERC20 {
     /// @param amount Token amount.
     /// @return True if the function execution is successful.
     function approve(address spender, uint256 amount) external returns (bool);
+
+    function totalSupply() external returns (uint256);
+
+    function decimals() external returns (uint8);
+}
+
+// Redemption MemeBase interface
+interface IMemeBase {
+    function memeTokens(uint256) external returns (address);
+    function memeSummons(address) external returns (MemeFactory.MemeSummon memory);
+    function LP_PERCENTAGE() external returns (uint256);
 }
 
 interface IWETH {
@@ -57,13 +68,16 @@ contract MemeBase is MemeFactory {
     // Token transfer gas limit for L1
     // This is safe as the value is practically bigger than observed ones on numerous chains
     uint32 public constant TOKEN_GAS_LIMIT = 300_000;
+
     // AGNT redemption amount as per:
     // https://basescan.org/address/0x42156841253f428cb644ea1230d4fddfb70f8891#readContract#F17
     // Previous token address: 0x7484a9fB40b16c4DFE9195Da399e808aa45E9BB9
     // Full collected amount: 141569842100000000000
-    uint256 public constant CONTRIBUTION_AGNT = 141569842100000000000;
+    uint256 public immutable contributionAGNT;
     // Redemption amount: collected amount - 10% for burn = 127412857890000000000
-    uint256 public constant REDEMPTION_AMOUNT = 127412857890000000000;
+    uint256 public immutable redemptionAmount;
+    // Redemption MemeBase address
+    address public immutable redemptionMemeBase;
 
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
@@ -83,6 +97,10 @@ contract MemeBase is MemeFactory {
         address _l2TokenRelayer,
         address _balancerVault,
         bytes32 _balancerPoolId,
+        address _redemptionMemeBase,
+        uint256 _redemptionTokenIdx,
+        string memory redemptionName,
+        string memory redemptionSymbol,
         address[] memory accounts,
         uint256[] memory amounts
     ) MemeFactory(factoryParams) {
@@ -91,7 +109,29 @@ contract MemeBase is MemeFactory {
         balancerPoolId = _balancerPoolId;
 
         if (accounts.length > 0) {
-            _redemptionSetup(accounts, amounts);
+            redemptionMemeBase = _redemptionMemeBase;
+
+            // Old AGNT token is the 4th in the global list of old MemeBase tokens
+            // https://basescan.org/address/0x42156841253f428cb644ea1230d4fddfb70f8891#readContract#F18
+            // Previous token address: 0x7484a9fB40b16c4DFE9195Da399e808aa45E9BB9
+            address redemptionMemeToken = IMemeBase(_redemptionMemeBase).memeTokens(_redemptionTokenIdx);
+
+            // Full collected AGNT amount: 141569842100000000000
+            // https://basescan.org/address/0x42156841253f428cb644ea1230d4fddfb70f8891#readContract#F17
+            MemeFactory.MemeSummon memory memeSummon = IMemeBase(_redemptionMemeBase).memeSummons(redemptionMemeToken);
+            contributionAGNT = memeSummon.nativeTokenContributed;
+
+            // Redemption amount: collected amount - 10% for burn = 127412857890000000000
+            redemptionAmount = contributionAGNT * 9 / 10;
+
+            // Set up redemption procedure
+            uint8 decimals = IERC20(redemptionMemeToken).decimals();
+            // Half of the supply has been burnt, thus it needs to be increased
+            uint256 totalSupply = 2 * IERC20(redemptionMemeToken).totalSupply();
+            // This is a required check if any accounts burns tokens as well
+            require(totalSupply == 1_000_000_000 ether, "Total supply has changed");
+
+            _redemptionSetup(redemptionName, redemptionSymbol, decimals, totalSupply, accounts, amounts);
         }
     }
 
@@ -141,10 +181,18 @@ contract MemeBase is MemeFactory {
     /// @dev Redemption initialization function.
     /// @param accounts Original accounts.
     /// @param amounts Corresponding original amounts (without subtraction for burn).
-    function _redemptionSetup(address[] memory accounts, uint256[] memory amounts) private {
+    function _redemptionSetup(
+        string memory redemptionName,
+        string memory redemptionSymbol,
+        uint8 decimals,
+        uint256 totalSupply,
+        address[] memory accounts,
+        uint256[] memory amounts
+    ) private {
         require(accounts.length == amounts.length);
 
-        redemptionAddress = address(new Meme("Agent Token II", "AGNT II", DECIMALS, 1_000_000_000 ether));
+        // Create a redemption token
+        redemptionAddress = address(new Meme(redemptionName, redemptionSymbol, decimals, totalSupply));
 
         // Record all the accounts and amounts
         uint256 totalAmount;
@@ -154,13 +202,13 @@ contract MemeBase is MemeFactory {
             // to match original hearter events
             emit Hearted(accounts[i], redemptionAddress, amounts[i]);
         }
-        require(totalAmount == CONTRIBUTION_AGNT, "Total amount must match original contribution amount");
+        require(totalAmount == contributionAGNT, "Total amount must match original contribution amount");
         // Adjust amount for already collected burned tokens
         uint256 adjustedAmount = (totalAmount * 9) / 10;
-        require(adjustedAmount == REDEMPTION_AMOUNT, "Total amount adjusted for burn allocation must match redemption amount");
+        require(adjustedAmount == redemptionAmount, "Total amount adjusted for burn allocation must match redemption amount");
 
         // summonTime is set to zero such that no one is able to heart this token
-        memeSummons[redemptionAddress] = MemeSummon(CONTRIBUTION_AGNT, 0, 0, 0);
+        memeSummons[redemptionAddress] = MemeSummon(contributionAGNT, 0, 0, 0);
 
         // Push token into the global list of tokens
         memeTokens.push(redemptionAddress);
@@ -174,11 +222,11 @@ contract MemeBase is MemeFactory {
     function _redemption() private {
         Meme memeTokenInstance = Meme(redemptionAddress);
         uint256 totalSupply = memeTokenInstance.totalSupply();
-        uint256 memeAmountForLP = (totalSupply * LP_PERCENTAGE) / 100;
+        uint256 memeAmountForLP = (totalSupply * IMemeBase(redemptionMemeBase).LP_PERCENTAGE()) / 100;
         uint256 heartersAmount = totalSupply - memeAmountForLP;
 
         // Create Uniswap pair with LP allocation
-        (address pool, uint256 liquidity) = _createUniswapPair(redemptionAddress, REDEMPTION_AMOUNT, memeAmountForLP);
+        (address pool, uint256 liquidity) = _createUniswapPair(redemptionAddress, redemptionAmount, memeAmountForLP);
 
         MemeSummon storage memeSummon = memeSummons[redemptionAddress];
 
@@ -190,7 +238,7 @@ contract MemeBase is MemeFactory {
         // Allocate to the token hearter unleashing the meme
         uint256 hearterContribution = memeHearters[redemptionAddress][msg.sender];
         if (hearterContribution > 0) {
-            _collect(redemptionAddress, hearterContribution, heartersAmount, CONTRIBUTION_AGNT);
+            _collect(redemptionAddress, hearterContribution, heartersAmount, contributionAGNT);
         }
 
         emit Unleashed(msg.sender, redemptionAddress, pool, liquidity, 0);
@@ -198,9 +246,9 @@ contract MemeBase is MemeFactory {
 
     function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override {
         // Redemption collection logic
-        if (redemptionBalance < REDEMPTION_AMOUNT) {
+        if (redemptionBalance < redemptionAmount) {
             // Get the difference of the required redemption amount and redemption balance
-            uint256 diff = REDEMPTION_AMOUNT - redemptionBalance;
+            uint256 diff = redemptionAmount - redemptionBalance;
             // Take full nativeAmountForOLASBurn or a missing part to fulfil the redemption amount
             if (diff > nativeAmountForOLASBurn) {
                 redemptionBalance += nativeAmountForOLASBurn;
@@ -211,7 +259,7 @@ contract MemeBase is MemeFactory {
             }
 
             // Call redemption if the balance has reached
-            if (redemptionBalance >= REDEMPTION_AMOUNT) {
+            if (redemptionBalance >= redemptionAmount) {
                 _redemption();
             }
         }

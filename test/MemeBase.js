@@ -55,8 +55,10 @@ const main = async () => {
 
     const MemeBase = await ethers.getContractFactory("MemeBase");
     const memeBase = await MemeBase.deploy(factoryParams, parsedData.l2TokenBridgeAddress,
-        parsedData.balancerVaultAddress, parsedData.balancerPoolId, accounts, amounts);
+        parsedData.balancerVaultAddress, parsedData.balancerPoolId, parsedData.redemptionMemeBaseAddress,
+        parsedData.redemptionTokenIdx, parsedData.redemptionName, parsedData.redemptionSymbol, accounts, amounts);
     await memeBase.deployed();
+    return;
 
     // Summon a new meme token
     await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});

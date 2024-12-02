@@ -72,9 +72,7 @@ contract MemeArbitrum is MemeFactory {
         FactoryParams memory factoryParams,
         address _l2TokenRelayer,
         address _balancerVault,
-        bytes32 _balancerPoolId,
-        address[] memory accounts,
-        uint256[] memory amounts
+        bytes32 _balancerPoolId
     ) MemeFactory(factoryParams) {
         l2TokenRelayer = _l2TokenRelayer;
         balancerVault = _balancerVault;
@@ -119,7 +117,7 @@ contract MemeArbitrum is MemeFactory {
         return msg.value;
     }
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override {}
+    function _redemptionLogic(uint256) internal override {}
 
     function _wrap(uint256 nativeTokenAmount) internal virtual override {
         // Wrap ETH
