@@ -23,11 +23,16 @@
 
 import asyncio
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
+import dotenv
 import twikit
+
+
+dotenv.load_dotenv(override=True)
 
 
 def tweet_to_json(tweet: Any) -> Dict:
@@ -44,22 +49,40 @@ def tweet_to_json(tweet: Any) -> Dict:
     }
 
 
+async def password_login():
+    """Login via password"""
+    client = twikit.Client(language="en-US")
+    await client.login(
+        auth_info_1=os.getenv("TWIKIT_USERNAME"),
+        auth_info_2=os.getenv("TWIKIT_EMAIL"),
+        password=os.getenv("TWIKIT_PASSWORD"),
+    )
+    return client
+
+
+async def cookie_login():
+    """Login via password"""
+    with open(
+        Path(os.getenv("TWIKIT_COOKIES_PATH")), "r", encoding="utf-8"
+    ) as cookie_file:
+        cookies = json.load(cookie_file)
+        client = twikit.Client(language="en-US")
+        client.set_cookies(cookies)
+        return client
+
+
 async def get_tweets() -> None:
     """Get tweets"""
 
-    with open(Path("twikit_cookies.json"), "r", encoding="utf-8") as cookies_file:
-        cookies = json.load(cookies_file)
+    client = await cookie_login()
 
-        client = twikit.Client(language="en-US")
-        client.set_cookies(cookies)
+    user = await client.get_user_by_screen_name(screen_name="percebot")
 
-        user = await client.get_user_by_screen_name(screen_name="percebot")
+    latest_tweets = await client.get_user_tweets(
+        user_id=user.id, tweet_type="Tweets", count=1
+    )
 
-        latest_tweets = await client.get_user_tweets(
-            user_id=user.id, tweet_type="Tweets", count=1
-        )
-
-        return [tweet_to_json(t) for t in latest_tweets]
+    return [tweet_to_json(t) for t in latest_tweets]
 
 
 tweets = asyncio.run(get_tweets())
