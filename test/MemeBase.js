@@ -20,7 +20,7 @@ const main = async () => {
     const payload = "0x";
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
-    const slippage = 25;
+    const slippage = 10;
 
     signers = await ethers.getSigners();
     deployer = signers[0];

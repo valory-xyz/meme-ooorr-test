@@ -1,12 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
-import "hardhat/console.sol";
-// improved with ChatGPT 4o mini
-
-// ERC20 interface
-interface IERC20 {
-    function balanceOf(address account) external view returns (uint256);
-}
 
 /// @title UniPriceOracle - a smart contract oracle wrapper for Uni V2 pools
 /// @dev This contract acts as an oracle wrapper for a specific Uni V2 pool. It allows:
