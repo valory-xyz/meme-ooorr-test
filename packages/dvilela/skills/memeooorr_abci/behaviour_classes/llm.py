@@ -48,6 +48,7 @@ JSON_RESPONSE_REGEX = r"json({.*})"
 # fmt: off
 TOKEN_SUMMARY = (  # nosec
     """
+    token address: {token_address}
     token name: {token_name}
     token symbol: {token_ticker}
     total supply (wei): {token_supply}
@@ -243,9 +244,13 @@ class ActionDecisionBehaviour(
             tweet = response.get("tweet", None)
 
             if action == "none":
+                self.context.logger.info("Action is none")
                 return Event.WAIT.value, None, None, None, None
 
             if token_address not in valid_addreses:
+                self.context.logger.info(
+                    f"Token address [{token_address}] is not in valid_addreses={valid_addreses}"
+                )
                 return Event.WAIT.value, None, None, None, None
 
             available_actions = []
@@ -255,11 +260,16 @@ class ActionDecisionBehaviour(
                     break
 
             if action not in available_actions:
+                self.context.logger.info(
+                    f"Action [{action}] is not in available_actions={available_actions}"
+                )
                 return Event.WAIT.value, None, None, None, None
 
             if not tweet:
+                self.context.logger.info("Tweet is none")
                 return Event.WAIT.value, None, None, None, None
 
+            self.context.logger.info("The LLM returned a valid response")
             return Event.DONE.value, token_address, action, amount, tweet
 
         # The response is not a valid json

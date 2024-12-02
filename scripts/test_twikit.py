@@ -75,6 +75,7 @@ async def get_tweets() -> None:
     """Get tweets"""
 
     client = await cookie_login()
+    client.save_cookies(os.getenv("TWIKIT_COOKIES_PATH"))
 
     user = await client.get_user_by_screen_name(screen_name="percebot")
 
