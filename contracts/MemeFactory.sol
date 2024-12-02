@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
+import '@uniswap/v3-periphery/contracts/libraries/TickMath.sol';
 import {Meme} from "./Meme.sol";
 
 // ERC20 interface
@@ -73,7 +75,7 @@ abstract contract MemeFactory {
         address olas;
         address nativeToken;
         address uniV2router;
-        address uniV2factory;
+        address uniV3positionManager;
         address oracle;
         uint256 maxSlippage;
         uint256 minNativeTokenValue;
@@ -180,23 +182,68 @@ abstract contract MemeFactory {
         uint256 memeTokenAmount
     ) internal returns (address pair, uint256 liquidity) {
         // Approve tokens for router
-        IERC20(nativeToken).approve(uniV2router, nativeTokenAmount);
-        IERC20(memeToken).approve(uniV2router, memeTokenAmount);
+        IERC20(nativeToken).approve(uniV3positionManager, nativeTokenAmount);
+        IERC20(memeToken).approve(uniV3positionManager, memeTokenAmount);
 
         // Add native token + meme token liquidity
-        (, , liquidity) = IUniswap(uniV2router).addLiquidity(
-            nativeToken,
-            memeToken,
-            nativeTokenAmount,
-            memeTokenAmount,
-            0, // Accept any amount of native token
-            0, // Accept any amount of meme token
-            address(this),
-            block.timestamp
-        );
+        INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams(
+            token0: nativeToken,
+            token1: memeToken,
+            fee: feeTier,
+            tickLower: TickMath.MIN_TICK,
+            tickUpper: TickMath.MAX_TICK,
+            amount0Desired: nativeTokenAmount,
+            amount1Desired: memeTokenAmount,
+            amount0Min: 0, // Accept any amount of native token
+            amount1Min: 0, // Accept any amount of meme token
+            recipient: address(this),
+            deadline: block.timestamp
+        });
+
+        // Add native token + meme token liquidity
+        // (, , liquidity) = IUniswap(uniV2router).addLiquidity(
+        //     nativeToken,
+        //     memeToken,
+        //     nativeTokenAmount,
+        //     memeTokenAmount,
+        //     0, // Accept any amount of native token
+        //     0, // Accept any amount of meme token
+        //     address(this),
+        //     block.timestamp
+        // );
+        INonfungiblePositionManager(uniV3positionManager).mint(params);
+
+        // store token id for later
+
 
         // Get the pair address
-        pair = IUniswap(uniV2factory).getPair(nativeToken, memeToken);
+        // pair = IUniswap(uniV2factory).getPair(nativeToken, memeToken);
+    }
+
+    /// @dev Collects all accumulated LP fees in native token.
+    function collectFeesSingleSided() external {
+        for (uint256 i = 0; i < accounts.length; ++i) {
+            // FIX: loop over tokens - we should somehow allow for batching
+            // use _collectFees below
+        }
+    }
+
+    function _collectFees(tokenId) {
+        INonfungiblePositionManager.CollectParams memory params = INonfungiblePositionManager.CollectParams({
+            tokenId: tokenId,
+            recipient: address(this),
+            amount0Max: type(uint128).max,
+            amount1Max: 0
+        });
+
+        INonfungiblePositionManager(uniV3positionManager).collect(params);
+
+        uint256 nativeAmountForOLASBurn = // FIX: assign here the collected native token amount
+
+        uint256 adjustedNativeAmountForAscendance = _redemptionLogic(nativeAmountForOLASBurn);
+
+        // Schedule native token amount for ascendance
+        scheduledForAscendance += adjustedNativeAmountForAscendance;
     }
 
     /// @dev Collects meme token allocation.
@@ -225,7 +272,7 @@ abstract contract MemeFactory {
         emit Collected(msg.sender, memeToken, allocation);
     }
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal virtual;
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal virtual returns (uint256 adjustedNativeAmountForAscendance);
 
     function _wrap(uint256 nativeTokenAmount) internal virtual;
 
@@ -335,10 +382,10 @@ abstract contract MemeFactory {
         // Adjust native token amount
         uint256 nativeAmountForLP = totalNativeTokenCommitted - nativeAmountForOLASBurn;
 
-        _redemptionLogic(nativeAmountForOLASBurn);
+        uint256 adjustedNativeAmountForAscendance = _redemptionLogic(nativeAmountForOLASBurn);
 
         // Schedule native token amount for ascendance
-        scheduledForAscendance += nativeAmountForOLASBurn;
+        scheduledForAscendance += adjustedNativeAmountForAscendance;
 
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         Meme memeTokenInstance = Meme(memeToken);

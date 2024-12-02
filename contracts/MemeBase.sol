@@ -196,7 +196,7 @@ contract MemeBase is MemeFactory {
         emit Unleashed(msg.sender, redemptionAddress, pool, liquidity, 0);
     }
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override {
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override return (uint256 adjustedNativeAmountForAscendance) {
         // Redemption collection logic
         if (redemptionBalance < REDEMPTION_AMOUNT) {
             // Get the difference of the required redemption amount and redemption balance
@@ -204,9 +204,9 @@ contract MemeBase is MemeFactory {
             // Take full nativeAmountForOLASBurn or a missing part to fulfil the redemption amount
             if (diff > nativeAmountForOLASBurn) {
                 redemptionBalance += nativeAmountForOLASBurn;
-                nativeAmountForOLASBurn = 0;
+                adjustedNativeAmountForAscendance = 0;
             } else {
-                nativeAmountForOLASBurn -= diff;
+                adjustedNativeAmountForAscendance = nativeAmountForOLASBurn - diff;
                 redemptionBalance += diff;
             }
 
