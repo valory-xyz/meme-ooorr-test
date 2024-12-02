@@ -146,10 +146,7 @@ contract MemeBase is MemeFactory {
     /// @dev Redemption initialization function.
     /// @param accounts Original accounts.
     /// @param amounts Corresponding original amounts (without subtraction for burn).
-    function _redemptionSetup(
-        address[] memory accounts,
-        uint256[] memory amounts
-    ) private {
+    function _redemptionSetup(address[] memory accounts, uint256[] memory amounts) private {
         require(accounts.length == amounts.length);
 
         // Create a redemption token
