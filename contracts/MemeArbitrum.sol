@@ -119,7 +119,9 @@ contract MemeArbitrum is MemeFactory {
         return msg.value;
     }
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override {}
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override returns (uint256) {
+        return nativeAmountForOLASBurn;
+    }
 
     function _wrap(uint256 nativeTokenAmount) internal virtual override {
         // Wrap ETH
