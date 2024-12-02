@@ -46,8 +46,8 @@ const main = async () => {
     const factoryParams = {
         olas: parsedData.olasAddress,
         nativeToken: parsedData.wethAddress,
-        router: parsedData.routerAddress,
-        factory: parsedData.factoryAddress,
+        uniV2router: parsedData.routerAddress,
+        uniV2factory: parsedData.factoryAddress,
         oracle: oracle.address,
         maxSlippage: parsedData.maxSlippageMeme,
         minNativeTokenValue: parsedData.minNativeTokenValue
@@ -60,7 +60,8 @@ const main = async () => {
 
     // Summon a new meme token
     await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
-    const memeToken = await memeBase.memeTokens(0);
+    // 0-th token is the redemptionOne
+    const memeToken = await memeBase.memeTokens(1);
     console.log("New meme contract:", memeToken);
 
     // Heart a new token by other accounts
@@ -96,7 +97,8 @@ const main = async () => {
     await helpers.time.increase(10);
 
     // Swap to OLAS
-    await memeBase.scheduleOLASForAscendance(slippage);
+    const olasAmount = await memeBase.scheduledForAscendance();
+    await memeBase.scheduleOLASForAscendance(olasAmount, slippage);
 };
 
 main()
