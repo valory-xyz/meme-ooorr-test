@@ -39,8 +39,8 @@ const main = async () => {
     }
 
     const Oracle = await ethers.getContractFactory("BalancerPriceOracle");
-    const oracle = await Oracle.deploy(parsedData.olasAddress, parsedData.wethAddress, parsedData.balancerVaultAddress,
-        parsedData.balancerPoolId, parsedData.maxSlippageOracle, parsedData.minUpdateTimePeriod);
+    const oracle = await Oracle.deploy(parsedData.olasAddress, parsedData.wethAddress, parsedData.maxSlippageOracle,
+        parsedData.minUpdateTimePeriod, parsedData.balancerVaultAddress, parsedData.balancerPoolId);
     await oracle.deployed();
 
     const factoryParams = {
