@@ -166,7 +166,7 @@ contract MemeBase is MemeFactory {
         require(adjustedAmount == REDEMPTION_AMOUNT, "Total amount adjusted for burn allocation must match redemption amount");
 
         // summonTime is set to zero such that no one is able to heart this token
-        memeSummons[redemptionAddress] = MemeSummon(CONTRIBUTION_AGNT, 0, 0, 0);
+        memeSummons[redemptionAddress] = MemeSummon(CONTRIBUTION_AGNT, 0, 0, 0, 0);
 
         // Push token into the global list of tokens
         memeTokens.push(redemptionAddress);
@@ -184,7 +184,7 @@ contract MemeBase is MemeFactory {
         uint256 heartersAmount = totalSupply - memeAmountForLP;
 
         // Create Uniswap pair with LP allocation
-        (address pool, uint256 liquidity) = _createUniswapPair(redemptionAddress, REDEMPTION_AMOUNT, memeAmountForLP);
+        (uint256 positionId, uint256 liquidity) = _createUniswapPair(redemptionAddress, REDEMPTION_AMOUNT, memeAmountForLP);
 
         MemeSummon storage memeSummon = memeSummons[redemptionAddress];
 
@@ -192,6 +192,8 @@ contract MemeBase is MemeFactory {
         memeSummon.unleashTime = block.timestamp;
         // Record the hearters distribution amount for this meme
         memeSummon.heartersAmount = heartersAmount;
+        // Record position token Id
+        memeSummon.positionId = positionId;
 
         // Allocate to the token hearter unleashing the meme
         uint256 hearterContribution = memeHearters[redemptionAddress][msg.sender];
@@ -199,10 +201,10 @@ contract MemeBase is MemeFactory {
             _collect(redemptionAddress, hearterContribution, heartersAmount, CONTRIBUTION_AGNT);
         }
 
-        emit Unleashed(msg.sender, redemptionAddress, pool, liquidity, 0);
+        emit Unleashed(msg.sender, redemptionAddress, positionId, liquidity, 0);
     }
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override {
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override returns (uint256 adjustedNativeAmountForAscendance) {
         // Redemption collection logic
         if (redemptionBalance < REDEMPTION_AMOUNT) {
             // Get the difference of the required redemption amount and redemption balance
@@ -210,9 +212,9 @@ contract MemeBase is MemeFactory {
             // Take full nativeAmountForOLASBurn or a missing part to fulfil the redemption amount
             if (diff > nativeAmountForOLASBurn) {
                 redemptionBalance += nativeAmountForOLASBurn;
-                nativeAmountForOLASBurn = 0;
+                adjustedNativeAmountForAscendance = 0;
             } else {
-                nativeAmountForOLASBurn -= diff;
+                adjustedNativeAmountForAscendance = nativeAmountForOLASBurn - diff;
                 redemptionBalance += diff;
             }
 
