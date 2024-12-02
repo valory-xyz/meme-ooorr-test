@@ -59,6 +59,8 @@ contract MemeCelo is MemeFactory {
     address public immutable celo;
     // L2 token relayer bridge address
     address public immutable l2TokenRelayer;
+    // Ubeswap router address
+    address public immutable router;
 
     // Contract nonce
     uint256 public nonce;
@@ -68,9 +70,11 @@ contract MemeCelo is MemeFactory {
     /// @dev MemeBase constructor
     constructor(
         FactoryParams memory factoryParams,
-        address _l2TokenRelayer
+        address _l2TokenRelayer,
+        address _router
     ) MemeFactory(factoryParams) {
         l2TokenRelayer = _l2TokenRelayer;
+        router = _router;
     }
 
     /// @dev Buys OLAS on UniswapV2.
@@ -82,11 +86,11 @@ contract MemeCelo is MemeFactory {
         path[1] = olas;
 
         // Approve native token
-        IERC20(nativeToken).approve(uniV2router, nativeTokenAmount);
+        IERC20(nativeToken).approve(router, nativeTokenAmount);
 
         // Swap cUSD for OLAS
         // This will go via two pools - not a problem as Ubeswap has both
-        uint256[] memory amounts = IUniswap(uniV2router).swapExactTokensForTokens(
+        uint256[] memory amounts = IUniswap(router).swapExactTokensForTokens(
             nativeTokenAmount,
             0,
             path,
@@ -133,7 +137,9 @@ contract MemeCelo is MemeFactory {
         return msg.value;
     }
 
-    function _wrap(uint256) internal virtual override {}
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override returns (uint256) {
+        return nativeAmountForOLASBurn;
+    }
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override {}
+    function _wrap(uint256) internal virtual override {}
 }

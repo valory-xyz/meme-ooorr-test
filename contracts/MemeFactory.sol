@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {INonfungiblePositionManager} from "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
-import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
+import {INonfungiblePositionManager} from "../lib/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
+import "../lib/v3-core/contracts/libraries/TickMath.sol";
 import {Meme} from "./Meme.sol";
 
 // ERC20 interface
@@ -178,7 +178,7 @@ abstract contract MemeFactory {
     /// @param memeToken Meme token address.
     /// @param nativeTokenAmount Native token amount.
     /// @param memeTokenAmount Meme token amount.
-    /// @return pair native token + meme token LP address.
+    /// @return positionId LP position token Id.
     /// @return liquidity Obtained LP liquidity.
     function _createUniswapPair(
         address memeToken,
@@ -208,10 +208,10 @@ abstract contract MemeFactory {
     }
 
     /// @dev Collects all accumulated LP fees.
-    function collectFeesSingleSided(address[] memory memeTokens) external {
+    function collectFeesSingleSided(address[] memory tokens) external {
         for (uint256 i = 0; i < memeTokens.length; ++i) {
-            MemeSummon memory memeSummon = memeSummons[memeTokens[i]];
-            _collectFees(memeTokens[i], memeSummon.positionId);
+            MemeSummon memory memeSummon = memeSummons[tokens[i]];
+            _collectFees(tokens[i], memeSummon.positionId);
         }
     }
 
