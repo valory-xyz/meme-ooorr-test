@@ -20,7 +20,7 @@ const main = async () => {
     const payload = "0x";
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
-    const slippage = 25;
+    const slippage = 10;
 
     signers = await ethers.getSigners();
     deployer = signers[0];
@@ -39,8 +39,8 @@ const main = async () => {
     }
 
     const Oracle = await ethers.getContractFactory("BalancerPriceOracle");
-    const oracle = await Oracle.deploy(parsedData.olasAddress, parsedData.wethAddress, parsedData.balancerVaultAddress,
-        parsedData.balancerPoolId, parsedData.maxSlippageOracle, parsedData.minUpdateTimePeriod);
+    const oracle = await Oracle.deploy(parsedData.olasAddress, parsedData.wethAddress, parsedData.maxSlippageOracle,
+        parsedData.minUpdateTimePeriod, parsedData.balancerVaultAddress, parsedData.balancerPoolId);
     await oracle.deployed();
 
     const factoryParams = {

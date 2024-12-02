@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {MemeFactory, Meme} from "./MemeFactory.sol";
+import {MemeFactory, Meme, IOracle} from "./MemeFactory.sol";
 
 // Balancer interface
 interface IBalancer {
@@ -57,6 +57,7 @@ contract MemeBase is MemeFactory {
     // Token transfer gas limit for L1
     // This is safe as the value is practically bigger than observed ones on numerous chains
     uint32 public constant TOKEN_GAS_LIMIT = 300_000;
+
     // AGNT redemption amount as per:
     // https://basescan.org/address/0x42156841253f428cb644ea1230d4fddfb70f8891#readContract#F17
     // Previous token address: 0x7484a9fB40b16c4DFE9195Da399e808aa45E9BB9
@@ -97,8 +98,12 @@ contract MemeBase is MemeFactory {
 
     /// @dev Buys OLAS on Balancer.
     /// @param nativeTokenAmount Native token amount.
+    /// @param slippage Slippage value.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount) internal virtual override returns (uint256) {
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 slippage) internal virtual override returns (uint256) {
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
+
         // Approve weth for the Balancer Vault
         IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
         
@@ -144,6 +149,7 @@ contract MemeBase is MemeFactory {
     function _redemptionSetup(address[] memory accounts, uint256[] memory amounts) private {
         require(accounts.length == amounts.length);
 
+        // Create a redemption token
         redemptionAddress = address(new Meme("Agent Token II", "AGNT II", DECIMALS, 1_000_000_000 ether));
 
         // Record all the accounts and amounts

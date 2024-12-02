@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {MemeFactory} from "./MemeFactory.sol";
+import {MemeFactory, IOracle} from "./MemeFactory.sol";
 
 // Balancer interface
 interface IBalancer {
@@ -72,9 +72,7 @@ contract MemeArbitrum is MemeFactory {
         FactoryParams memory factoryParams,
         address _l2TokenRelayer,
         address _balancerVault,
-        bytes32 _balancerPoolId,
-        address[] memory accounts,
-        uint256[] memory amounts
+        bytes32 _balancerPoolId
     ) MemeFactory(factoryParams) {
         l2TokenRelayer = _l2TokenRelayer;
         balancerVault = _balancerVault;
@@ -89,8 +87,12 @@ contract MemeArbitrum is MemeFactory {
 
     /// @dev Buys OLAS on Balancer.
     /// @param nativeTokenAmount Native token amount.
+    /// @param slippage Slippage value.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount) internal virtual override returns (uint256) {
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 slippage) internal virtual override returns (uint256) {
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
+
         // Approve weth for the Balancer Vault
         IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
         
@@ -119,7 +121,7 @@ contract MemeArbitrum is MemeFactory {
         return msg.value;
     }
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override returns (uint256) {
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override pure returns (uint256) {
         return nativeAmountForOLASBurn;
     }
 
