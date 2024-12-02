@@ -121,7 +121,7 @@ contract MemeArbitrum is MemeFactory {
         return msg.value;
     }
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override returns (uint256) {
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override pure returns (uint256) {
         return nativeAmountForOLASBurn;
     }
 
