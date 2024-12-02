@@ -30,8 +30,10 @@ contract BalancerPriceOracle {
     }
 
     PriceSnapshot public snapshotHistory;
-    uint256 public immutable maxSlippage;          // Maximum allowed update slippage in %
-    uint256 public immutable minUpdateTimePeriod;  // Minimum update time period in seconds
+    // Maximum allowed update slippage in %
+    uint256 public immutable maxSlippage;
+    // Minimum update time period in seconds
+    uint256 public immutable minUpdateTimePeriod;
 
     address public immutable nativeToken;
     address public immutable olas;
@@ -82,6 +84,11 @@ contract BalancerPriceOracle {
             return true;
         }
 
+        // Check if update is too soon
+        if (block.timestamp < snapshotHistory.lastUpdated + minUpdateTimePeriod) {
+            return false;
+        }
+
         // Calculate elapsed time since the last update
         uint256 elapsedTime = block.timestamp - snapshot.lastUpdated;
 
@@ -89,9 +96,17 @@ contract BalancerPriceOracle {
         snapshot.cumulativePrice += snapshot.averagePrice * elapsedTime;
 
         // Update the average price to reflect the current price
-        snapshot.averagePrice = 
-            (snapshot.cumulativePrice + (currentPrice * elapsedTime)) / 
+        uint256 averagePrice = (snapshot.cumulativePrice + (currentPrice * elapsedTime)) /
             ((snapshot.cumulativePrice / snapshot.averagePrice) + elapsedTime);
+
+        // Check if price deviation is too high
+        if (currentPrice < averagePrice - (averagePrice * maxSlippage / 100) ||
+            currentPrice > averagePrice + (averagePrice * maxSlippage / 100))
+        {
+            return false;
+        }
+
+        snapshot.averagePrice = averagePrice;
         snapshot.lastUpdated = block.timestamp;
 
         emit PriceUpdated(msg.sender, currentPrice, snapshot.cumulativePrice);
@@ -113,8 +128,7 @@ contract BalancerPriceOracle {
         if (elapsedTime == 0) return false;
 
         // Compute time-weighted average price
-        uint256 timeWeightedAverage = 
-        (snapshot.cumulativePrice + (snapshot.averagePrice * elapsedTime)) / 
+        uint256 timeWeightedAverage = (snapshot.cumulativePrice + (snapshot.averagePrice * elapsedTime)) /
         ((snapshot.cumulativePrice / snapshot.averagePrice) + elapsedTime);
 
         console.log("Time-weighted average price:", timeWeightedAverage);
@@ -125,6 +139,9 @@ contract BalancerPriceOracle {
         // Validate against slippage thresholds
         uint256 lowerBound = (timeWeightedAverage * (100 - slippage)) / 100;
         uint256 upperBound = (timeWeightedAverage * (100 + slippage)) / 100;
+
+        console.log("lowerBound:", lowerBound);
+        console.log("upperBound:", upperBound);
 
         return tradePrice >= lowerBound && tradePrice <= upperBound;
     }

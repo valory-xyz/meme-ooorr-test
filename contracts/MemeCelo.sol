@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {MemeFactory} from "./MemeFactory.sol";
+import {MemeFactory, IOracle} from "./MemeFactory.sol";
 
 // Bridge interface
 interface IBridge {
@@ -23,13 +23,6 @@ interface IERC20 {
     /// @param amount Token amount.
     /// @return True if the function execution is successful.
     function approve(address spender, uint256 amount) external returns (bool);
-}
-
-// Oracle interface
-interface IOracle {
-    /// @dev Gets latest round token price data.
-    function latestRoundData()
-        external returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
 }
 
 // UniswapV2 interface
@@ -75,8 +68,12 @@ contract MemeCelo is MemeFactory {
 
     /// @dev Buys OLAS on UniswapV2.
     /// @param nativeTokenAmount CELO amount.
+    /// @param slippage Slippage value.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount) internal virtual override returns (uint256) {
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 slippage) internal virtual override returns (uint256) {
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
+
         address[] memory path = new address[](3);
         path[0] = nativeToken;
         path[1] = olas;

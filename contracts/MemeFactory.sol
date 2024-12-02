@@ -154,8 +154,9 @@ abstract contract MemeFactory {
 
     /// @dev Buys OLAS on DEX.
     /// @param nativeTokenAmount Native token amount.
+    /// @param slippage Slippage value.
     /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount) internal virtual returns (uint256);
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 slippage) internal virtual returns (uint256);
 
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param OLASAmount OLAS amount.
@@ -245,7 +246,7 @@ abstract contract MemeFactory {
         require(msg.value >= minNativeTokenValue, "Minimum native token value is required to summon");
         // Check for minimum total supply
         require(totalSupply >= MIN_TOTAL_SUPPLY, "Minimum total supply is not met");
-        // TODO: check for max total supply, must be UNI-compatible of uint112 and check for overflow if max(uint112) * big(heartAmount)
+        // TODO: check for max total supply
 
         // Create a new token
         Meme newTokenInstance = new Meme(name, symbol, DECIMALS, totalSupply);
@@ -453,16 +454,13 @@ abstract contract MemeFactory {
         }
         require(amount > 0, "Nothing to burn");
 
-        // Apply slippage protection
-        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
-
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
         // Wrap native token to its ERC-20 version, where applicable
         _wrap(amount);
 
-        uint256 OLASAmount = _buyOLAS(amount);
+        uint256 OLASAmount = _buyOLAS(amount, slippage);
 
         bridgeAmount += OLASAmount;
         scheduledForAscendance -= amount;

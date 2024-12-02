@@ -20,7 +20,7 @@ const main = async () => {
     const payload = "0x";
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
-    const slippage = 25;
+    const slippage = 10;
 
     signers = await ethers.getSigners();
     deployer = signers[0];
@@ -55,10 +55,8 @@ const main = async () => {
 
     const MemeBase = await ethers.getContractFactory("MemeBase");
     const memeBase = await MemeBase.deploy(factoryParams, parsedData.l2TokenBridgeAddress,
-        parsedData.balancerVaultAddress, parsedData.balancerPoolId, parsedData.redemptionMemeBaseAddress,
-        parsedData.redemptionTokenIdx, parsedData.redemptionName, parsedData.redemptionSymbol, accounts, amounts);
+        parsedData.balancerVaultAddress, parsedData.balancerPoolId, accounts, amounts);
     await memeBase.deployed();
-    return;
 
     // Summon a new meme token
     await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
