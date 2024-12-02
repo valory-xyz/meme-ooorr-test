@@ -62,7 +62,9 @@ async def password_login():
 
 async def cookie_login():
     """Login via password"""
-    with open(os.getenv("TWIKIT_COOKIES_PATH"), "r", encoding="utf-8") as cookie_file:
+    with open(
+        Path(os.getenv("TWIKIT_COOKIES_PATH")), "r", encoding="utf-8"
+    ) as cookie_file:
         cookies = json.load(cookie_file)
         client = twikit.Client(language="en-US")
         client.set_cookies(cookies)
