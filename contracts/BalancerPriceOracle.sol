@@ -1,12 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
-import "hardhat/console.sol";
-// improved with ChatGPT 4o mini
-
-// ERC20 interface
-interface IERC20 {
-    function balanceOf(address account) external view returns (uint256);
-}
 
 interface IVault {
     function getPoolTokens(bytes32 poolId)
@@ -24,9 +17,12 @@ contract BalancerPriceOracle {
     event PriceUpdated(address indexed sender, uint256 currentPrice, uint256 cumulativePrice);
 
     struct PriceSnapshot {
-        uint256 cumulativePrice; // Time-weighted cumulative price
-        uint256 lastUpdated;     // Timestamp of the last update
-        uint256 averagePrice;    // Most recent calculated average price
+        // Time-weighted cumulative price
+        uint256 cumulativePrice;
+        // Timestamp of the last update
+        uint256 lastUpdated;
+        // Most recent calculated average price
+        uint256 averagePrice;
     }
 
     PriceSnapshot public snapshotHistory;
@@ -56,7 +52,8 @@ contract BalancerPriceOracle {
         maxSlippage = _maxSlippage;
         minUpdateTimePeriod = _minUpdateTimePeriod;
 
-        updatePrice(); // Initialize price snapshot
+        // Initialize price snapshot
+        updatePrice();
     }
 
     /// @dev Gets the current OLAS token price in 1e18 format.
@@ -70,8 +67,6 @@ contract BalancerPriceOracle {
     /// @dev Updates the time-weighted average price.
     function updatePrice() public returns (bool) {
         uint256 currentPrice = getPrice();
-        console.log("---------------- updatePrice()  --------------");
-        console.log("Current price:", currentPrice);
 
         PriceSnapshot storage snapshot = snapshotHistory;
 
@@ -131,17 +126,11 @@ contract BalancerPriceOracle {
         uint256 timeWeightedAverage = (snapshot.cumulativePrice + (snapshot.averagePrice * elapsedTime)) /
         ((snapshot.cumulativePrice / snapshot.averagePrice) + elapsedTime);
 
-        console.log("Time-weighted average price:", timeWeightedAverage);
-
         uint256 tradePrice = getPrice();
-        console.log("Current trade price:", tradePrice);
 
         // Validate against slippage thresholds
         uint256 lowerBound = (timeWeightedAverage * (100 - slippage)) / 100;
         uint256 upperBound = (timeWeightedAverage * (100 + slippage)) / 100;
-
-        console.log("lowerBound:", lowerBound);
-        console.log("upperBound:", upperBound);
 
         return tradePrice >= lowerBound && tradePrice <= upperBound;
     }
