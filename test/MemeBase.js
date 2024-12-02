@@ -46,7 +46,8 @@ const main = async () => {
     const factoryParams = {
         olas: parsedData.olasAddress,
         nativeToken: parsedData.wethAddress,
-        uniV3positionManager: parsedData.uniV3positionManagerAddress,
+        uniV3Factory: parsedData.uniV3FactoryAddress,
+        uniV3PositionManager: parsedData.uniV3positionManagerAddress,
         oracle: oracle.address,
         maxSlippage: parsedData.maxSlippageMeme,
         minNativeTokenValue: parsedData.minNativeTokenValue

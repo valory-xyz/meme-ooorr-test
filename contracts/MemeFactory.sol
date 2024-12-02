@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {INonfungiblePositionManager} from "../lib/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "../lib/v3-core/contracts/libraries/TickMath.sol";
+import {INonfungiblePositionManager} from "../lib/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
+import {IUniswapV3Factory} from "../lib/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import {IUniswapV3Pool} from "../lib/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {Meme} from "./Meme.sol";
 
 // ERC20 interface
@@ -78,7 +80,8 @@ abstract contract MemeFactory {
     struct FactoryParams {
         address olas;
         address nativeToken;
-        address uniV3positionManager;
+        address uniV3Factory;
+        address uniV3PositionManager;
         address oracle;
         uint256 maxSlippage;
         uint256 minNativeTokenValue;
@@ -125,8 +128,10 @@ abstract contract MemeFactory {
     address public immutable olas;
     // Native token address (ERC-20 equivalent)
     address public immutable nativeToken;
+    // Uniswap V3 factory
+    address public immutable uniV3Factory;
     // Uniswap V3 position manager address
-    address public immutable uniV3positionManager;
+    address public immutable uniV3PositionManager;
     // Oracle address
     address public immutable oracle;
 
@@ -152,7 +157,8 @@ abstract contract MemeFactory {
     constructor(FactoryParams memory factoryParams) {
         olas = factoryParams.olas;
         nativeToken = factoryParams.nativeToken;
-        uniV3positionManager = factoryParams.uniV3positionManager;
+        uniV3Factory = factoryParams.uniV3Factory;
+        uniV3PositionManager = factoryParams.uniV3PositionManager;
         oracle = factoryParams.oracle;
         maxSlippage = factoryParams.maxSlippage;
         minNativeTokenValue = factoryParams.minNativeTokenValue;
@@ -175,6 +181,29 @@ abstract contract MemeFactory {
         bytes memory bridgePayload
     ) internal virtual returns (uint256);
 
+    /// @dev Calculates sqrtPriceX96 based on reserves of token0 (WETH) and token1 (USDC).
+    /// @param reserve0 Reserve of token0 (WETH).
+    /// @param reserve1 Reserve of token1 (USDC).
+    /// @return sqrtPriceX96 The calculated square root price scaled by 2^96.
+    function _calculateSqrtPriceX96(uint256 reserve0, uint256 reserve1) public pure returns (uint160 sqrtPriceX96) {
+        require(reserve0 > 0 && reserve1 > 0, "Reserves must be greater than zero");
+
+        uint256 priceX96 = (reserve1 << 96) / reserve0; // Price of token1 in terms of token0 scaled by 2^96
+        sqrtPriceX96 = uint160(_sqrt(priceX96));
+    }
+
+    /// @dev Square root function using Babylonian method.
+    /// @param x Input value.
+    /// @return y Square root result.
+    function _sqrt(uint256 x) private pure returns (uint256 y) {
+        uint256 z = (x + 1) / 2;
+        y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
+    }
+
     /// @dev Creates native token + meme token LP and adds liquidity.
     /// @param memeToken Meme token address.
     /// @param nativeTokenAmount Native token amount.
@@ -186,9 +215,17 @@ abstract contract MemeFactory {
         uint256 nativeTokenAmount,
         uint256 memeTokenAmount
     ) internal returns (uint256 positionId, uint256 liquidity) {
+        // Create a pool
+        address pool = IUniswapV3Factory(uniV3Factory).createPool(nativeToken, memeToken, FEE_TIER);
+
+        // TODO Check how this must be done
+        // Initialize the pool with the sqrtPriceX96
+        uint160 sqrtPriceX96 = _calculateSqrtPriceX96(nativeTokenAmount, memeTokenAmount);
+        IUniswapV3Pool(pool).initialize(sqrtPriceX96);
+
         // Approve tokens for router
-        IERC20(nativeToken).approve(uniV3positionManager, nativeTokenAmount);
-        IERC20(memeToken).approve(uniV3positionManager, memeTokenAmount);
+        IERC20(nativeToken).approve(uniV3PositionManager, nativeTokenAmount);
+        IERC20(memeToken).approve(uniV3PositionManager, memeTokenAmount);
 
         // Add native token + meme token liquidity
         INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
@@ -205,12 +242,12 @@ abstract contract MemeFactory {
             deadline: block.timestamp
         });
 
-        (positionId, liquidity, , ) = INonfungiblePositionManager(uniV3positionManager).mint(params);
+        (positionId, liquidity, , ) = INonfungiblePositionManager(uniV3PositionManager).mint(params);
     }
 
     /// @dev Collects all accumulated LP fees.
     function collectFeesSingleSided(address[] memory tokens) external {
-        for (uint256 i = 0; i < memeTokens.length; ++i) {
+        for (uint256 i = 0; i < tokens.length; ++i) {
             MemeSummon memory memeSummon = memeSummons[tokens[i]];
             _collectFees(tokens[i], memeSummon.positionId);
         }
@@ -225,7 +262,7 @@ abstract contract MemeFactory {
         });
 
         (uint256 nativeAmountForOLASBurn, uint256 memeAmountToBurn) =
-            INonfungiblePositionManager(uniV3positionManager).collect(params);
+            INonfungiblePositionManager(uniV3PositionManager).collect(params);
 
         // Get the corresponding token
 
