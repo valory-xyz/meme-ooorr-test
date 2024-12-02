@@ -196,7 +196,7 @@ contract MemeBase is MemeFactory {
         emit Unleashed(msg.sender, redemptionAddress, pool, liquidity, 0);
     }
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override return (uint256 adjustedNativeAmountForAscendance) {
+    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override returns (uint256 adjustedNativeAmountForAscendance) {
         // Redemption collection logic
         if (redemptionBalance < REDEMPTION_AMOUNT) {
             // Get the difference of the required redemption amount and redemption balance

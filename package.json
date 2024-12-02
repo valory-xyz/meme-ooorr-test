@@ -44,6 +44,7 @@
     "@ethersproject/solidity": "^5.7.0",
     "@ethersproject/wallet": "^5.7.0",
     "eth-permit": "^0.2.3",
-    "solhint": "^3.6.2"
+    "solhint": "^3.6.2",
+    "@uniswap/v3-periphery": "^1.4.4"
   }
 }

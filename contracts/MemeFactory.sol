@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
-import '@uniswap/v3-periphery/contracts/libraries/TickMath.sol';
+import {INonfungiblePositionManager} from "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
+import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import {Meme} from "./Meme.sol";
 
 // ERC20 interface
@@ -12,6 +12,10 @@ interface IERC20 {
     /// @param amount Token amount.
     /// @return True if the function execution is successful.
     function approve(address spender, uint256 amount) external returns (bool);
+
+    /// @dev Burns OLAS tokens.
+    /// @param amount OLAS token amount to burn.
+    function burn(uint256 amount) external;
 }
 
 interface IOracle {
@@ -65,7 +69,7 @@ abstract contract MemeFactory {
     event OLASJourneyToAscendance(address indexed olas, uint256 amount);
     event Summoned(address indexed summoner, address indexed memeToken, uint256 nativeTokenContributed);
     event Hearted(address indexed hearter, address indexed memeToken, uint256 amount);
-    event Unleashed(address indexed unleasher, address indexed memeToken, address indexed lpPairAddress,
+    event Unleashed(address indexed unleasher, address indexed memeToken, uint256 indexed lpTokenId,
         uint256 liquidity, uint256  nativeAmountForOLASBurn);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
@@ -74,7 +78,6 @@ abstract contract MemeFactory {
     struct FactoryParams {
         address olas;
         address nativeToken;
-        address uniV2router;
         address uniV3positionManager;
         address oracle;
         uint256 maxSlippage;
@@ -91,6 +94,8 @@ abstract contract MemeFactory {
         uint256 unleashTime;
         // Finalized hearters amount
         uint256 heartersAmount;
+        // UniswapV3 position token Id
+        uint256 positionId;
     }
 
     // Version number
@@ -107,6 +112,8 @@ abstract contract MemeFactory {
     uint256 public constant LP_PERCENTAGE = 50;
     // L1 OLAS Burner address
     address public constant OLAS_BURNER = 0x51eb65012ca5cEB07320c497F4151aC207FEa4E0;
+    // Uniswap V3 fee tier of 1%
+    uint24 public constant FEE_TIER = 10_000;
     // Meme token decimals
     uint8 public constant DECIMALS = 18;
 
@@ -118,10 +125,8 @@ abstract contract MemeFactory {
     address public immutable olas;
     // Native token address (ERC-20 equivalent)
     address public immutable nativeToken;
-    // Uniswap V2 router address
-    address public immutable uniV2router;
-    // Uniswap V2 factory address
-    address public immutable uniV2factory;
+    // Uniswap V3 position manager address
+    address public immutable uniV3positionManager;
     // Oracle address
     address public immutable oracle;
 
@@ -147,8 +152,7 @@ abstract contract MemeFactory {
     constructor(FactoryParams memory factoryParams) {
         olas = factoryParams.olas;
         nativeToken = factoryParams.nativeToken;
-        uniV2router = factoryParams.uniV2router;
-        uniV2factory = factoryParams.uniV2factory;
+        uniV3positionManager = factoryParams.uniV3positionManager;
         oracle = factoryParams.oracle;
         maxSlippage = factoryParams.maxSlippage;
         minNativeTokenValue = factoryParams.minNativeTokenValue;
@@ -180,16 +184,16 @@ abstract contract MemeFactory {
         address memeToken,
         uint256 nativeTokenAmount,
         uint256 memeTokenAmount
-    ) internal returns (address pair, uint256 liquidity) {
+    ) internal returns (uint256 positionId, uint256 liquidity) {
         // Approve tokens for router
         IERC20(nativeToken).approve(uniV3positionManager, nativeTokenAmount);
         IERC20(memeToken).approve(uniV3positionManager, memeTokenAmount);
 
         // Add native token + meme token liquidity
-        INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams(
+        INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
             token0: nativeToken,
             token1: memeToken,
-            fee: feeTier,
+            fee: FEE_TIER,
             tickLower: TickMath.MIN_TICK,
             tickUpper: TickMath.MAX_TICK,
             amount0Desired: nativeTokenAmount,
@@ -200,45 +204,32 @@ abstract contract MemeFactory {
             deadline: block.timestamp
         });
 
-        // Add native token + meme token liquidity
-        // (, , liquidity) = IUniswap(uniV2router).addLiquidity(
-        //     nativeToken,
-        //     memeToken,
-        //     nativeTokenAmount,
-        //     memeTokenAmount,
-        //     0, // Accept any amount of native token
-        //     0, // Accept any amount of meme token
-        //     address(this),
-        //     block.timestamp
-        // );
-        INonfungiblePositionManager(uniV3positionManager).mint(params);
-
-        // store token id for later
-
-
-        // Get the pair address
-        // pair = IUniswap(uniV2factory).getPair(nativeToken, memeToken);
+        (positionId, liquidity, , ) = INonfungiblePositionManager(uniV3positionManager).mint(params);
     }
 
-    /// @dev Collects all accumulated LP fees in native token.
-    function collectFeesSingleSided() external {
-        for (uint256 i = 0; i < accounts.length; ++i) {
-            // FIX: loop over tokens - we should somehow allow for batching
-            // use _collectFees below
+    /// @dev Collects all accumulated LP fees.
+    function collectFeesSingleSided(address[] memory memeTokens) external {
+        for (uint256 i = 0; i < memeTokens.length; ++i) {
+            MemeSummon memory memeSummon = memeSummons[memeTokens[i]];
+            _collectFees(memeTokens[i], memeSummon.positionId);
         }
     }
 
-    function _collectFees(tokenId) {
+    function _collectFees(address memeToken, uint256 positionId) internal virtual {
         INonfungiblePositionManager.CollectParams memory params = INonfungiblePositionManager.CollectParams({
-            tokenId: tokenId,
+            tokenId: positionId,
             recipient: address(this),
             amount0Max: type(uint128).max,
-            amount1Max: 0
+            amount1Max: type(uint128).max
         });
 
-        INonfungiblePositionManager(uniV3positionManager).collect(params);
+        (uint256 nativeAmountForOLASBurn, uint256 memeAmountToBurn) =
+            INonfungiblePositionManager(uniV3positionManager).collect(params);
 
-        uint256 nativeAmountForOLASBurn = // FIX: assign here the collected native token amount
+        // Get the corresponding token
+
+        // Burn meme tokens
+        IERC20(memeToken).burn(memeAmountToBurn);
 
         uint256 adjustedNativeAmountForAscendance = _redemptionLogic(nativeAmountForOLASBurn);
 
@@ -302,7 +293,7 @@ abstract contract MemeFactory {
         require(memeToken != address(0), "Token creation failed");
 
         // Initiate meme token map values
-        memeSummons[memeToken] = MemeSummon(msg.value, block.timestamp, 0, 0);
+        memeSummons[memeToken] = MemeSummon(msg.value, block.timestamp, 0, 0, 0);
         memeHearters[memeToken][msg.sender] = msg.value;
 
         // Push token into the global list of tokens
@@ -397,12 +388,14 @@ abstract contract MemeFactory {
         _wrap(nativeAmountForLP);
 
         // Create Uniswap pair with LP allocation
-        (address pool, uint256 liquidity) = _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
+        (uint256 positionId, uint256 liquidity) = _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
         // Record the hearters distribution amount for this meme
         memeSummon.heartersAmount = heartersAmount;
+        // Record position token Id
+        memeSummon.positionId = positionId;
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
@@ -416,7 +409,7 @@ abstract contract MemeFactory {
         // Update prices in oracle
         IOracle(oracle).updatePrice();
 
-        emit Unleashed(msg.sender, memeToken, pool, liquidity, nativeAmountForOLASBurn);
+        emit Unleashed(msg.sender, memeToken, positionId, liquidity, nativeAmountForOLASBurn);
 
         _locked = 1;
     }
