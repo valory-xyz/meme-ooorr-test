@@ -62,15 +62,6 @@ abstract contract MemeFactory {
     event Purged(address indexed memeToken, uint256 remainingAmount);
     event FeesCollected(address indexed feeCollector, address indexed memeToken, uint256 nativeTokenAmount, uint256 memeTokenAmount);
 
-    // Params struct
-    struct FactoryParams {
-        address olas;
-        address nativeToken;
-        address uniV3PositionManager;
-        address buyBackBurner;
-        uint256 minNativeTokenValue;
-    }
-
     // Meme Summon struct
     struct MemeSummon {
         // Native token contributed to the meme launch
@@ -83,6 +74,8 @@ abstract contract MemeFactory {
         uint256 heartersAmount;
         // UniswapV3 position token Id
         uint256 positionId;
+        // Native token direction in the pool
+        bool isNativeFirst;
     }
 
     // Version number
@@ -134,12 +127,18 @@ abstract contract MemeFactory {
     address[] public memeTokens;
 
     /// @dev MemeFactory constructor
-    constructor(FactoryParams memory factoryParams) {
-        olas = factoryParams.olas;
-        nativeToken = factoryParams.nativeToken;
-        uniV3PositionManager = factoryParams.uniV3PositionManager;
-        buyBackBurner = factoryParams.buyBackBurner;
-        minNativeTokenValue = factoryParams.minNativeTokenValue;
+    constructor(
+        address _olas,
+        address _nativeToken,
+        address _uniV3PositionManager,
+        address _buyBackBurner,
+        uint256 _minNativeTokenValue
+    ) {
+        olas = _olas;
+        nativeToken = _nativeToken;
+        uniV3PositionManager = _uniV3PositionManager;
+        buyBackBurner = _buyBackBurner;
+        minNativeTokenValue = _minNativeTokenValue;
     }
 
     /// @dev Transfers native token to be later converted to OLAS for burn.
@@ -156,13 +155,18 @@ abstract contract MemeFactory {
     /// @param memeTokenAmount Meme token amount.
     /// @return positionId LP position token Id.
     /// @return liquidity Obtained LP liquidity.
+    /// @return isNativeFirst Order of tokens in the pool.
     function _createUniswapPair(
         address memeToken,
         uint256 nativeTokenAmount,
         uint256 memeTokenAmount
-    ) internal returns (uint256 positionId, uint256 liquidity) {
+    ) internal returns (uint256 positionId, uint256 liquidity, bool isNativeFirst) {
+        if (nativeToken < memeToken) {
+            isNativeFirst = true;
+        }
+
         // Ensure token order matches Uniswap convention
-        (address token0, address token1, uint256 amount0, uint256 amount1) = nativeToken < memeToken
+        (address token0, address token1, uint256 amount0, uint256 amount1) = isNativeFirst
             ? (nativeToken, memeToken, nativeTokenAmount, memeTokenAmount)
             : (memeToken, nativeToken, memeTokenAmount, nativeTokenAmount);
 
@@ -200,26 +204,8 @@ abstract contract MemeFactory {
     /// @dev Collects fees from LP position, burns the meme token part and schedules for ascendance the native token part.
     /// @param memeToken Meme token address.
     /// @param positionId LP position ID.
-    function _collectFees(address memeToken, uint256 positionId) internal {
-        // Fetch the position to get token0 and token1
-        (
-            ,
-            ,
-            address token0,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-
-        ) = IUniswapV3(uniV3PositionManager).positions(positionId);
-
-        // Determine which token is the meme token and which is the native token
-        bool memeIsToken0 = memeToken == token0;
-
+    /// @param isNativeFirst Order of a native token in the pool.
+    function _collectFees(address memeToken, uint256 positionId, bool isNativeFirst) internal {
         IUniswapV3.CollectParams memory params = IUniswapV3.CollectParams({
             tokenId: positionId,
             recipient: address(this),
@@ -234,12 +220,12 @@ abstract contract MemeFactory {
         uint256 nativeAmountForOLASBurn;
         uint256 memeAmountToBurn;
 
-        if (memeIsToken0) {
+        if (isNativeFirst) {
+            nativeAmountForOLASBurn = amount0;
+            memeAmountToBurn = amount1;
+        } else {
             memeAmountToBurn = amount0;
             nativeAmountForOLASBurn = amount1;
-        } else {
-            memeAmountToBurn = amount1;
-            nativeAmountForOLASBurn = amount0;
         }
 
         // Burn meme tokens
@@ -316,7 +302,7 @@ abstract contract MemeFactory {
         require(memeToken != address(0), "Token creation failed");
 
         // Initiate meme token map values
-        memeSummons[memeToken] = MemeSummon(msg.value, block.timestamp, 0, 0, 0);
+        memeSummons[memeToken] = MemeSummon(msg.value, block.timestamp, 0, 0, 0, false);
         memeHearters[memeToken][msg.sender] = msg.value;
 
         // Push token into the global list of tokens
@@ -406,7 +392,8 @@ abstract contract MemeFactory {
         uint256 heartersAmount = totalSupply - memeAmountForLP;
 
         // Create Uniswap pair with LP allocation
-        (uint256 positionId, uint256 liquidity) = _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
+        (uint256 positionId, uint256 liquidity, bool isNativeFirst) =
+            _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
@@ -414,6 +401,10 @@ abstract contract MemeFactory {
         memeSummon.heartersAmount = heartersAmount;
         // Record position token Id
         memeSummon.positionId = positionId;
+        // Record token order in the pool
+        if (isNativeFirst) {
+            memeSummon.isNativeFirst = isNativeFirst;
+        }
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
@@ -517,7 +508,7 @@ abstract contract MemeFactory {
 
         for (uint256 i = 0; i < tokens.length; ++i) {
             MemeSummon memory memeSummon = memeSummons[tokens[i]];
-            _collectFees(tokens[i], memeSummon.positionId);
+            _collectFees(tokens[i], memeSummon.positionId, memeSummon.isNativeFirst);
         }
 
         _locked = 1;

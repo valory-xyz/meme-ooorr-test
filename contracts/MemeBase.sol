@@ -24,11 +24,14 @@ contract MemeBase is MemeFactory {
 
     /// @dev MemeBase constructor
     constructor(
-        FactoryParams memory factoryParams,
+        address _olas,
+        address _nativeToken,
+        address _uniV3PositionManager,
+        address _buyBackBurner,
+        uint256 _minNativeTokenValue,
         address[] memory accounts,
         uint256[] memory amounts
-    ) MemeFactory(factoryParams) {
-
+    ) MemeFactory(_olas, _nativeToken, _uniV3PositionManager, _buyBackBurner, _minNativeTokenValue) {
         if (accounts.length > 0) {
             _launchCampaignSetup(accounts, amounts);
         }
@@ -60,7 +63,7 @@ contract MemeBase is MemeFactory {
         require(adjustedAmount == LIQUIDITY_AGNT, "Total amount adjusted for burn allocation must match liqudity amount");
 
         // summonTime is set to zero such that no one is able to heart this token
-        memeSummons[launchCampaignTokenAddress] = MemeSummon(CONTRIBUTION_AGNT, 0, 0, 0, 0);
+        memeSummons[launchCampaignTokenAddress] = MemeSummon(CONTRIBUTION_AGNT, 0, 0, 0, 0, false);
 
         // Push token into the global list of tokens
         memeTokens.push(launchCampaignTokenAddress);
@@ -78,7 +81,8 @@ contract MemeBase is MemeFactory {
         _wrap(LIQUIDITY_AGNT);
 
         // Create Uniswap pair with LP allocation
-        (uint256 positionId, uint256 liquidity) = _createUniswapPair(launchCampaignTokenAddress, LIQUIDITY_AGNT, memeAmountForLP);
+        (uint256 positionId, uint256 liquidity, bool isNativeFirst) =
+            _createUniswapPair(launchCampaignTokenAddress, LIQUIDITY_AGNT, memeAmountForLP);
 
         MemeSummon storage memeSummon = memeSummons[launchCampaignTokenAddress];
 
@@ -88,6 +92,10 @@ contract MemeBase is MemeFactory {
         memeSummon.heartersAmount = heartersAmount;
         // Record position token Id
         memeSummon.positionId = positionId;
+        // Record token order in the pool
+        if (isNativeFirst) {
+            memeSummon.isNativeFirst = isNativeFirst;
+        }
 
         // Allocate to the token hearter unleashing the meme
         uint256 hearterContribution = memeHearters[launchCampaignTokenAddress][msg.sender];
