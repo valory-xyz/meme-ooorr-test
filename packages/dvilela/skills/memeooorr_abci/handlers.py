@@ -165,7 +165,9 @@ class HttpHandler(BaseHttpHandler):
         # Load round info for the healthcheck
         fsm = load_fsm_spec()
 
-        self.rounds_info = {camel_to_snake(k): v for k, v in ROUNDS_INFO.items()}
+        self.rounds_info = {  # pylint: disable=attribute-defined-outside-init
+            camel_to_snake(k): v for k, v in ROUNDS_INFO.items()
+        }
         for source_info, target_round in fsm["transition_func"].items():
             source_round, event = source_info[1:-1].split(", ")
             self.rounds_info[camel_to_snake(source_round)]["transitions"][
