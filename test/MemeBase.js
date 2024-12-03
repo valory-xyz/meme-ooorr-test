@@ -37,14 +37,22 @@ const main = async () => {
         amounts.push(redemptionsData[i]["amount"].toString());
     }
 
-    // const Oracle = await ethers.getContractFactory("BalancerPriceOracle");
-    // const oracle = await Oracle.deploy(parsedData.olasAddress, parsedData.wethAddress, parsedData.maxSlippageOracle,
-    //     parsedData.minUpdateTimePeriod, parsedData.balancerVaultAddress, parsedData.balancerPoolId);
-    // await oracle.deployed();
+    // BuyBackBurner implementation and proxy
+    const BuyBackBurner = await ethers.getContractFactory("BuyBackBurner");
+    const buyBackBurnerImplementation = await BuyBackBurner.deploy();
+    await buyBackBurnerImplementation.deployed();
+
+    // Initialize buyBackBurner
+    const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", []);
+    const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
+    const buyBackBurnerProxy = await BuyBackBurnerProxy.deploy(buyBackBurnerImplementation.address, proxyData);
+    await buyBackBurnerProxy.deployed();
+
+    const buyBackBurner = await ethers.getContractAt("BuyBackBurner", buyBackBurnerProxy.address);
 
     const MemeBase = await ethers.getContractFactory("MemeBase");
     const memeBase = await MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
-        parsedData.uniV3positionManagerAddress, parsedData.wethAddress, parsedData.minNativeTokenValue,
+        parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue,
         accounts, amounts);
     await memeBase.deployed();
 
