@@ -49,7 +49,7 @@ contract BalancerPriceOracle {
         address _balancerVault,
         bytes32 _balancerPoolId
     ) {
-        require(_maxSlippage <= 100, "Slippage must be <= 100%");
+        require(_maxSlippage < 100, "Slippage must be less than 100%");
 
         olas = _olas;
         nativeToken = _nativeToken;
@@ -129,7 +129,7 @@ contract BalancerPriceOracle {
     /// @dev Validates the current price against a TWAP according to slippage tolerance.
     /// @param slippage the acceptable slippage tolerance
     function validatePrice(uint256 slippage) external view returns (bool) {
-        require(slippage <= 100, "Slippage must be <= 100%");
+        require(slippage <= maxSlippage, "Slippage overflow");
 
         PriceSnapshot memory snapshot = snapshotHistory;
 

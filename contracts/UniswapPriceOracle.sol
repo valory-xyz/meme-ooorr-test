@@ -52,7 +52,7 @@ contract UniswapPriceOracle {
     /// @dev Validates the current price against a TWAP according to slippage tolerance.
     /// @param slippage the acceptable slippage tolerance
     function validatePrice(uint256 slippage) external view returns (bool) {
-        require(slippage <= 100, "Slippage must be <= 100%");
+        require(slippage <= maxSlippage, "Slippage overflow");
 
         // Compute time-weighted average price
         // Fetch the cumulative prices from the pair
@@ -80,6 +80,7 @@ contract UniswapPriceOracle {
         // Calculate the TWAP for OLAS in terms of native token
         uint256 timeWeightedAverage = (cumulativePrice - cumulativePriceLast) / elapsedTime;
 
+        // Get the final derivation to compare with slippage
         uint256 derivation = (tradePrice > timeWeightedAverage)
             ? ((tradePrice - timeWeightedAverage) * 1e18) / timeWeightedAverage
             : ((timeWeightedAverage - tradePrice) * 1e18) / timeWeightedAverage;
