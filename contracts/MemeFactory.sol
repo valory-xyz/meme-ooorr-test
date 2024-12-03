@@ -52,7 +52,7 @@ interface IERC20 {
 ///         - Any agent would call purgeThisMeme, which would cause Agent Jones's allocation of 125_000_000 worth of
 ///           $SMTH to be burned.
 abstract contract MemeFactory {
-    event OLASJourneyToAscendance(address indexed olas, uint256 amount);
+    event OLASJourneyToAscendance(uint256 amount);
     event Summoned(address indexed summoner, address indexed memeToken, uint256 nativeTokenContributed);
     event Hearted(address indexed hearter, address indexed memeToken, uint256 amount);
     event Unleashed(address indexed unleasher, address indexed memeToken, uint256 indexed lpTokenId,
@@ -143,9 +143,11 @@ abstract contract MemeFactory {
     /// @dev Transfers native token to be converted to OLAS for burn.
     /// @param amount Native token amount.
     function _transferAndBurn(uint256 amount) internal virtual {
-        _wrap(amount);
+        (bool result, ) = buyBackBurner.call{value: amount}("");
+        
+        require(result, "Transfer failed");
 
-        IERC20(nativeToken).transfer(buyBackBurner, amount);
+        emit OLASJourneyToAscendance(amount);
     }
 
     /// @dev Calculates sqrtPriceX96 based on reserves of token0 and token1.
