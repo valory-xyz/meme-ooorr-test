@@ -245,9 +245,9 @@ abstract contract MemeFactory {
         // Burn meme tokens
         IERC20(memeToken).burn(memeAmountToBurn);
 
-        // Account for redemption logic
+        // Account for launch campaign
         // All funds ever collected are already wrapped
-        uint256 adjustedNativeAmountForAscendance = _redemptionLogic(nativeAmountForOLASBurn);
+        uint256 adjustedNativeAmountForAscendance = _launchCampaign(nativeAmountForOLASBurn);
 
         // Schedule native token amount for ascendance
         scheduledForAscendance += adjustedNativeAmountForAscendance;
@@ -281,9 +281,9 @@ abstract contract MemeFactory {
         emit Collected(msg.sender, memeToken, allocation);
     }
 
-    /// @dev Redemption logic.
+    /// @dev Launch campaign logic. Allows diverting first x collected funds to a launch campaign.
     /// @param nativeAmountForOLASBurn Native token amount (wrapped) for burning.
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal virtual returns (uint256 adjustedNativeAmountForAscendance);
+    function _launchCampaign(uint256 nativeAmountForOLASBurn) internal virtual returns (uint256 adjustedNativeAmountForAscendance);
 
     /// @dev Native token amount to wrap.
     /// @param nativeTokenAmount Native token amount to be wrapped.
@@ -394,7 +394,7 @@ abstract contract MemeFactory {
         // Adjust native token amount
         uint256 nativeAmountForLP = totalNativeTokenCommitted - nativeAmountForOLASBurn;
 
-        uint256 adjustedNativeAmountForAscendance = _redemptionLogic(nativeAmountForOLASBurn);
+        uint256 adjustedNativeAmountForAscendance = _launchCampaign(nativeAmountForOLASBurn);
 
         // Schedule native token amount for ascendance
         scheduledForAscendance += adjustedNativeAmountForAscendance;
