@@ -20,7 +20,6 @@ const main = async () => {
     const payload = "0x";
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
-    const slippage = 10;
 
     signers = await ethers.getSigners();
     deployer = signers[0];
@@ -47,14 +46,13 @@ const main = async () => {
         olas: parsedData.olasAddress,
         nativeToken: parsedData.wethAddress,
         uniV3PositionManager: parsedData.uniV3positionManagerAddress,
-        oracle: oracle.address,
-        maxSlippage: parsedData.maxSlippageMeme,
+        buyBackBurner: oracle.address,
         minNativeTokenValue: parsedData.minNativeTokenValue
     }
 
     const MemeBase = await ethers.getContractFactory("MemeBase");
-    const memeBase = await MemeBase.deploy(factoryParams, parsedData.l2TokenBridgeAddress,
-        parsedData.balancerVaultAddress, parsedData.balancerPoolId, accounts, amounts);
+    const memeBase = await MemeBase.deploy(factoryParams, parsedData.balancerVaultAddress, parsedData.balancerPoolId,
+        accounts, amounts);
     await memeBase.deployed();
 
     // Summon a new meme token
@@ -99,7 +97,7 @@ const main = async () => {
     const olasAmount = await memeBase.scheduledForAscendance();
     // First 127.5 ETH are collected towards redemption
     if (olasAmount.gt(0)) {
-        await memeBase.scheduleOLASForAscendance(olasAmount, slippage);
+        await memeBase.sendToHigherHeights();
     }
 };
 
