@@ -23,7 +23,7 @@ error InitializationFailed();
 /// @title BuyBackBurnerProxy - Smart contract for buyBackBurner proxy
 contract BuyBackBurnerProxy {
     // Code position in storage is keccak256("BUY_BACK_BURNER_PROXY") = "c6d7bd4bd971fa336816fe30b665cc6caccce8b123cc8ea692d132f342c4fc19"
-    bytes32 public constant BUY_BACK_BURNER_PROXY = 0x1e4b6d67098d4183ce03b91c95f9376a98c5440ec22f2cf171d6dca04a5a29d8;
+    bytes32 public constant BUY_BACK_BURNER_PROXY = 0xc6d7bd4bd971fa336816fe30b665cc6caccce8b123cc8ea692d132f342c4fc19;
 
     /// @dev BuyBackBurnerProxy constructor.
     /// @param implementation BuyBackBurner implementation address.
