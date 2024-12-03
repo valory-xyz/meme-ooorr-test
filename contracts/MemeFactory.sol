@@ -514,6 +514,7 @@ abstract contract MemeFactory {
         _locked = 1;
     }
 
+    // TODO Do we need this function as we all do via payable functions?
     /// @dev Allows the contract to receive native token
     receive() external payable {}
 }
