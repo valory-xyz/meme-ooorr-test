@@ -42,16 +42,9 @@ const main = async () => {
     //     parsedData.minUpdateTimePeriod, parsedData.balancerVaultAddress, parsedData.balancerPoolId);
     // await oracle.deployed();
 
-    const factoryParams = {
-        olas: parsedData.olasAddress,
-        nativeToken: parsedData.wethAddress,
-        uniV3PositionManager: parsedData.uniV3positionManagerAddress,
-        buyBackBurner: parsedData.wethAddress, // TOFIX
-        minNativeTokenValue: parsedData.minNativeTokenValue
-    }
-
     const MemeBase = await ethers.getContractFactory("MemeBase");
-    const memeBase = await MemeBase.deploy(factoryParams,
+    const memeBase = await MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
+        parsedData.uniV3positionManagerAddress, parsedData.wethAddress, parsedData.minNativeTokenValue,
         accounts, amounts);
     await memeBase.deployed();
 
@@ -97,7 +90,7 @@ const main = async () => {
     const olasAmount = await memeBase.scheduledForAscendance();
     // First 127.5 ETH are collected towards redemption
     if (olasAmount.gt(0)) {
-        await memeBase.sendToHigherHeights();
+        await memeBase.scheduleForAscendance();
     }
 };
 
