@@ -88,11 +88,8 @@ contract MemeArbitrum is MemeFactory {
     /// @dev Buys OLAS on Balancer.
     /// @param nativeTokenAmount Native token amount.
     /// @param slippage Slippage value.
-    /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount, uint256 slippage) internal virtual override returns (uint256) {
-        // Apply slippage protection
-        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
-
+    /// @return olasAmount Obtained OLAS amount.
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 slippage) internal virtual override returns (uint256 olasAmount) {
         // Approve weth for the Balancer Vault
         IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
         
@@ -103,7 +100,10 @@ contract MemeArbitrum is MemeFactory {
             payable(address(this)), false);
 
         // Perform swap
-        return IBalancer(balancerVault).swap(singleSwap, fundManagement, 0, block.timestamp);
+        olasAmount = IBalancer(balancerVault).swap(singleSwap, fundManagement, 0, block.timestamp);
+
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
     }
 
     /// @dev Bridges OLAS amount back to L1 and burns.

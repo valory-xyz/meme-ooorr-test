@@ -46,7 +46,6 @@ const main = async () => {
     const factoryParams = {
         olas: parsedData.olasAddress,
         nativeToken: parsedData.wethAddress,
-        uniV3Factory: parsedData.uniV3FactoryAddress,
         uniV3PositionManager: parsedData.uniV3positionManagerAddress,
         oracle: oracle.address,
         maxSlippage: parsedData.maxSlippageMeme,
@@ -98,7 +97,10 @@ const main = async () => {
 
     // Swap to OLAS
     const olasAmount = await memeBase.scheduledForAscendance();
-    await memeBase.scheduleOLASForAscendance(olasAmount, slippage);
+    // First 127.5 ETH are collected towards redemption
+    if (olasAmount.gt(0)) {
+        await memeBase.scheduleOLASForAscendance(olasAmount, slippage);
+    }
 };
 
 main()

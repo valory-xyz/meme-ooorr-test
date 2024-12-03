@@ -99,11 +99,8 @@ contract MemeBase is MemeFactory {
     /// @dev Buys OLAS on Balancer.
     /// @param nativeTokenAmount Native token amount.
     /// @param slippage Slippage value.
-    /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount, uint256 slippage) internal virtual override returns (uint256) {
-        // Apply slippage protection
-        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
-
+    /// @return olasAmount Obtained OLAS amount.
+    function _buyOLAS(uint256 nativeTokenAmount, uint256 slippage) internal virtual override returns (uint256 olasAmount) {
         // Approve weth for the Balancer Vault
         IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
         
@@ -114,7 +111,10 @@ contract MemeBase is MemeFactory {
             payable(address(this)), false);
 
         // Perform swap
-        return IBalancer(balancerVault).swap(singleSwap, fundManagement, 0, block.timestamp);
+        olasAmount = IBalancer(balancerVault).swap(singleSwap, fundManagement, 0, block.timestamp);
+
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
     }
 
     /// @dev Bridges OLAS amount back to L1 and burns.
@@ -152,6 +152,9 @@ contract MemeBase is MemeFactory {
         // Create a redemption token
         redemptionAddress = address(new Meme("Agent Token II", "AGNT II", DECIMALS, 1_000_000_000 ether));
 
+        // To match original summon events (purposefully placed here to match order of original events)
+        emit Summoned(accounts[0], redemptionAddress, amounts[0]);
+
         // Record all the accounts and amounts
         uint256 totalAmount;
         for (uint256 i = 0; i < accounts.length; ++i) {
@@ -171,17 +174,17 @@ contract MemeBase is MemeFactory {
         // Push token into the global list of tokens
         memeTokens.push(redemptionAddress);
         numTokens = memeTokens.length;
-
-        // To match original summon events
-        emit Summoned(accounts[0], redemptionAddress, amounts[0]);
     }
 
     /// @dev AGNT token redemption unleash.
-    function _redemption() private {
+    function _redemption() private { 
         Meme memeTokenInstance = Meme(redemptionAddress);
         uint256 totalSupply = memeTokenInstance.totalSupply();
         uint256 memeAmountForLP = (totalSupply * LP_PERCENTAGE) / 100;
         uint256 heartersAmount = totalSupply - memeAmountForLP;
+
+        // Wrap native token to its ERC-20 version, where applicable
+        _wrap(REDEMPTION_AMOUNT);
 
         // Create Uniswap pair with LP allocation
         (uint256 positionId, uint256 liquidity) = _createUniswapPair(redemptionAddress, REDEMPTION_AMOUNT, memeAmountForLP);
@@ -198,7 +201,7 @@ contract MemeBase is MemeFactory {
         // Allocate to the token hearter unleashing the meme
         uint256 hearterContribution = memeHearters[redemptionAddress][msg.sender];
         if (hearterContribution > 0) {
-            _collect(redemptionAddress, hearterContribution, heartersAmount, CONTRIBUTION_AGNT);
+            _collect(redemptionAddress, heartersAmount, hearterContribution, CONTRIBUTION_AGNT);
         }
 
         emit Unleashed(msg.sender, redemptionAddress, positionId, liquidity, 0);
