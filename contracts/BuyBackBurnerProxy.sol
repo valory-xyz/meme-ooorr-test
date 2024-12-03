@@ -43,7 +43,7 @@ contract BuyBackBurnerProxy {
         assembly {
             sstore(BUY_BACK_BURNER_PROXY, implementation)
         }
-        // Initialize proxy tokenomics storage
+        // Initialize proxy storage
         (bool success, ) = implementation.delegatecall(buyBackBurnerData);
         if (!success) {
             revert InitializationFailed();
