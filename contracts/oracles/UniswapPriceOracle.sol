@@ -81,9 +81,10 @@ contract UniswapPriceOracle {
         uint256 timeWeightedAverage = (cumulativePrice - cumulativePriceLast) / elapsedTime;
 
         // Get the final derivation to compare with slippage
+        // Final derivation value must be
         uint256 derivation = (tradePrice > timeWeightedAverage)
-            ? ((tradePrice - timeWeightedAverage) * 1e18) / timeWeightedAverage
-            : ((timeWeightedAverage - tradePrice) * 1e18) / timeWeightedAverage;
+            ? ((tradePrice - timeWeightedAverage) * 1e16) / timeWeightedAverage
+            : ((timeWeightedAverage - tradePrice) * 1e16) / timeWeightedAverage;
 
         return derivation <= slippage;
     }

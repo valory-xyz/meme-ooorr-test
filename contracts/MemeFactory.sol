@@ -12,17 +12,15 @@ interface IERC20 {
     /// @return True if the function execution is successful.
     function approve(address spender, uint256 amount) external returns (bool);
 
+    /// @dev Transfers the token amount.
+    /// @param to Address to transfer to.
+    /// @param amount The amount to transfer.
+    /// @return True if the function execution is successful.
+    function transfer(address to, uint256 amount) external returns (bool);
+
     /// @dev Burns OLAS tokens.
     /// @param amount OLAS token amount to burn.
     function burn(uint256 amount) external;
-}
-
-interface IOracle {
-    /// @dev Updates time average price.
-    function updatePrice() external returns (bool);
-
-    /// @dev Validates price according to slippage.
-    function validatePrice(uint256 slippage) external view returns (bool);
 }
 
 /// @title MemeFactory - a smart contract factory for Meme Token creation
@@ -67,8 +65,7 @@ abstract contract MemeFactory {
         address olas;
         address nativeToken;
         address uniV3PositionManager;
-        address oracle;
-        uint256 maxSlippage;
+        address buyBackBurner;
         uint256 minNativeTokenValue;
     }
 
@@ -98,8 +95,6 @@ abstract contract MemeFactory {
     uint256 public constant OLAS_BURN_PERCENTAGE = 10;
     // Percentage of initial supply for liquidity pool (50%)
     uint256 public constant LP_PERCENTAGE = 50;
-    // L1 OLAS Burner address
-    address public constant OLAS_BURNER = 0x51eb65012ca5cEB07320c497F4151aC207FEa4E0;
     // Uniswap V3 fee tier of 1%
     uint24 public constant FEE_TIER = 10_000;
     /// @dev The minimum tick that corresponds to a selected fee tier
@@ -111,23 +106,19 @@ abstract contract MemeFactory {
 
     // Minimum value of native token deposit
     uint256 public immutable minNativeTokenValue;
-    // Oracle max slippage for ERC-20 native token <=> OLAS
-    uint256 public immutable maxSlippage;
     // OLAS token address
     address public immutable olas;
     // Native token address (ERC-20 equivalent)
     address public immutable nativeToken;
     // Uniswap V3 position manager address
     address public immutable uniV3PositionManager;
-    // Oracle address
-    address public immutable oracle;
+    // BuyBackBurner address
+    address public immutable buyBackBurner;
 
     // Number of meme tokens
     uint256 public numTokens;
     // Native token (ERC-20) scheduled to be converted to OLAS for Ascendance
     uint256 public scheduledForAscendance;
-    // Tokens to be bridged
-    uint256 public bridgeAmount;
     // Reentrancy lock
     uint256 internal _locked = 1;
 
@@ -145,27 +136,17 @@ abstract contract MemeFactory {
         olas = factoryParams.olas;
         nativeToken = factoryParams.nativeToken;
         uniV3PositionManager = factoryParams.uniV3PositionManager;
-        oracle = factoryParams.oracle;
-        maxSlippage = factoryParams.maxSlippage;
+        buyBackBurner = factoryParams.buyBackBurner;
         minNativeTokenValue = factoryParams.minNativeTokenValue;
     }
 
-    /// @dev Buys OLAS on DEX.
-    /// @param nativeTokenAmount Native token amount.
-    /// @param slippage Slippage value.
-    /// @return Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount, uint256 slippage) internal virtual returns (uint256);
+    /// @dev Transfers native token to be converted to OLAS for burn.
+    /// @param amount Native token amount.
+    function _transferAndBurn(uint256 amount) internal virtual {
+        _wrap(amount);
 
-    /// @dev Bridges OLAS amount back to L1 and burns.
-    /// @param OLASAmount OLAS amount.
-    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
-    /// @param bridgePayload Optional additional bridge payload.
-    /// @return msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(
-        uint256 OLASAmount,
-        uint256 tokenGasLimit,
-        bytes memory bridgePayload
-    ) internal virtual returns (uint256);
+        IERC20(nativeToken).transfer(buyBackBurner, amount);
+    }
 
     /// @dev Calculates sqrtPriceX96 based on reserves of token0 and token1.
     /// @param reserve0 Reserve of token0.
@@ -186,6 +167,7 @@ abstract contract MemeFactory {
         return uint160(_sqrt(priceX96) * 2**48);
     }
 
+    // TODO Figure out and maybe use another method?
     /// @dev Square root function using Babylonian method.
     /// @param x Input value.
     /// @return y Square root result.
@@ -244,15 +226,6 @@ abstract contract MemeFactory {
         });
 
         (positionId, liquidity, , ) = IUniswapV3(uniV3PositionManager).mint(params);
-    }
-
-    /// @dev Collects all accumulated LP fees.
-    /// @param tokens List of tokens to be iterated over.
-    function collectFees(address[] memory tokens) external {
-        for (uint256 i = 0; i < tokens.length; ++i) {
-            MemeSummon memory memeSummon = memeSummons[tokens[i]];
-            _collectFees(tokens[i], memeSummon.positionId);
-        }
     }
 
     /// @dev Collects fees from LP position, burns the meme token part and schedules for ascendance the native token part.
@@ -347,9 +320,6 @@ abstract contract MemeFactory {
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        // Update prices in oracle
-        IOracle(oracle).updatePrice();
-
         emit Summoned(msg.sender, memeToken, msg.value);
         emit Hearted(msg.sender, memeToken, msg.value);
 
@@ -383,9 +353,6 @@ abstract contract MemeFactory {
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
-
-        // Update prices in oracle
-        IOracle(oracle).updatePrice();
 
         emit Hearted(msg.sender, memeToken, msg.value);
 
@@ -450,9 +417,6 @@ abstract contract MemeFactory {
             _collect(memeToken, heartersAmount, hearterContribution, totalNativeTokenCommitted);
         }
 
-        // Update prices in oracle
-        IOracle(oracle).updatePrice();
-
         emit Unleashed(msg.sender, memeToken, positionId, liquidity, nativeAmountForOLASBurn);
 
         _locked = 1;
@@ -482,9 +446,6 @@ abstract contract MemeFactory {
 
         // Collect the token
         _collect(memeToken, memeSummon.heartersAmount, hearterContribution, memeSummon.nativeTokenContributed);
-
-        // Update prices in oracle
-        IOracle(oracle).updatePrice();
 
         _locked = 1;
     }
@@ -516,72 +477,35 @@ abstract contract MemeFactory {
         // Burn the remaining balance
         memeTokenInstance.burn(remainingBalance);
 
-        // Update prices in oracle
-        IOracle(oracle).updatePrice();
-
         emit Purged(memeToken, remainingBalance);
 
         _locked = 1;
     }
 
-    /// @dev Converts collected native token to OLAS.
-    /// @param amount Amount of OLAS to swap.
-    /// @param slippage Max slippage acceptable for the trade. 
-    function scheduleOLASForAscendance(uint256 amount, uint256 slippage) external virtual {
+    /// @dev Transfers native token to be converted to OLAS for burn.
+    function sendToHigherHeights() external {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
-        // Slippage limit requirement
-        require(slippage <= maxSlippage, "Slippage limit overflow");
-
-        if (amount > scheduledForAscendance) {
-            amount = scheduledForAscendance;
-        }
-        require(amount > 0, "Nothing to burn");
+        uint256 amount = scheduledForAscendance;
+        require(amount > 0, "Nothing to send");
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        // Wrap native token to its ERC-20 version, where applicable
-        _wrap(amount);
-
-        uint256 OLASAmount = _buyOLAS(amount, slippage);
-
-        bridgeAmount += OLASAmount;
-        scheduledForAscendance -= amount;
+        // Transfer native token to be converted to OLAS and burnt
+        _transferAndBurn(amount);
 
         _locked = 1;
     }
 
-
-    /// @dev Bridges OLAS to Ethereum mainnet for burn.
-    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
-    /// @param bridgePayload Optional additional bridge payload.
-    function sendToHigherHeights(uint256 tokenGasLimit, bytes memory bridgePayload) external payable {
-        require(_locked == 1, "Reentrancy guard");
-        _locked = 2;
-
-        require(bridgeAmount > 0, "Nothing to bridge");
-
-        // Record msg.sender activity
-        mapAccountActivities[msg.sender]++;
-
-        uint256 OLASAmount = bridgeAmount;
-        bridgeAmount = 0;
-        // Burn OLAS
-        uint256 leftovers = _bridgeAndBurn(OLASAmount, tokenGasLimit, bridgePayload);
-
-        // Send leftover amount, if any, back to the sender
-        if (leftovers > 0) {
-            // If the call fails, ignore to avoid the attack that would prevent this function from executing
-            // solhint-disable-next-line avoid-low-level-calls
-            tx.origin.call{value: leftovers}("");
+    /// @dev Collects all accumulated LP fees.
+    /// @param tokens List of tokens to be iterated over.
+    function collectFees(address[] memory tokens) external {
+        for (uint256 i = 0; i < tokens.length; ++i) {
+            MemeSummon memory memeSummon = memeSummons[tokens[i]];
+            _collectFees(tokens[i], memeSummon.positionId);
         }
-
-        // Update prices in oracle
-        IOracle(oracle).updatePrice();
-
-        _locked = 1;
     }
 
     /// @dev Allows the contract to receive native token
