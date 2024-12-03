@@ -18,8 +18,8 @@ interface IERC20 {
     /// @return True if the function execution is successful.
     function transfer(address to, uint256 amount) external returns (bool);
 
-    /// @dev Burns OLAS tokens.
-    /// @param amount OLAS token amount to burn.
+    /// @dev Burns tokens.
+    /// @param amount Token amount to burn.
     function burn(uint256 amount) external;
 }
 
@@ -140,9 +140,9 @@ abstract contract MemeFactory {
         minNativeTokenValue = factoryParams.minNativeTokenValue;
     }
 
-    /// @dev Transfers native token to be converted to OLAS for burn.
+    /// @dev Transfers native token to be later converted to OLAS for burn.
     /// @param amount Native token amount.
-    function _transferAndBurn(uint256 amount) internal virtual {
+    function _transferToLaterBurn(uint256 amount) internal virtual {
         (bool result, ) = buyBackBurner.call{value: amount}("");
         
         require(result, "Transfer failed");
@@ -242,6 +242,7 @@ abstract contract MemeFactory {
         });
 
         // Get the corresponding tokens
+        // TOFIX: confirm that the order is correct here and always static!
         (uint256 nativeAmountForOLASBurn, uint256 memeAmountToBurn) =
             IUniswapV3(uniV3PositionManager).collect(params);
 
@@ -249,6 +250,7 @@ abstract contract MemeFactory {
         IERC20(memeToken).burn(memeAmountToBurn);
 
         // Account for redemption logic
+        // All funds ever collected are already wrapped
         uint256 adjustedNativeAmountForAscendance = _redemptionLogic(nativeAmountForOLASBurn);
 
         // Schedule native token amount for ascendance
@@ -281,8 +283,12 @@ abstract contract MemeFactory {
         emit Collected(msg.sender, memeToken, allocation);
     }
 
+    /// @dev Redemption logic.
+    /// @param nativeAmountForOLASBurn Native token amount (wrapped) for burning.
     function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal virtual returns (uint256 adjustedNativeAmountForAscendance);
 
+    /// @dev Native token amount to wrap.
+    /// @param nativeTokenAmount Native token amount to be wrapped.
     function _wrap(uint256 nativeTokenAmount) internal virtual;
 
     /// @dev Summons meme token.
@@ -380,6 +386,10 @@ abstract contract MemeFactory {
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
 
+        // Wrap native token to its ERC-20 version
+        // All funds ever contributed to a given meme are wrapped here.
+        _wrap(totalNativeTokenCommitted);
+
         // Put aside native token to buy OLAS with the burn percentage of the total native token amount committed
         uint256 nativeAmountForOLASBurn = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
 
@@ -396,9 +406,6 @@ abstract contract MemeFactory {
         uint256 totalSupply = memeTokenInstance.totalSupply();
         uint256 memeAmountForLP = (totalSupply * LP_PERCENTAGE) / 100;
         uint256 heartersAmount = totalSupply - memeAmountForLP;
-
-        // Wrap native token to its ERC-20 version, where applicable
-        _wrap(nativeAmountForLP);
 
         // Create Uniswap pair with LP allocation
         (uint256 positionId, uint256 liquidity) = _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
@@ -484,8 +491,8 @@ abstract contract MemeFactory {
         _locked = 1;
     }
 
-    /// @dev Transfers native token to be converted to OLAS for burn.
-    function sendToHigherHeights() external {
+    /// @dev Transfers native token to later be converted to OLAS for burn.
+    function scheduledForAscendance() external {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
@@ -496,7 +503,7 @@ abstract contract MemeFactory {
         mapAccountActivities[msg.sender]++;
 
         // Transfer native token to be converted to OLAS and burnt
-        _transferAndBurn(amount);
+        _transferToLaterBurn(amount);
 
         _locked = 1;
     }

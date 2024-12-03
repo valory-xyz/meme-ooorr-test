@@ -17,11 +17,6 @@ contract MemeBase is MemeFactory {
     // Redemption amount: collected amount - 10% for burn = 127412857890000000000
     uint256 public constant REDEMPTION_AMOUNT = 127412857890000000000;
 
-    // Balancer Vault address
-    address public immutable balancerVault;
-    // Balancer Pool Id
-    bytes32 public immutable balancerPoolId;
-
     // Redemption token address
     address public redemptionAddress;
     // Redemption balance
@@ -30,13 +25,9 @@ contract MemeBase is MemeFactory {
     /// @dev MemeBase constructor
     constructor(
         FactoryParams memory factoryParams,
-        address _balancerVault,
-        bytes32 _balancerPoolId,
         address[] memory accounts,
         uint256[] memory amounts
     ) MemeFactory(factoryParams) {
-        balancerVault = _balancerVault;
-        balancerPoolId = _balancerPoolId;
 
         if (accounts.length > 0) {
             _redemptionSetup(accounts, amounts);
