@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "../lib/v3-core/contracts/libraries/TickMath.sol";
-import {INonfungiblePositionManager} from "../lib/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
-import {IUniswapV3Factory} from "../lib/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import {IUniswapV3Pool} from "../lib/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+//import "../lib/v3-core/contracts/libraries/TickMath.sol";
+//import {INonfungiblePositionManager} from "../lib/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
+//import {IUniswapV3Factory} from "../lib/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import {Meme} from "./Meme.sol";
+import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 
 // ERC20 interface
 interface IERC20 {
@@ -69,7 +69,6 @@ abstract contract MemeFactory {
     struct FactoryParams {
         address olas;
         address nativeToken;
-        address uniV3Factory;
         address uniV3PositionManager;
         address oracle;
         uint256 maxSlippage;
@@ -106,6 +105,10 @@ abstract contract MemeFactory {
     address public constant OLAS_BURNER = 0x51eb65012ca5cEB07320c497F4151aC207FEa4E0;
     // Uniswap V3 fee tier of 1%
     uint24 public constant FEE_TIER = 10_000;
+    /// @dev The minimum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**-128
+    int24 public constant MIN_TICK = -887272;
+    /// @dev The maximum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**128
+    int24 public constant MAX_TICK = -MIN_TICK;
     // Meme token decimals
     uint8 public constant DECIMALS = 18;
 
@@ -117,8 +120,6 @@ abstract contract MemeFactory {
     address public immutable olas;
     // Native token address (ERC-20 equivalent)
     address public immutable nativeToken;
-    // Uniswap V3 factory
-    address public immutable uniV3Factory;
     // Uniswap V3 position manager address
     address public immutable uniV3PositionManager;
     // Oracle address
@@ -146,7 +147,6 @@ abstract contract MemeFactory {
     constructor(FactoryParams memory factoryParams) {
         olas = factoryParams.olas;
         nativeToken = factoryParams.nativeToken;
-        uniV3Factory = factoryParams.uniV3Factory;
         uniV3PositionManager = factoryParams.uniV3PositionManager;
         oracle = factoryParams.oracle;
         maxSlippage = factoryParams.maxSlippage;
@@ -221,26 +221,26 @@ abstract contract MemeFactory {
             : (memeToken, nativeToken, memeTokenAmount, nativeTokenAmount);
 
         // Get or create the pool
-        address pool = IUniswapV3Factory(uniV3Factory).getPool(token0, token1, FEE_TIER);
+        //address pool = IUniswapV3Factory(uniV3Factory).getPool(token0, token1, FEE_TIER);
         // If condition added for clarity, will always evaluate to true in this design
-        if (pool == address(0)) {
-            // Initialize the pool with the sqrtPriceX96
-            uint160 sqrtPriceX96 = _calculateSqrtPriceX96(memeToken, nativeTokenAmount, memeTokenAmount);
-            pool = INonfungiblePositionManager(uniV3PositionManager).createAndInitializePoolIfNecessary(token0,
-                token1, FEE_TIER, sqrtPriceX96);
-        }
+        //if (pool == address(0)) {
+        // Initialize the pool with the sqrtPriceX96
+        uint160 sqrtPriceX96 = _calculateSqrtPriceX96(memeToken, nativeTokenAmount, memeTokenAmount);
+        IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1,
+            FEE_TIER, sqrtPriceX96);
+        //}
 
         // Approve tokens for router
         IERC20(token0).approve(uniV3PositionManager, amount0);
         IERC20(token1).approve(uniV3PositionManager, amount1);
 
         // Add native token + meme token liquidity
-        INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
+        IUniswapV3.MintParams memory params = IUniswapV3.MintParams({
             token0: token0,
             token1: token1,
             fee: FEE_TIER,
-            tickLower: TickMath.MIN_TICK,
-            tickUpper: TickMath.MAX_TICK,
+            tickLower: MIN_TICK,
+            tickUpper: MAX_TICK,
             amount0Desired: amount0,
             amount1Desired: amount1,
             amount0Min: 0, // Accept any amount of token0
@@ -249,7 +249,7 @@ abstract contract MemeFactory {
             deadline: block.timestamp
         });
 
-        (positionId, liquidity, , ) = INonfungiblePositionManager(uniV3PositionManager).mint(params);
+        (positionId, liquidity, , ) = IUniswapV3(uniV3PositionManager).mint(params);
     }
 
     /// @dev Collects all accumulated LP fees.
@@ -265,7 +265,7 @@ abstract contract MemeFactory {
     /// @param memeToken Meme token address.
     /// @param positionId LP position ID.
     function _collectFees(address memeToken, uint256 positionId) internal {
-        INonfungiblePositionManager.CollectParams memory params = INonfungiblePositionManager.CollectParams({
+        IUniswapV3.CollectParams memory params = IUniswapV3.CollectParams({
             tokenId: positionId,
             recipient: address(this),
             amount0Max: type(uint128).max,
@@ -274,7 +274,7 @@ abstract contract MemeFactory {
 
         // Get the corresponding tokens
         (uint256 nativeAmountForOLASBurn, uint256 memeAmountToBurn) =
-            INonfungiblePositionManager(uniV3PositionManager).collect(params);
+            IUniswapV3(uniV3PositionManager).collect(params);
 
         // Burn meme tokens
         IERC20(memeToken).burn(memeAmountToBurn);

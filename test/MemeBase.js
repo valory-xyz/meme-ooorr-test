@@ -46,7 +46,6 @@ const main = async () => {
     const factoryParams = {
         olas: parsedData.olasAddress,
         nativeToken: parsedData.wethAddress,
-        uniV3Factory: parsedData.uniV3FactoryAddress,
         uniV3PositionManager: parsedData.uniV3positionManagerAddress,
         oracle: oracle.address,
         maxSlippage: parsedData.maxSlippageMeme,
@@ -63,6 +62,7 @@ const main = async () => {
     // 0-th token is the redemptionOne
     const memeToken = await memeBase.memeTokens(1);
     console.log("New meme contract:", memeToken);
+    console.log("memeBase:", memeBase.address);
 
     // Heart a new token by other accounts
     await memeBase.connect(signers[1]).heartThisMeme(memeToken, {value: defaultDeposit});
