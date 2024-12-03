@@ -155,7 +155,7 @@ abstract contract MemeFactory {
     /// @param reserve0 Reserve of token0.
     /// @param reserve1 Reserve of token1.
     /// @return sqrtPriceX96 The calculated square root price scaled by 2^96.
-    function _calculateSqrtPriceX96(address memeToken, uint256 reserve0, uint256 reserve1) public view returns (uint160 sqrtPriceX96) {
+    function _calculateSqrtPriceX96(address memeToken, uint256 reserve0, uint256 reserve1) internal view returns (uint160 sqrtPriceX96) {
         require(reserve0 > 0 && reserve1 > 0, "Reserves must be greater than zero");
 
         // Ensure correct token order
