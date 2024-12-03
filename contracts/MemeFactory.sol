@@ -174,11 +174,22 @@ abstract contract MemeFactory {
     /// @param reserve0 Reserve of token0.
     /// @param reserve1 Reserve of token1.
     /// @return sqrtPriceX96 The calculated square root price scaled by 2^96.
-    function _calculateSqrtPriceX96(uint256 reserve0, uint256 reserve1) public pure returns (uint160 sqrtPriceX96) {
+    function _calculateSqrtPriceX96(address memeToken, uint256 reserve0, uint256 reserve1) public view returns (uint160 sqrtPriceX96) {
         require(reserve0 > 0 && reserve1 > 0, "Reserves must be greater than zero");
 
-        uint256 priceX96 = (reserve1 << 96) / reserve0; // Price of token1 in terms of token0 scaled by 2^96
-        sqrtPriceX96 = uint160(_sqrt(priceX96));
+        // Ensure correct token order
+        (uint256 adjustedAmountA, uint256 adjustedAmountB) = nativeToken < memeToken
+            ? (reserve0, reserve1)
+            : (reserve1, reserve0);
+
+        // Calculate the price ratio (B/A) scaled by 1e18 to avoid floating point issues
+        uint256 priceX96 = (adjustedAmountB * 1e18) / adjustedAmountA;
+
+        // Calculate the square root of the price ratio in X96 format
+        return uint160(_sqrt(priceX96) * 2**48);
+
+//        uint256 priceX96 = (reserve1 << 96) / reserve0; // Price of token1 in terms of token0 scaled by 2^96
+//        sqrtPriceX96 = uint160(_sqrt(priceX96));
     }
 
     /// @dev Square root function using Babylonian method.
@@ -211,16 +222,12 @@ abstract contract MemeFactory {
 
         // Get or create the pool
         address pool = IUniswapV3Factory(uniV3Factory).getPool(token0, token1, FEE_TIER);
+        // If condition added for clarity, will always evaluate to true in this design
         if (pool == address(0)) {
-            pool = IUniswapV3Factory(uniV3Factory).createPool(token0, token1, FEE_TIER);
-        }
-
-        // TODO Check how this must be done
-        // Initialize the pool with the sqrtPriceX96
-        // If condition added for clarity, will always evaluate to true in this design.
-        if (IUniswapV3Pool(pool).liquidity() == 0) {
-            uint160 sqrtPriceX96 = _calculateSqrtPriceX96(amount0, amount1);
-            IUniswapV3Pool(pool).initialize(sqrtPriceX96);
+            // Initialize the pool with the sqrtPriceX96
+            uint160 sqrtPriceX96 = _calculateSqrtPriceX96(memeToken, nativeTokenAmount, memeTokenAmount);
+            pool = INonfungiblePositionManager(uniV3PositionManager).createAndInitializePoolIfNecessary(token0,
+                token1, FEE_TIER, sqrtPriceX96);
         }
 
         // Approve tokens for router

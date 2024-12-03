@@ -100,7 +100,7 @@ contract MemeArbitrum is MemeFactory {
             payable(address(this)), false);
 
         // Perform swap
-        uint256 olasAmount = IBalancer(balancerVault).swap(singleSwap, fundManagement, 0, block.timestamp);
+        olasAmount = IBalancer(balancerVault).swap(singleSwap, fundManagement, 0, block.timestamp);
 
         // Apply slippage protection
         require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
