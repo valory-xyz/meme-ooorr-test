@@ -108,7 +108,7 @@ contract MemeBase is MemeFactory {
 
     function _launchCampaign(uint256 nativeAmountForOLASBurn) internal override returns (uint256 adjustedNativeAmountForAscendance) {
         // Launch campaign logic:
-        // Make Agent.Fi Great Again (MAGA)
+        // Make Agents.Fun Great Again (MAGA)
         if (launchCampaignBalance < LIQUIDITY_AGNT) {
             // Get the difference of the required liquidity amount and launch campaign balance
             uint256 diff = LIQUIDITY_AGNT - launchCampaignBalance;
