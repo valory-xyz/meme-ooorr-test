@@ -28,17 +28,6 @@ interface IOracle {
     function validatePrice(uint256 slippage) external view returns (bool);
 }
 
-// UniswapV2 interface
-interface IUniswap {
-    /// @dev Gets LP pair address.
-    function getPair(address tokenA, address tokenB) external returns (address pair);
-
-    /// @dev Adds liquidity to the LP consisting of tokenA and tokenB.
-    function addLiquidity(address tokenA, address tokenB, uint256 amountADesired, uint256 amountBDesired,
-        uint256 amountAMin, uint256 amountBMin, address to, uint256 deadline)
-        external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
-}
-
 /// @title MemeFactory - a smart contract factory for Meme Token creation
 /// @dev This contract let's:
 ///      1) Any msg.sender summons a meme by contributing at least 0.01 ETH (or equivalent native asset for other chains).
@@ -181,9 +170,9 @@ abstract contract MemeFactory {
         bytes memory bridgePayload
     ) internal virtual returns (uint256);
 
-    /// @dev Calculates sqrtPriceX96 based on reserves of token0 (WETH) and token1 (USDC).
-    /// @param reserve0 Reserve of token0 (WETH).
-    /// @param reserve1 Reserve of token1 (USDC).
+    /// @dev Calculates sqrtPriceX96 based on reserves of token0 and token1.
+    /// @param reserve0 Reserve of token0.
+    /// @param reserve1 Reserve of token1.
     /// @return sqrtPriceX96 The calculated square root price scaled by 2^96.
     function _calculateSqrtPriceX96(uint256 reserve0, uint256 reserve1) public pure returns (uint160 sqrtPriceX96) {
         require(reserve0 > 0 && reserve1 > 0, "Reserves must be greater than zero");
@@ -215,29 +204,40 @@ abstract contract MemeFactory {
         uint256 nativeTokenAmount,
         uint256 memeTokenAmount
     ) internal returns (uint256 positionId, uint256 liquidity) {
-        // Create a pool
-        address pool = IUniswapV3Factory(uniV3Factory).createPool(nativeToken, memeToken, FEE_TIER);
+        // Ensure token order matches Uniswap convention
+        (address token0, address token1, uint256 amount0, uint256 amount1) = nativeToken < memeToken
+            ? (nativeToken, memeToken, nativeTokenAmount, memeTokenAmount)
+            : (memeToken, nativeToken, memeTokenAmount, nativeTokenAmount);
+
+        // Get or create the pool
+        address pool = IUniswapV3Factory(uniV3Factory).getPool(token0, token1, FEE_TIER);
+        if (pool == address(0)) {
+            pool = IUniswapV3Factory(uniV3Factory).createPool(token0, token1, FEE_TIER);
+        }
 
         // TODO Check how this must be done
         // Initialize the pool with the sqrtPriceX96
-        uint160 sqrtPriceX96 = _calculateSqrtPriceX96(nativeTokenAmount, memeTokenAmount);
-        IUniswapV3Pool(pool).initialize(sqrtPriceX96);
+        // If condition added for clarity, will always evaluate to true in this design.
+        if (IUniswapV3Pool(pool).liquidity() == 0) {
+            uint160 sqrtPriceX96 = _calculateSqrtPriceX96(amount0, amount1);
+            IUniswapV3Pool(pool).initialize(sqrtPriceX96);
+        }
 
         // Approve tokens for router
-        IERC20(nativeToken).approve(uniV3PositionManager, nativeTokenAmount);
-        IERC20(memeToken).approve(uniV3PositionManager, memeTokenAmount);
+        IERC20(token0).approve(uniV3PositionManager, amount0);
+        IERC20(token1).approve(uniV3PositionManager, amount1);
 
         // Add native token + meme token liquidity
         INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
-            token0: nativeToken,
-            token1: memeToken,
+            token0: token0,
+            token1: token1,
             fee: FEE_TIER,
             tickLower: TickMath.MIN_TICK,
             tickUpper: TickMath.MAX_TICK,
-            amount0Desired: nativeTokenAmount,
-            amount1Desired: memeTokenAmount,
-            amount0Min: 0, // Accept any amount of native token
-            amount1Min: 0, // Accept any amount of meme token
+            amount0Desired: amount0,
+            amount1Desired: amount1,
+            amount0Min: 0, // Accept any amount of token0
+            amount1Min: 0, // Accept any amount of token1
             recipient: address(this),
             deadline: block.timestamp
         });
@@ -246,14 +246,18 @@ abstract contract MemeFactory {
     }
 
     /// @dev Collects all accumulated LP fees.
-    function collectFeesSingleSided(address[] memory tokens) external {
+    /// @param tokens List of tokens to be iterated over.
+    function collectFees(address[] memory tokens) external {
         for (uint256 i = 0; i < tokens.length; ++i) {
             MemeSummon memory memeSummon = memeSummons[tokens[i]];
             _collectFees(tokens[i], memeSummon.positionId);
         }
     }
 
-    function _collectFees(address memeToken, uint256 positionId) internal virtual {
+    /// @dev Collects fees from LP position, burns the meme token part and schedules for ascendance the native token part.
+    /// @param memeToken Meme token address.
+    /// @param positionId LP position ID.
+    function _collectFees(address memeToken, uint256 positionId) internal {
         INonfungiblePositionManager.CollectParams memory params = INonfungiblePositionManager.CollectParams({
             tokenId: positionId,
             recipient: address(this),
@@ -261,14 +265,14 @@ abstract contract MemeFactory {
             amount1Max: type(uint128).max
         });
 
+        // Get the corresponding tokens
         (uint256 nativeAmountForOLASBurn, uint256 memeAmountToBurn) =
             INonfungiblePositionManager(uniV3PositionManager).collect(params);
-
-        // Get the corresponding token
 
         // Burn meme tokens
         IERC20(memeToken).burn(memeAmountToBurn);
 
+        // Account for redemption logic
         uint256 adjustedNativeAmountForAscendance = _redemptionLogic(nativeAmountForOLASBurn);
 
         // Schedule native token amount for ascendance
@@ -520,6 +524,8 @@ abstract contract MemeFactory {
     }
 
     /// @dev Converts collected native token to OLAS.
+    /// @param amount Amount of OLAS to swap.
+    /// @param slippage Max slippage acceptable for the trade. 
     function scheduleOLASForAscendance(uint256 amount, uint256 slippage) external virtual {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;

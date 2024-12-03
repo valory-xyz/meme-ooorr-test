@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 /// @title PriceOracle - a generic smart contract oracle wrapper
+/// @notice This oracle assumes both tokens are in same DECIMALS.
 abstract contract PriceOracle {
     event PriceUpdated(address indexed sender, uint256 currentPrice, uint256 cumulativePrice);
 
@@ -41,12 +42,14 @@ abstract contract PriceOracle {
         minUpdateTimePeriod = _minUpdateTimePeriod;
     }
 
-    /// @dev Gets the current OLAS token price in 1e18 format.
+    /// @dev Gets the current OLAS token price, quoted in the native reference asset, in 1e18 format.
     function getPrice() public virtual view returns (uint256);
 
     /// @dev Updates the time-weighted average price.
+    /// @notice This implementation only accounts for the first price update in a block.
     function updatePrice() public returns (bool) {
         uint256 currentPrice = getPrice();
+        require(currentPrice > 0, "Price must be non-zero.");
 
         PriceSnapshot storage snapshot = snapshotHistory;
 
@@ -64,6 +67,7 @@ abstract contract PriceOracle {
             return false;
         }
 
+        // This implementation only accounts for the first price update in a block.
         // Calculate elapsed time since the last update
         uint256 elapsedTime = block.timestamp - snapshot.lastUpdated;
 
@@ -88,7 +92,7 @@ abstract contract PriceOracle {
         return true;
     }
 
-    /// @dev Validates the price according to slippage tolerance.
+    /// @dev Validates the current price against a TWAP according to slippage tolerance.
     /// @param slippage the acceptable slippage tolerance
     function validatePrice(uint256 slippage) external view returns (bool) {
         require(slippage <= 100, "Slippage must be <= 100%");
@@ -100,6 +104,7 @@ abstract contract PriceOracle {
 
         // Calculate elapsed time
         uint256 elapsedTime = block.timestamp - snapshot.lastUpdated;
+        // Require at least one block since last update
         if (elapsedTime == 0) return false;
 
         // Compute time-weighted average price

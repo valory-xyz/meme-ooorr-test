@@ -75,9 +75,6 @@ contract MemeCelo is MemeFactory {
     /// @param slippage Slippage value.
     /// @return Obtained OLAS amount.
     function _buyOLAS(uint256 nativeTokenAmount, uint256 slippage) internal virtual override returns (uint256) {
-        // Apply slippage protection
-        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
-
         address[] memory path = new address[](3);
         path[0] = nativeToken;
         path[1] = olas;
@@ -85,8 +82,7 @@ contract MemeCelo is MemeFactory {
         // Approve native token
         IERC20(nativeToken).approve(router, nativeTokenAmount);
 
-        // Swap cUSD for OLAS
-        // This will go via two pools - not a problem as Ubeswap has both
+        // Swap CELO for OLAS
         uint256[] memory amounts = IUniswap(router).swapExactTokensForTokens(
             nativeTokenAmount,
             0,
@@ -94,6 +90,9 @@ contract MemeCelo is MemeFactory {
             address(this),
             block.timestamp
         );
+
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(slippage), "Slippage limit is breached");
 
         // Return the OLAS amount bought
         return amounts[1];
