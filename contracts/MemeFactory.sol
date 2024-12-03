@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {FixedPointMathLib} from "../lib/solmate/src/utils/FixedPointMathLib.sol";
 import {Meme} from "./Meme.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 
@@ -18,8 +19,8 @@ interface IERC20 {
     /// @return True if the function execution is successful.
     function transfer(address to, uint256 amount) external returns (bool);
 
-    /// @dev Burns OLAS tokens.
-    /// @param amount OLAS token amount to burn.
+    /// @dev Burns tokens.
+    /// @param amount Token amount to burn.
     function burn(uint256 amount) external;
 }
 
@@ -59,6 +60,7 @@ abstract contract MemeFactory {
         uint256 liquidity, uint256  nativeAmountForOLASBurn);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
+    event FeesCollected(address indexed feeCollector, address indexed memeToken, uint256 nativeTokenAmount, uint256 memeTokenAmount);
 
     // Params struct
     struct FactoryParams {
@@ -140,46 +142,12 @@ abstract contract MemeFactory {
         minNativeTokenValue = factoryParams.minNativeTokenValue;
     }
 
-    /// @dev Transfers native token to be converted to OLAS for burn.
+    /// @dev Transfers native token to be later converted to OLAS for burn.
     /// @param amount Native token amount.
-    function _transferAndBurn(uint256 amount) internal virtual {
-        (bool result, ) = buyBackBurner.call{value: amount}("");
-        
-        require(result, "Transfer failed");
+    function _transferToLaterBurn(uint256 amount) internal virtual {
+        IERC20(nativeToken).transfer(buyBackBurner, amount);
 
         emit OLASJourneyToAscendance(amount);
-    }
-
-    /// @dev Calculates sqrtPriceX96 based on reserves of token0 and token1.
-    /// @param reserve0 Reserve of token0.
-    /// @param reserve1 Reserve of token1.
-    /// @return sqrtPriceX96 The calculated square root price scaled by 2^96.
-    function _calculateSqrtPriceX96(address memeToken, uint256 reserve0, uint256 reserve1) public view returns (uint160 sqrtPriceX96) {
-        require(reserve0 > 0 && reserve1 > 0, "Reserves must be greater than zero");
-
-        // Ensure correct token order
-        (uint256 adjustedAmountA, uint256 adjustedAmountB) = nativeToken < memeToken
-            ? (reserve0, reserve1)
-            : (reserve1, reserve0);
-
-        // Calculate the price ratio (B/A) scaled by 1e18 to avoid floating point issues
-        uint256 priceX96 = (adjustedAmountB * 1e18) / adjustedAmountA;
-
-        // Calculate the square root of the price ratio in X96 format
-        return uint160(_sqrt(priceX96) * 2**48);
-    }
-
-    // TODO Figure out and maybe use another method?
-    /// @dev Square root function using Babylonian method.
-    /// @param x Input value.
-    /// @return y Square root result.
-    function _sqrt(uint256 x) private pure returns (uint256 y) {
-        uint256 z = (x + 1) / 2;
-        y = x;
-        while (z < y) {
-            y = z;
-            z = (x / z + z) / 2;
-        }
     }
 
     /// @dev Creates native token + meme token LP and adds liquidity.
@@ -198,15 +166,14 @@ abstract contract MemeFactory {
             ? (nativeToken, memeToken, nativeTokenAmount, memeTokenAmount)
             : (memeToken, nativeToken, memeTokenAmount, nativeTokenAmount);
 
-        // Get or create the pool
-        //address pool = IUniswapV3Factory(uniV3Factory).getPool(token0, token1, FEE_TIER);
-        // If condition added for clarity, will always evaluate to true in this design
-        //if (pool == address(0)) {
-        // Initialize the pool with the sqrtPriceX96
-        uint160 sqrtPriceX96 = _calculateSqrtPriceX96(memeToken, nativeTokenAmount, memeTokenAmount);
+        // Calculate the price ratio (amount1 / amount0) scaled by 1e18 to avoid floating point issues
+        uint256 priceX96 = (amount1 * 1e18) / amount0;
+        // Calculate the square root of the price ratio in X96 format
+        uint160 sqrtPriceX96 = uint160(FixedPointMathLib.sqrt(priceX96) * 2**48);
+
+        // Create a pool
         IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1,
             FEE_TIER, sqrtPriceX96);
-        //}
 
         // Approve tokens for router
         IERC20(token0).approve(uniV3PositionManager, amount0);
@@ -234,6 +201,25 @@ abstract contract MemeFactory {
     /// @param memeToken Meme token address.
     /// @param positionId LP position ID.
     function _collectFees(address memeToken, uint256 positionId) internal {
+        // Fetch the position to get token0 and token1
+        (
+            ,
+            ,
+            address token0,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+
+        ) = IUniswapV3(uniV3PositionManager).positions(positionId);
+
+        // Determine which token is the meme token and which is the native token
+        bool memeIsToken0 = memeToken == token0;
+
         IUniswapV3.CollectParams memory params = IUniswapV3.CollectParams({
             tokenId: positionId,
             recipient: address(this),
@@ -242,17 +228,31 @@ abstract contract MemeFactory {
         });
 
         // Get the corresponding tokens
-        (uint256 nativeAmountForOLASBurn, uint256 memeAmountToBurn) =
+        (uint256 amount0, uint256 amount1) =
             IUniswapV3(uniV3PositionManager).collect(params);
+
+        uint256 nativeAmountForOLASBurn;
+        uint256 memeAmountToBurn;
+
+        if (memeIsToken0) {
+            memeAmountToBurn = amount0;
+            nativeAmountForOLASBurn = amount1;
+        } else {
+            memeAmountToBurn = amount1;
+            nativeAmountForOLASBurn = amount0;
+        }
 
         // Burn meme tokens
         IERC20(memeToken).burn(memeAmountToBurn);
 
         // Account for redemption logic
+        // All funds ever collected are already wrapped
         uint256 adjustedNativeAmountForAscendance = _redemptionLogic(nativeAmountForOLASBurn);
 
         // Schedule native token amount for ascendance
         scheduledForAscendance += adjustedNativeAmountForAscendance;
+
+        emit FeesCollected(msg.sender, memeToken, nativeAmountForOLASBurn, memeAmountToBurn);
     }
 
     /// @dev Collects meme token allocation.
@@ -281,8 +281,12 @@ abstract contract MemeFactory {
         emit Collected(msg.sender, memeToken, allocation);
     }
 
+    /// @dev Redemption logic.
+    /// @param nativeAmountForOLASBurn Native token amount (wrapped) for burning.
     function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal virtual returns (uint256 adjustedNativeAmountForAscendance);
 
+    /// @dev Native token amount to wrap.
+    /// @param nativeTokenAmount Native token amount to be wrapped.
     function _wrap(uint256 nativeTokenAmount) internal virtual;
 
     /// @dev Summons meme token.
@@ -380,6 +384,10 @@ abstract contract MemeFactory {
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
 
+        // Wrap native token to its ERC-20 version
+        // All funds ever contributed to a given meme are wrapped here.
+        _wrap(totalNativeTokenCommitted);
+
         // Put aside native token to buy OLAS with the burn percentage of the total native token amount committed
         uint256 nativeAmountForOLASBurn = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
 
@@ -396,9 +404,6 @@ abstract contract MemeFactory {
         uint256 totalSupply = memeTokenInstance.totalSupply();
         uint256 memeAmountForLP = (totalSupply * LP_PERCENTAGE) / 100;
         uint256 heartersAmount = totalSupply - memeAmountForLP;
-
-        // Wrap native token to its ERC-20 version, where applicable
-        _wrap(nativeAmountForLP);
 
         // Create Uniswap pair with LP allocation
         (uint256 positionId, uint256 liquidity) = _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
@@ -484,8 +489,8 @@ abstract contract MemeFactory {
         _locked = 1;
     }
 
-    /// @dev Transfers native token to be converted to OLAS for burn.
-    function sendToHigherHeights() external {
+    /// @dev Transfers native token to later be converted to OLAS for burn.
+    function scheduleForAscendance() external {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
@@ -496,7 +501,7 @@ abstract contract MemeFactory {
         mapAccountActivities[msg.sender]++;
 
         // Transfer native token to be converted to OLAS and burnt
-        _transferAndBurn(amount);
+        _transferToLaterBurn(amount);
 
         _locked = 1;
     }
@@ -504,10 +509,18 @@ abstract contract MemeFactory {
     /// @dev Collects all accumulated LP fees.
     /// @param tokens List of tokens to be iterated over.
     function collectFees(address[] memory tokens) external {
+        require(_locked == 1, "Reentrancy guard");
+        _locked = 2;
+
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
+
         for (uint256 i = 0; i < tokens.length; ++i) {
             MemeSummon memory memeSummon = memeSummons[tokens[i]];
             _collectFees(tokens[i], memeSummon.positionId);
         }
+
+        _locked = 1;
     }
 
     /// @dev Allows the contract to receive native token
