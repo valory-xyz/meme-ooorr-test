@@ -16,11 +16,12 @@ fingerprint:
   behaviours.py: bafybeibdbimezloiomvsv3zgfdug4tw276gt7tb5agnezl2nuqcfcplscu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeidqesafw5vtekw2dtffjznuchdjllo52najwmmkj2npfdyaouigfa
-  handlers.py: bafybeia3ew422w57ot7jpbrhmagepm7pcoqkkc53p5w4jm4co4yh4tz7em
+  handlers.py: bafybeigdxkm45w27sh7cpgiwuperjldql6oupbhxqtizhbwfv7abxe3dku
   models.py: bafybeid7ngfjyc3ck65yuzriy7y7eppz5kn7m7nsrilcvtqhqsfu54cn5e
   payloads.py: bafybeif5ycv3aaim4sbfkmx5jnwjm5yvx562zkykhng5on63zfeqskddse
   prompts.py: bafybeicww22zga6ximcfjb3h4hwhqfupuapc3uxl3bmev4hjfgd7cymzea
   rounds.py: bafybeickhz2scrsecxhooytqf2q32kp2sck6clv433bxqlcpfv3lrok2ia
+  rounds_info.py: bafybeieqaemvqwiwku7nlxkdebsqzldpvvidijf6wcwy7e3xbyz335jr6i
   subgraph.py: bafybeigme6r3cwiiu5l7r55rcbj7y37b62cxtlsnewpkbjqcbadwte32xm
 fingerprint_ignore_patterns: []
 connections:
@@ -181,5 +182,7 @@ dependencies:
     version: ==3.0.0
   textblob:
     version: '>=0.18.0.post0'
+  PyYAML:
+    version: '>=3.10,<=6.0.1'
 is_abstract: true
 customs: []
