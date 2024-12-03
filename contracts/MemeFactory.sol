@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {FixedPointMathLib} from "../lib/solmate/src/utils/FixedPointMathLib.sol";
 import {Meme} from "./Meme.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 
@@ -144,43 +145,9 @@ abstract contract MemeFactory {
     /// @dev Transfers native token to be later converted to OLAS for burn.
     /// @param amount Native token amount.
     function _transferToLaterBurn(uint256 amount) internal virtual {
-        (bool result, ) = buyBackBurner.call{value: amount}("");
-        
-        require(result, "Transfer failed");
+        IERC20(nativeToken).transfer(buyBackBurner, amount);
 
         emit OLASJourneyToAscendance(amount);
-    }
-
-    /// @dev Calculates sqrtPriceX96 based on reserves of token0 and token1.
-    /// @param reserve0 Reserve of token0.
-    /// @param reserve1 Reserve of token1.
-    /// @return sqrtPriceX96 The calculated square root price scaled by 2^96.
-    function _calculateSqrtPriceX96(address memeToken, uint256 reserve0, uint256 reserve1) public view returns (uint160 sqrtPriceX96) {
-        require(reserve0 > 0 && reserve1 > 0, "Reserves must be greater than zero");
-
-        // Ensure correct token order
-        (uint256 adjustedAmountA, uint256 adjustedAmountB) = nativeToken < memeToken
-            ? (reserve0, reserve1)
-            : (reserve1, reserve0);
-
-        // Calculate the price ratio (B/A) scaled by 1e18 to avoid floating point issues
-        uint256 priceX96 = (adjustedAmountB * 1e18) / adjustedAmountA;
-
-        // Calculate the square root of the price ratio in X96 format
-        return uint160(_sqrt(priceX96) * 2**48);
-    }
-
-    // TODO Figure out and maybe use another method?
-    /// @dev Square root function using Babylonian method.
-    /// @param x Input value.
-    /// @return y Square root result.
-    function _sqrt(uint256 x) private pure returns (uint256 y) {
-        uint256 z = (x + 1) / 2;
-        y = x;
-        while (z < y) {
-            y = z;
-            z = (x / z + z) / 2;
-        }
     }
 
     /// @dev Creates native token + meme token LP and adds liquidity.
@@ -199,15 +166,14 @@ abstract contract MemeFactory {
             ? (nativeToken, memeToken, nativeTokenAmount, memeTokenAmount)
             : (memeToken, nativeToken, memeTokenAmount, nativeTokenAmount);
 
-        // Get or create the pool
-        //address pool = IUniswapV3Factory(uniV3Factory).getPool(token0, token1, FEE_TIER);
-        // If condition added for clarity, will always evaluate to true in this design
-        //if (pool == address(0)) {
-        // Initialize the pool with the sqrtPriceX96
-        uint160 sqrtPriceX96 = _calculateSqrtPriceX96(memeToken, nativeTokenAmount, memeTokenAmount);
+        // Calculate the price ratio (amount1 / amount0) scaled by 1e18 to avoid floating point issues
+        uint256 priceX96 = (amount1 * 1e18) / amount0;
+        // Calculate the square root of the price ratio in X96 format
+        uint160 sqrtPriceX96 = uint160(FixedPointMathLib.sqrt(priceX96) * 2**48);
+
+        // Create a pool
         IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1,
             FEE_TIER, sqrtPriceX96);
-        //}
 
         // Approve tokens for router
         IERC20(token0).approve(uniV3PositionManager, amount0);
