@@ -56,11 +56,11 @@ contract UniswapPriceOracle {
 
         // Compute time-weighted average price
         // Fetch the cumulative prices from the pair
-        uint256 cumulativePrice;
+        uint256 cumulativePriceLast;
         if (direction == 0) {
-            cumulativePrice = IUniswapV2(pair).price1CumulativeLast();
+            cumulativePriceLast = IUniswapV2(pair).price1CumulativeLast();
         } else {
-            cumulativePrice = IUniswapV2(pair).price0CumulativeLast();
+            cumulativePriceLast = IUniswapV2(pair).price0CumulativeLast();
         }
 
         // Fetch the reserves and the last block timestamp
@@ -72,15 +72,18 @@ contract UniswapPriceOracle {
         }
         uint256 elapsedTime = block.timestamp - blockTimestampLast;
 
-        // Calculate the TWAP for token0 in terms of token1
-        uint256 timeWeightedAverage = cumulativePrice / elapsedTime;
-
         uint256 tradePrice = getPrice();
 
-        // Validate against slippage thresholds
-        uint256 lowerBound = (timeWeightedAverage * (100 - slippage)) / 100;
-        uint256 upperBound = (timeWeightedAverage * (100 + slippage)) / 100;
+        // Calculate cumulative prices
+        uint256 cumulativePrice = cumulativePriceLast + (tradePrice * elapsedTime);
 
-        return tradePrice >= lowerBound && tradePrice <= upperBound;
+        // Calculate the TWAP for OLAS in terms of native token
+        uint256 timeWeightedAverage = (cumulativePrice - cumulativePriceLast) / elapsedTime;
+
+        uint256 derivation = (tradePrice > timeWeightedAverage)
+            ? ((tradePrice - timeWeightedAverage) * 1e18) / timeWeightedAverage
+            : ((timeWeightedAverage - tradePrice) * 1e18) / timeWeightedAverage;
+
+        return derivation <= slippage;
     }
 }
