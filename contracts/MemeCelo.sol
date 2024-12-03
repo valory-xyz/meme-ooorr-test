@@ -8,7 +8,7 @@ contract MemeCelo is MemeFactory {
     /// @dev MemeBase constructor
     constructor(FactoryParams memory factoryParams) MemeFactory(factoryParams) {}
 
-    function _redemptionLogic(uint256 nativeAmountForOLASBurn) internal override pure returns (uint256) {
+    function _launchCampaign(uint256 nativeAmountForOLASBurn) internal override pure returns (uint256) {
         return nativeAmountForOLASBurn;
     }
 
