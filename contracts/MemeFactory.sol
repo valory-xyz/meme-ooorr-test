@@ -492,7 +492,7 @@ abstract contract MemeFactory {
     }
 
     /// @dev Transfers native token to later be converted to OLAS for burn.
-    function scheduledForAscendance() external {
+    function scheduleForAscendance() external {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 

@@ -37,21 +37,21 @@ const main = async () => {
         amounts.push(redemptionsData[i]["amount"].toString());
     }
 
-    const Oracle = await ethers.getContractFactory("BalancerPriceOracle");
-    const oracle = await Oracle.deploy(parsedData.olasAddress, parsedData.wethAddress, parsedData.maxSlippageOracle,
-        parsedData.minUpdateTimePeriod, parsedData.balancerVaultAddress, parsedData.balancerPoolId);
-    await oracle.deployed();
+    // const Oracle = await ethers.getContractFactory("BalancerPriceOracle");
+    // const oracle = await Oracle.deploy(parsedData.olasAddress, parsedData.wethAddress, parsedData.maxSlippageOracle,
+    //     parsedData.minUpdateTimePeriod, parsedData.balancerVaultAddress, parsedData.balancerPoolId);
+    // await oracle.deployed();
 
     const factoryParams = {
         olas: parsedData.olasAddress,
         nativeToken: parsedData.wethAddress,
         uniV3PositionManager: parsedData.uniV3positionManagerAddress,
-        buyBackBurner: oracle.address,
+        buyBackBurner: parsedData.wethAddress, // TOFIX
         minNativeTokenValue: parsedData.minNativeTokenValue
     }
 
     const MemeBase = await ethers.getContractFactory("MemeBase");
-    const memeBase = await MemeBase.deploy(factoryParams, parsedData.balancerVaultAddress, parsedData.balancerPoolId,
+    const memeBase = await MemeBase.deploy(factoryParams,
         accounts, amounts);
     await memeBase.deployed();
 
