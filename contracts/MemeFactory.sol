@@ -59,6 +59,7 @@ abstract contract MemeFactory {
         uint256 liquidity, uint256  nativeAmountForOLASBurn);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
     event Purged(address indexed memeToken, uint256 remainingAmount);
+    event FeesCollected(address indexed feeCollector, address indexed memeToken, uint256 nativeTokenAmount, uint256 memeTokenAmount);
 
     // Params struct
     struct FactoryParams {
@@ -234,6 +235,25 @@ abstract contract MemeFactory {
     /// @param memeToken Meme token address.
     /// @param positionId LP position ID.
     function _collectFees(address memeToken, uint256 positionId) internal {
+        // Fetch the position to get token0 and token1
+        (
+            ,
+            ,
+            address token0,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+
+        ) = IUniswapV3(uniV3PositionManager).positions(positionId);
+
+        // Determine which token is the meme token and which is the native token
+        bool memeIsToken0 = memeToken == token0;
+
         IUniswapV3.CollectParams memory params = IUniswapV3.CollectParams({
             tokenId: positionId,
             recipient: address(this),
@@ -242,9 +262,19 @@ abstract contract MemeFactory {
         });
 
         // Get the corresponding tokens
-        // TOFIX: confirm that the order is correct here and always static!
-        (uint256 nativeAmountForOLASBurn, uint256 memeAmountToBurn) =
+        (uint256 amount0, uint256 amount1) =
             IUniswapV3(uniV3PositionManager).collect(params);
+
+        uint256 nativeAmountForOLASBurn;
+        uint256 memeAmountToBurn;
+
+        if (memeIsToken0) {
+            memeAmountToBurn = amount0;
+            nativeAmountForOLASBurn = amount1;
+        } else {
+            memeAmountToBurn = amount1;
+            nativeAmountForOLASBurn = amount0;
+        }
 
         // Burn meme tokens
         IERC20(memeToken).burn(memeAmountToBurn);
@@ -255,6 +285,8 @@ abstract contract MemeFactory {
 
         // Schedule native token amount for ascendance
         scheduledForAscendance += adjustedNativeAmountForAscendance;
+
+        emit FeesCollected(msg.sender, memeToken, nativeAmountForOLASBurn, memeAmountToBurn);
     }
 
     /// @dev Collects meme token allocation.
@@ -511,10 +543,18 @@ abstract contract MemeFactory {
     /// @dev Collects all accumulated LP fees.
     /// @param tokens List of tokens to be iterated over.
     function collectFees(address[] memory tokens) external {
+        require(_locked == 1, "Reentrancy guard");
+        _locked = 2;
+
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
+
         for (uint256 i = 0; i < tokens.length; ++i) {
             MemeSummon memory memeSummon = memeSummons[tokens[i]];
             _collectFees(tokens[i], memeSummon.positionId);
         }
+
+        _locked = 1;
     }
 
     /// @dev Allows the contract to receive native token
