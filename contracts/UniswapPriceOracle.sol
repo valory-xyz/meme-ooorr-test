@@ -1,20 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {PriceOracle} from "./PriceOracle.sol";
-
 interface IUniswapV2 {
     function token0() external view returns (address);
     function getReserves() external view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast);
     function price0CumulativeLast() external view returns (uint256);
-    // function price1CumulativeLast() external view returns (uint256);
+    function price1CumulativeLast() external view returns (uint256);
 }
 
-/// @title UniPriceOracle - a smart contract oracle wrapper for Uni V2 pools
-/// @dev This contract acts as an oracle wrapper for a specific Uni V2 pool. It allows:
+/// @title UniswapPriceOracle - a smart contract oracle wrapper for Uniswap V2 pools
+/// @dev This contract acts as an oracle wrapper for a specific Uniswap V2 pool. It allows:
 ///      1) Getting the price by any caller
 ///      2) Validating slippage against the oracle
-contract UniPriceOracle {
+contract UniswapPriceOracle {
     // LP token address
     address public immutable pair;
     // Max allowable slippage
@@ -22,11 +20,7 @@ contract UniPriceOracle {
     // LP token direction
     uint256 public immutable direction;
 
-    constructor(
-        address _nativeToken,
-        uint256 _maxSlippage,
-        address _pair
-    ) {
+    constructor(address _nativeToken, uint256 _maxSlippage, address _pair) {
         pair = _pair;
         maxSlippage = _maxSlippage;
 
@@ -50,8 +44,8 @@ contract UniPriceOracle {
     }
 
     /// @dev Updates the time-weighted average price.
-    function updatePrice() external view returns (bool) {
-        // Nothing to update; use built-in TWAP from uniswap v2 pool
+    function updatePrice() external pure returns (bool) {
+        // Nothing to update; use built-in TWAP from Uniswap V2 pool
         return true;
     }
 
@@ -62,24 +56,24 @@ contract UniPriceOracle {
 
         // Compute time-weighted average price
         // Fetch the cumulative prices from the pair
-        uint256 price0Cumulative = IUniswapV2(pair).price0CumulativeLast();
-        // uint256 price1Cumulative = IUniswapV2(pairAddress).price1CumulativeLast();
+        uint256 cumulativePrice;
+        if (direction == 0) {
+            cumulativePrice = IUniswapV2(pair).price1CumulativeLast();
+        } else {
+            cumulativePrice = IUniswapV2(pair).price0CumulativeLast();
+        }
 
         // Fetch the reserves and the last block timestamp
-        (, , uint32 blockTimestampLast) = IUniswapV2(pair).getReserves();
-
-        // Fetch the current block timestamp
-        uint32 blockTimestamp = uint32(block.timestamp);
+        (, , uint256 blockTimestampLast) = IUniswapV2(pair).getReserves();
 
         // Require at least one block since last update
-        if (blockTimestamp > blockTimestampLast) return false;
-        uint256 actualTimeElapsed = blockTimestamp - blockTimestampLast;
+        if (block.timestamp == blockTimestampLast) {
+            return false;
+        }
+        uint256 elapsedTime = block.timestamp - blockTimestampLast;
 
-        // TODO: get correct TWAP based on direction
         // Calculate the TWAP for token0 in terms of token1
-        uint256 timeWeightedAverage = (price0Cumulative / actualTimeElapsed);
-        // TODO // Calculate the TWAP for token1 in terms of token0
-        // TODO timeWeightedAverage = (price1Cumulative / actualTimeElapsed);
+        uint256 timeWeightedAverage = cumulativePrice / elapsedTime;
 
         uint256 tradePrice = getPrice();
 
