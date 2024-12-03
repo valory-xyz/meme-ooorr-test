@@ -73,13 +73,13 @@ TendermintHandler = BaseTendermintHandler
 IpfsHandler = BaseIpfsHandler
 
 
-def camel_to_snake(camel_str):
+def camel_to_snake(camel_str: str) -> str:
     """Converts from CamelCase to snake_case"""
     snake_str = re.sub(r"(?<!^)(?=[A-Z])", "_", camel_str).lower()
     return snake_str
 
 
-def load_fsm_spec():
+def load_fsm_spec() -> Dict:
     """Load the chained FSM spec"""
     with open(
         Path(__file__).parent.parent
@@ -165,7 +165,7 @@ class HttpHandler(BaseHttpHandler):
         # Load round info for the healthcheck
         fsm = load_fsm_spec()
 
-        self.rounds_info = {  # pylint: disable=attribute-defined-outside-init
+        self.rounds_info: Dict = {  # pylint: disable=attribute-defined-outside-init
             camel_to_snake(k): v for k, v in ROUNDS_INFO.items()
         }
         for source_info, target_round in fsm["transition_func"].items():
