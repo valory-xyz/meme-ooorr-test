@@ -62,7 +62,6 @@ const main = async () => {
     // 0-th token is the redemptionOne
     const memeToken = await memeBase.memeTokens(1);
     console.log("New meme contract:", memeToken);
-    console.log("memeBase:", memeBase.address);
 
     // Heart a new token by other accounts
     await memeBase.connect(signers[1]).heartThisMeme(memeToken, {value: defaultDeposit});
@@ -98,7 +97,10 @@ const main = async () => {
 
     // Swap to OLAS
     const olasAmount = await memeBase.scheduledForAscendance();
-    await memeBase.scheduleOLASForAscendance(olasAmount, slippage);
+    // First 127.5 ETH are collected towards redemption
+    if (olasAmount.gt(0)) {
+        await memeBase.scheduleOLASForAscendance(olasAmount, slippage);
+    }
 };
 
 main()

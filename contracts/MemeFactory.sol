@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-//import "../lib/v3-core/contracts/libraries/TickMath.sol";
-//import {INonfungiblePositionManager} from "../lib/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
-//import {IUniswapV3Factory} from "../lib/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import {Meme} from "./Meme.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 
@@ -105,9 +102,9 @@ abstract contract MemeFactory {
     address public constant OLAS_BURNER = 0x51eb65012ca5cEB07320c497F4151aC207FEa4E0;
     // Uniswap V3 fee tier of 1%
     uint24 public constant FEE_TIER = 10_000;
-    /// @dev The minimum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**-128
-    int24 public constant MIN_TICK = -887272;
-    /// @dev The maximum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**128
+    /// @dev The minimum tick that corresponds to a selected fee tier
+    int24 public constant MIN_TICK = -887200;
+    /// @dev The maximum tick that corresponds to a selected fee tier
     int24 public constant MAX_TICK = -MIN_TICK;
     // Meme token decimals
     uint8 public constant DECIMALS = 18;
@@ -187,9 +184,6 @@ abstract contract MemeFactory {
 
         // Calculate the square root of the price ratio in X96 format
         return uint160(_sqrt(priceX96) * 2**48);
-
-//        uint256 priceX96 = (reserve1 << 96) / reserve0; // Price of token1 in terms of token0 scaled by 2^96
-//        sqrtPriceX96 = uint160(_sqrt(priceX96));
     }
 
     /// @dev Square root function using Babylonian method.
