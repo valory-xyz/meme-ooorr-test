@@ -5,7 +5,6 @@ import {FixedPointMathLib} from "../lib/solmate/src/utils/FixedPointMathLib.sol"
 import {Meme} from "./Meme.sol";
 import {TickMath} from "./libraries/TickMath.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
-import "hardhat/console.sol";
 
 // ERC20 interface
 interface IERC20 {
@@ -56,8 +55,10 @@ interface IERC20 {
 ///           $SMTH to be burned.
 abstract contract MemeFactory {
     event OLASJourneyToAscendance(uint256 amount);
-    event Summoned(address indexed summoner, address indexed memeToken, uint256 nativeTokenContributed);
-    event Hearted(address indexed hearter, address indexed memeToken, uint256 amount);
+    event Summoned(address indexed summoner, bytes32 indexed memeHash, uint256 nativeTokenContributed, string name,
+        string symbol, uint256 totalSupply, uint256 indexed nonce);
+    event Hearted(address indexed summoner, bytes32 indexed memeHash, uint256 amount, string name,
+        string symbol, uint256 totalSupply, uint256 indexed nonce);
     event Unleashed(address indexed unleasher, address indexed memeToken, uint256 indexed lpTokenId,
         uint256 liquidity, uint256  nativeAmountForOLASBurn);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
@@ -120,13 +121,17 @@ abstract contract MemeFactory {
     uint256 public numTokens;
     // Native token (ERC-20) scheduled to be converted to OLAS for Ascendance
     uint256 public scheduledForAscendance;
+    // Nonce
+    uint256 internal _nonce;
     // Reentrancy lock
     uint256 internal _locked = 1;
 
-    // Map of meme token => Meme summon struct
-    mapping(address => MemeSummon) public memeSummons;
-    // Map of mem token => (map of hearter => native token balance)
-    mapping(address => mapping(address => uint256)) public memeHearters;
+    // Map of meme hash => Meme summon struct
+    mapping(bytes32 => MemeSummon) public memeSummons;
+    // Map of mem hash => (map of hearter => native token balance)
+    mapping(bytes32 => mapping(address => uint256)) public memeHearters;
+    // Map of meme token address => Meme hash
+    mapping(address => bytes32) public memeTokenHashes;
     // Map of account => activity counter
     mapping(address => uint256) public mapAccountActivities;
     // Set of all meme tokens created by this contract
@@ -231,7 +236,6 @@ abstract contract MemeFactory {
 
         // Get current pool reserves
         (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3(pool).slot0();
-        console.log("sqrtPriceX96", uint256(sqrtPriceX96));
 
         // Check TWAP or historical data
         uint256 twapPrice = _getTwapFromOracle(pool);
@@ -290,24 +294,26 @@ abstract contract MemeFactory {
 
     /// @dev Collects meme token allocation.
     /// @param memeToken Meme token address.
+    /// @param memeHash Meme hash.
     /// @param heartersAmount Total hearters meme token amount.
     /// @param hearterContribution Hearter contribution.
     /// @param totalNativeTokenCommitted Total native token contributed for the token launch.
-    function _collect(
+    function _collectMemeToken(
         address memeToken,
+        bytes32 memeHash,
         uint256 heartersAmount,
         uint256 hearterContribution,
         uint256 totalNativeTokenCommitted
     ) internal {
-        // Get meme token instance
-        Meme memeTokenInstance = Meme(memeToken);
-
         // Allocate corresponding meme token amount to the hearter
         uint256 allocation = (heartersAmount * hearterContribution) / totalNativeTokenCommitted;
 
         // Zero the allocation
-        memeHearters[memeToken][msg.sender] = 0;
+        memeHearters[memeHash][msg.sender] = 0;
 
+        // Get meme token instance
+        Meme memeTokenInstance = Meme(memeToken);
+        
         // Transfer meme token amount to the msg.sender
         memeTokenInstance.transfer(msg.sender, allocation);
 
@@ -341,41 +347,43 @@ abstract contract MemeFactory {
         // Check for max total supply as to practical limits for the Uniswap LP creation
         require(totalSupply < type(uint128).max, "Maximum total supply overflow");
 
-        // Create a new token
-        Meme newTokenInstance = new Meme(name, symbol, DECIMALS, totalSupply);
-        address memeToken = address(newTokenInstance);
+        uint256 localNonce = _nonce;
+        bytes32 memeHash = hashThisMeme(name, symbol, totalSupply, _nonce);
 
-        // Check for non-zero token address
-        require(memeToken != address(0), "Token creation failed");
-
-        // Initiate meme token map values
-        memeSummons[memeToken] = MemeSummon(msg.value, block.timestamp, 0, 0, 0, false);
-        memeHearters[memeToken][msg.sender] = msg.value;
-
-        // Push token into the global list of tokens
-        memeTokens.push(memeToken);
-        numTokens = memeTokens.length;
+        // Initiate meme hash map values
+        memeSummons[memeHash] = MemeSummon(msg.value, block.timestamp, 0, 0, 0, false);
+        memeHearters[memeHash][msg.sender] = msg.value;
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        emit Summoned(msg.sender, memeToken, msg.value);
-        emit Hearted(msg.sender, memeToken, msg.value);
+        // Update nonce
+        _nonce = localNonce + 1;
+
+        emit Summoned(msg.sender, memeHash, msg.value, name, symbol, totalSupply, localNonce);
+        emit Hearted(msg.sender, memeHash, msg.value, name, symbol, totalSupply, localNonce);
 
         _locked = 1;
     }
 
+    // TODO Same input for name, symbol, total supply?
     /// @dev Hearts the meme token with native token contribution.
-    /// @param memeToken Meme token address.
-    function heartThisMeme(address memeToken) external payable {
+    /// @param name Meme token name.
+    /// @param symbol Meme token symbol.
+    /// @param totalSupply Meme token total supply.
+    /// @param nonce Corresponding meme token nonce.
+    function heartThisMeme(string memory name, string memory symbol, uint256 totalSupply, uint256 nonce) external payable {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
         // Check for zero value
         require(msg.value > 0, "Native token amount must be greater than zero");
 
-        // Get the meme summon info
-        MemeSummon storage memeSummon = memeSummons[memeToken];
+        // Get meme token hash
+        bytes32 memeHash = hashThisMeme(name, symbol, totalSupply, nonce);
+
+        // Get meme summon info
+        MemeSummon storage memeSummon = memeSummons[memeHash];
 
         // Get the total native token committed to this meme
         uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
@@ -388,24 +396,51 @@ abstract contract MemeFactory {
         // Update meme token map values
         totalNativeTokenCommitted += msg.value;
         memeSummon.nativeTokenContributed = totalNativeTokenCommitted;
-        memeHearters[memeToken][msg.sender] += msg.value;
+        memeHearters[memeHash][msg.sender] += msg.value;
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        emit Hearted(msg.sender, memeToken, msg.value);
+        emit Hearted(msg.sender, memeHash, msg.value, name, symbol, totalSupply, nonce);
 
         _locked = 1;
     }
 
+    /// @dev Create a new meme token.
+    function _createThisMeme(
+        string memory name,
+        string memory symbol,
+        uint256 totalSupply
+    ) internal returns (address memeToken) {
+        uint256 localNonce = _nonce;
+        bytes32 randomNonce = bytes32(uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, localNonce))));
+        bytes memory payload = abi.encodePacked(type(Meme).creationCode, abi.encode(name, symbol, DECIMALS, totalSupply));
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            memeToken := create2(0x0, add(0x20, payload), mload(payload), randomNonce)
+        }
+
+        // Check for non-zero token address
+        require(memeToken != address(0), "Token creation failed");
+
+        // Update nonce
+        _nonce = localNonce + 1;
+    }
+
     /// @dev Unleashes the meme token.
-    /// @param memeToken Meme token address.
-    function unleashThisMeme(address memeToken) external {
+    /// @param name Meme token name.
+    /// @param symbol Meme token symbol.
+    /// @param totalSupply Meme token total supply.
+    /// @param nonce Corresponding meme token nonce.
+    function unleashThisMeme(string memory name, string memory symbol, uint256 totalSupply, uint256 nonce) external {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
-        // Get the meme summon info
-        MemeSummon storage memeSummon = memeSummons[memeToken];
+        // Get meme token hash
+        bytes32 memeHash = hashThisMeme(name, symbol, totalSupply, nonce);
+
+        // Get meme summon info
+        MemeSummon storage memeSummon = memeSummons[memeHash];
 
         // Get the total native token amount committed to this meme
         uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
@@ -433,10 +468,14 @@ abstract contract MemeFactory {
         scheduledForAscendance += adjustedNativeAmountForAscendance;
 
         // Calculate LP token allocation according to LP percentage and distribution to supporters
-        Meme memeTokenInstance = Meme(memeToken);
-        uint256 totalSupply = memeTokenInstance.totalSupply();
         uint256 memeAmountForLP = (totalSupply * LP_PERCENTAGE) / 100;
         uint256 heartersAmount = totalSupply - memeAmountForLP;
+
+        // Create new meme token
+        address memeToken = _createThisMeme(name, symbol, totalSupply);
+
+        // Record meme token address
+        memeTokenHashes[memeToken] = memeHash;
 
         // Create Uniswap pair with LP allocation
         (uint256 positionId, uint256 liquidity, bool isNativeFirst) =
@@ -453,13 +492,17 @@ abstract contract MemeFactory {
             memeSummon.isNativeFirst = isNativeFirst;
         }
 
+        // Push token into the global list of tokens
+        memeTokens.push(memeToken);
+        numTokens = memeTokens.length;
+
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
         // Allocate to the token hearter unleashing the meme
-        uint256 hearterContribution = memeHearters[memeToken][msg.sender];
+        uint256 hearterContribution = memeHearters[memeHash][msg.sender];
         if (hearterContribution > 0) {
-            _collect(memeToken, heartersAmount, hearterContribution, totalNativeTokenCommitted);
+            _collectMemeToken(memeToken, memeHash, heartersAmount, hearterContribution, totalNativeTokenCommitted);
         }
 
         emit Unleashed(msg.sender, memeToken, positionId, liquidity, nativeAmountForOLASBurn);
@@ -473,8 +516,11 @@ abstract contract MemeFactory {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
-        // Get the meme summon info
-        MemeSummon memory memeSummon = memeSummons[memeToken];
+        // Get meme hash
+        bytes32 memeHash = memeTokenHashes[memeToken];
+
+        // Get meme summon info
+        MemeSummon memory memeSummon = memeSummons[memeHash];
 
         // Check if the meme has been summoned
         require(memeSummon.unleashTime > 0, "Meme not unleashed");
@@ -482,7 +528,7 @@ abstract contract MemeFactory {
         require(block.timestamp <= memeSummon.unleashTime + COLLECT_DELAY, "Collect only allowed until 24 hours after unleash");
 
         // Get hearter contribution
-        uint256 hearterContribution = memeHearters[memeToken][msg.sender];
+        uint256 hearterContribution = memeHearters[memeHash][msg.sender];
         // Check for zero value
         require(hearterContribution > 0, "No token allocation");
 
@@ -490,7 +536,8 @@ abstract contract MemeFactory {
         mapAccountActivities[msg.sender]++;
 
         // Collect the token
-        _collect(memeToken, memeSummon.heartersAmount, hearterContribution, memeSummon.nativeTokenContributed);
+        _collectMemeToken(memeToken, memeHash, memeSummon.heartersAmount, hearterContribution,
+            memeSummon.nativeTokenContributed);
 
         _locked = 1;
     }
@@ -501,8 +548,11 @@ abstract contract MemeFactory {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
-        // Get the meme summon info
-        MemeSummon memory memeSummon = memeSummons[memeToken];
+        // Get meme hash
+        bytes32 memeHash = memeTokenHashes[memeToken];
+
+        // Get meme summon info
+        MemeSummon memory memeSummon = memeSummons[memeHash];
 
         // Check if the meme has been summoned
         require(memeSummon.unleashTime > 0, "Meme not unleashed");
@@ -556,10 +606,25 @@ abstract contract MemeFactory {
         mapAccountActivities[msg.sender]++;
 
         for (uint256 i = 0; i < tokens.length; ++i) {
-            MemeSummon memory memeSummon = memeSummons[tokens[i]];
+            // Get meme hash
+            bytes32 memeHash = memeTokenHashes[tokens[i]];
+            // Get meme summon struct
+            MemeSummon memory memeSummon = memeSummons[memeHash];
+
+            // Collect fees
             _collectFees(tokens[i], memeSummon.positionId, memeSummon.isNativeFirst);
         }
 
         _locked = 1;
+    }
+
+    /// @dev Hashes meme based on its name, symbol, total supply and provided unique nonce
+    function hashThisMeme(
+        string memory name,
+        string memory symbol,
+        uint256 totalSupply,
+        uint256 nonce
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encode(name, symbol, totalSupply, nonce));
     }
 }
