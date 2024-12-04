@@ -15,6 +15,7 @@ const main = async () => {
     const name = "Meme";
     const symbol = "MM";
     const totalSupply = "1" + "0".repeat(24);
+    const smallDeposit = ethers.utils.parseEther("1");
     const defaultDeposit = ethers.utils.parseEther("1500");
     const defaultHash = "0x" + "5".repeat(64);
     const payload = "0x";
@@ -60,15 +61,20 @@ const main = async () => {
     const campaignToken = await memeBase.memeTokens(0);
     console.log("Campaign meme contract:", campaignToken);
 
+    const launchCampaignTokenAddress = await memeBase.launchCampaignTokenAddress();
+    expect(launchCampaignTokenAddress).to.equal(campaignToken);
+
+    //// First test unleashing of a meme that does not trigger MAGA
+
     // Summon a new meme token
-    await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
+    await memeBase.summonThisMeme(name, symbol, totalSupply, {value: smallDeposit});
     // Get meme token address
     const memeToken = await memeBase.memeTokens(1);
-    console.log("New meme contract:", memeToken);
+    console.log("New meme contract one:", memeToken);
 
     // Heart a new token by other accounts
-    await memeBase.connect(signers[1]).heartThisMeme(memeToken, {value: defaultDeposit});
-    await memeBase.connect(signers[2]).heartThisMeme(memeToken, {value: defaultDeposit});
+    await memeBase.connect(signers[1]).heartThisMeme(memeToken, {value: smallDeposit});
+    await memeBase.connect(signers[2]).heartThisMeme(memeToken, {value: smallDeposit});
 
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
@@ -76,24 +82,64 @@ const main = async () => {
     // Unleash the meme token
     await memeBase.unleashThisMeme(memeToken);
 
+    let scheduledForAscendance = await memeBase.scheduledForAscendance();
+    expect(scheduledForAscendance).to.equal(0);
+
+    let launchCampaignBalance = await memeBase.launchCampaignBalance();
+    expect(launchCampaignBalance).to.equal(ethers.BigNumber.from(smallDeposit).mul(3).div(10));
+
+    // Increase time to for 24 hours+
+    await helpers.time.increase(oneDay + 10);
+
+    // Purge remaining allocation
+    await memeBase.purgeThisMeme(memeToken);
+
+    //// Second test unleashing of a meme that does trigger MAGA
+
+    // Summon a new meme token
+    await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
+    // Get meme token address
+    const memeTokenTwo = await memeBase.memeTokens(2);
+    console.log("New meme contract two:", memeTokenTwo);
+
+    // Heart a new token by other accounts
+    await memeBase.connect(signers[1]).heartThisMeme(memeTokenTwo, {value: defaultDeposit});
+    await memeBase.connect(signers[2]).heartThisMeme(memeTokenTwo, {value: defaultDeposit});
+
+    // Increase time to for 24 hours+
+    await helpers.time.increase(oneDay + 10);
+
+    // Unleash the meme token
+    await memeBase.unleashThisMeme(memeTokenTwo);
+
+    const LIQUIDITY_AGNT = await memeBase.LIQUIDITY_AGNT();
+    launchCampaignBalance = await memeBase.launchCampaignBalance();
+    expect(launchCampaignBalance).to.equal(LIQUIDITY_AGNT);
+
+    scheduledForAscendance = await memeBase.scheduledForAscendance();
+    const expectedScheduledForAscendance = ethers.BigNumber.from(smallDeposit).mul(3).div(10)
+        .add(ethers.BigNumber.from(defaultDeposit).mul(3).div(10))
+        .sub(ethers.BigNumber.from(launchCampaignBalance));
+    expect(scheduledForAscendance).to.equal(expectedScheduledForAscendance);
+
     // Deployer has already collected
     await expect(
-        memeBase.collectThisMeme(memeToken)
+        memeBase.collectThisMeme(memeTokenTwo)
     ).to.be.reverted;
 
     // Collect by the first signer
-    await memeBase.connect(signers[1]).collectThisMeme(memeToken);
+    await memeBase.connect(signers[1]).collectThisMeme(memeTokenTwo);
 
     // Wait for 24 more hours
     await helpers.time.increase(oneDay + 10);
 
     // Second signer cannot collect
     await expect(
-        memeBase.connect(signers[2]).collectThisMeme(memeToken)
+        memeBase.connect(signers[2]).collectThisMeme(memeTokenTwo)
     ).to.be.reverted;
 
     // Purge remaining allocation
-    await memeBase.purgeThisMeme(memeToken);
+    await memeBase.purgeThisMeme(memeTokenTwo);
 
     // Wait for 10 more seconds
     await helpers.time.increase(10);
@@ -106,7 +152,7 @@ const main = async () => {
     }
 
     // Collect fees
-    await memeBase.collectFees([campaignToken, memeToken]);
+    await memeBase.collectFees([campaignToken, memeToken, memeTokenTwo]);
 };
 
 main()

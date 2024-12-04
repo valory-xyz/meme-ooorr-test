@@ -141,6 +141,7 @@ abstract contract MemeFactory {
         minNativeTokenValue = _minNativeTokenValue;
     }
 
+    /// TODO: suggest removing this method; we will not have a need to override it
     /// @dev Transfers native token to be later converted to OLAS for burn.
     /// @param amount Native token amount.
     function _transferToLaterBurn(uint256 amount) internal virtual {
@@ -515,6 +516,7 @@ abstract contract MemeFactory {
     }
 
     // TODO Do we need this function as we all do via payable functions?
+    // Probably best to remove it. Otherwise people will send native tokens directly and is unrecoverable.
     /// @dev Allows the contract to receive native token
     receive() external payable {}
 }
