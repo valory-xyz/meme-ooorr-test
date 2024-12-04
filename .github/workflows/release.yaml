@@ -136,8 +136,8 @@ jobs:
       - name: Upload Release Assets
         uses: actions/upload-artifact@v4
         with:
-          name: optimus_bin_${{env.OS_ARCH}}
-          path: dist/optimus_bin_${{env.OS_ARCH}}
+          name: memeooorr_bin_${{env.OS_ARCH}}
+          path: dist/memeooorr_bin_${{env.OS_ARCH}}
 
   upload-assets:
       needs: build-macos-pyinstaller
@@ -147,12 +147,12 @@ jobs:
         - name: Download artifacts
           uses: actions/download-artifact@v4
           with:
-            name: optimus_bin_x64
+            name: memeooorr_bin_x64
             path: ./dist/
         - name: Download artifacts
           uses: actions/download-artifact@v4
           with:
-            name: optimus_bin_arm64
+            name: memeooorr_bin_arm64
             path: ./dist/
 
         - name: Publish Release
@@ -160,5 +160,5 @@ jobs:
           if: startsWith(github.ref, 'refs/tags/')
           with:
             files: |
-              ./dist/optimus_bin_x64
-              ./dist/optimus_bin_arm64
+              ./dist/memeooorr_bin_x64
+              ./dist/memeooorr_bin_arm64
