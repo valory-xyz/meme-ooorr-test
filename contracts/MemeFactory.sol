@@ -5,6 +5,7 @@ import {FixedPointMathLib} from "../lib/solmate/src/utils/FixedPointMathLib.sol"
 import {Meme} from "./Meme.sol";
 import {TickMath} from "./libraries/TickMath.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
+import "hardhat/console.sol";
 
 // ERC20 interface
 interface IERC20 {
@@ -91,6 +92,10 @@ abstract contract MemeFactory {
     uint256 public constant OLAS_BURN_PERCENTAGE = 10;
     // Percentage of initial supply for liquidity pool (50%)
     uint256 public constant LP_PERCENTAGE = 50;
+    // Max allowed price deviation for TWAP pool values (100 = 1%)
+    uint256 public constant MAX_ALLOWED_DEVIATION = 100;
+    // Seconds ago to look back for TWAP pool values
+    uint32 public constant SECONDS_AGO = 1800;
     // Uniswap V3 fee tier of 1%
     uint24 public constant FEE_TIER = 10_000;
     /// @dev The minimum tick that corresponds to a selected fee tier
@@ -140,14 +145,6 @@ abstract contract MemeFactory {
         uniV3PositionManager = _uniV3PositionManager;
         buyBackBurner = _buyBackBurner;
         minNativeTokenValue = _minNativeTokenValue;
-    }
-
-    /// @dev Transfers native token to be later converted to OLAS for burn.
-    /// @param amount Native token amount.
-    function _transferToLaterBurn(uint256 amount) internal virtual {
-        IERC20(nativeToken).transfer(buyBackBurner, amount);
-
-        emit OLASJourneyToAscendance(amount);
     }
 
     /// @dev Creates native token + meme token LP and adds liquidity.
@@ -202,36 +199,24 @@ abstract contract MemeFactory {
         (positionId, liquidity, , ) = IUniswapV3(uniV3PositionManager).mint(params);
     }
 
-    function _getTwapFromOracle(
-        address factory,
-        address token0,
-        address token1,
-        uint32 secondsAgo
-    ) internal view returns (uint256 priceX96) {
-        // Get the address of the pool
-        address pool = IUniswapV3(factory).getPool(token0, token1, FEE_TIER);
-        require(pool != address(0), "Pool does not exist");
-
+    function _getTwapFromOracle(address pool) internal view returns (uint256 priceX96) {
         // Query the pool for the current and historical tick
         uint32[] memory secondsAgos = new uint32[](2);
         // Start of the period
-        secondsAgos[0] = secondsAgo;
+        secondsAgos[0] = SECONDS_AGO;
 
         // Fetch the tick cumulative values from the pool
         (int56[] memory tickCumulatives, ) = IUniswapV3(pool).observe(secondsAgos);
 
         // Calculate the average tick over the time period
         int56 tickCumulativeDelta = tickCumulatives[1] - tickCumulatives[0];
-        int24 averageTick = int24(tickCumulativeDelta / int56(int32(secondsAgo)));
+        int24 averageTick = int24(tickCumulativeDelta / int56(int32(SECONDS_AGO)));
 
         // Convert the average tick to sqrtPriceX96
         uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(averageTick);
 
         // Calculate the price using the sqrtPriceX96
-        uint256 price = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
-
-        // Return the price in X96 format
-        return price;
+        priceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
     }
 
     function _checkPoolPrices(address memeToken, bool isNativeFirst) internal view {
@@ -246,19 +231,20 @@ abstract contract MemeFactory {
 
         // Get current pool reserves
         (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3(pool).slot0();
+        console.log("sqrtPriceX96", uint256(sqrtPriceX96));
 
         // Check TWAP or historical data
-        // 30-minute TWAP
-        uint256 twapPrice = _getTwapFromOracle(factory, token0, token1, 1800);
+        uint256 twapPrice = _getTwapFromOracle(pool);
         uint256 instantPrice = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
 
-        uint256 deviation = (instantPrice > twapPrice) ?
-            ((instantPrice - twapPrice) * 1e18) / twapPrice :
-            ((twapPrice - instantPrice) * 1e18) / twapPrice;
+        uint256 deviation;
+        if (twapPrice > 0) {
+            deviation = (instantPrice > twapPrice) ?
+                ((instantPrice - twapPrice) * 1e18) / twapPrice :
+                ((twapPrice - instantPrice) * 1e18) / twapPrice;
+        }
 
-        // TODO How to calculate it?
-        uint256 maxAllowedDeviation = 10;
-        require(deviation <= maxAllowedDeviation, "Price deviation too high");
+        require(deviation <= MAX_ALLOWED_DEVIATION, "Price deviation too high");
     }
 
     /// @dev Collects fees from LP position, burns the meme token part and schedules for ascendance the native token part.
@@ -552,8 +538,10 @@ abstract contract MemeFactory {
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        // Transfer native token to be converted to OLAS and burnt
-        _transferToLaterBurn(amount);
+        // Transfers native token to be later converted to OLAS for burn.
+        IERC20(nativeToken).transfer(buyBackBurner, amount);
+
+        emit OLASJourneyToAscendance(amount);
 
         _locked = 1;
     }
