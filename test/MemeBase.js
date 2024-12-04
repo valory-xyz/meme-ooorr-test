@@ -20,6 +20,7 @@ const main = async () => {
     const payload = "0x";
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
+    const nonce = 0;
 
     signers = await ethers.getSigners();
     deployer = signers[0];
@@ -44,18 +45,19 @@ const main = async () => {
 
     // Summon a new meme token
     await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
-    const memeToken = await memeBase.memeTokens(0);
-    console.log("New meme contract:", memeToken);
 
     // Heart a new token by other accounts
-    await memeBase.connect(signers[1]).heartThisMeme(memeToken, {value: defaultDeposit});
-    await memeBase.connect(signers[2]).heartThisMeme(memeToken, {value: defaultDeposit});
+    await memeBase.connect(signers[1]).heartThisMeme(nonce, {value: defaultDeposit});
+    await memeBase.connect(signers[2]).heartThisMeme( nonce, {value: defaultDeposit});
 
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
 
     // Unleash the meme token
-    await memeBase.unleashThisMeme(memeToken);
+    await memeBase.unleashThisMeme(nonce);
+
+    const memeToken = await memeBase.memeTokens(0);
+    console.log("New meme contract:", memeToken);
 
     // Deployer has already collected
     await expect(
@@ -87,6 +89,10 @@ const main = async () => {
 
     // Collect fees
     await memeBase.collectFees([memeToken]);
+
+    // Get meme token info
+    //const memeInfo = await memeBase.memeSummons(nonce);
+    //console.log(memeInfo);
 };
 
 main()
