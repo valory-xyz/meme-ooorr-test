@@ -15,7 +15,7 @@ const main = async () => {
     const name = "Meme";
     const symbol = "MM";
     const totalSupply = "1" + "0".repeat(24);
-    const defaultDeposit = parsedData.minNativeTokenValue;
+    const defaultDeposit = ethers.utils.parseEther("1500");
     const defaultHash = "0x" + "5".repeat(64);
     const payload = "0x";
     const oneDay = 86400;
@@ -23,6 +23,19 @@ const main = async () => {
 
     signers = await ethers.getSigners();
     deployer = signers[0];
+
+    console.log("Getting launch campaign data");
+    const campaignFile = "scripts/deployment/memebase_campaign.json";
+    dataFromJSON = fs.readFileSync(campaignFile, "utf8");
+    const campaignData = JSON.parse(dataFromJSON);
+    console.log("Number of entries:", campaignData.length);
+    
+    const accounts = new Array();
+    const amounts = new Array();
+    for (let i = 0; i < campaignData.length; i++) {
+        accounts.push(campaignData[i]["hearter"]);
+        amounts.push(campaignData[i]["amount"].toString());
+    }
 
     // BuyBackBurner implementation and proxy
     const BuyBackBurner = await ethers.getContractFactory("BuyBackBurner");
@@ -39,12 +52,18 @@ const main = async () => {
 
     const MemeBase = await ethers.getContractFactory("MemeBase");
     const memeBase = await MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
-        parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue, [], []);
+        parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue,
+        accounts, amounts);
     await memeBase.deployed();
+
+    // Get campaign token
+    const campaignToken = await memeBase.memeTokens(0);
+    console.log("Campaign meme contract:", campaignToken);
 
     // Summon a new meme token
     await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
-    const memeToken = await memeBase.memeTokens(0);
+    // Get meme token address
+    const memeToken = await memeBase.memeTokens(1);
     console.log("New meme contract:", memeToken);
 
     // Heart a new token by other accounts
@@ -56,6 +75,7 @@ const main = async () => {
 
     // Unleash the meme token
     await memeBase.unleashThisMeme(memeToken);
+    return;
 
     // Deployer has already collected
     await expect(
@@ -81,12 +101,13 @@ const main = async () => {
 
     // Swap to OLAS
     const olasAmount = await memeBase.scheduledForAscendance();
+    // First 127.5 ETH are collected towards campaign
     if (olasAmount.gt(0)) {
         await memeBase.scheduleForAscendance();
     }
 
     // Collect fees
-    await memeBase.collectFees([memeToken]);
+    await memeBase.collectFees([campaignToken, memeToken]);
 };
 
 main()
