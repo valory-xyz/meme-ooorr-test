@@ -37,14 +37,15 @@ contract MemeBase is MemeFactory {
     ) MemeFactory(_olas, _nativeToken, _uniV3PositionManager, _buyBackBurner, _minNativeTokenValue) {
         if (accounts.length > 0) {
             launchCampaignNonce = _nonce;
-            _launchCampaignSetup(accounts, amounts, launchCampaignNonce);
+            _launchCampaignSetup(accounts, amounts);
+            _nonce = launchCampaignNonce + 1;
         }
     }
 
     /// @dev Launch campaign initialization function.
     /// @param accounts Original accounts.
     /// @param amounts Corresponding original amounts (without subtraction for burn).
-    function _launchCampaignSetup(address[] memory accounts, uint256[] memory amounts, uint256 localNonce) private {
+    function _launchCampaignSetup(address[] memory accounts, uint256[] memory amounts) private {
         require(accounts.length == amounts.length);
 
         // Initiate meme token map values
@@ -54,9 +55,6 @@ contract MemeBase is MemeFactory {
 
         // To match original summon events (purposefully placed here to match order of original events)
         emit Summoned(accounts[0], launchCampaignNonce, amounts[0]);
-
-        // Update nonce
-        _nonce = localNonce + 1;
 
         // Record all the accounts and amounts
         uint256 totalAmount;

@@ -97,8 +97,8 @@ abstract contract MemeFactory {
     uint256 public constant OLAS_BURN_PERCENTAGE = 10;
     // Percentage of initial supply for liquidity pool (50%)
     uint256 public constant LP_PERCENTAGE = 50;
-    // Max allowed price deviation for TWAP pool values (100 = 1%)
-    uint256 public constant MAX_ALLOWED_DEVIATION = 100;
+    // Max allowed price deviation for TWAP pool values (100 = 1%) in 1e18 format
+    uint256 public constant MAX_ALLOWED_DEVIATION = 1e16;
     // Seconds ago to look back for TWAP pool values
     uint32 public constant SECONDS_AGO = 1800;
     // Uniswap V3 fee tier of 1%
