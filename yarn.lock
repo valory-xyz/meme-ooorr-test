@@ -669,7 +669,7 @@
   resolved "https://registry.yarnpkg.com/@nomicfoundation/edr-win32-x64-msvc/-/edr-win32-x64-msvc-0.6.5.tgz#90d3ac2a6a8a687522bda5ff2e92dd97e68126ea"
   integrity sha512-B9QD/4DSSCFtWicO8A3BrsnitO1FPv7axB62wq5Q+qeJ50yJlTmyeGY3cw62gWItdvy2mh3fRM6L1LpnHiB77A==
 
-"@nomicfoundation/edr@^0.6.4":
+"@nomicfoundation/edr@^0.6.5":
   version "0.6.5"
   resolved "https://registry.yarnpkg.com/@nomicfoundation/edr/-/edr-0.6.5.tgz#b3b1ebcdd0148cfe67cca128e7ebe8092e200359"
   integrity sha512-tAqMslLP+/2b2sZP4qe9AuGxG3OkQ5gGgHE4isUuq6dUVjwCRPFhAOhpdFl+OjY5P3yEv3hmq9HjUGRa2VNjng==
@@ -803,11 +803,6 @@
     semver "^6.3.0"
     table "^6.8.0"
     undici "^5.14.0"
-
-"@openzeppelin/contracts@4.6.0":
-  version "4.6.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.6.0.tgz#c91cf64bc27f573836dba4122758b4743418c1b3"
-  integrity sha512-8vi4d50NNya/bQqCmaVzvHNmwHvS0OBKb7HNtuNwEE3scXWrP31fKQoGxNMT+KbzmrNZzatE3QK5p2gFONI/hg==
 
 "@scure/base@~1.1.0", "@scure/base@~1.1.6":
   version "1.1.9"
@@ -2626,13 +2621,13 @@ hardhat-tracer@^2.6.0:
     ethers "^5.6.1"
 
 hardhat@^2.22.14:
-  version "2.22.16"
-  resolved "https://registry.yarnpkg.com/hardhat/-/hardhat-2.22.16.tgz#6cf3413f63b14770f863f35452da891ac2bd50cb"
-  integrity sha512-d52yQZ09u0roL6GlgJSvtknsBtIuj9JrJ/U8VMzr/wue+gO5v2tQayvOX6llerlR57Zw2EOTQjLAt6RpHvjwHA==
+  version "2.22.17"
+  resolved "https://registry.yarnpkg.com/hardhat/-/hardhat-2.22.17.tgz#96036bbe6bad8eb6a6b65c54dc5fbc1324541612"
+  integrity sha512-tDlI475ccz4d/dajnADUTRc1OJ3H8fpP9sWhXhBPpYsQOg8JHq5xrDimo53UhWPl7KJmAeDCm1bFG74xvpGRpg==
   dependencies:
     "@ethersproject/abi" "^5.1.2"
     "@metamask/eth-sig-util" "^4.0.0"
-    "@nomicfoundation/edr" "^0.6.4"
+    "@nomicfoundation/edr" "^0.6.5"
     "@nomicfoundation/ethereumjs-common" "4.0.4"
     "@nomicfoundation/ethereumjs-tx" "5.0.4"
     "@nomicfoundation/ethereumjs-util" "9.0.4"
@@ -4154,9 +4149,9 @@ sync-rpc@^1.2.1:
     get-port "^3.1.0"
 
 table@^6.8.0, table@^6.8.1:
-  version "6.8.2"
-  resolved "https://registry.yarnpkg.com/table/-/table-6.8.2.tgz#c5504ccf201213fa227248bdc8c5569716ac6c58"
-  integrity sha512-w2sfv80nrAh2VCbqR5AK27wswXhqcck2AhfnNW76beQXskGZ1V12GwS//yYVa3d3fcvAip2OUnbDAjW2k3v9fA==
+  version "6.9.0"
+  resolved "https://registry.yarnpkg.com/table/-/table-6.9.0.tgz#50040afa6264141c7566b3b81d4d82c47a8668f5"
+  integrity sha512-9kY+CygyYM6j02t5YFHbNz2FN5QmYGv9zAjVp4lCDjlCw7amdckXlEt/bjMhUIfj4ThGRE4gCUH5+yGnNuPo5A==
   dependencies:
     ajv "^8.0.1"
     lodash.truncate "^4.4.2"
