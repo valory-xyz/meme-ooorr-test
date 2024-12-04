@@ -56,7 +56,7 @@ interface IERC20 {
 abstract contract MemeFactory {
     event OLASJourneyToAscendance(uint256 amount);
     event Summoned(address indexed summoner, uint256 indexed memeNonce, uint256 nativeTokenContributed);
-    event Hearted(address indexed summoner, uint256 indexed memeNonce, uint256 amount);
+    event Hearted(address indexed hearter, uint256 indexed memeNonce, uint256 amount);
     event Unleashed(address indexed unleasher, address indexed memeToken, uint256 indexed lpTokenId,
         uint256 liquidity, uint256  nativeAmountForOLASBurn);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
