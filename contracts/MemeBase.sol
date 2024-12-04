@@ -47,8 +47,6 @@ contract MemeBase is MemeFactory {
     function _launchCampaignSetup(address[] memory accounts, uint256[] memory amounts, uint256 localNonce) private {
         require(accounts.length == amounts.length);
 
-        localNonce = _nonce;
-
         // Initiate meme token map values
         // summonTime is set to zero such that no one is able to heart this token
         memeSummons[launchCampaignNonce] = MemeSummon("Agent Token II", "AGNT II", 1_000_000_000 ether,
