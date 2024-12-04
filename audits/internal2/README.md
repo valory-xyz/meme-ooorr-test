@@ -172,3 +172,7 @@ function safeCollect(
     );
 }
 ```
+### Low issue: Oracle not finished?
+```
+Unclear about oracles. They simply exist as separate contracts. Needed proxy pattern for oracle?
+```
