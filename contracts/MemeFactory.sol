@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {FixedPointMathLib} from "../lib/solmate/src/utils/FixedPointMathLib.sol";
 import {Meme} from "./Meme.sol";
+import {TickMath} from "./libraries/TickMath.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 
 // ERC20 interface
@@ -201,11 +202,72 @@ abstract contract MemeFactory {
         (positionId, liquidity, , ) = IUniswapV3(uniV3PositionManager).mint(params);
     }
 
+    function _getTwapFromOracle(
+        address factory,
+        address token0,
+        address token1,
+        uint32 secondsAgo
+    ) internal view returns (uint256 priceX96) {
+        // Get the address of the pool
+        address pool = IUniswapV3(factory).getPool(token0, token1, FEE_TIER);
+        require(pool != address(0), "Pool does not exist");
+
+        // Query the pool for the current and historical tick
+        uint32[] memory secondsAgos = new uint32[](2);
+        // Start of the period
+        secondsAgos[0] = secondsAgo;
+
+        // Fetch the tick cumulative values from the pool
+        (int56[] memory tickCumulatives, ) = IUniswapV3(pool).observe(secondsAgos);
+
+        // Calculate the average tick over the time period
+        int56 tickCumulativeDelta = tickCumulatives[1] - tickCumulatives[0];
+        int24 averageTick = int24(tickCumulativeDelta / int56(int32(secondsAgo)));
+
+        // Convert the average tick to sqrtPriceX96
+        uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(averageTick);
+
+        // Calculate the price using the sqrtPriceX96
+        uint256 price = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
+
+        // Return the price in X96 format
+        return price;
+    }
+
+    function _checkPoolPrices(address memeToken, bool isNativeFirst) internal view {
+        // Get factory address
+        address factory = IUniswapV3(uniV3PositionManager).factory();
+
+        (address token0, address token1) = isNativeFirst ? (nativeToken, memeToken) : (memeToken, nativeToken);
+
+        // Verify pool reserves before proceeding
+        address pool = IUniswapV3(factory).getPool(token0, token1, FEE_TIER);
+        require(pool != address(0), "Pool does not exist");
+
+        // Get current pool reserves
+        (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3(pool).slot0();
+
+        // Check TWAP or historical data
+        // 30-minute TWAP
+        uint256 twapPrice = _getTwapFromOracle(factory, token0, token1, 1800);
+        uint256 instantPrice = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
+
+        uint256 deviation = (instantPrice > twapPrice) ?
+            ((instantPrice - twapPrice) * 1e18) / twapPrice :
+            ((twapPrice - instantPrice) * 1e18) / twapPrice;
+
+        // TODO How to calculate it?
+        uint256 maxAllowedDeviation = 10;
+        require(deviation <= maxAllowedDeviation, "Price deviation too high");
+    }
+
     /// @dev Collects fees from LP position, burns the meme token part and schedules for ascendance the native token part.
     /// @param memeToken Meme token address.
     /// @param positionId LP position ID.
     /// @param isNativeFirst Order of a native token in the pool.
     function _collectFees(address memeToken, uint256 positionId, bool isNativeFirst) internal {
+        _checkPoolPrices(memeToken, isNativeFirst);
+
         IUniswapV3.CollectParams memory params = IUniswapV3.CollectParams({
             tokenId: positionId,
             recipient: address(this),
@@ -214,8 +276,7 @@ abstract contract MemeFactory {
         });
 
         // Get the corresponding tokens
-        (uint256 amount0, uint256 amount1) =
-            IUniswapV3(uniV3PositionManager).collect(params);
+        (uint256 amount0, uint256 amount1) = IUniswapV3(uniV3PositionManager).collect(params);
 
         uint256 nativeAmountForOLASBurn;
         uint256 memeAmountToBurn;
@@ -513,8 +574,4 @@ abstract contract MemeFactory {
 
         _locked = 1;
     }
-
-    // TODO Do we need this function as we all do via payable functions?
-    /// @dev Allows the contract to receive native token
-    receive() external payable {}
 }

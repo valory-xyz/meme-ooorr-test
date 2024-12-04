@@ -20,7 +20,9 @@ All false positive.
     receive() external payable {}
     It is unclear why the contract accepts arbitrary ETH to address of contract. Purposes? Contract locking ether found.
 ```
-### function _collectFees(address memeToken, uint256 positionId, bool isNativeFirst) internal possible manipulated if pool exists (critical)
+[x] Fixed
+
+### function __createUniswapPair() internal possible manipulated if pool exists (critical)
 Any interactions with the pool (v3 too) can be attacked using the sandwich method.
 ```
 If pool exist, then
@@ -30,6 +32,7 @@ There is no mechanism to validate the input price (amount1 / amount0) against a 
 Without this validation, attackers could manipulate the price temporarily using flashloans and then initialize the pool with a skewed price.
 Thanks, ChatGPT 4o mini to loang discussion.
 ```
+
 or code:
 ```
 function _createUniswapPair(
@@ -113,6 +116,7 @@ function getTwapFromOracle(
     return price;
 }
 ```
+
 ### Same for function _collectFees(address memeToken, uint256 positionId, bool isNativeFirst) internal (critical)
 ```
 Yes, the collect function in Uniswap V3, which retrieves the tokens owed to the position based on the accrued fees, can potentially be affected by external factors like a flashloan if the pool's reserves have been manipulated. However, this depends on how and when the function is called. 
@@ -172,7 +176,9 @@ function safeCollect(
     );
 }
 ```
+
 ### Low issue: Oracle not finished?
 ```
 Unclear about oracles. They simply exist as separate contracts. Needed proxy pattern for oracle?
 ```
+[x] Noted for later versions

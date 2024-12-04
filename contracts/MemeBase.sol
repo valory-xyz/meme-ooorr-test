@@ -60,7 +60,7 @@ contract MemeBase is MemeFactory {
         require(totalAmount == CONTRIBUTION_AGNT, "Total amount must match original contribution amount");
         // Adjust amount for already collected burned tokens
         uint256 adjustedAmount = (totalAmount * 9) / 10;
-        require(adjustedAmount == LIQUIDITY_AGNT, "Total amount adjusted for burn allocation must match liqudity amount");
+        require(adjustedAmount == LIQUIDITY_AGNT, "Total amount adjusted for burn allocation must match liquidity amount");
 
         // summonTime is set to zero such that no one is able to heart this token
         memeSummons[launchCampaignTokenAddress] = MemeSummon(CONTRIBUTION_AGNT, 0, 0, 0, 0, false);
@@ -70,7 +70,7 @@ contract MemeBase is MemeFactory {
         numTokens = memeTokens.length;
     }
 
-    /// @dev AGNT token laugn campaign unleash.
+    /// @dev AGNT token launch campaign unleash.
     function _MAGA() private { 
         Meme memeTokenInstance = Meme(launchCampaignTokenAddress);
         uint256 totalSupply = memeTokenInstance.totalSupply();
@@ -105,7 +105,7 @@ contract MemeBase is MemeFactory {
 
     function _launchCampaign(uint256 nativeAmountForOLASBurn) internal override returns (uint256 adjustedNativeAmountForAscendance) {
         // Launch campaign logic:
-        // Make Agent.Fi Great Again (MAGA)
+        // Make Agents.Fun Great Again (MAGA)
         if (launchCampaignBalance < LIQUIDITY_AGNT) {
             // Get the difference of the required liquidity amount and launch campaign balance
             uint256 diff = LIQUIDITY_AGNT - launchCampaignBalance;
