@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeiempli5guocheudowojeqlh335zoe4lpuxas6f3cecxbcwhx2ia6q
+agent: dvilela/memeooorr:0.1.0:bafybeiddclqnk6qfrtkmv7pqivgsut7nsxqybebyzkdbuhc3hugtmtkkne
 number_of_agents: 1
 deployment:
   agent:
@@ -100,6 +100,11 @@ config:
       chain_id: ${BASE_LEDGER_CHAIN_ID:int:8453}
       poa_chain: ${BASE_LEDGER_IS_POA_CHAIN:bool:false}
       default_gas_price_strategy: ${BASE_LEDGER_PRICING:str:eip1559}
+    celo:
+      address: ${CELO_LEDGER_RPC:str:http://host.docker.internal:8545}
+      chain_id: ${CELO_LEDGER_CHAIN_ID:int:42220}
+      poa_chain: ${CELO_LEDGER_IS_POA_CHAIN:bool:false}
+      default_gas_price_strategy: ${CELO_LEDGER_PRICING:str:eip1559}
 ---
 public_id: valory/p2p_libp2p_client:0.1.0
 type: connection

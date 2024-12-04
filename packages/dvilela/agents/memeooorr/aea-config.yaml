@@ -96,8 +96,13 @@ config:
   ledger_apis:
     base:
       address: ${str:http://localhost:8545}
-      chain_id: ${int:31337}
+      chain_id: ${int:8453}
       poa_chain: ${bool:false}
+      default_gas_price_strategy: ${str:eip1559}
+    celo:
+      address: ${str:http://localhost:8545}
+      chain_id: ${int:42220}
+      poa_chain: ${bool:true}
       default_gas_price_strategy: ${str:eip1559}
 ---
 public_id: valory/p2p_libp2p_client:0.1.0
