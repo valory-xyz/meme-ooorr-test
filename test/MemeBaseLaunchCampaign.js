@@ -62,14 +62,14 @@ const main = async () => {
     await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
 
     // Heart a new token by other accounts
-    await memeBase.connect(signers[1]).heartThisMeme(name, symbol, totalSupply, nonce, {value: defaultDeposit});
-    await memeBase.connect(signers[2]).heartThisMeme(name, symbol, totalSupply, nonce, {value: defaultDeposit});
+    await memeBase.connect(signers[1]).heartThisMeme(nonce, {value: defaultDeposit});
+    await memeBase.connect(signers[2]).heartThisMeme(nonce, {value: defaultDeposit});
 
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
 
     // Unleash the meme token
-    await memeBase.unleashThisMeme(name, symbol, totalSupply, nonce);
+    await memeBase.unleashThisMeme(nonce);
 
     // Get campaign token
     const campaignToken = await memeBase.memeTokens(0);
