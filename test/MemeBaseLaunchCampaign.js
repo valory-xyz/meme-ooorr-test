@@ -75,7 +75,6 @@ const main = async () => {
 
     // Unleash the meme token
     await memeBase.unleashThisMeme(memeToken);
-    return;
 
     // Deployer has already collected
     await expect(

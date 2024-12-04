@@ -79,7 +79,7 @@ abstract contract MemeFactory {
     }
 
     // Version number
-    string public constant VERSION = "0.1.1";
+    string public constant VERSION = "0.2.0";
     // Total supply minimum value
     uint256 public constant MIN_TOTAL_SUPPLY = 1_000_000 ether;
     // Unleash delay after token summoning

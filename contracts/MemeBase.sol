@@ -77,9 +77,6 @@ contract MemeBase is MemeFactory {
         uint256 memeAmountForLP = (totalSupply * LP_PERCENTAGE) / 100;
         uint256 heartersAmount = totalSupply - memeAmountForLP;
 
-        // Wrap native token to its ERC-20 version, where applicable
-        _wrap(LIQUIDITY_AGNT);
-
         // Create Uniswap pair with LP allocation
         (uint256 positionId, uint256 liquidity, bool isNativeFirst) =
             _createUniswapPair(launchCampaignTokenAddress, LIQUIDITY_AGNT, memeAmountForLP);
