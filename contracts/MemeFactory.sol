@@ -56,7 +56,7 @@ interface IERC20 {
 abstract contract MemeFactory {
     event OLASJourneyToAscendance(uint256 amount);
     event Summoned(address indexed summoner, uint256 indexed memeNonce, uint256 nativeTokenContributed);
-    event Hearted(address indexed summoner, uint256 indexed memeNonce, uint256 amount);
+    event Hearted(address indexed hearter, uint256 indexed memeNonce, uint256 amount);
     event Unleashed(address indexed unleasher, address indexed memeToken, uint256 indexed lpTokenId,
         uint256 liquidity, uint256  nativeAmountForOLASBurn);
     event Collected(address indexed hearter, address indexed memeToken, uint256 allocation);
@@ -205,7 +205,15 @@ abstract contract MemeFactory {
             deadline: block.timestamp
         });
 
-        (positionId, liquidity, , ) = IUniswapV3(uniV3PositionManager).mint(params);
+        (positionId, liquidity, amount0, amount1) = IUniswapV3(uniV3PositionManager).mint(params);
+
+        // Schedule for ascendance leftovers from native token
+        // Note that meme token leftovers will be purged later
+        uint256 nativeLeftovers = isNativeFirst ? (nativeTokenAmount - amount0) : (nativeTokenAmount - amount1);
+        if (nativeLeftovers > 0) {
+            nativeLeftovers = _launchCampaign(nativeLeftovers);
+            scheduledForAscendance += nativeLeftovers;
+        }
     }
 
     function _getTwapFromOracle(address pool) internal view returns (uint256 priceX96) {
@@ -574,6 +582,8 @@ abstract contract MemeFactory {
 
         uint256 amount = scheduledForAscendance;
         require(amount > 0, "Nothing to send");
+
+        scheduledForAscendance = 0;
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
