@@ -21,6 +21,10 @@ const main = async () => {
     const payload = "0x";
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
+    // Nonce 0 is reserved for the campaign token
+    const nonce = 1;
+    // Nonce 2 is spent when the 1st meme token is released
+    const nonce2 = 3;
 
     signers = await ethers.getSigners();
     deployer = signers[0];
@@ -57,30 +61,18 @@ const main = async () => {
         accounts, amounts);
     await memeBase.deployed();
 
-    // Get campaign token
-    const campaignToken = await memeBase.memeTokens(0);
-    console.log("Campaign meme contract:", campaignToken);
-
-    const launchCampaignTokenAddress = await memeBase.launchCampaignTokenAddress();
-    expect(launchCampaignTokenAddress).to.equal(campaignToken);
-
-    //// First test unleashing of a meme that does not trigger MAGA
-
     // Summon a new meme token
     await memeBase.summonThisMeme(name, symbol, totalSupply, {value: smallDeposit});
-    // Get meme token address
-    const memeToken = await memeBase.memeTokens(1);
-    console.log("New meme contract one:", memeToken);
 
     // Heart a new token by other accounts
-    await memeBase.connect(signers[1]).heartThisMeme(memeToken, {value: smallDeposit});
-    await memeBase.connect(signers[2]).heartThisMeme(memeToken, {value: smallDeposit});
+    await memeBase.connect(signers[1]).heartThisMeme(nonce, {value: smallDeposit});
+    await memeBase.connect(signers[2]).heartThisMeme(nonce, {value: smallDeposit});
 
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
 
     // Unleash the meme token
-    await memeBase.unleashThisMeme(memeToken);
+    await memeBase.unleashThisMeme(nonce);
 
     let scheduledForAscendance = await memeBase.scheduledForAscendance();
     expect(scheduledForAscendance).to.equal(0);
@@ -91,6 +83,10 @@ const main = async () => {
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
 
+    // Get first token address
+    const memeToken = await memeBase.memeTokens(0);
+    console.log("Meme token contract:", memeToken);
+
     // Purge remaining allocation
     await memeBase.purgeThisMeme(memeToken);
 
@@ -98,19 +94,16 @@ const main = async () => {
 
     // Summon a new meme token
     await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
-    // Get meme token address
-    const memeTokenTwo = await memeBase.memeTokens(2);
-    console.log("New meme contract two:", memeTokenTwo);
 
     // Heart a new token by other accounts
-    await memeBase.connect(signers[1]).heartThisMeme(memeTokenTwo, {value: defaultDeposit});
-    await memeBase.connect(signers[2]).heartThisMeme(memeTokenTwo, {value: defaultDeposit});
+    await memeBase.connect(signers[1]).heartThisMeme(nonce2, {value: defaultDeposit});
+    await memeBase.connect(signers[2]).heartThisMeme(nonce2, {value: defaultDeposit});
 
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
 
     // Unleash the meme token
-    await memeBase.unleashThisMeme(memeTokenTwo);
+    await memeBase.unleashThisMeme(nonce2);
 
     const LIQUIDITY_AGNT = await memeBase.LIQUIDITY_AGNT();
     launchCampaignBalance = await memeBase.launchCampaignBalance();
@@ -121,6 +114,13 @@ const main = async () => {
         .add(ethers.BigNumber.from(defaultDeposit).mul(3).div(10))
         .sub(ethers.BigNumber.from(launchCampaignBalance));
     expect(scheduledForAscendance).to.equal(expectedScheduledForAscendance);
+
+    // Get campaign token
+    const campaignToken = await memeBase.memeTokens(1);
+    console.log("Campaign meme contract:", campaignToken);
+    // Get meme token
+    const memeTokenTwo = await memeBase.memeTokens(2);
+    console.log("Meme token two contract:", memeToken);
 
     // Deployer has already collected
     await expect(
@@ -153,6 +153,10 @@ const main = async () => {
 
     // Collect fees
     await memeBase.collectFees([campaignToken, memeToken, memeTokenTwo]);
+
+    // Check the contract balance
+    const baseBalance = await ethers.provider.getBalance(memeBase.address);
+    expect(baseBalance).to.equal(0);
 };
 
 main()

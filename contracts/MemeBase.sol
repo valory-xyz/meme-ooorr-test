@@ -17,6 +17,9 @@ contract MemeBase is MemeFactory {
     // Liquidity amount: collected amount - 10% for burn = 127412857890000000000
     uint256 public constant LIQUIDITY_AGNT = 127412857890000000000;
 
+    // Launch campaign nonce
+    uint256 public immutable launchCampaignNonce;
+
     // Launch campaign token address
     address public launchCampaignTokenAddress;
     // Launch campaign balance
@@ -33,7 +36,9 @@ contract MemeBase is MemeFactory {
         uint256[] memory amounts
     ) MemeFactory(_olas, _nativeToken, _uniV3PositionManager, _buyBackBurner, _minNativeTokenValue) {
         if (accounts.length > 0) {
+            launchCampaignNonce = _nonce;
             _launchCampaignSetup(accounts, amounts);
+            _nonce = launchCampaignNonce + 1;
         }
     }
 
@@ -43,45 +48,54 @@ contract MemeBase is MemeFactory {
     function _launchCampaignSetup(address[] memory accounts, uint256[] memory amounts) private {
         require(accounts.length == amounts.length);
 
-        // Create a launch campaign token
-        launchCampaignTokenAddress = address(new Meme("Agent Token II", "AGNT II", DECIMALS, 1_000_000_000 ether));
+        // Initiate meme token map values
+        // summonTime is set to zero such that no one is able to heart this token
+        memeSummons[launchCampaignNonce] = MemeSummon("Agent Token II", "AGNT II", 1_000_000_000 ether,
+            CONTRIBUTION_AGNT, 0, 0, 0, 0, false);
 
         // To match original summon events (purposefully placed here to match order of original events)
-        emit Summoned(accounts[0], launchCampaignTokenAddress, amounts[0]);
+        emit Summoned(accounts[0], launchCampaignNonce, amounts[0]);
 
         // Record all the accounts and amounts
         uint256 totalAmount;
         for (uint256 i = 0; i < accounts.length; ++i) {
             totalAmount += amounts[i];
-            memeHearters[launchCampaignTokenAddress][accounts[i]] = amounts[i];
+            memeHearters[launchCampaignNonce][accounts[i]] = amounts[i];
             // to match original hearter events
-            emit Hearted(accounts[i], launchCampaignTokenAddress, amounts[i]);
+            emit Hearted(accounts[i], launchCampaignNonce, amounts[i]);
         }
         require(totalAmount == CONTRIBUTION_AGNT, "Total amount must match original contribution amount");
         // Adjust amount for already collected burned tokens
         uint256 adjustedAmount = (totalAmount * 9) / 10;
-        require(adjustedAmount == LIQUIDITY_AGNT, "Total amount adjusted for burn allocation must match liqudity amount");
-
-        // summonTime is set to zero such that no one is able to heart this token
-        memeSummons[launchCampaignTokenAddress] = MemeSummon(CONTRIBUTION_AGNT, 0, 0, 0, 0, false);
-
-        // Push token into the global list of tokens
-        memeTokens.push(launchCampaignTokenAddress);
-        numTokens = memeTokens.length;
+        require(adjustedAmount == LIQUIDITY_AGNT, "Total amount adjusted for burn allocation must match liquidity amount");
     }
 
-    /// @dev AGNT token laugn campaign unleash.
-    function _MAGA() private { 
-        Meme memeTokenInstance = Meme(launchCampaignTokenAddress);
-        uint256 totalSupply = memeTokenInstance.totalSupply();
-        uint256 memeAmountForLP = (totalSupply * LP_PERCENTAGE) / 100;
-        uint256 heartersAmount = totalSupply - memeAmountForLP;
+    /// @dev AGNT token launch campaign unleash.
+    function _MAGA() private {
+        // Get meme summon info
+        MemeSummon storage memeSummon = memeSummons[launchCampaignNonce];
+
+        // Create a launch campaign token
+        address memeToken = _createThisMeme(memeSummon.name, memeSummon.symbol, memeSummon.totalSupply);
+
+        uint256 memeAmountForLP = (memeSummon.totalSupply * LP_PERCENTAGE) / 100;
+        uint256 heartersAmount = memeSummon.totalSupply - memeAmountForLP;
+
+        // Check for non-zero token address
+        require(memeToken != address(0), "Token creation failed");
+
+        launchCampaignTokenAddress = memeToken;
+
+        // Record meme token address
+        memeTokenNonces[launchCampaignTokenAddress] = launchCampaignNonce;
 
         // Create Uniswap pair with LP allocation
         (uint256 positionId, uint256 liquidity, bool isNativeFirst) =
             _createUniswapPair(launchCampaignTokenAddress, LIQUIDITY_AGNT, memeAmountForLP);
 
-        MemeSummon storage memeSummon = memeSummons[launchCampaignTokenAddress];
+        // Push token into the global list of tokens
+        memeTokens.push(launchCampaignTokenAddress);
+        numTokens = memeTokens.length;
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
@@ -95,9 +109,10 @@ contract MemeBase is MemeFactory {
         }
 
         // Allocate to the token hearter unleashing the meme
-        uint256 hearterContribution = memeHearters[launchCampaignTokenAddress][msg.sender];
+        uint256 hearterContribution = memeHearters[launchCampaignNonce][msg.sender];
         if (hearterContribution > 0) {
-            _collect(launchCampaignTokenAddress, heartersAmount, hearterContribution, CONTRIBUTION_AGNT);
+            _collectMemeToken(launchCampaignTokenAddress, launchCampaignNonce, heartersAmount, hearterContribution,
+                CONTRIBUTION_AGNT);
         }
 
         emit Unleashed(msg.sender, launchCampaignTokenAddress, positionId, liquidity, 0);
