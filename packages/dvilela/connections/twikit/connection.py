@@ -267,6 +267,9 @@ class TwikitConnection(BaseSyncConnection):
                 password=self.password,
             )
 
+        if not self.cookies_path.parent.exists():
+            self.cookies_path.parent.mkdir(parents=True)
+
         self.client.save_cookies(self.cookies_path)
 
     async def search(
