@@ -10,21 +10,18 @@ const main = async () => {
     let dataFromJSON = fs.readFileSync(globalsFile, "utf8");
     const parsedData = JSON.parse(dataFromJSON);
 
-    const AddressZero = ethers.constants.AddressZero;
-    const HashZero = ethers.constants.HashZero;
     const name = "Meme";
     const symbol = "MM";
     const totalSupply = "1" + "0".repeat(24);
     const smallDeposit = ethers.utils.parseEther("1");
     const defaultDeposit = ethers.utils.parseEther("1500");
-    const defaultHash = "0x" + "5".repeat(64);
-    const payload = "0x";
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
     // Nonce 0 is reserved for the campaign token
-    const nonce = 1;
-    // Nonce 2 is spent when the 1st meme token is released
-    const nonce2 = 3;
+    // Nonce 1 is the first new meme token
+    const nonce0 = 0;
+    const nonce1 = 1;
+    const nonce2 = 2;
 
     signers = await ethers.getSigners();
     deployer = signers[0];
@@ -65,13 +62,68 @@ const main = async () => {
 
     let baseBalance = await weth.balanceOf(memeBase.address);
     expect(baseBalance).to.equal(0);
+ 
+    // Summon a new meme token - negative cases
+    const minNativeTokenValue = await memeBase.minNativeTokenValue();
+    const MIN_TOTAL_SUPPLY = await memeBase.MIN_TOTAL_SUPPLY();
+    const uint128MaxPlusOne = BigInt(2) ** BigInt(128);
+    await expect(
+        memeBase.summonThisMeme(name, symbol, totalSupply, {value: minNativeTokenValue.sub(1)})
+    ).to.be.revertedWith("Minimum native token value is required to summon");
+    await expect(
+        memeBase.summonThisMeme(name, symbol, MIN_TOTAL_SUPPLY.sub(1), {value: minNativeTokenValue})
+    ).to.be.revertedWith("Minimum total supply is not met");
+    await expect(
+        memeBase.summonThisMeme(name, symbol, uint128MaxPlusOne, {value: minNativeTokenValue})
+    ).to.be.revertedWith("Maximum total supply overflow");
 
-    // Summon a new meme token
-    await memeBase.summonThisMeme(name, symbol, totalSupply, {value: smallDeposit});
+    // Summon a new meme token - positive cases
+    await expect(memeBase.summonThisMeme(name, symbol, totalSupply, {value: smallDeposit}))
+        .to.emit(memeBase, "Summoned")
+        .withArgs(signers[0].address, nonce1, smallDeposit)
+        .and.to.emit(memeBase, "Hearted")
+        .withArgs(signers[0].address, nonce1, smallDeposit);
+    let memeSummon = await memeBase.memeSummons(nonce1);
+    expect(memeSummon.name).to.equal(name);
+    expect(memeSummon.symbol).to.equal(symbol);
+    expect(memeSummon.totalSupply).to.equal(totalSupply);
+    expect(memeSummon.nativeTokenContributed).to.equal(smallDeposit);
+    const memeHearterValue = await memeBase.memeHearters(nonce1, signers[0].address);
+    expect(memeHearterValue).to.equal(smallDeposit);
+    let accountActivity = await memeBase.mapAccountActivities(signers[0].address);
+    expect(accountActivity).to.equal(1);
 
-    // Heart a new token by other accounts
-    await memeBase.connect(signers[1]).heartThisMeme(nonce, {value: smallDeposit});
-    await memeBase.connect(signers[2]).heartThisMeme(nonce, {value: smallDeposit});
+    // Heart a new token by other accounts - negative case
+    await expect(
+        memeBase.connect(signers[1]).heartThisMeme(nonce1, {value: 0})
+    ).to.be.revertedWith("Native token amount must be greater than zero");
+    await expect(
+        memeBase.connect(signers[1]).heartThisMeme(nonce2, {value: smallDeposit})
+    ).to.be.revertedWith("Meme not yet summoned");
+    // Check that launch campaign meme cannot be hearted (as a pseudo test)
+    await expect(
+        memeBase.connect(signers[1]).heartThisMeme(nonce0, {value: smallDeposit})
+    ).to.be.revertedWith("Meme already unleashed");
+
+    // Heart a new token by other accounts - positive cases
+    await expect(memeBase.connect(signers[1]).heartThisMeme(nonce1, {value: smallDeposit}))
+        .to.emit(memeBase, "Hearted")
+        .withArgs(signers[1].address, nonce1, smallDeposit);
+    memeSummon = await memeBase.memeSummons(nonce1);
+    expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(2));
+    accountActivity = await memeBase.mapAccountActivities(signers[1].address);
+    expect(accountActivity).to.equal(1);
+    await expect(memeBase.connect(signers[2]).heartThisMeme(nonce1, {value: smallDeposit}))
+        .to.emit(memeBase, "Hearted")
+        .withArgs(signers[2].address, nonce1, smallDeposit);
+    memeSummon = await memeBase.memeSummons(nonce1);
+    expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(3));
+    accountActivity = await memeBase.mapAccountActivities(signers[2].address);
+    expect(accountActivity).to.equal(1);
+
+    await expect(
+        memeBase.unleashThisMeme(nonce1)
+    ).to.be.revertedWith("Cannot unleash yet");
 
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
@@ -80,8 +132,26 @@ const main = async () => {
     baseBalance = await ethers.provider.getBalance(memeBase.address);
     expect(baseBalance).to.equal(balanceNow);
 
-    // Unleash the meme token
-    await memeBase.unleashThisMeme(nonce);
+    // Unleash the meme token - positive and negative cases
+    await expect(
+        memeBase.unleashThisMeme(nonce2)
+    ).to.be.revertedWith("Meme not summoned");
+    await expect(await memeBase.unleashThisMeme(nonce1))
+        .to.emit(memeBase, "Unleashed")
+        // .withArgs(signers[0].address, null, null, null, 0)
+        .and.to.emit(memeBase, "Collected");
+        // .withArgs(signers[0].address, null, null);
+    await expect(
+        memeBase.unleashThisMeme(nonce1)
+    ).to.be.revertedWith("Meme already unleashed");
+
+    accountActivity = await memeBase.mapAccountActivities(signers[0].address);
+    expect(accountActivity).to.equal(2);
+    // Get first token address
+    const memeToken = await memeBase.memeTokens(0);
+    console.log("First new meme token contract:", memeToken);
+
+    expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(3));
 
     let scheduledForAscendance = await memeBase.scheduledForAscendance();
     expect(scheduledForAscendance).to.equal(0);
@@ -99,13 +169,12 @@ const main = async () => {
     expect(baseBalance).to.equal(0);
 
     // Increase time to for 24 hours+
+    await expect(
+        memeBase.purgeThisMeme(memeToken)
+    ).to.be.revertedWith("Purge only allowed from 24 hours after unleash");
     await helpers.time.increase(oneDay + 10);
 
-    // Get first token address
-    const memeToken = await memeBase.memeTokens(0);
-    console.log("Meme token contract:", memeToken);
-
-    // Purge remaining allocation
+    // Purge remaining allocation - positive and negative case
     await memeBase.purgeThisMeme(memeToken);
 
     let memeInstance = await ethers.getContractAt("Meme", memeToken);
@@ -114,6 +183,9 @@ const main = async () => {
     expect(baseBalance).to.equal(0);
 
     //// Second test unleashing of a meme that does trigger MAGA
+
+    // TOFIX; either get here and it passes, or we fail at Unleash above
+    console.log(">>>>>---------here");
 
     // Summon a new meme token
     await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
@@ -130,13 +202,13 @@ const main = async () => {
 
     const LIQUIDITY_AGNT = await memeBase.LIQUIDITY_AGNT();
     launchCampaignBalance = await memeBase.launchCampaignBalance();
-    expect(launchCampaignBalance).to.equal(LIQUIDITY_AGNT);
-
     scheduledForAscendance = await memeBase.scheduledForAscendance();
     const expectedScheduledForAscendance = ethers.BigNumber.from(smallDeposit).mul(3).div(10)
         .add(ethers.BigNumber.from(defaultDeposit).mul(3).div(10))
         .sub(ethers.BigNumber.from(launchCampaignBalance));
-    expect(scheduledForAscendance).to.gte(expectedScheduledForAscendance);
+    // this fails ever so often
+    expect(scheduledForAscendance).to.equal(expectedScheduledForAscendance);
+    expect(launchCampaignBalance).to.equal(LIQUIDITY_AGNT);
 
     // Get campaign token
     const campaignToken = await memeBase.memeTokens(1);
