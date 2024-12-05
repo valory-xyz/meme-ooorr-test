@@ -5,6 +5,7 @@ import {FixedPointMathLib} from "../lib/solmate/src/utils/FixedPointMathLib.sol"
 import {Meme} from "./Meme.sol";
 import {TickMath} from "./libraries/TickMath.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
+import "hardhat/console.sol";
 
 // ERC20 interface
 interface IERC20 {
@@ -125,8 +126,14 @@ abstract contract MemeFactory {
     uint256 public numTokens;
     // Native token (ERC-20) scheduled to be converted to OLAS for Ascendance
     uint256 public scheduledForAscendance;
+    // Total number of all native tokens collected
+    uint256 public totalNativeTokens;
+    // Total number of pooled native tokens
+    uint256 public totalPooledNativeTokens;
+    // Total number of ascended native tokens
+    uint256 public totalAscendedNativeTokens;
     // Nonce
-    uint256 internal _nonce;
+    uint256 internal _nonce = 1;
     // Reentrancy lock
     uint256 internal _locked = 1;
 
@@ -156,6 +163,17 @@ abstract contract MemeFactory {
         minNativeTokenValue = _minNativeTokenValue;
     }
 
+    function _sqrt(uint256 x) internal pure returns (uint256) {
+        if (x == 0) return 0;
+        uint256 z = (x + 1) / 2;
+        uint256 y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
+        return y;
+    }
+
     /// @dev Creates native token + meme token LP and adds liquidity.
     /// @param memeToken Meme token address.
     /// @param nativeTokenAmount Native token amount.
@@ -171,6 +189,9 @@ abstract contract MemeFactory {
         if (nativeToken < memeToken) {
             isNativeFirst = true;
         }
+        console.log("isNativeFirst:", isNativeFirst);
+        console.log("native address:", nativeToken);
+        console.log("meme address:", memeToken);
 
         // Ensure token order matches Uniswap convention
         (address token0, address token1, uint256 amount0, uint256 amount1) = isNativeFirst
@@ -178,10 +199,13 @@ abstract contract MemeFactory {
             : (memeToken, nativeToken, memeTokenAmount, nativeTokenAmount);
 
         // Calculate the price ratio (amount1 / amount0) scaled by 1e18 to avoid floating point issues
-        uint256 priceX96 = (amount1 * 1e18) / amount0;
+        uint256 priceX96 = isNativeFirst ? (amount1 * 1e18) / amount0 : (amount0 * 1e18) / amount1;
+        //uint256 priceX96 = amount1 > amount0 ? amount1 / amount0 : amount0 / amount1;
         // TOFIX? overflow?
         // Calculate the square root of the price ratio in X96 format
-        uint160 sqrtPriceX96 = uint160(FixedPointMathLib.sqrt(priceX96) * 2**48);
+        //uint160 sqrtPriceX96 = uint160(FixedPointMathLib.sqrt(priceX96) * 2**48);
+        uint160 sqrtPriceX96 = uint160(_sqrt(priceX96) * 2**48);
+        console.log("sqrtPriceX96", uint256(sqrtPriceX96));
 
         // Create a pool
         IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1,
@@ -206,7 +230,11 @@ abstract contract MemeFactory {
             deadline: block.timestamp
         });
 
-        (positionId, liquidity, , ) = IUniswapV3(uniV3PositionManager).mint(params);
+        (positionId, liquidity, amount0, amount1) = IUniswapV3(uniV3PositionManager).mint(params);
+        console.log("amount0", amount0);
+        console.log("amount1", amount1);
+
+        totalPooledNativeTokens += isNativeFirst ? amount0 : amount1;
     }
 
     function _getTwapFromOracle(address pool) internal view returns (uint256 priceX96) {
@@ -408,7 +436,8 @@ abstract contract MemeFactory {
         string memory symbol,
         uint256 totalSupply
     ) internal returns (address memeToken) {
-        bytes32 randomNonce = bytes32(uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, memeNonce))));
+        bytes32 randomNonce = keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender, memeNonce));
+        randomNonce = keccak256(abi.encodePacked(randomNonce));
         bytes memory payload = abi.encodePacked(type(Meme).creationCode, abi.encode(name, symbol, DECIMALS, totalSupply));
         // solhint-disable-next-line no-inline-assembly
         assembly {
@@ -442,6 +471,9 @@ abstract contract MemeFactory {
         // All funds ever contributed to a given meme are wrapped here.
         _wrap(totalNativeTokenCommitted);
 
+        // Increase total wrapped tokens
+        totalNativeTokens += totalNativeTokenCommitted;
+
         // Put aside native token to buy OLAS with the burn percentage of the total native token amount committed
         uint256 nativeAmountForOLASBurn = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
 
@@ -452,6 +484,9 @@ abstract contract MemeFactory {
 
         // Schedule native token amount for ascendance
         scheduledForAscendance += adjustedNativeAmountForAscendance;
+
+        // Update total amount of ascended native tokens
+        totalAscendedNativeTokens += adjustedNativeAmountForAscendance;
 
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         uint256 memeAmountForLP = (memeSummon.totalSupply * LP_PERCENTAGE) / 100;

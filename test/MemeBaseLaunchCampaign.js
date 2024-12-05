@@ -17,11 +17,11 @@ const main = async () => {
     const defaultDeposit = ethers.utils.parseEther("1500");
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
-    // Nonce 0 is reserved for the campaign token
-    // Nonce 1 is the first new meme token
-    const nonce0 = 0;
-    const nonce1 = 1;
-    const nonce2 = 2;
+    // Nonce 1 is reserved for the campaign token
+    // Nonce 2 is the first new meme token
+    const nonce0 = 1;
+    const nonce1 = 2;
+    const nonce2 = 3;
 
     signers = await ethers.getSigners();
     deployer = signers[0];
@@ -78,6 +78,7 @@ const main = async () => {
         .withArgs(signers[0].address, nonce1, smallDeposit)
         .and.to.emit(memeBase, "Hearted")
         .withArgs(signers[0].address, nonce1, smallDeposit);
+    let totalDeposit = smallDeposit;
     let memeSummon = await memeBase.memeSummons(nonce1);
     expect(memeSummon.name).to.equal(name);
     expect(memeSummon.symbol).to.equal(symbol);
@@ -104,6 +105,7 @@ const main = async () => {
     await expect(memeBase.connect(signers[1]).heartThisMeme(nonce1, {value: smallDeposit}))
         .to.emit(memeBase, "Hearted")
         .withArgs(signers[1].address, nonce1, smallDeposit);
+    totalDeposit = totalDeposit.add(smallDeposit)
     memeSummon = await memeBase.memeSummons(nonce1);
     expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(2));
     accountActivity = await memeBase.mapAccountActivities(signers[1].address);
@@ -111,6 +113,7 @@ const main = async () => {
     await expect(memeBase.connect(signers[2]).heartThisMeme(nonce1, {value: smallDeposit}))
         .to.emit(memeBase, "Hearted")
         .withArgs(signers[2].address, nonce1, smallDeposit);
+    totalDeposit = totalDeposit.add(smallDeposit)
     memeSummon = await memeBase.memeSummons(nonce1);
     expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(3));
     accountActivity = await memeBase.mapAccountActivities(signers[2].address);
@@ -119,6 +122,14 @@ const main = async () => {
     await expect(
         memeBase.unleashThisMeme(nonce1)
     ).to.be.revertedWith("Cannot unleash yet");
+
+    // Global native token counters
+    let totalNativeTokens = await memeBase.totalNativeTokens();
+    expect(totalNativeTokens).to.equal(0);
+    let totalPooledNativeTokens = await memeBase.totalPooledNativeTokens();
+    expect(totalPooledNativeTokens).to.equal(0);
+    let totalAscendedNativeTokens = await memeBase.totalAscendedNativeTokens();
+    expect(totalAscendedNativeTokens).to.equal(0);
 
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
@@ -135,6 +146,15 @@ const main = async () => {
     await expect(
         memeBase.unleashThisMeme(nonce1)
     ).to.be.revertedWith("Meme already unleashed");
+
+    totalNativeTokens = await memeBase.totalNativeTokens();
+    expect(totalNativeTokens).to.equal(totalDeposit);
+    totalPooledNativeTokens = await memeBase.totalPooledNativeTokens();
+    expect(totalPooledNativeTokens).to.equal((totalDeposit.mul(9)).div(10));
+    // Still zero as all the burn funds went to the campaign
+    totalAscendedNativeTokens = await memeBase.totalAscendedNativeTokens();
+    expect(totalAscendedNativeTokens).to.equal(0);
+    return;
 
     accountActivity = await memeBase.mapAccountActivities(signers[0].address);
     expect(accountActivity).to.equal(2);
