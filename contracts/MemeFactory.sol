@@ -163,17 +163,6 @@ abstract contract MemeFactory {
         minNativeTokenValue = _minNativeTokenValue;
     }
 
-    function _sqrt(uint256 x) internal pure returns (uint256) {
-        if (x == 0) return 0;
-        uint256 z = (x + 1) / 2;
-        uint256 y = x;
-        while (z < y) {
-            y = z;
-            z = (x / z + z) / 2;
-        }
-        return y;
-    }
-
     /// @dev Creates native token + meme token LP and adds liquidity.
     /// @param memeToken Meme token address.
     /// @param nativeTokenAmount Native token amount.
@@ -199,17 +188,14 @@ abstract contract MemeFactory {
             : (memeToken, nativeToken, memeTokenAmount, nativeTokenAmount);
 
         // Calculate the price ratio (amount1 / amount0) scaled by 1e18 to avoid floating point issues
-        uint256 priceX96 = isNativeFirst ? (amount1 * 1e18) / amount0 : (amount0 * 1e18) / amount1;
-        //uint256 priceX96 = amount1 > amount0 ? amount1 / amount0 : amount0 / amount1;
-        // TOFIX? overflow?
+        uint256 priceX96 = (amount1 * 1e18) / amount0;
+
         // Calculate the square root of the price ratio in X96 format
-        //uint160 sqrtPriceX96 = uint160(FixedPointMathLib.sqrt(priceX96) * 2**48);
-        uint160 sqrtPriceX96 = uint160(_sqrt(priceX96) * 2**48);
+        uint160 sqrtPriceX96 = uint160((FixedPointMathLib.sqrt(priceX96) * 2**96) / 1e9);
         console.log("sqrtPriceX96", uint256(sqrtPriceX96));
 
         // Create a pool
-        IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1,
-            FEE_TIER, sqrtPriceX96);
+        IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1, FEE_TIER, sqrtPriceX96);
 
         // Approve tokens for router
         IERC20(token0).approve(uniV3PositionManager, amount0);
