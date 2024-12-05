@@ -58,6 +58,11 @@ const main = async () => {
         accounts, amounts);
     await memeBase.deployed();
 
+    const weth = await ethers.getContractAt("Meme", parsedData.wethAddress);
+
+    let baseBalance = await weth.balanceOf(memeBase.address);
+    expect(baseBalance).to.equal(0);
+ 
     // Summon a new meme token - negative cases
     const minNativeTokenValue = await memeBase.minNativeTokenValue();
     const MIN_TOTAL_SUPPLY = await memeBase.MIN_TOTAL_SUPPLY();
@@ -140,6 +145,10 @@ const main = async () => {
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
 
+    let balanceNow = ethers.BigNumber.from(smallDeposit).mul(3);
+    baseBalance = await ethers.provider.getBalance(memeBase.address);
+    expect(baseBalance).to.equal(balanceNow);
+
     // Unleash the meme token - positive and negative cases
     await expect(
         memeBase.unleashThisMeme(nonce2)
@@ -177,7 +186,16 @@ const main = async () => {
     expect(nativeTokensForAscendance).to.equal(0);
 
     let launchCampaignBalance = await memeBase.launchCampaignBalance();
-    expect(launchCampaignBalance).to.equal(ethers.BigNumber.from(smallDeposit).mul(3).div(10));
+    // There might be round of error
+    expect(launchCampaignBalance).to.gte(balanceNow.div(10));
+
+    // Wrapped mative token balance
+    baseBalance = await weth.balanceOf(memeBase.address);
+    expect(baseBalance).to.gte(launchCampaignBalance);
+
+    // Pure native token balance
+    baseBalance = await ethers.provider.getBalance(memeBase.address);
+    expect(baseBalance).to.equal(0);
 
     // Increase time to for 24 hours+
     await expect(
@@ -187,6 +205,11 @@ const main = async () => {
 
     // Purge remaining allocation - positive and negative case
     await memeBase.purgeThisMeme(memeToken);
+
+    let memeInstance = await ethers.getContractAt("Meme", memeToken);
+    // Meme balance now must be zero
+    baseBalance = await memeInstance.balanceOf(memeBase.address);
+    expect(baseBalance).to.equal(0);
 
     //// Second test unleashing of a meme that does trigger MAGA
 
@@ -261,16 +284,25 @@ const main = async () => {
 
     // Swap to OLAS
     const olasAmount = await memeBase.nativeTokensForAscendance();
+    const nativeAmount = await memeBase.scheduledForAscendance();
+    //console.log("scheduledForAscendance", scheduledForAscendance);
+
     // First 127.5 ETH are collected towards campaign
-    if (olasAmount.gt(0)) {
-        await memeBase.scheduleForAscendance();
-    }
+    await memeBase.scheduleForAscendance();
 
     // Collect fees
     await memeBase.collectFees([campaignToken, memeToken, memeTokenTwo]);
 
+
     // Check the contract balance
     let baseBalance = await ethers.provider.getBalance(memeBase.address);
+
+    // Check the contract balances - must be no native and wrapped token left after all the unleashes
+    baseBalance = await ethers.provider.getBalance(memeBase.address);
+    expect(baseBalance).to.equal(0);
+
+    baseBalance = await weth.balanceOf(memeBase.address);
+
     expect(baseBalance).to.equal(0);
 
     // Check the wrapped native token contract balance

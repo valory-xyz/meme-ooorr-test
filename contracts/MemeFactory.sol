@@ -221,6 +221,14 @@ abstract contract MemeFactory {
         console.log("amount1", amount1);
 
         totalPooledNativeTokens += isNativeFirst ? amount0 : amount1;
+
+        // Schedule for ascendance leftovers from native token
+        // Note that meme token leftovers will be purged later
+        uint256 nativeLeftovers = isNativeFirst ? (nativeTokenAmount - amount0) : (nativeTokenAmount - amount1);
+        if (nativeLeftovers > 0) {
+            nativeLeftovers = _launchCampaign(nativeLeftovers);
+            scheduledForAscendance += nativeLeftovers;
+        }
     }
 
     function _getTwapFromOracle(address pool) internal view returns (uint256 priceX96) {
@@ -596,6 +604,8 @@ abstract contract MemeFactory {
         require(amount > 0, "Nothing to send");
 
         nativeTokensForAscendance = 0;
+        scheduledForAscendance = 0;
+
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
