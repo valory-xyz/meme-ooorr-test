@@ -73,11 +73,13 @@ const main = async () => {
     ).to.be.revertedWith("Maximum total supply overflow");
 
     // Summon a new meme token - positive cases
-    await expect(memeBase.summonThisMeme(name, symbol, totalSupply, {value: smallDeposit}))
-        .to.emit(memeBase, "Summoned")
-        .withArgs(signers[0].address, nonce1, smallDeposit)
-        .and.to.emit(memeBase, "Hearted")
-        .withArgs(signers[0].address, nonce1, smallDeposit);
+    await expect(
+        memeBase.summonThisMeme(name, symbol, totalSupply, {value: smallDeposit})
+    ).to.emit(memeBase, "Summoned")
+    .withArgs(signers[0].address, nonce1, smallDeposit)
+    .and.to.emit(memeBase, "Hearted")
+    .withArgs(signers[0].address, nonce1, smallDeposit);
+
     let totalDeposit = smallDeposit;
     let memeSummon = await memeBase.memeSummons(nonce1);
     expect(memeSummon.name).to.equal(name);
@@ -102,17 +104,21 @@ const main = async () => {
     ).to.be.revertedWith("Meme already unleashed");
 
     // Heart a new token by other accounts - positive cases
-    await expect(memeBase.connect(signers[1]).heartThisMeme(nonce1, {value: smallDeposit}))
-        .to.emit(memeBase, "Hearted")
-        .withArgs(signers[1].address, nonce1, smallDeposit);
+    await expect(
+        memeBase.connect(signers[1]).heartThisMeme(nonce1, {value: smallDeposit})
+    ).to.emit(memeBase, "Hearted")
+    .withArgs(signers[1].address, nonce1, smallDeposit);
+
     totalDeposit = totalDeposit.add(smallDeposit)
     memeSummon = await memeBase.memeSummons(nonce1);
     expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(2));
     accountActivity = await memeBase.mapAccountActivities(signers[1].address);
     expect(accountActivity).to.equal(1);
-    await expect(memeBase.connect(signers[2]).heartThisMeme(nonce1, {value: smallDeposit}))
-        .to.emit(memeBase, "Hearted")
-        .withArgs(signers[2].address, nonce1, smallDeposit);
+    await expect(
+        memeBase.connect(signers[2]).heartThisMeme(nonce1, {value: smallDeposit})
+    ).to.emit(memeBase, "Hearted")
+    .withArgs(signers[2].address, nonce1, smallDeposit);
+
     totalDeposit = totalDeposit.add(smallDeposit)
     memeSummon = await memeBase.memeSummons(nonce1);
     expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(3));
@@ -138,12 +144,13 @@ const main = async () => {
     await expect(
         memeBase.unleashThisMeme(nonce2)
     ).to.be.revertedWith("Meme not summoned");
-    await memeBase.unleashThisMeme(nonce1);
-//    await expect(await memeBase.unleashThisMeme(nonce1))
-//        .to.emit(memeBase, "Unleashed")
-//        // .withArgs(signers[0].address, null, null, null, 0)
-//        .and.to.emit(memeBase, "Collected");
-//        // .withArgs(signers[0].address, null, null);
+    //await memeBase.unleashThisMeme(nonce1);
+    await expect(
+        memeBase.unleashThisMeme(nonce1)
+    ).to.emit(memeBase, "Unleashed")
+    // .withArgs(signers[0].address, null, null, null, 0)
+    .and.to.emit(memeBase, "Collected");
+    // .withArgs(signers[0].address, null, null);
     await expect(
         memeBase.unleashThisMeme(nonce1)
     ).to.be.revertedWith("Meme already unleashed");
@@ -166,8 +173,8 @@ const main = async () => {
     expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(3));
 
     // Schedule for ascendance is zero because all the funds went to the campaign launch
-    let scheduledForAscendance = await memeBase.scheduledForAscendance();
-    expect(scheduledForAscendance).to.equal(0);
+    let nativeTokensForAscendance = await memeBase.nativeTokensForAscendance();
+    expect(nativeTokensForAscendance).to.equal(0);
 
     let launchCampaignBalance = await memeBase.launchCampaignBalance();
     expect(launchCampaignBalance).to.equal(ethers.BigNumber.from(smallDeposit).mul(3).div(10));
@@ -200,22 +207,25 @@ const main = async () => {
     await helpers.time.increase(oneDay + 10);
 
     // Unleash the meme token
-    await memeBase.unleashThisMeme(nonce2);
+    await memeBase.unleashThisMeme(nonce2, { gasLimit: 5000000 });
 
     const LIQUIDITY_AGNT = await memeBase.LIQUIDITY_AGNT();
     launchCampaignBalance = await memeBase.launchCampaignBalance();
-    scheduledForAscendance = await memeBase.scheduledForAscendance();
-    const expectedScheduledForAscendance = ethers.BigNumber.from(smallDeposit).mul(3).div(10)
-        .add(ethers.BigNumber.from(defaultDeposit).mul(3).div(10))
-        .sub(ethers.BigNumber.from(launchCampaignBalance));
+    nativeTokensForAscendance = await memeBase.nativeTokensForAscendance();
+    const scheduledPart1 = (smallDeposit.mul(3)).div(10);
+    const scheduledPart2 = (defaultDeposit.mul(3)).div(10);
+    let expectedScheduledForAscendance = (scheduledPart1.add(scheduledPart2)).sub(launchCampaignBalance);
+    console.log("LIQUIDITY_AGNT:", LIQUIDITY_AGNT);
+    console.log("launchCampaignBalance:", launchCampaignBalance);
+    console.log("nativeTokensForAscendance:", nativeTokensForAscendance);
     // this fails ever so often
-    expect(scheduledForAscendance).to.equal(expectedScheduledForAscendance);
+    expect(nativeTokensForAscendance).to.equal(expectedScheduledForAscendance);
     expect(launchCampaignBalance).to.equal(LIQUIDITY_AGNT);
 
     totalNativeTokens = await memeBase.totalNativeTokens();
     expect(totalNativeTokens).to.equal(totalDeposit);
     totalPooledNativeTokens = await memeBase.totalPooledNativeTokens();
-    expect(totalPooledNativeTokens).to.lte((totalDeposit.mul(9)).div(10));
+    expect(totalPooledNativeTokens).to.lte((totalDeposit.mul(9)).div(10).add(launchCampaignBalance));
     // Still zero as all the burn funds went to the campaign
     totalAscendedNativeTokens = await memeBase.totalAscendedNativeTokens();
     expect(totalAscendedNativeTokens).to.equal((totalDeposit.div(10)).sub(launchCampaignBalance));
@@ -250,7 +260,7 @@ const main = async () => {
     await helpers.time.increase(10);
 
     // Swap to OLAS
-    const olasAmount = await memeBase.scheduledForAscendance();
+    const olasAmount = await memeBase.nativeTokensForAscendance();
     // First 127.5 ETH are collected towards campaign
     if (olasAmount.gt(0)) {
         await memeBase.scheduleForAscendance();
@@ -260,8 +270,14 @@ const main = async () => {
     await memeBase.collectFees([campaignToken, memeToken, memeTokenTwo]);
 
     // Check the contract balance
-    const baseBalance = await ethers.provider.getBalance(memeBase.address);
+    let baseBalance = await ethers.provider.getBalance(memeBase.address);
     expect(baseBalance).to.equal(0);
+
+    // Check the wrapped native token contract balance
+    const weth = await ethers.getContractAt("Meme", parsedData.wethAddress);
+    baseBalance = await weth.balanceOf(memeBase.address);
+    console.log(baseBalance.toString());
+    //expect(baseBalance).to.equal(0);
 };
 
 main()

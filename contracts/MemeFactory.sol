@@ -125,7 +125,7 @@ abstract contract MemeFactory {
     // Number of meme tokens
     uint256 public numTokens;
     // Native token (ERC-20) scheduled to be converted to OLAS for Ascendance
-    uint256 public scheduledForAscendance;
+    uint256 public nativeTokensForAscendance;
     // Total number of all native tokens collected
     uint256 public totalNativeTokens;
     // Total number of pooled native tokens
@@ -306,7 +306,7 @@ abstract contract MemeFactory {
         uint256 adjustedNativeAmountForAscendance = _launchCampaign(nativeAmountForOLASBurn);
 
         // Schedule native token amount for ascendance
-        scheduledForAscendance += adjustedNativeAmountForAscendance;
+        nativeTokensForAscendance += adjustedNativeAmountForAscendance;
 
         emit FeesCollected(msg.sender, memeToken, nativeAmountForOLASBurn, memeAmountToBurn);
     }
@@ -445,6 +445,7 @@ abstract contract MemeFactory {
 
         // Check if the meme has been summoned
         require(memeSummon.unleashTime == 0, "Meme already unleashed");
+        console.log("SOL unleash time", memeSummon.unleashTime);
         // Check if the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check the unleash timestamp
@@ -469,7 +470,7 @@ abstract contract MemeFactory {
         uint256 adjustedNativeAmountForAscendance = _launchCampaign(nativeAmountForOLASBurn);
 
         // Schedule native token amount for ascendance
-        scheduledForAscendance += adjustedNativeAmountForAscendance;
+        nativeTokensForAscendance += adjustedNativeAmountForAscendance;
 
         // Update total amount of ascended native tokens
         totalAscendedNativeTokens += adjustedNativeAmountForAscendance;
@@ -511,6 +512,8 @@ abstract contract MemeFactory {
         if (hearterContribution > 0) {
             _collectMemeToken(memeToken, memeNonce, heartersAmount, hearterContribution, totalNativeTokenCommitted);
         }
+
+        console.log("!!!!!UNLEASHED");
 
         emit Unleashed(msg.sender, memeToken, positionId, liquidity, nativeAmountForOLASBurn);
 
@@ -589,8 +592,10 @@ abstract contract MemeFactory {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
-        uint256 amount = scheduledForAscendance;
+        uint256 amount = nativeTokensForAscendance;
         require(amount > 0, "Nothing to send");
+
+        nativeTokensForAscendance = 0;
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
