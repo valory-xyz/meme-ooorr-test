@@ -85,10 +85,13 @@ class AnalizeFeedbackBehaviour(
 
         self.set_done()
 
-    def get_analysis(  # pylint: disable=too-many-locals
+    def get_analysis(  # pylint: disable=too-many-locals,too-many-return-statements
         self,
     ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
+
+        if self.synchronized_data.feedback is None:
+            return None
 
         tweet_responses = "\n\n".join(
             [

@@ -108,9 +108,10 @@ class SynchronizedData(BaseSynchronizedData):
         return cast(dict, json.loads(cast(str, self.db.get_strict("token_data"))))
 
     @property
-    def feedback(self) -> List:
+    def feedback(self) -> Optional[List]:
         """Get the feedback."""
-        return cast(list, json.loads(cast(str, self.db.get("feedback", "[]"))))
+        feedback = self.db.get("feedback", None)
+        return json.loads(feedback) if feedback else None
 
     @property
     def most_voted_tx_hash(self) -> Optional[str]:
@@ -440,7 +441,7 @@ class PostAnnouncementRound(CollectSameUntilThresholdRound):
                     get_name(SynchronizedData.latest_tweet): "{}",
                     get_name(SynchronizedData.token_data): "{}",
                     get_name(SynchronizedData.persona): self.context.params.persona,
-                    get_name(SynchronizedData.feedback): "[]",
+                    get_name(SynchronizedData.feedback): None,
                     get_name(SynchronizedData.tx_flag): None,
                     get_name(SynchronizedData.most_voted_tx_hash): None,
                 },
@@ -723,7 +724,9 @@ class MemeooorrAbciApp(AbciApp[Event]):
     }
     final_states: Set[AppState] = {FinishedToResetRound, FinishedToSettlementRound}
     event_to_timeout: EventToTimeout = {}
-    cross_period_persisted_keys: FrozenSet[str] = frozenset(["persona", "latest_tweet"])
+    cross_period_persisted_keys: FrozenSet[str] = frozenset(
+        ["persona", "latest_tweet", "feedback"]
+    )
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
         PostTweetRound: set(),

@@ -319,6 +319,9 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         enriched_meme_coins = []
 
         for meme_coin in meme_coins:
+            self.context.logger.info(
+                f"Gathering extra info for token {meme_coin['token_address']}"
+            )
             response_msg = yield from self.get_contract_api_response(
                 performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
                 contract_address=meme_coin["token_address"],
@@ -411,7 +414,6 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         chain_id = (
             BASE_CHAIN_ID if self.params.home_chain_id == "BASE" else CELO_CHAIN_ID
         )
-        print(f"CHAIN_ID={chain_id}")
         return chain_id
 
     def get_packages(self, package_type: str) -> Generator[None, None, Optional[Dict]]:
