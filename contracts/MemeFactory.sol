@@ -179,6 +179,7 @@ abstract contract MemeFactory {
 
         // Calculate the price ratio (amount1 / amount0) scaled by 1e18 to avoid floating point issues
         uint256 priceX96 = (amount1 * 1e18) / amount0;
+        // TOFIX? overflow?
         // Calculate the square root of the price ratio in X96 format
         uint160 sqrtPriceX96 = uint160(FixedPointMathLib.sqrt(priceX96) * 2**48);
 
@@ -381,15 +382,13 @@ abstract contract MemeFactory {
         // Get meme summon info
         MemeSummon storage memeSummon = memeSummons[memeNonce];
 
-        // Get the total native token committed to this meme
-        uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
-
         // Check that the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not yet summoned");
         // Check if the token has been unleashed
         require(memeSummon.unleashTime == 0, "Meme already unleashed");
 
         // Update meme token map values
+        uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
         totalNativeTokenCommitted += msg.value;
         memeSummon.nativeTokenContributed = totalNativeTokenCommitted;
         memeHearters[memeNonce][msg.sender] += msg.value;
@@ -404,12 +403,12 @@ abstract contract MemeFactory {
 
     /// @dev Create a new meme token.
     function _createThisMeme(
+        uint256 memeNonce,
         string memory name,
         string memory symbol,
         uint256 totalSupply
     ) internal returns (address memeToken) {
-        uint256 localNonce = _nonce;
-        bytes32 randomNonce = bytes32(uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, localNonce))));
+        bytes32 randomNonce = bytes32(uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, memeNonce))));
         bytes memory payload = abi.encodePacked(type(Meme).creationCode, abi.encode(name, symbol, DECIMALS, totalSupply));
         // solhint-disable-next-line no-inline-assembly
         assembly {
@@ -418,9 +417,6 @@ abstract contract MemeFactory {
 
         // Check for non-zero token address
         require(memeToken != address(0), "Token creation failed");
-
-        // Update nonce
-        _nonce = localNonce + 1;
     }
 
     /// @dev Unleashes the meme token.
@@ -432,15 +428,15 @@ abstract contract MemeFactory {
         // Get meme summon info
         MemeSummon storage memeSummon = memeSummons[memeNonce];
 
-        // Get the total native token amount committed to this meme
-        uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
-
         // Check if the meme has been summoned
         require(memeSummon.unleashTime == 0, "Meme already unleashed");
         // Check if the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check the unleash timestamp
         require(block.timestamp >= memeSummon.summonTime + UNLEASH_DELAY, "Cannot unleash yet");
+
+        // Get the total native token amount committed to this meme
+        uint256 totalNativeTokenCommitted = memeSummon.nativeTokenContributed;
 
         // Wrap native token to its ERC-20 version
         // All funds ever contributed to a given meme are wrapped here.
@@ -462,7 +458,7 @@ abstract contract MemeFactory {
         uint256 heartersAmount = memeSummon.totalSupply - memeAmountForLP;
 
         // Create new meme token
-        address memeToken = _createThisMeme(memeSummon.name, memeSummon.symbol, memeSummon.totalSupply);
+        address memeToken = _createThisMeme(memeNonce, memeSummon.name, memeSummon.symbol, memeSummon.totalSupply);
 
         // Record meme token address
         memeTokenNonces[memeToken] = memeNonce;
