@@ -90,6 +90,9 @@ class AnalizeFeedbackBehaviour(
     ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
 
+        if self.synchronized_data.feedback is None:
+            return None
+
         tweet_responses = "\n\n".join(
             [
                 f"tweet: {t['text']}\nviews: {t['view_count']}\nquotes: {t['quote_count']}\nretweets{t['retweet_count']}"

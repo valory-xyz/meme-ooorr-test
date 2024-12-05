@@ -128,7 +128,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             return {"wait": True}
 
         # Enough time has passed, collect feedback
-        if not self.synchronized_data.feedback:
+        if self.synchronized_data.feedback is None:
             self.context.logger.info(
                 "Feedback period has finished. Collecting feedback..."
             )
