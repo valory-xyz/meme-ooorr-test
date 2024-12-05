@@ -203,7 +203,7 @@ public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfezt
 type: connection
 config:
   host: ${str:0.0.0.0}
-  port: ${int:8000}
+  port: ${int:8833}
   target_skill_id: dvilela/memeooorr_chained_abci:0.1.0
 ---
 public_id: dvilela/genai:0.1.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq

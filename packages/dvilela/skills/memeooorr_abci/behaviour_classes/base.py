@@ -408,7 +408,11 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
     def get_chain_id(self) -> str:
         """Get chain id"""
-        return BASE_CHAIN_ID if self.params.home_chain_id == "BASE" else CELO_CHAIN_ID
+        chain_id = (
+            BASE_CHAIN_ID if self.params.home_chain_id == "BASE" else CELO_CHAIN_ID
+        )
+        print(f"CHAIN_ID={chain_id}")
+        return chain_id
 
     def get_packages(self, package_type: str) -> Generator[None, None, Optional[Dict]]:
         """Gets minted packages from the Olas subgraph"""
