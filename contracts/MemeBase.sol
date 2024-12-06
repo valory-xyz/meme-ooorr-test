@@ -24,6 +24,8 @@ contract MemeBase is MemeFactory {
 
     // Launch campaign balance
     uint256 public launchCampaignBalance;
+    // Flag for launch
+    uint256 internal _launched = 0;
 
     /// @dev MemeBase constructor
     constructor(
@@ -120,9 +122,10 @@ contract MemeBase is MemeFactory {
         emit Unleashed(msg.sender, memeToken, positionId, liquidity, 0);
     }
 
-    function _launchCampaign(uint256 nativeAmountForOLASBurn) internal override returns (uint256 adjustedNativeAmountForAscendance) {
-        // Launch campaign logic:
-        // Make Agents.Fun Great Again (MAGA)
+    /// @dev Allows diverting first x collected funds to a launch campaign.
+    /// @param nativeAmountForOLASBurn Amount of native token to conver to OLAS and burn.
+    /// @return adjustedNativeAmountForAscendance Adjusted amount of native token to conver to OLAS and burn.
+    function _updateLaunchCampaignBalance(uint256 nativeAmountForOLASBurn) internal override returns (uint256 adjustedNativeAmountForAscendance) {
         if (launchCampaignBalance < LIQUIDITY_AGNT) {
             // Get the difference of the required liquidity amount and launch campaign balance
             uint256 diff = LIQUIDITY_AGNT - launchCampaignBalance;
@@ -134,11 +137,14 @@ contract MemeBase is MemeFactory {
                 adjustedNativeAmountForAscendance = nativeAmountForOLASBurn - diff;
                 launchCampaignBalance += diff;
             }
+        }
+    }
 
-            // Call MAGA if the balance has reached
-            if (launchCampaignBalance >= LIQUIDITY_AGNT) {
-                _MAGA();
-            }
+    function _launchCampaign() internal override {
+        // Call MAGA if the balance has reached
+        if (launchCampaignBalance >= LIQUIDITY_AGNT && _launched == 0){
+            _MAGA();
+            _launched = 1;
         }
     }
 

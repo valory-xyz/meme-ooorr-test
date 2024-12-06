@@ -18,7 +18,13 @@ contract MemeArbitrum is MemeFactory {
         uint256 _minNativeTokenValue
     ) MemeFactory(_olas, _nativeToken, _uniV3PositionManager, _buyBackBurner, _minNativeTokenValue) {}
 
-    function _launchCampaign(uint256 nativeAmountForOLASBurn) internal override pure returns (uint256) {
+    /// @dev Launch campaign logic.
+    function _launchCampaign() internal virtual override {}
+
+    /// @dev Allows diverting first x collected funds to a launch campaign.
+    /// @param nativeAmountForOLASBurn Amount of native token to conver to OLAS and burn.
+    /// @return adjustedNativeAmountForAscendance Adjusted amount of native token to conver to OLAS and burn.
+    function _updateLaunchCampaignBalance(uint256 nativeAmountForOLASBurn) internal override pure returns (uint256 adjustedNativeAmountForAscendance) {
         return nativeAmountForOLASBurn;
     }
 

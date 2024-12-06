@@ -216,7 +216,7 @@ const main = async () => {
 
     // Unleash the meme token
     await expect(
-        memeBase.unleashThisMeme(nonce2, { gasLimit: 5000000 })
+        memeBase.unleashThisMeme(nonce2)
     ).to.emit(memeBase, "Unleashed").and.to.emit(memeBase, "Unleashed");
 
     // Get campaign token
@@ -226,32 +226,19 @@ const main = async () => {
     const memeTokenTwo = await memeBase.memeTokens(2);
     console.log("Meme token two contract:", memeToken);
 
-    // TOFIX; either get here and it passes, or we fail at Unleash above
-    console.log(">>>>>---------here");
-
     const LIQUIDITY_AGNT = await memeBase.LIQUIDITY_AGNT();
     launchCampaignBalance = await memeBase.launchCampaignBalance();
     scheduledForAscendance = await memeBase.scheduledForAscendance();
     const scheduledPart1 = (smallDeposit.mul(3)).div(10);
     const scheduledPart2 = (defaultDeposit.mul(3)).div(10);
     let expectedScheduledForAscendance = (scheduledPart1.add(scheduledPart2)).sub(launchCampaignBalance);
-    console.log("LIQUIDITY_AGNT:", LIQUIDITY_AGNT);
-    console.log("launchCampaignBalance:", launchCampaignBalance);
-    console.log("scheduledForAscendance:", scheduledForAscendance);
-    console.log("expectedScheduledForAscendance:", expectedScheduledForAscendance);
-    // this fails ever so often
-    // expect(scheduledForAscendance).to.equal(expectedScheduledForAscendance);
-    // expect(launchCampaignBalance).to.equal(LIQUIDITY_AGNT);
-
-    // totalNativeTokens = await memeBase.totalNativeTokens();
-    // expect(totalNativeTokens).to.equal(totalDeposit);
-    // totalPooledNativeTokens = await memeBase.totalPooledNativeTokens();
-    // expect(totalPooledNativeTokens).to.lte((totalDeposit.mul(9)).div(10).add(launchCampaignBalance));
-    // // Still zero as all the burn funds went to the campaign
-    // totalAscendedNativeTokens = await memeBase.totalAscendedNativeTokens();
-    // expect(totalAscendedNativeTokens).to.equal((totalDeposit.div(10)).sub(launchCampaignBalance));
-
-
+    // console.log("LIQUIDITY_AGNT:", LIQUIDITY_AGNT);
+    // console.log("launchCampaignBalance:", launchCampaignBalance);
+    // console.log("scheduledForAscendance:", scheduledForAscendance);
+    // console.log("expectedScheduledForAscendance:", expectedScheduledForAscendance);
+    // due to rounding will have higher amount than expected
+    expect(scheduledForAscendance).to.gte(expectedScheduledForAscendance);
+    expect(launchCampaignBalance).to.equal(LIQUIDITY_AGNT);
 
     // Deployer has already collected
     await expect(
@@ -275,34 +262,25 @@ const main = async () => {
     // Wait for 10 more seconds
     await helpers.time.increase(10);
 
-    // Swap to OLAS
-    const olasAmount = await memeBase.nativeTokensForAscendance();
-    const nativeAmount = await memeBase.scheduledForAscendance();
-    //console.log("scheduledForAscendance", scheduledForAscendance);
-
-    // First 127.5 ETH are collected towards campaign
-    await memeBase.scheduleForAscendance();
-
     // Collect fees
+    scheduledForAscendance = await memeBase.scheduledForAscendance();
     await memeBase.collectFees([campaignToken, memeToken, memeTokenTwo]);
+    let newScheduledForAscendance = await memeBase.scheduledForAscendance();
+    // since no fees to collect, expect identical
+    expect(newScheduledForAscendance).to.equal(scheduledForAscendance);
 
-
-    // Check the contract balance
-    baseBalance = await ethers.provider.getBalance(memeBase.address);
+    // Send to burner
+    await memeBase.scheduleForAscendance();
+    scheduledForAscendance = await memeBase.scheduledForAscendance();
+    expect(scheduledForAscendance).to.equal(0);
 
     // Check the contract balances - must be no native and wrapped token left after all the unleashes
     baseBalance = await ethers.provider.getBalance(memeBase.address);
     expect(baseBalance).to.equal(0);
 
-    baseBalance = await weth.balanceOf(memeBase.address);
-
-    expect(baseBalance).to.equal(0);
-
     // Check the wrapped native token contract balance
-    weth = await ethers.getContractAt("Meme", parsedData.wethAddress);
     baseBalance = await weth.balanceOf(memeBase.address);
-    console.log(baseBalance.toString());
-    //expect(baseBalance).to.equal(0);
+    expect(baseBalance).to.equal(0);
 };
 
 main()
