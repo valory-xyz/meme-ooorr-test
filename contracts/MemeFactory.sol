@@ -132,9 +132,7 @@ abstract contract MemeFactory {
     // Reentrancy lock
     uint256 internal _locked = 1;
     // Launch tracker
-    uint256 internal _launched = 0;
-    // // Dust accumulated during pool creation. Must be zerod at end of each transaction.
-    // uint256 internal _dust = 0;
+    uint256 internal _launched = 1;
 
     // Map of meme nonce => Meme summon struct
     mapping(uint256 => MemeSummon) public memeSummons;
@@ -470,8 +468,6 @@ abstract contract MemeFactory {
     /// @dev Unleashes the meme token.
     /// @param memeNonce Meme token nonce.
     function _unleashThisMeme(uint256 memeNonce, MemeSummon storage memeSummon, uint256 nativeAmountForLP, uint256 totalNativeTokenCommitted, uint256 nativeAmountForOLASBurn) internal {
-
-        // _launchCampaign();
 
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         uint256 memeAmountForLP = (memeSummon.totalSupply * LP_PERCENTAGE) / 100;

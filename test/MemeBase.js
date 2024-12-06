@@ -20,7 +20,7 @@ const main = async () => {
     const payload = "0x";
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
-    const nonce = 0;
+    const nonce = 1;
 
     signers = await ethers.getSigners();
     deployer = signers[0];
@@ -48,7 +48,7 @@ const main = async () => {
 
     // Heart a new token by other accounts
     await memeBase.connect(signers[1]).heartThisMeme(nonce, {value: defaultDeposit});
-    await memeBase.connect(signers[2]).heartThisMeme( nonce, {value: defaultDeposit});
+    await memeBase.connect(signers[2]).heartThisMeme(nonce, {value: defaultDeposit});
 
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);

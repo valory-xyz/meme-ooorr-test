@@ -37,6 +37,7 @@ contract MemeBase is MemeFactory {
             _launchCampaignSetup(accounts, amounts);
             _nonce = launchCampaignNonce + 1;
             launchAmountTarget = LIQUIDITY_AGNT;
+            _launched = 0;
         }
     }
 
