@@ -120,15 +120,19 @@ abstract contract MemeFactory {
     address public immutable uniV3PositionManager;
     // BuyBackBurner address
     address public immutable buyBackBurner;
+    // Launch amount target
+    uint256 public immutable launchAmountTarget;
 
     // Number of meme tokens
     uint256 public numTokens;
     // Native token (ERC-20) scheduled to be converted to OLAS for Ascendance
     uint256 public scheduledForAscendance;
     // Nonce
-    uint256 internal _nonce;
+    uint256 internal _nonce = 1;
     // Reentrancy lock
     uint256 internal _locked = 1;
+    // Launch tracker
+    uint256 internal _launched = 1;
 
     // Map of meme nonce => Meme summon struct
     mapping(uint256 => MemeSummon) public memeSummons;
@@ -179,13 +183,12 @@ abstract contract MemeFactory {
 
         // Calculate the price ratio (amount1 / amount0) scaled by 1e18 to avoid floating point issues
         uint256 priceX96 = (amount1 * 1e18) / amount0;
-        // TOFIX? overflow?
+
         // Calculate the square root of the price ratio in X96 format
-        uint160 sqrtPriceX96 = uint160(FixedPointMathLib.sqrt(priceX96) * 2**48);
+        uint160 sqrtPriceX96 = uint160((FixedPointMathLib.sqrt(priceX96) * 2**96) / 1e9);
 
         // Create a pool
-        IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1,
-            FEE_TIER, sqrtPriceX96);
+        IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1, FEE_TIER, sqrtPriceX96);
 
         // Approve tokens for router
         IERC20(token0).approve(uniV3PositionManager, amount0);
@@ -209,10 +212,9 @@ abstract contract MemeFactory {
         (positionId, liquidity, amount0, amount1) = IUniswapV3(uniV3PositionManager).mint(params);
 
         // Schedule for ascendance leftovers from native token
-        // Note that meme token leftovers will be purged later
+        // Note that meme token leftovers will be purged via purgeThisMeme
         uint256 nativeLeftovers = isNativeFirst ? (nativeTokenAmount - amount0) : (nativeTokenAmount - amount1);
         if (nativeLeftovers > 0) {
-            nativeLeftovers = _launchCampaign(nativeLeftovers);
             scheduledForAscendance += nativeLeftovers;
         }
     }
@@ -295,12 +297,8 @@ abstract contract MemeFactory {
         // Burn meme tokens
         IERC20(memeToken).burn(memeAmountToBurn);
 
-        // Account for launch campaign
-        // All funds ever collected are already wrapped
-        uint256 adjustedNativeAmountForAscendance = _launchCampaign(nativeAmountForOLASBurn);
-
         // Schedule native token amount for ascendance
-        scheduledForAscendance += adjustedNativeAmountForAscendance;
+        scheduledForAscendance += nativeAmountForOLASBurn;
 
         emit FeesCollected(msg.sender, memeToken, nativeAmountForOLASBurn, memeAmountToBurn);
     }
@@ -333,9 +331,10 @@ abstract contract MemeFactory {
         emit Collected(msg.sender, memeToken, allocation);
     }
 
-    /// @dev Launch campaign logic. Allows diverting first x collected funds to a launch campaign.
-    /// @param nativeAmountForOLASBurn Native token amount (wrapped) for burning.
-    function _launchCampaign(uint256 nativeAmountForOLASBurn) internal virtual returns (uint256 adjustedNativeAmountForAscendance);
+    /// @dev Allows diverting first x collected funds to a launch campaign.
+    /// @param amount Amount of native token to convert to OLAS and burn.
+    /// @return adjustedAmount Adjusted amount of native token to convert to OLAS and burn.
+    function _launchCampaign(uint256 amount) internal virtual returns (uint256 adjustedAmount);
 
     /// @dev Native token amount to wrap.
     /// @param nativeTokenAmount Native token amount to be wrapped.
@@ -416,11 +415,12 @@ abstract contract MemeFactory {
         string memory symbol,
         uint256 totalSupply
     ) internal returns (address memeToken) {
-        bytes32 randomNonce = bytes32(uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, memeNonce))));
+        bytes32 randomNonce = keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender, memeNonce));
+        randomNonce = keccak256(abi.encodePacked(randomNonce));
         bytes memory payload = abi.encodePacked(type(Meme).creationCode, abi.encode(name, symbol, DECIMALS, totalSupply));
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            memeToken := create2(0x0, add(0x20, payload), mload(payload), randomNonce)
+            memeToken := create2(0x0, add(0x20, payload), mload(payload), memeNonce) // revert to randomNonce
         }
 
         // Check for non-zero token address
@@ -456,10 +456,18 @@ abstract contract MemeFactory {
         // Adjust native token amount
         uint256 nativeAmountForLP = totalNativeTokenCommitted - nativeAmountForOLASBurn;
 
-        uint256 adjustedNativeAmountForAscendance = _launchCampaign(nativeAmountForOLASBurn);
-
         // Schedule native token amount for ascendance
-        scheduledForAscendance += adjustedNativeAmountForAscendance;
+        // uint256 adjustedNativeAmountForAscendance = _updateLaunchCampaignBalance(nativeAmountForOLASBurn);
+        scheduledForAscendance += nativeAmountForOLASBurn;
+
+        _unleashThisMeme(memeNonce, memeSummon, nativeAmountForLP, totalNativeTokenCommitted, nativeAmountForOLASBurn);
+
+        _locked = 1;
+    }
+
+    /// @dev Unleashes the meme token.
+    /// @param memeNonce Meme token nonce.
+    function _unleashThisMeme(uint256 memeNonce, MemeSummon storage memeSummon, uint256 nativeAmountForLP, uint256 totalNativeTokenCommitted, uint256 nativeAmountForOLASBurn) internal {
 
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         uint256 memeAmountForLP = (memeSummon.totalSupply * LP_PERCENTAGE) / 100;
@@ -500,8 +508,6 @@ abstract contract MemeFactory {
         }
 
         emit Unleashed(msg.sender, memeToken, positionId, liquidity, nativeAmountForOLASBurn);
-
-        _locked = 1;
     }
 
     /// @dev Collects meme token allocation.
@@ -578,16 +584,26 @@ abstract contract MemeFactory {
 
         uint256 amount = scheduledForAscendance;
         require(amount > 0, "Nothing to send");
+        require(_launched != 0 || (_launched == 0 && amount > launchAmountTarget), "Not enough to cover launch campaign");
+
+        if (_launched == 0) {
+            // campaign launch can trigger dust, hence we reset to 0 to capture it later
+            scheduledForAscendance = 0;
+            amount = _launchCampaign(amount);
+            amount += scheduledForAscendance;
+        }
 
         scheduledForAscendance = 0;
 
         // Record msg.sender activity
         mapAccountActivities[msg.sender]++;
 
-        // Transfers native token to be later converted to OLAS for burn.
-        IERC20(nativeToken).transfer(buyBackBurner, amount);
+        if (amount > 0) {
+            // Transfers native token to be later converted to OLAS for burn.
+            IERC20(nativeToken).transfer(buyBackBurner, amount);
 
-        emit OLASJourneyToAscendance(amount);
+            emit OLASJourneyToAscendance(amount);
+        }
 
         _locked = 1;
     }
