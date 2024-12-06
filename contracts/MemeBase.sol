@@ -36,7 +36,6 @@ contract MemeBase is MemeFactory {
             launchCampaignNonce = _nonce;
             _launchCampaignSetup(accounts, amounts);
             _nonce = launchCampaignNonce + 1;
-            launchAmountTarget = LIQUIDITY_AGNT;
             _launched = 0;
         }
     }
@@ -70,25 +69,30 @@ contract MemeBase is MemeFactory {
     }
 
     /// @dev AGNT token launch campaign unleash.
-    /// @notice Make Agents.Fun Great Again
+    /// @notice Make Agents.Fun Great Again.
     /// Unleashes a new version of AGNT, called `AGNT II`, that has the same 
     /// LP setup (same amount of AGNT II and ETH), as the original AGN was meant to have.
     /// Hearters of the original AGNT now have 24 hours to collect their `AGNT II`.
     function _MAGA() private {
-
         // Get meme summon info
         MemeSummon storage memeSummon = memeSummons[launchCampaignNonce];
 
+        // Unleash the token
         _unleashThisMeme(launchCampaignNonce, memeSummon, LIQUIDITY_AGNT, CONTRIBUTION_AGNT, 0);
 
     }
 
     /// @dev Allows diverting first x collected funds to a launch campaign.
-    /// @param amount Amount of native token to convert to OLAS and burn.
     /// @return adjustedAmount Adjusted amount of native token to convert to OLAS and burn.
-    function _launchCampaign(uint256 amount) internal override returns (uint256 adjustedAmount) {
+    function _launchCampaign() internal override returns (uint256 adjustedAmount) {
+        require(scheduledForAscendance >= LIQUIDITY_AGNT, "Not enough to cover launch campaign");
+
+        // Unleash the campaign token
         _MAGA();
-        adjustedAmount = amount - LIQUIDITY_AGNT;
+
+        // scheduledForAscendance might also increase during the pool creation
+        adjustedAmount = scheduledForAscendance - LIQUIDITY_AGNT;
+
         _launched = 1;
     }
 

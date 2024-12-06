@@ -3,8 +3,12 @@ pragma solidity ^0.8.28;
 
 import {FixedPointMathLib} from "../lib/solmate/src/utils/FixedPointMathLib.sol";
 import {Meme} from "./Meme.sol";
-import {TickMath} from "./libraries/TickMath.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
+
+interface IBuyBackBurner {
+    function checkPoolPrices(address nativeToken, address memeToken, address uniV3PositionManager, uint24 fee,
+        uint256 allowedDeviation, bool isNativeFirst) external view;
+}
 
 // ERC20 interface
 interface IERC20 {
@@ -99,8 +103,6 @@ abstract contract MemeFactory {
     uint256 public constant LP_PERCENTAGE = 50;
     // Max allowed price deviation for TWAP pool values (100 = 1%) in 1e18 format
     uint256 public constant MAX_ALLOWED_DEVIATION = 1e16;
-    // Seconds ago to look back for TWAP pool values
-    uint32 public constant SECONDS_AGO = 1800;
     // Uniswap V3 fee tier of 1%
     uint24 public constant FEE_TIER = 10_000;
     /// @dev The minimum tick that corresponds to a selected fee tier
@@ -120,8 +122,6 @@ abstract contract MemeFactory {
     address public immutable uniV3PositionManager;
     // BuyBackBurner address
     address public immutable buyBackBurner;
-    // Launch amount target
-    uint256 public immutable launchAmountTarget;
 
     // Number of meme tokens
     uint256 public numTokens;
@@ -185,7 +185,7 @@ abstract contract MemeFactory {
         uint256 priceX96 = (amount1 * 1e18) / amount0;
 
         // Calculate the square root of the price ratio in X96 format
-        uint160 sqrtPriceX96 = uint160((FixedPointMathLib.sqrt(priceX96) * 2**96) / 1e9);
+        uint160 sqrtPriceX96 = uint160((FixedPointMathLib.sqrt(priceX96) * (1 << 96)) / 1e9);
 
         // Create a pool
         IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1, FEE_TIER, sqrtPriceX96);
@@ -219,59 +219,14 @@ abstract contract MemeFactory {
         }
     }
 
-    function _getTwapFromOracle(address pool) internal view returns (uint256 priceX96) {
-        // Query the pool for the current and historical tick
-        uint32[] memory secondsAgos = new uint32[](2);
-        // Start of the period
-        secondsAgos[0] = SECONDS_AGO;
-
-        // Fetch the tick cumulative values from the pool
-        (int56[] memory tickCumulatives, ) = IUniswapV3(pool).observe(secondsAgos);
-
-        // Calculate the average tick over the time period
-        int56 tickCumulativeDelta = tickCumulatives[1] - tickCumulatives[0];
-        int24 averageTick = int24(tickCumulativeDelta / int56(int32(SECONDS_AGO)));
-
-        // Convert the average tick to sqrtPriceX96
-        uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(averageTick);
-
-        // Calculate the price using the sqrtPriceX96
-        priceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
-    }
-
-    function _checkPoolPrices(address memeToken, bool isNativeFirst) internal view {
-        // Get factory address
-        address factory = IUniswapV3(uniV3PositionManager).factory();
-
-        (address token0, address token1) = isNativeFirst ? (nativeToken, memeToken) : (memeToken, nativeToken);
-
-        // Verify pool reserves before proceeding
-        address pool = IUniswapV3(factory).getPool(token0, token1, FEE_TIER);
-        require(pool != address(0), "Pool does not exist");
-
-        // Get current pool reserves
-        (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3(pool).slot0();
-
-        // Check TWAP or historical data
-        uint256 twapPrice = _getTwapFromOracle(pool);
-        uint256 instantPrice = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
-
-        uint256 deviation;
-        if (twapPrice > 0) {
-            deviation = (instantPrice > twapPrice) ?
-                ((instantPrice - twapPrice) * 1e18) / twapPrice :
-                ((twapPrice - instantPrice) * 1e18) / twapPrice;
-        }
-
-        require(deviation <= MAX_ALLOWED_DEVIATION, "Price deviation too high");
-    }
-
     /// @dev Collects fees from LP position, burns the meme token part and schedules for ascendance the native token part.
     /// @param memeToken Meme token address.
     /// @param positionId LP position ID.
     /// @param isNativeFirst Order of a native token in the pool.
     function _collectFees(address memeToken, uint256 positionId, bool isNativeFirst) internal {
-        _checkPoolPrices(memeToken, isNativeFirst);
+        // Check current pool prices
+        IBuyBackBurner(buyBackBurner).checkPoolPrices(nativeToken, memeToken, uniV3PositionManager, FEE_TIER,
+            MAX_ALLOWED_DEVIATION, isNativeFirst);
 
         IUniswapV3.CollectParams memory params = IUniswapV3.CollectParams({
             tokenId: positionId,
@@ -332,9 +287,8 @@ abstract contract MemeFactory {
     }
 
     /// @dev Allows diverting first x collected funds to a launch campaign.
-    /// @param amount Amount of native token to convert to OLAS and burn.
     /// @return adjustedAmount Adjusted amount of native token to convert to OLAS and burn.
-    function _launchCampaign(uint256 amount) internal virtual returns (uint256 adjustedAmount);
+    function _launchCampaign() internal virtual returns (uint256 adjustedAmount);
 
     /// @dev Native token amount to wrap.
     /// @param nativeTokenAmount Native token amount to be wrapped.
@@ -582,16 +536,8 @@ abstract contract MemeFactory {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
-        uint256 amount = scheduledForAscendance;
+        uint256 amount = _launched > 0 ? scheduledForAscendance : _launchCampaign();
         require(amount > 0, "Nothing to send");
-        require(_launched != 0 || (_launched == 0 && amount > launchAmountTarget), "Not enough to cover launch campaign");
-
-        if (_launched == 0) {
-            // campaign launch can trigger dust, hence we reset to 0 to capture it later
-            scheduledForAscendance = 0;
-            amount = _launchCampaign(amount);
-            amount += scheduledForAscendance;
-        }
 
         scheduledForAscendance = 0;
 
