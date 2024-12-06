@@ -14,6 +14,26 @@ Details in [slither_full](https://github.com/dvilelaf/meme-ooorr/blob/main/audit
 All false positive.
 
 ## Issues
+### Medium? Critical?: to discussion, sandwich attack
+```
+attaсker contract => function unleashThisMeme => _createThisMeme => 
+bytes32 randomNonce = keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender, memeNonce));
+        randomNonce = keccak256(abi.encodePacked(randomNonce));
+Can be calculated in the attacking contract (because determenistic in same block)
+Can predict: memeToken := create2(0x0, add(0x20, payload), mload(payload), memeNonce)
+Call before own contract:
+        // Calculate the price ratio (amount1 / amount0) scaled by 1e18 to avoid floating point issues
+        uint256 priceX96 = (amount1 * 1e18) / amount0;
+
+        // Calculate the square root of the price ratio in X96 format
+        uint160 sqrtPriceX96 = uint160((FixedPointMathLib.sqrt(priceX96) * (1 << 96)) / 1e9);
+
+        // Create a pool
+        IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1, FEE_TIER, sqrtPriceX96);
+So, we must revert if pool exist at moment unleashThisMeme        
+```
+[]
+
 ### Lown issue: group internal function
 ```
 Internal functions are mixed with public ones, which makes it difficult to understand contracts.
