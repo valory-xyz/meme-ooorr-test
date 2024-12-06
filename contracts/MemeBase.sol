@@ -22,11 +22,6 @@ contract MemeBase is MemeFactory {
     // Launch campaign nonce
     uint256 public immutable launchCampaignNonce;
 
-    // Launch campaign balance
-    uint256 public launchCampaignBalance;
-    // Flag for launch
-    uint256 internal _launched = 0;
-
     /// @dev MemeBase constructor
     constructor(
         address _olas,
@@ -41,6 +36,7 @@ contract MemeBase is MemeFactory {
             launchCampaignNonce = _nonce;
             _launchCampaignSetup(accounts, amounts);
             _nonce = launchCampaignNonce + 1;
+            launchAmountTarget = LIQUIDITY_AGNT;
         }
     }
 
@@ -78,74 +74,81 @@ contract MemeBase is MemeFactory {
     /// LP setup (same amount of AGNT II and ETH), as the original AGN was meant to have.
     /// Hearters of the original AGNT now have 24 hours to collect their `AGNT II`.
     function _MAGA() private {
+
         // Get meme summon info
         MemeSummon storage memeSummon = memeSummons[launchCampaignNonce];
 
-        // Create a launch campaign token
-        address memeToken = _createThisMeme(launchCampaignNonce, memeSummon.name, memeSummon.symbol, memeSummon.totalSupply);
+        _unleashThisMeme(launchCampaignNonce, memeSummon, LIQUIDITY_AGNT, CONTRIBUTION_AGNT, 0);
 
-        uint256 memeAmountForLP = (memeSummon.totalSupply * LP_PERCENTAGE) / 100;
-        uint256 heartersAmount = memeSummon.totalSupply - memeAmountForLP;
+        // // Create a launch campaign token
+        // address memeToken = _createThisMeme(launchCampaignNonce, memeSummon.name, memeSummon.symbol, memeSummon.totalSupply);
 
-        // Check for non-zero token address
-        require(memeToken != address(0), "Token creation failed");
+        // uint256 memeAmountForLP = (memeSummon.totalSupply * LP_PERCENTAGE) / 100;
+        // uint256 heartersAmount = memeSummon.totalSupply - memeAmountForLP;
 
-        // Record meme token address
-        memeTokenNonces[memeToken] = launchCampaignNonce;
+        // // Check for non-zero token address
+        // require(memeToken != address(0), "Token creation failed");
 
-        // Create Uniswap pair with LP allocation
-        (uint256 positionId, uint256 liquidity, bool isNativeFirst) =
-            _createUniswapPair(memeToken, LIQUIDITY_AGNT, memeAmountForLP);
+        // // Record meme token address
+        // memeTokenNonces[memeToken] = launchCampaignNonce;
 
-        // Push token into the global list of tokens
-        memeTokens.push(memeToken);
-        numTokens = memeTokens.length;
+        // // Create Uniswap pair with LP allocation
+        // (uint256 positionId, uint256 liquidity, bool isNativeFirst) =
+        //     _createUniswapPair(memeToken, LIQUIDITY_AGNT, memeAmountForLP);
 
-        // Record the actual meme unleash time
-        memeSummon.unleashTime = block.timestamp;
-        // Record the hearters distribution amount for this meme
-        memeSummon.heartersAmount = heartersAmount;
-        // Record position token Id
-        memeSummon.positionId = positionId;
-        // Record token order in the pool
-        if (isNativeFirst) {
-            memeSummon.isNativeFirst = isNativeFirst;
-        }
+        // // Push token into the global list of tokens
+        // memeTokens.push(memeToken);
+        // numTokens = memeTokens.length;
 
-        // Allocate to the token hearter unleashing the meme
-        uint256 hearterContribution = memeHearters[launchCampaignNonce][msg.sender];
-        if (hearterContribution > 0) {
-            _collectMemeToken(memeToken, launchCampaignNonce, heartersAmount, hearterContribution,
-                CONTRIBUTION_AGNT);
-        }
+        // // Record the actual meme unleash time
+        // memeSummon.unleashTime = block.timestamp;
+        // // Record the hearters distribution amount for this meme
+        // memeSummon.heartersAmount = heartersAmount;
+        // // Record position token Id
+        // memeSummon.positionId = positionId;
+        // // Record token order in the pool
+        // if (isNativeFirst) {
+        //     memeSummon.isNativeFirst = isNativeFirst;
+        // }
 
-        emit Unleashed(msg.sender, memeToken, positionId, liquidity, 0);
+        // // Allocate to the token hearter unleashing the meme
+        // uint256 hearterContribution = memeHearters[launchCampaignNonce][msg.sender];
+        // if (hearterContribution > 0) {
+        //     _collectMemeToken(memeToken, launchCampaignNonce, heartersAmount, hearterContribution,
+        //         CONTRIBUTION_AGNT);
+        // }
+
+        // emit Unleashed(msg.sender, memeToken, positionId, liquidity, 0);
     }
+
+    // /// @dev Allows diverting first x collected funds to a launch campaign.
+    // /// @param nativeAmountForOLASBurn Amount of native token to conver to OLAS and burn.
+    // /// @return adjustedNativeAmountForAscendance Adjusted amount of native token to conver to OLAS and burn.
+    // function _updateLaunchCampaignBalance(uint256 nativeAmountForOLASBurn) internal override returns (uint256 adjustedNativeAmountForAscendance) {
+    //     if (launchCampaignBalance < LIQUIDITY_AGNT) {
+    //         // Get the difference of the required liquidity amount and launch campaign balance
+    //         uint256 diff = LIQUIDITY_AGNT - launchCampaignBalance;
+    //         // Take full nativeAmountForOLASBurn or a missing part to fulfil the launch campaign amount
+    //         if (diff > nativeAmountForOLASBurn) {
+    //             launchCampaignBalance += nativeAmountForOLASBurn;
+    //             adjustedNativeAmountForAscendance = 0;
+    //         } else {
+    //             adjustedNativeAmountForAscendance = nativeAmountForOLASBurn - diff;
+    //             launchCampaignBalance += diff;
+    //         }
+    //     }
+    // }
 
     /// @dev Allows diverting first x collected funds to a launch campaign.
-    /// @param nativeAmountForOLASBurn Amount of native token to conver to OLAS and burn.
-    /// @return adjustedNativeAmountForAscendance Adjusted amount of native token to conver to OLAS and burn.
-    function _updateLaunchCampaignBalance(uint256 nativeAmountForOLASBurn) internal override returns (uint256 adjustedNativeAmountForAscendance) {
-        if (launchCampaignBalance < LIQUIDITY_AGNT) {
-            // Get the difference of the required liquidity amount and launch campaign balance
-            uint256 diff = LIQUIDITY_AGNT - launchCampaignBalance;
-            // Take full nativeAmountForOLASBurn or a missing part to fulfil the launch campaign amount
-            if (diff > nativeAmountForOLASBurn) {
-                launchCampaignBalance += nativeAmountForOLASBurn;
-                adjustedNativeAmountForAscendance = 0;
-            } else {
-                adjustedNativeAmountForAscendance = nativeAmountForOLASBurn - diff;
-                launchCampaignBalance += diff;
-            }
-        }
-    }
-
-    function _launchCampaign() internal override {
-        // Call MAGA if the balance has reached
-        if (launchCampaignBalance >= LIQUIDITY_AGNT && _launched == 0){
-            _MAGA();
-            _launched = 1;
-        }
+    /// @param amount Amount of native token to convert to OLAS and burn.
+    /// @return adjustedAmount Adjusted amount of native token to convert to OLAS and burn.
+    function _launchCampaign(uint256 amount) internal override returns (uint256 adjustedAmount) {
+        // // Call MAGA if the balance has reached
+        // if (launchCampaignBalance >= LIQUIDITY_AGNT && _launched == 0){
+        _MAGA();
+        adjustedAmount = amount - LIQUIDITY_AGNT;
+        //     _launched = 1;
+        // }
     }
 
     function _wrap(uint256 nativeTokenAmount) internal virtual override {
