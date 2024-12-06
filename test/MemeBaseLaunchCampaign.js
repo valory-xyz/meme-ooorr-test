@@ -167,19 +167,16 @@ const main = async () => {
     const memeToken = await memeBase.memeTokens(0);
     console.log("First new meme token contract:", memeToken);
 
+    memeSummon = await memeBase.memeSummons(nonce1);
     expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(3));
 
-    // Schedule for ascendance is zero because all the funds went to the campaign launch
+    // Schedule for ascendance (~90% of it went to LP)
     scheduledForAscendance = await memeBase.scheduledForAscendance();
-    expect(scheduledForAscendance).to.equal(0);
-
-    let launchCampaignBalance = await memeBase.launchCampaignBalance();
-    // There might be round off error
-    expect(launchCampaignBalance).to.gte(balanceNow.div(10));
+    expect(scheduledForAscendance).to.gte(ethers.BigNumber.from(smallDeposit).mul(3).div(10));
 
     // Wrapped mative token balance (~90% of it went to LP)
     baseBalance = await weth.balanceOf(memeBase.address);
-    expect(baseBalance).to.gte(launchCampaignBalance);
+    expect(baseBalance).to.gte(scheduledForAscendance);
 
     // Pure native token balance (everything should have been wrapped by now)
     baseBalance = await ethers.provider.getBalance(memeBase.address);
@@ -199,7 +196,7 @@ const main = async () => {
     baseBalance = await memeInstance.balanceOf(memeBase.address);
     expect(baseBalance).to.equal(0);
 
-    //// Second test unleashing of a meme that does trigger MAGA
+    //// Second test unleashing of a meme
 
     // Summon a new meme token
     await memeBase.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
@@ -220,25 +217,16 @@ const main = async () => {
     ).to.emit(memeBase, "Unleashed").and.to.emit(memeBase, "Unleashed");
 
     // Get campaign token
-    const campaignToken = await memeBase.memeTokens(1);
-    console.log("Campaign meme contract:", campaignToken);
-    // Get meme token
-    const memeTokenTwo = await memeBase.memeTokens(2);
-    console.log("Meme token two contract:", memeToken);
+    const memeTokenTwo = await memeBase.memeTokens(1);
+    console.log("Second new meme contract:", memeTokenTwo);
 
     const LIQUIDITY_AGNT = await memeBase.LIQUIDITY_AGNT();
-    launchCampaignBalance = await memeBase.launchCampaignBalance();
     scheduledForAscendance = await memeBase.scheduledForAscendance();
     const scheduledPart1 = (smallDeposit.mul(3)).div(10);
     const scheduledPart2 = (defaultDeposit.mul(3)).div(10);
-    let expectedScheduledForAscendance = (scheduledPart1.add(scheduledPart2)).sub(launchCampaignBalance);
-    // console.log("LIQUIDITY_AGNT:", LIQUIDITY_AGNT);
-    // console.log("launchCampaignBalance:", launchCampaignBalance);
-    // console.log("scheduledForAscendance:", scheduledForAscendance);
-    // console.log("expectedScheduledForAscendance:", expectedScheduledForAscendance);
+    let expectedScheduledForAscendance = scheduledPart1.add(scheduledPart2);
     // due to rounding will have higher amount than expected
     expect(scheduledForAscendance).to.gte(expectedScheduledForAscendance);
-    expect(launchCampaignBalance).to.equal(LIQUIDITY_AGNT);
 
     // Deployer has already collected
     await expect(
@@ -264,13 +252,19 @@ const main = async () => {
 
     // Collect fees
     scheduledForAscendance = await memeBase.scheduledForAscendance();
-    await memeBase.collectFees([campaignToken, memeToken, memeTokenTwo]);
+    await memeBase.collectFees([memeToken, memeTokenTwo]);
     let newScheduledForAscendance = await memeBase.scheduledForAscendance();
     // since no fees to collect, expect identical
     expect(newScheduledForAscendance).to.equal(scheduledForAscendance);
 
     // Send to burner
-    await memeBase.scheduleForAscendance();
+    await expect(
+        memeBase.scheduleForAscendance()
+    ).to.emit(memeBase, "Unleashed")
+    .and.to.emit(memeBase, "OLASJourneyToAscendance")
+    // Get meme token
+    const campaignToken = await memeBase.memeTokens(2);
+    console.log("Campaign token contract:", memeToken);
     scheduledForAscendance = await memeBase.scheduledForAscendance();
     expect(scheduledForAscendance).to.equal(0);
 
