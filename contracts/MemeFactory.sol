@@ -439,7 +439,7 @@ abstract contract MemeFactory {
 
         _locked = 1;
     }
-
+    
     /// @dev Unleashes the meme token.
     /// @param memeNonce Meme token nonce.
     function unleashThisMeme(uint256 memeNonce) external {
