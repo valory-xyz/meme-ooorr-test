@@ -32,7 +32,7 @@ Call before own contract:
         IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1, FEE_TIER, sqrtPriceX96);
 So, we must revert if pool exist at moment unleashThisMeme        
 ```
-[]
+[x] Fixed
 
 ### Lown issue: group internal function
 ```
@@ -65,7 +65,7 @@ function summonThisMeme(
         Checking name != "" and symbol != ""
         Many dApps and platforms (like Uniswap, Etherscan, etc.) expect name/symbol functions to be implemented and return meaningful values.
 ```
-[]
+[x] Fixed
 
 ### Low issue: Remove block.prevrandao from randomNonce
 ```
@@ -77,5 +77,5 @@ bytes32 randomNonce = keccak256(abi.encodePacked(block.timestamp, block.prevrand
 remove block.prevrandao for sure compatible with ANY evm-like networks (include rollups, non mainnet-L1)
 On some L2s, block.prevrandao may return a fixed value (e.g., 0). 
 ```
-[]
+[x] Fixed
 

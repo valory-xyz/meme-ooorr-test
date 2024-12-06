@@ -187,7 +187,13 @@ abstract contract MemeFactory {
         // Calculate the square root of the price ratio in X96 format
         uint160 sqrtPriceX96 = uint160((FixedPointMathLib.sqrt(priceX96) * (1 << 96)) / 1e9);
 
-        // Create a pool
+        // Get factory address
+        address factory = IUniswapV3(uniV3PositionManager).factory();
+        // Verify that pool does not exist
+        address pool = IUniswapV3(factory).getPool(token0, token1, FEE_TIER);
+        require(pool == address(0));
+
+        // Create pool
         IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1, FEE_TIER, sqrtPriceX96);
 
         // Approve tokens for router
@@ -306,6 +312,9 @@ abstract contract MemeFactory {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
+        // Check for name and symbol lengths
+        require(bytes(name).length > 0 && bytes(name).length > 0, "Name and symbol must not be empty");
+
         // Check for minimum native token value
         require(msg.value >= minNativeTokenValue, "Minimum native token value is required to summon");
         // Check for minimum total supply
@@ -369,7 +378,7 @@ abstract contract MemeFactory {
         string memory symbol,
         uint256 totalSupply
     ) internal returns (address memeToken) {
-        bytes32 randomNonce = keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender, memeNonce));
+        bytes32 randomNonce = keccak256(abi.encodePacked(block.timestamp, msg.sender, memeNonce));
         randomNonce = keccak256(abi.encodePacked(randomNonce));
         bytes memory payload = abi.encodePacked(type(Meme).creationCode, abi.encode(name, symbol, DECIMALS, totalSupply));
         // solhint-disable-next-line no-inline-assembly
