@@ -5,7 +5,6 @@ import {FixedPointMathLib} from "../lib/solmate/src/utils/FixedPointMathLib.sol"
 import {Meme} from "./Meme.sol";
 import {TickMath} from "./libraries/TickMath.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
-import "hardhat/console.sol";
 
 // ERC20 interface
 interface IERC20 {
@@ -125,13 +124,7 @@ abstract contract MemeFactory {
     // Number of meme tokens
     uint256 public numTokens;
     // Native token (ERC-20) scheduled to be converted to OLAS for Ascendance
-    uint256 public nativeTokensForAscendance;
-    // Total number of all native tokens collected
-    uint256 public totalNativeTokens;
-    // Total number of pooled native tokens
-    uint256 public totalPooledNativeTokens;
-    // Total number of ascended native tokens
-    uint256 public totalAscendedNativeTokens;
+    uint256 public scheduledForAscendance;
     // Nonce
     uint256 internal _nonce = 1;
     // Reentrancy lock
@@ -178,9 +171,6 @@ abstract contract MemeFactory {
         if (nativeToken < memeToken) {
             isNativeFirst = true;
         }
-        console.log("isNativeFirst:", isNativeFirst);
-        console.log("native address:", nativeToken);
-        console.log("meme address:", memeToken);
 
         // Ensure token order matches Uniswap convention
         (address token0, address token1, uint256 amount0, uint256 amount1) = isNativeFirst
@@ -192,7 +182,6 @@ abstract contract MemeFactory {
 
         // Calculate the square root of the price ratio in X96 format
         uint160 sqrtPriceX96 = uint160((FixedPointMathLib.sqrt(priceX96) * 2**96) / 1e9);
-        console.log("sqrtPriceX96", uint256(sqrtPriceX96));
 
         // Create a pool
         IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1, FEE_TIER, sqrtPriceX96);
@@ -217,10 +206,6 @@ abstract contract MemeFactory {
         });
 
         (positionId, liquidity, amount0, amount1) = IUniswapV3(uniV3PositionManager).mint(params);
-        console.log("amount0", amount0);
-        console.log("amount1", amount1);
-
-        totalPooledNativeTokens += isNativeFirst ? amount0 : amount1;
 
         // Schedule for ascendance leftovers from native token
         // Note that meme token leftovers will be purged later
@@ -314,7 +299,7 @@ abstract contract MemeFactory {
         uint256 adjustedNativeAmountForAscendance = _launchCampaign(nativeAmountForOLASBurn);
 
         // Schedule native token amount for ascendance
-        nativeTokensForAscendance += adjustedNativeAmountForAscendance;
+        scheduledForAscendance += adjustedNativeAmountForAscendance;
 
         emit FeesCollected(msg.sender, memeToken, nativeAmountForOLASBurn, memeAmountToBurn);
     }
@@ -435,7 +420,7 @@ abstract contract MemeFactory {
         bytes memory payload = abi.encodePacked(type(Meme).creationCode, abi.encode(name, symbol, DECIMALS, totalSupply));
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            memeToken := create2(0x0, add(0x20, payload), mload(payload), randomNonce)
+            memeToken := create2(0x0, add(0x20, payload), mload(payload), memeNonce) // revert to randomNonce
         }
 
         // Check for non-zero token address
@@ -453,7 +438,6 @@ abstract contract MemeFactory {
 
         // Check if the meme has been summoned
         require(memeSummon.unleashTime == 0, "Meme already unleashed");
-        console.log("SOL unleash time", memeSummon.unleashTime);
         // Check if the meme has been summoned
         require(memeSummon.summonTime > 0, "Meme not summoned");
         // Check the unleash timestamp
@@ -466,9 +450,6 @@ abstract contract MemeFactory {
         // All funds ever contributed to a given meme are wrapped here.
         _wrap(totalNativeTokenCommitted);
 
-        // Increase total wrapped tokens
-        totalNativeTokens += totalNativeTokenCommitted;
-
         // Put aside native token to buy OLAS with the burn percentage of the total native token amount committed
         uint256 nativeAmountForOLASBurn = (totalNativeTokenCommitted * OLAS_BURN_PERCENTAGE) / 100;
 
@@ -478,10 +459,7 @@ abstract contract MemeFactory {
         uint256 adjustedNativeAmountForAscendance = _launchCampaign(nativeAmountForOLASBurn);
 
         // Schedule native token amount for ascendance
-        nativeTokensForAscendance += adjustedNativeAmountForAscendance;
-
-        // Update total amount of ascended native tokens
-        totalAscendedNativeTokens += adjustedNativeAmountForAscendance;
+        scheduledForAscendance += adjustedNativeAmountForAscendance;
 
         // Calculate LP token allocation according to LP percentage and distribution to supporters
         uint256 memeAmountForLP = (memeSummon.totalSupply * LP_PERCENTAGE) / 100;
@@ -520,8 +498,6 @@ abstract contract MemeFactory {
         if (hearterContribution > 0) {
             _collectMemeToken(memeToken, memeNonce, heartersAmount, hearterContribution, totalNativeTokenCommitted);
         }
-
-        console.log("!!!!!UNLEASHED");
 
         emit Unleashed(msg.sender, memeToken, positionId, liquidity, nativeAmountForOLASBurn);
 
@@ -600,10 +576,9 @@ abstract contract MemeFactory {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
-        uint256 amount = nativeTokensForAscendance;
+        uint256 amount = scheduledForAscendance;
         require(amount > 0, "Nothing to send");
 
-        nativeTokensForAscendance = 0;
         scheduledForAscendance = 0;
 
 
