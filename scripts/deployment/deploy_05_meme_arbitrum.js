@@ -11,6 +11,7 @@ async function main() {
     const useLedger = parsedData.useLedger;
     const derivationPath = parsedData.derivationPath;
     const providerName = parsedData.providerName;
+    const gasPriceInGwei = parsedData.gasPriceInGwei;
 
     let networkURL = parsedData.networkURL;
     if (providerName === "polygon") {
@@ -41,10 +42,11 @@ async function main() {
 
     // Transaction signing and execution
     console.log("5. EOA to deploy MemeArbitrum");
+    const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
     const MemeArbitrum = await ethers.getContractFactory("MemeArbitrum");
     console.log("You are signing the following transaction: MemeArbitrum.connect(EOA).deploy()");
     const memeArbitrum = await MemeArbitrum.connect(EOA).deploy(parsedData.olasAddress, parsedData.wethAddress,
-        parsedData.uniV3positionManagerAddress, parsedData.buyBackBurnerAddress, parsedData.minNativeTokenValue);
+        parsedData.uniV3positionManagerAddress, parsedData.buyBackBurnerAddress, parsedData.minNativeTokenValue, { gasPrice });
     const result = await memeArbitrum.deployed();
 
     // Transaction details
