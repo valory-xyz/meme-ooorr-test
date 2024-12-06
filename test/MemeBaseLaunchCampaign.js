@@ -26,6 +26,10 @@ const main = async () => {
     signers = await ethers.getSigners();
     deployer = signers[0];
 
+    console.log(signers[0].address);
+    console.log(signers[1].address);
+    console.log(signers[2].address);
+
     console.log("Getting launch campaign data");
     const campaignFile = "scripts/deployment/memebase_campaign.json";
     dataFromJSON = fs.readFileSync(campaignFile, "utf8");
@@ -264,7 +268,7 @@ const main = async () => {
     .and.to.emit(memeBase, "OLASJourneyToAscendance")
     // Get meme token
     const campaignToken = await memeBase.memeTokens(2);
-    console.log("Campaign token contract:", memeToken);
+    console.log("Campaign token contract:", campaignToken);
     scheduledForAscendance = await memeBase.scheduledForAscendance();
     expect(scheduledForAscendance).to.equal(0);
 
@@ -275,6 +279,10 @@ const main = async () => {
     // Check the wrapped native token contract balance
     baseBalance = await weth.balanceOf(memeBase.address);
     expect(baseBalance).to.equal(0);
+
+    // Check the number of meme tokens
+    const numTokens = await memeBase.numTokens();
+    expect(numTokens).to.equal(3);
 };
 
 main()
