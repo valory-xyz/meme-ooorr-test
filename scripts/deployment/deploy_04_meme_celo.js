@@ -39,21 +39,12 @@ async function main() {
     const deployer = await EOA.getAddress();
     console.log("EOA is:", deployer);
 
-    const factoryParams = {
-        olas: parsedData.olasAddress,
-        nativeToken: parsedData.celoAddress,
-        router: parsedData.routerAddress,
-        factory: parsedData.factoryAddress,
-        oracle: parsedData.oracleAddress,
-        maxSlippageMeme: parsedData.maxSlippageMeme,
-        minNativeTokenValue: parsedData.minNativeTokenValue
-    }
-
     // Transaction signing and execution
-    console.log("2. EOA to deploy MemeCelo");
+    console.log("4. EOA to deploy MemeCelo");
     const MemeCelo = await ethers.getContractFactory("MemeCelo");
     console.log("You are signing the following transaction: MemeCelo.connect(EOA).deploy()");
-    const memeCelo = await MemeCelo.connect(EOA).deploy(factoryParams, parsedData.l2TokenBridgeAddress);
+    const memeCelo = await MemeCelo.connect(EOA).deploy(parsedData.olasAddress, parsedData.celoAddress,
+        parsedData.uniV3positionManagerAddress, parsedData.buyBackBurnerAddress, parsedData.minNativeTokenValue);
     const result = await memeCelo.deployed();
 
     // Transaction details
@@ -71,7 +62,7 @@ async function main() {
     // Contract verification
     if (parsedData.contractVerification) {
         const execSync = require("child_process").execSync;
-        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_02_meme_celo.js --network " + providerName + " " + memeCelo.address, { encoding: "utf-8" });
+        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_04_meme_celo.js --network " + providerName + " " + memeCelo.address, { encoding: "utf-8" });
     }
 }
 

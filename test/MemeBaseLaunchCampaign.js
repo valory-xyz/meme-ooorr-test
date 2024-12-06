@@ -17,6 +17,7 @@ const main = async () => {
     const defaultDeposit = ethers.utils.parseEther("1500");
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
+    const gasLimit = 10000000;
     // Nonce 1 is reserved for the campaign token
     // Nonce 2 is the first new meme token
     const nonce0 = 1;
@@ -155,7 +156,7 @@ const main = async () => {
         memeBase.unleashThisMeme(nonce2)
     ).to.be.revertedWith("Meme not summoned");
     await expect(
-        memeBase.unleashThisMeme(nonce1)
+        memeBase.unleashThisMeme(nonce1, { gasLimit })
     ).to.emit(memeBase, "Unleashed")
     // .withArgs(signers[0].address, null, null, null, 0)
     .and.to.emit(memeBase, "Collected");
@@ -217,7 +218,7 @@ const main = async () => {
 
     // Unleash the meme token
     await expect(
-        memeBase.unleashThisMeme(nonce2)
+        memeBase.unleashThisMeme(nonce2, { gasLimit })
     ).to.emit(memeBase, "Unleashed").and.to.emit(memeBase, "Unleashed");
 
     // Get campaign token
@@ -263,7 +264,7 @@ const main = async () => {
 
     // Send to burner
     await expect(
-        memeBase.scheduleForAscendance()
+        memeBase.scheduleForAscendance({ gasLimit })
     ).to.emit(memeBase, "Unleashed")
     .and.to.emit(memeBase, "OLASJourneyToAscendance")
     // Get meme token

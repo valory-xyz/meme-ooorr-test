@@ -6,11 +6,14 @@ const { LedgerSigner } = require("@anders-t/ethers-ledger");
 async function main() {
     const fs = require("fs");
     const globalsFile = "globals.json";
-    let dataFromJSON = fs.readFileSync(globalsFile, "utf8");
+    const dataFromJSON = fs.readFileSync(globalsFile, "utf8");
     let parsedData = JSON.parse(dataFromJSON);
     const useLedger = parsedData.useLedger;
     const derivationPath = parsedData.derivationPath;
     const providerName = parsedData.providerName;
+    const gasPriceInGwei = parsedData.gasPriceInGwei;
+    const memeFactoryAddress = parsedData.memeFactoryAddress;
+    const livenessRatio = parsedData.livenessRatio;
 
     let networkURL = parsedData.networkURL;
     if (providerName === "polygon") {
@@ -39,53 +42,30 @@ async function main() {
     const deployer = await EOA.getAddress();
     console.log("EOA is:", deployer);
 
-    console.log("Getting redemption data");
-    const redemptionsFile = "scripts/deployment/memebase_redemption.json";
-    dataFromJSON = fs.readFileSync(redemptionsFile, "utf8");
-    const redemptionsData = JSON.parse(dataFromJSON);
-    console.log("Number of entries:", redemptionsData.length);
-
-    const accounts = new Array();
-    const amounts = new Array();
-    for (let i = 0; i < redemptionsData.length; i++) {
-        accounts.push(redemptionsData[i]["hearter"]);
-        amounts.push(redemptionsData[i]["amount"].toString());
-    }
-
-    const factoryParams = {
-        olas: parsedData.olasAddress,
-        nativeToken: parsedData.wethAddress,
-        router: parsedData.routerAddress,
-        factory: parsedData.factoryAddress,
-        oracle: parsedData.oracleAddress,
-        maxSlippageMeme: parsedData.maxSlippageMeme,
-        minNativeTokenValue: parsedData.minNativeTokenValue
-    }
-
     // Transaction signing and execution
-    console.log("1. EOA to deploy MemeBase");
-    const MemeBase = await ethers.getContractFactory("MemeBase");
-    console.log("You are signing the following transaction: MemeBase.connect(EOA).deploy()");
-    const memeBase = await MemeBase.connect(EOA).deploy(factoryParams, parsedData.l2TokenBridgeAddress,
-        parsedData.balancerVaultAddress, parsedData.balancerPoolId, accounts, amounts);
-    const result = await memeBase.deployed();
+    console.log("6. EOA to deploy MemeActivityChecker");
+    const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
+    const MemeActivityChecker = await ethers.getContractFactory("MemeActivityChecker");
+    console.log("You are signing the following transaction: MemeActivityChecker.connect(EOA).deploy()");
+    const memeActivityChecker = await MemeActivityChecker.connect(EOA).deploy(memeFactoryAddress,
+        livenessRatio, { gasPrice });
+    const result = await memeActivityChecker.deployed();
 
     // Transaction details
-    console.log("Contract deployment: MemeBase");
-    console.log("Contract address:", memeBase.address);
+    console.log("Contract deployment: MemeActivityChecker");
+    console.log("Contract address:", memeActivityChecker.address);
     console.log("Transaction:", result.deployTransaction.hash);
-
-    // Wait for half a minute for the transaction completion
+    // Wait half a minute for the transaction completion
     await new Promise(r => setTimeout(r, 30000));
 
     // Writing updated parameters back to the JSON file
-    parsedData.memeBaseAddress = memeBase.address;
+    parsedData.memeActivityCheckerAddress = memeActivityChecker.address;
     fs.writeFileSync(globalsFile, JSON.stringify(parsedData));
 
     // Contract verification
     if (parsedData.contractVerification) {
         const execSync = require("child_process").execSync;
-        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_01_meme_base.js --network " + providerName + " " + memeBase.address, { encoding: "utf-8" });
+        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_06_meme_activity_checker.js --network " + providerName + " " + memeActivityChecker.address, { encoding: "utf-8" });
     }
 }
 

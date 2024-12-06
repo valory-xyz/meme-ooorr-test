@@ -6,14 +6,13 @@ const { LedgerSigner } = require("@anders-t/ethers-ledger");
 async function main() {
     const fs = require("fs");
     const globalsFile = "globals.json";
-    const dataFromJSON = fs.readFileSync(globalsFile, "utf8");
+    let dataFromJSON = fs.readFileSync(globalsFile, "utf8");
     let parsedData = JSON.parse(dataFromJSON);
     const useLedger = parsedData.useLedger;
     const derivationPath = parsedData.derivationPath;
     const providerName = parsedData.providerName;
     const gasPriceInGwei = parsedData.gasPriceInGwei;
-    const memeFactoryAddress = parsedData.memeFactoryAddress;
-    const livenessRatio = parsedData.livenessRatio;
+    const buyBackBurnerAddress = parsedData.buyBackBurnerAddress;
 
     let networkURL = parsedData.networkURL;
     if (providerName === "polygon") {
@@ -42,30 +41,33 @@ async function main() {
     const deployer = await EOA.getAddress();
     console.log("EOA is:", deployer);
 
+    // Assemble the contributors proxy data
+    const buyBackBurner = await ethers.getContractAt("BuyBackBurnerProxy", buyBackBurnerAddress);
+    const proxyData = contributors.interface.encodeFunctionData("initialize", []);
+
     // Transaction signing and execution
-    console.log("2. EOA to deploy MemeActivityChecker");
-    const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
-    const MemeActivityChecker = await ethers.getContractFactory("MemeActivityChecker");
-    console.log("You are signing the following transaction: MemeActivityChecker.connect(EOA).deploy()");
-    const memeActivityChecker = await MemeActivityChecker.connect(EOA).deploy(memeFactoryAddress,
-        livenessRatio, { gasPrice });
-    const result = await memeActivityChecker.deployed();
+    console.log("2. EOA to deploy BuyBackBurnerProxy");
+    const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
+    console.log("You are signing the following transaction: BuyBackBurnerProxy.connect(EOA).deploy()");
+    const buyBackBurner = await BuyBackBurnerProxy.connect(EOA).deploy(buyBackBurnerAddress, proxyData);
+    const result = await buyBackBurner.deployed();
 
     // Transaction details
-    console.log("Contract deployment: MemeActivityChecker");
-    console.log("Contract address:", memeActivityChecker.address);
+    console.log("Contract deployment: buyBackBurnerProxy");
+    console.log("Contract address:", buyBackBurner.address);
     console.log("Transaction:", result.deployTransaction.hash);
-    // Wait half a minute for the transaction completion
+
+    // Wait for half a minute for the transaction completion
     await new Promise(r => setTimeout(r, 30000));
 
     // Writing updated parameters back to the JSON file
-    parsedData.memeActivityCheckerAddress = memeActivityChecker.address;
+    parsedData.buyBackBurnerAddress = buyBackBurner.address;
     fs.writeFileSync(globalsFile, JSON.stringify(parsedData));
 
     // Contract verification
     if (parsedData.contractVerification) {
         const execSync = require("child_process").execSync;
-        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_03_meme_activity_checker.js --network " + providerName + " " + memeActivityChecker.address, { encoding: "utf-8" });
+        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_02_buy_back_burner_proxy.js --network " + providerName + " " + buyBackBurner.address, { encoding: "utf-8" });
     }
 }
 
