@@ -19,7 +19,7 @@ All false positive.
 attaсker contract => function unleashThisMeme => _createThisMeme => 
 bytes32 randomNonce = keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender, memeNonce));
         randomNonce = keccak256(abi.encodePacked(randomNonce));
-Can be calculated in the attacking contract (because determenistic in same block)
+Can be calculated in the attacking contract (because deterministic in same block)
 Can predict: memeToken := create2(0x0, add(0x20, payload), mload(payload), memeNonce)
 Call before own contract:
         // Calculate the price ratio (amount1 / amount0) scaled by 1e18 to avoid floating point issues
