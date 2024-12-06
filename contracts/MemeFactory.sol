@@ -299,10 +299,6 @@ abstract contract MemeFactory {
         // Burn meme tokens
         IERC20(memeToken).burn(memeAmountToBurn);
 
-        // // Account for launch campaign
-        // // All funds ever collected are already wrapped
-        // uint256 adjustedNativeAmountForAscendance = _updateLaunchCampaignBalance(nativeAmountForOLASBurn);
-
         // Schedule native token amount for ascendance
         scheduledForAscendance += nativeAmountForOLASBurn;
 
@@ -336,9 +332,6 @@ abstract contract MemeFactory {
 
         emit Collected(msg.sender, memeToken, allocation);
     }
-
-    // /// @dev Launch campaign logic.
-    // function _launchCampaign() internal virtual;
 
     /// @dev Allows diverting first x collected funds to a launch campaign.
     /// @param amount Amount of native token to convert to OLAS and burn.
@@ -476,7 +469,7 @@ abstract contract MemeFactory {
 
     /// @dev Unleashes the meme token.
     /// @param memeNonce Meme token nonce.
-    function _unleashThisMeme(uint256 memeNonce, MemeSummon memory memeSummon, uint256 nativeAmountForLP, uint256 totalNativeTokenCommitted, uint256 nativeAmountForOLASBurn) internal {
+    function _unleashThisMeme(uint256 memeNonce, MemeSummon storage memeSummon, uint256 nativeAmountForLP, uint256 totalNativeTokenCommitted, uint256 nativeAmountForOLASBurn) internal {
 
         // _launchCampaign();
 
@@ -493,13 +486,6 @@ abstract contract MemeFactory {
         // Create Uniswap pair with LP allocation
         (uint256 positionId, uint256 liquidity, bool isNativeFirst) =
             _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
-
-        // Schedule dust amount for ascendance
-        // if (_dust > 0) {
-        //     adjustedNativeAmountForAscendance = _updateLaunchCampaignBalance(_dust);
-        //     scheduledForAscendance += adjustedNativeAmountForAscendance;
-        //     _dust = 0;
-        // }
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
@@ -605,7 +591,10 @@ abstract contract MemeFactory {
         require(_launched != 0 || (_launched == 0 && amount > launchAmountTarget), "Not enough to cover launch campaign");
 
         if (_launched == 0) {
+            // campaign launch can trigger dust, hence we reset to 0 to capture it later
+            scheduledForAscendance = 0;
             amount = _launchCampaign(amount);
+            amount += scheduledForAscendance;
         }
 
         scheduledForAscendance = 0;
