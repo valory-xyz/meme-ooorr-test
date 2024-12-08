@@ -6,7 +6,7 @@ const { LedgerSigner } = require("@anders-t/ethers-ledger");
 async function main() {
     const fs = require("fs");
     const globalsFile = "globals.json";
-    const dataFromJSON = fs.readFileSync(globalsFile, "utf8");
+    let dataFromJSON = fs.readFileSync(globalsFile, "utf8");
     let parsedData = JSON.parse(dataFromJSON);
     const useLedger = parsedData.useLedger;
     const derivationPath = parsedData.derivationPath;
@@ -39,31 +39,44 @@ async function main() {
     const deployer = await EOA.getAddress();
     console.log("EOA is:", deployer);
 
+    console.log("Getting redemption data");
+    const redemptionsFile = "scripts/deployment/memebase_redemption.json";
+    dataFromJSON = fs.readFileSync(redemptionsFile, "utf8");
+    const redemptionsData = JSON.parse(dataFromJSON);
+    console.log("Number of entries:", redemptionsData.length);
+
+    const accounts = new Array();
+    const amounts = new Array();
+    for (let i = 0; i < redemptionsData.length; i++) {
+        accounts.push(redemptionsData[i]["hearter"]);
+        amounts.push(redemptionsData[i]["amount"].toString());
+    }
+
     // Transaction signing and execution
-    console.log("4. EOA to deploy MemeArbitrum");
-    const MemeArbitrum = await ethers.getContractFactory("MemeArbitrum");
-    console.log("You are signing the following transaction: MemeArbitrum.connect(EOA).deploy()");
-    const memeArbitrum = await MemeArbitrum.connect(EOA).deploy(parsedData.olasAddress, parsedData.usdcAddress,
-        parsedData.routerAddress, parsedData.factoryAddress, parsedData.minNativeTokenValue, parsedData.wethAddress,
-        parsedData.l2TokenBridgeAddress, parsedData.oracleAddress, parsedData.balancerVaultAddress, parsedData.balancerPoolId);
-    const result = await memeArbitrum.deployed();
+    console.log("3. EOA to deploy MemeBase");
+    const MemeBase = await ethers.getContractFactory("MemeBase");
+    console.log("You are signing the following transaction: MemeBase.connect(EOA).deploy()");
+    const memeBase = await MemeBase.connect(EOA).deploy(parsedData.olasAddress, parsedData.wethAddress,
+        parsedData.uniV3positionManagerAddress, parsedData.buyBackBurnerAddress, parsedData.minNativeTokenValue,
+        accounts, amounts);
+    const result = await memeBase.deployed();
 
     // Transaction details
-    console.log("Contract deployment: MemeArbitrum");
-    console.log("Contract address:", memeArbitrum.address);
+    console.log("Contract deployment: MemeBase");
+    console.log("Contract address:", memeBase.address);
     console.log("Transaction:", result.deployTransaction.hash);
 
     // Wait for half a minute for the transaction completion
     await new Promise(r => setTimeout(r, 30000));
 
     // Writing updated parameters back to the JSON file
-    parsedData.memeArbitrumAddress = memeArbitrum.address;
+    parsedData.memeBaseAddress = memeBase.address;
     fs.writeFileSync(globalsFile, JSON.stringify(parsedData));
 
     // Contract verification
     if (parsedData.contractVerification) {
         const execSync = require("child_process").execSync;
-        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_04_meme_arbitrum.js --network " + providerName + " " + memeArbitrum.address, { encoding: "utf-8" });
+        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_03_meme_base.js --network " + providerName + " " + memeBase.address, { encoding: "utf-8" });
     }
 }
 

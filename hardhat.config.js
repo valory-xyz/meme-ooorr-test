@@ -71,7 +71,7 @@ module.exports = {
             chainId: 10,
         },
         base: {
-            url: "https://virtual.base.rpc.tenderly.co/8b002611-4253-4639-9a80-5a721222b272",
+            url: "https://mainnet.base.org",
             accounts: accounts,
             chainId: 8453,
         },

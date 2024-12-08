@@ -25,10 +25,11 @@ const factoryParams = {
 }
 
 module.exports = [
-    factoryParams,
-    parsedData.l2TokenBridgeAddress,
-    parsedData.balancerVaultAddress,
-    parsedData.balancerPoolId,
+    parsedData.olasAddress,
+    parsedData.wethAddress,
+    parsedData.uniV3positionManagerAddress,
+    parsedData.buyBackBurnerAddress,
+    parsedData.minNativeTokenValue,
     accounts,
     amounts
 ];
