@@ -26,6 +26,8 @@ contract BuyBackBurner {
     bytes32 public constant BUY_BACK_BURNER_PROXY = 0xc6d7bd4bd971fa336816fe30b665cc6caccce8b123cc8ea692d132f342c4fc19;
     // L1 OLAS Burner address
     address public constant OLAS_BURNER = 0x51eb65012ca5cEB07320c497F4151aC207FEa4E0;
+    // Max allowed price deviation for TWAP pool values (10%) in 1e18 format
+    uint256 public constant MAX_ALLOWED_DEVIATION = 1e17;
     // Seconds ago to look back for TWAP pool values
     uint32 public constant SECONDS_AGO = 1800;
 
@@ -104,9 +106,8 @@ contract BuyBackBurner {
         address memeToken,
         address uniV3PositionManager,
         uint24 fee,
-        uint256 allowedDeviation,
         bool isNativeFirst
-    ) external view {
+    ) external {
         // Get factory address
         address factory = IUniswapV3(uniV3PositionManager).factory();
 
@@ -117,10 +118,23 @@ contract BuyBackBurner {
         require(pool != address(0), "Pool does not exist");
 
         // Get current pool reserves
-        (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3(pool).slot0();
+        (uint160 sqrtPriceX96, , uint16 observationCardinality, , , , ) = IUniswapV3(pool).slot0();
+        // Check observation cardinality
+        if (observationCardinality < 2) {
+            // Increase observation cardinality to get more accurate twap
+            IUniswapV3(pool).increaseObservationCardinalityNext(60);
+            return;
+        }
+
+        // Check if the pool has sufficient observation history
+        (uint32 oldestTimestamp, , , ) = IUniswapV3(pool).observations(0);
+        if (oldestTimestamp + SECONDS_AGO >= block.timestamp) {
+            return;
+        }
 
         // Check TWAP or historical data
         uint256 twapPrice = _getTwapFromOracle(pool);
+        // Get instant price
         uint256 instantPrice = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
 
         uint256 deviation;
@@ -130,6 +144,6 @@ contract BuyBackBurner {
                 ((twapPrice - instantPrice) * 1e18) / twapPrice;
         }
 
-        require(deviation <= allowedDeviation, "Price deviation too high");
+        require(deviation <= MAX_ALLOWED_DEVIATION, "Price deviation too high");
     }
 }

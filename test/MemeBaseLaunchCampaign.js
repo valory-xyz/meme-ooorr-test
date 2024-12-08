@@ -18,18 +18,19 @@ const main = async () => {
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
     const gasLimit = 10000000;
+    const fee = 10000;
     // Nonce 1 is reserved for the campaign token
     // Nonce 2 is the first new meme token
     const nonce0 = 1;
     const nonce1 = 2;
     const nonce2 = 3;
 
-    signers = await ethers.getSigners();
-    deployer = signers[0];
+    const signers = await ethers.getSigners();
+    const deployer = signers[0];
 
-    console.log(signers[0].address);
-    console.log(signers[1].address);
-    console.log(signers[2].address);
+    console.log("Balance of deployer:", await ethers.provider.getBalance(deployer.address));
+    console.log("Balance of signer 1:", await ethers.provider.getBalance(signers[1].address));
+    console.log("Balance of signer 2", await ethers.provider.getBalance(signers[2].address));
 
     console.log("Getting launch campaign data");
     const campaignFile = "scripts/deployment/memebase_campaign.json";
@@ -63,7 +64,8 @@ const main = async () => {
         accounts, amounts);
     await memeBase.deployed();
 
-    const weth = await ethers.getContractAt("Meme", parsedData.wethAddress);
+    const wethABI = fs.readFileSync("abis/misc/weth.json", "utf8");
+    const weth = new ethers.Contract(parsedData.wethAddress, wethABI, ethers.provider);
 
     let baseBalance = await weth.balanceOf(memeBase.address);
     expect(baseBalance).to.equal(0);
@@ -86,9 +88,9 @@ const main = async () => {
     await expect(
         memeBase.summonThisMeme(name, symbol, totalSupply, {value: smallDeposit})
     ).to.emit(memeBase, "Summoned")
-    .withArgs(signers[0].address, nonce1, smallDeposit)
+    .withArgs(deployer.address, nonce1, smallDeposit)
     .and.to.emit(memeBase, "Hearted")
-    .withArgs(signers[0].address, nonce1, smallDeposit);
+    .withArgs(deployer.address, nonce1, smallDeposit);
 
     let totalDeposit = smallDeposit;
     let memeSummon = await memeBase.memeSummons(nonce1);
@@ -96,9 +98,9 @@ const main = async () => {
     expect(memeSummon.symbol).to.equal(symbol);
     expect(memeSummon.totalSupply).to.equal(totalSupply);
     expect(memeSummon.nativeTokenContributed).to.equal(smallDeposit);
-    const memeHearterValue = await memeBase.memeHearters(nonce1, signers[0].address);
+    const memeHearterValue = await memeBase.memeHearters(nonce1, deployer.address);
     expect(memeHearterValue).to.equal(smallDeposit);
-    let accountActivity = await memeBase.mapAccountActivities(signers[0].address);
+    let accountActivity = await memeBase.mapAccountActivities(deployer.address);
     expect(accountActivity).to.equal(1);
 
     // Heart a new token by other accounts - negative case
@@ -158,14 +160,14 @@ const main = async () => {
     await expect(
         memeBase.unleashThisMeme(nonce1, { gasLimit })
     ).to.emit(memeBase, "Unleashed")
-    // .withArgs(signers[0].address, null, null, null, 0)
+    // .withArgs(deployer.address, null, null, null, 0)
     .and.to.emit(memeBase, "Collected");
-    // .withArgs(signers[0].address, null, null);
+    // .withArgs(deployer.address, null, null);
     await expect(
         memeBase.unleashThisMeme(nonce1)
     ).to.be.revertedWith("Meme already unleashed");
 
-    accountActivity = await memeBase.mapAccountActivities(signers[0].address);
+    accountActivity = await memeBase.mapAccountActivities(deployer.address);
     expect(accountActivity).to.equal(2);
 
     // Get first token address
@@ -257,7 +259,7 @@ const main = async () => {
 
     // Collect fees
     scheduledForAscendance = await memeBase.scheduledForAscendance();
-    await memeBase.collectFees([memeToken, memeTokenTwo]);
+    await memeBase.collectFees([memeToken, memeTokenTwo], { gasLimit });
     let newScheduledForAscendance = await memeBase.scheduledForAscendance();
     // since no fees to collect, expect identical
     expect(newScheduledForAscendance).to.equal(scheduledForAscendance);
@@ -284,6 +286,97 @@ const main = async () => {
     // Check the number of meme tokens
     const numTokens = await memeBase.numTokens();
     expect(numTokens).to.equal(3);
+
+    // Swap tokens
+    const factoryABI = fs.readFileSync("abis/misc/factory.json", "utf8");
+    const factory = new ethers.Contract(parsedData.factoryAddress, factoryABI, ethers.provider);
+    const quoterABI = fs.readFileSync("abis/misc/quoter.json", "utf8");
+    const quoter = new ethers.Contract(parsedData.quoterAddress, quoterABI, ethers.provider);
+    const routerABI = fs.readFileSync("abis/misc/swaprouter.json", "utf8");
+    const router = new ethers.Contract(parsedData.routerAddress, routerABI, ethers.provider);
+    const poolAddress = await factory.getPool(weth.address, memeToken, fee);
+    const poolABI = fs.readFileSync("abis/misc/pool.json", "utf8");
+    const pool = new ethers.Contract(poolAddress, poolABI, ethers.provider);
+
+    //let slot0 = await pool.slot0();
+    //console.log("0. slot0:", slot0);
+    //let observations0 = await pool.observations(0);
+    //console.log("0. observations0:", observations0);
+
+    const memeTokenInstance = await ethers.getContractAt("Meme", memeToken);
+    const memeBalance = await memeTokenInstance.balanceOf(deployer.address);
+    const amount = memeBalance.div(3);
+    // Approve tokens
+    await memeTokenInstance.approve(parsedData.routerAddress, amount);
+
+    const quote = {
+        tokenIn: memeTokenInstance.address,
+        tokenOut: weth.address,
+        fee,
+        recipient: deployer.address,
+        deadline: Math.floor(new Date().getTime() / 1000 + 60 * 10),
+        amountIn: amount,
+        sqrtPriceLimitX96: 0,
+    };
+
+    // Get amount out
+    let quotedAmountOut = await quoter.callStatic.quoteExactInputSingle(quote);
+    // Amount our must be bigger
+    expect(quotedAmountOut.amountOut).to.gt(0);
+
+    let params = {
+        tokenIn: memeTokenInstance.address,
+        tokenOut: weth.address,
+        fee,
+        recipient: deployer.address,
+        deadline: Math.floor(new Date().getTime() / 1000 + oneDay),
+        amountIn: amount,
+        amountOutMinimum: quotedAmountOut.amountOut,
+        sqrtPriceLimitX96: 0,
+    };
+
+    // Swap tokens
+    await router.connect(deployer).exactInputSingle(params);
+
+    //slot0 = await pool.slot0();
+    //console.log("1. slot0:", slot0);
+    //observations0 = await pool.observations(0);
+    //console.log("1. observations0:", observations0);
+
+    // Wait for 10 seconds
+    await helpers.time.increase(10);
+
+    // Approve tokens
+    await memeTokenInstance.approve(parsedData.routerAddress, amount);
+    // Get amount out for another swap
+    quotedAmountOut = await quoter.callStatic.quoteExactInputSingle(quote);
+    // Amount our must be bigger
+    expect(quotedAmountOut.amountOut).to.gt(0);
+
+    params = {
+        tokenIn: memeTokenInstance.address,
+        tokenOut: weth.address,
+        fee,
+        recipient: deployer.address,
+        deadline: Math.floor(new Date().getTime() / 1000 + oneDay),
+        amountIn: amount,
+        amountOutMinimum: quotedAmountOut.amountOut,
+        sqrtPriceLimitX96: 0,
+    };
+
+    // Perform another swap
+    await router.connect(deployer).exactInputSingle(params);
+
+    //slot0 = await pool.slot0();
+    //console.log("2. slot0:", slot0);
+    //observations0 = await pool.observations(0);
+    //console.log("2. observations0:", observations0);
+
+    // Wait for 10 seconds
+    await helpers.time.increase(10);
+
+    // Collect fees
+    await memeBase.collectFees([memeToken], { gasLimit });
 };
 
 main()

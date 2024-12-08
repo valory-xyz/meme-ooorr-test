@@ -7,7 +7,7 @@ import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 
 interface IBuyBackBurner {
     function checkPoolPrices(address nativeToken, address memeToken, address uniV3PositionManager, uint24 fee,
-        uint256 allowedDeviation, bool isNativeFirst) external view;
+        bool isNativeFirst) external;
 }
 
 // ERC20 interface
@@ -101,8 +101,6 @@ abstract contract MemeFactory {
     uint256 public constant OLAS_BURN_PERCENTAGE = 10;
     // Percentage of initial supply for liquidity pool (50%)
     uint256 public constant LP_PERCENTAGE = 50;
-    // Max allowed price deviation for TWAP pool values (100 = 1%) in 1e18 format
-    uint256 public constant MAX_ALLOWED_DEVIATION = 1e16;
     // Uniswap V3 fee tier of 1%
     uint24 public constant FEE_TIER = 10_000;
     /// @dev The minimum tick that corresponds to a selected fee tier
@@ -191,7 +189,7 @@ abstract contract MemeFactory {
         address factory = IUniswapV3(uniV3PositionManager).factory();
         // Verify that pool does not exist
         address pool = IUniswapV3(factory).getPool(token0, token1, FEE_TIER);
-        require(pool == address(0));
+        require(pool == address(0), "Pool address must be zero");
 
         // Create pool
         IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1, FEE_TIER, sqrtPriceX96);
@@ -231,8 +229,7 @@ abstract contract MemeFactory {
     /// @param isNativeFirst Order of a native token in the pool.
     function _collectFees(address memeToken, uint256 positionId, bool isNativeFirst) internal {
         // Check current pool prices
-        IBuyBackBurner(buyBackBurner).checkPoolPrices(nativeToken, memeToken, uniV3PositionManager, FEE_TIER,
-            MAX_ALLOWED_DEVIATION, isNativeFirst);
+        IBuyBackBurner(buyBackBurner).checkPoolPrices(nativeToken, memeToken, uniV3PositionManager, FEE_TIER, isNativeFirst);
 
         IUniswapV3.CollectParams memory params = IUniswapV3.CollectParams({
             tokenId: positionId,

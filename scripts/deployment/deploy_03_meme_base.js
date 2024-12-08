@@ -11,6 +11,7 @@ async function main() {
     const useLedger = parsedData.useLedger;
     const derivationPath = parsedData.derivationPath;
     const providerName = parsedData.providerName;
+    const gasPriceInGwei = parsedData.gasPriceInGwei;
 
     let networkURL = parsedData.networkURL;
     if (providerName === "polygon") {
@@ -54,11 +55,12 @@ async function main() {
 
     // Transaction signing and execution
     console.log("3. EOA to deploy MemeBase");
+    const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
     const MemeBase = await ethers.getContractFactory("MemeBase");
     console.log("You are signing the following transaction: MemeBase.connect(EOA).deploy()");
     const memeBase = await MemeBase.connect(EOA).deploy(parsedData.olasAddress, parsedData.wethAddress,
         parsedData.uniV3positionManagerAddress, parsedData.buyBackBurnerAddress, parsedData.minNativeTokenValue,
-        accounts, amounts);
+        accounts, amounts, { gasPrice });
     const result = await memeBase.deployed();
 
     // Transaction details

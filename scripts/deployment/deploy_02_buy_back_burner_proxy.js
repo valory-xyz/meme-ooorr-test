@@ -47,9 +47,10 @@ async function main() {
 
     // Transaction signing and execution
     console.log("2. EOA to deploy BuyBackBurnerProxy");
+    const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
     const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
     console.log("You are signing the following transaction: BuyBackBurnerProxy.connect(EOA).deploy()");
-    const buyBackBurner = await BuyBackBurnerProxy.connect(EOA).deploy(buyBackBurnerAddress, proxyData);
+    const buyBackBurner = await BuyBackBurnerProxy.connect(EOA).deploy(buyBackBurnerAddress, proxyData, { gasPrice });
     const result = await buyBackBurner.deployed();
 
     // Transaction details

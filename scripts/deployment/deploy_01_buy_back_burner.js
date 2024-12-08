@@ -11,6 +11,7 @@ async function main() {
     const useLedger = parsedData.useLedger;
     const derivationPath = parsedData.derivationPath;
     const providerName = parsedData.providerName;
+    const gasPriceInGwei = parsedData.gasPriceInGwei;
 
     let networkURL = parsedData.networkURL;
     if (providerName === "polygon") {
@@ -41,9 +42,10 @@ async function main() {
 
     // Transaction signing and execution
     console.log("1. EOA to deploy BuyBackBurner");
+    const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
     const BuyBackBurner = await ethers.getContractFactory("BuyBackBurner");
     console.log("You are signing the following transaction: BuyBackBurner.connect(EOA).deploy()");
-    const buyBackBurner = await BuyBackBurner.connect(EOA).deploy();
+    const buyBackBurner = await BuyBackBurner.connect(EOA).deploy({ gasPrice });
     const result = await buyBackBurner.deployed();
 
     // Transaction details
