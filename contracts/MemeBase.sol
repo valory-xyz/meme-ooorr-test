@@ -98,7 +98,6 @@ contract MemeBase is MemeFactory {
     }
 
     /// @dev Native token amount to wrap.
-    /// @notice Celo's native token CELO is also an ERC20.
     /// @param nativeTokenAmount Native token amount to be wrapped.
     function _wrap(uint256 nativeTokenAmount) internal virtual override {
         // Wrap ETH
