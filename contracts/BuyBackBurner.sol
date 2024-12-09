@@ -4,6 +4,14 @@ pragma solidity ^0.8.28;
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 import {TickMath} from "./libraries/TickMath.sol";
 
+// ERC20 interface
+interface IERC20 {
+    /// @dev Gets the amount of tokens owned by a specified account.
+    /// @param account Account address.
+    /// @return Amount of tokens owned.
+    function balanceOf(address account) external view returns (uint256);
+}
+
 /// @dev Only `owner` has a privilege, but the `sender` was provided.
 /// @param sender Sender address.
 /// @param owner Required sender address as an owner.
@@ -12,6 +20,9 @@ error OwnerOnly(address sender, address owner);
 /// @dev Provided zero address.
 error ZeroAddress();
 
+/// @dev Provided zero value.
+error ZeroValue();
+
 /// @dev The contract is already initialized.
 error AlreadyInitialized();
 
@@ -19,7 +30,10 @@ error AlreadyInitialized();
 abstract contract BuyBackBurner {
     event ImplementationUpdated(address indexed implementation);
     event OwnerUpdated(address indexed owner);
-    event BridgeItLikeItsBurn(uint256 olasAmount);
+    event OracleUpdated(address indexed oracle);
+    event MinBridgedAmountUpdated(uint256 minBridgedAmount);
+    event BuyBack(uint256 olasAmount);
+    event BridgeAndBurn(uint256 olasAmount);
 
     // Version number
     string public constant VERSION = "0.2.0";
@@ -32,10 +46,23 @@ abstract contract BuyBackBurner {
     // Seconds ago to look back for TWAP pool values
     uint32 public constant SECONDS_AGO = 1800;
 
-    // Reentrancy lock
-    uint256 internal _locked = 1;
     // Contract owner
     address public owner;
+    // OLAS token address
+    address public olas;
+    // Native token (ERC-20) address
+    address public nativeToken;
+    // Oracle address
+    address public oracle;
+    // L2 token relayer bridge address
+    address public l2TokenRelayer;
+
+    // Oracle max slippage for ERC-20 native token <=> OLAS
+    uint256 public maxSlippage;
+    // Minimum bridge amount
+    uint256 public minBridgedAmount;
+    // Reentrancy lock
+    uint256 internal _locked = 1;
 
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param olasAmount OLAS amount.
@@ -127,6 +154,40 @@ abstract contract BuyBackBurner {
         emit OwnerUpdated(newOwner);
     }
 
+    /// @dev Changes contract oracle address.
+    /// @param newOracle Address of a new oracle.
+    function changeOracle(address newOracle) external virtual {
+        // Check for the ownership
+        if (msg.sender != owner) {
+            revert OwnerOnly(msg.sender, owner);
+        }
+
+        // Check for the zero address
+        if (newOracle == address(0)) {
+            revert ZeroAddress();
+        }
+
+        oracle = newOracle;
+        emit OracleUpdated(newOracle);
+    }
+
+    /// @dev Changes minimum OLAS bridge amount.
+    /// @param newMinBridgedAmount New minimum bridged amount.
+    function changeMinBridgedAmount(uint256 newMinBridgedAmount) external virtual {
+        // Check for the ownership
+        if (msg.sender != owner) {
+            revert OwnerOnly(msg.sender, owner);
+        }
+
+        // Check for the zero value
+        if (newMinBridgedAmount == 0) {
+            revert ZeroValue();
+        }
+
+        minBridgedAmount = newMinBridgedAmount;
+        emit MinBridgedAmountUpdated(newMinBridgedAmount);
+    }
+
     function checkPoolPrices(
         address token0,
         address token1,
@@ -173,19 +234,27 @@ abstract contract BuyBackBurner {
     /// @dev Bridges OLAS to Ethereum mainnet for burn.
     /// @notice if nativeTokenAmount is zero or above the balance, it will be adjusted to current native token balance.
     /// @param nativeTokenAmount Suggested native token amount.
-    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
-    /// @param bridgePayload Optional additional bridge payload.
-    function sendToHigherHeights(
-        uint256 nativeTokenAmount,
-        uint256 tokenGasLimit,
-        bytes memory bridgePayload
-    ) external payable {
+    function buyBack(uint256 nativeTokenAmount) external virtual {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
         // Buy OLAS
         uint256 olasAmount = _buyOLAS(nativeTokenAmount);
-        require(olasAmount > 0, "Nothing to bridge");
+
+        emit BuyBack(olasAmount);
+
+        _locked = 1;
+    }
+
+    /// @dev Bridges OLAS to Ethereum mainnet for burn.
+    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
+    /// @param bridgePayload Optional additional bridge payload.
+    function bridgeAndBurn(uint256 tokenGasLimit, bytes memory bridgePayload) external virtual payable {
+        require(_locked == 1, "Reentrancy guard");
+        _locked = 2;
+
+        uint256 olasAmount = IERC20(olas).balanceOf(address(this));
+        require(olasAmount >= minBridgedAmount, "Not enough OLAS to bridge");
 
         // Burn OLAS
         uint256 leftovers = _bridgeAndBurn(olasAmount, tokenGasLimit, bridgePayload);
@@ -197,7 +266,7 @@ abstract contract BuyBackBurner {
             require(success, "Leftovers transfer failed");
         }
 
-        emit BridgeItLikeItsBurn(olasAmount);
+        emit BridgeAndBurn(olasAmount);
 
         _locked = 1;
     }
