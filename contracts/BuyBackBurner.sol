@@ -53,7 +53,7 @@ abstract contract BuyBackBurner {
     /// @return olasAmount Obtained OLAS amount.
     function _buyOLAS(uint256 nativeTokenAmount) internal virtual returns (uint256 olasAmount);
 
-    function _getTwapFromOracle(address pool) internal view returns (uint256 priceX96) {
+    function _getTwapFromOracle(address pool) internal view returns (uint256 price) {
         // Query the pool for the current and historical tick
         uint32[] memory secondsAgos = new uint32[](2);
         // Start of the period
@@ -70,7 +70,7 @@ abstract contract BuyBackBurner {
         uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(averageTick);
 
         // Calculate the price using the sqrtPriceX96
-        priceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
+        price = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
     }
 
     /// @dev BuyBackBurner initializer.
