@@ -46,7 +46,7 @@ contract MemeBase is MemeFactory {
         require(accounts.length == amounts.length);
 
         // Initiate meme token map values
-        // unleashTime is set to 1 such that no one is able to heart or collect this token
+        // unleashTime is set to 1 such that no one is able to heart, collect or purge this token
         memeSummons[launchCampaignNonce] = MemeSummon("Agent Token II", "AGNT II", 1_000_000_000 ether,
             CONTRIBUTION_AGNT, SUMMON_AGNT, 1, 0, 0, false);
 
