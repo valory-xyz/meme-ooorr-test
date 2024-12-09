@@ -16,12 +16,13 @@ error ZeroAddress();
 error AlreadyInitialized();
 
 /// @title BuyBackBurner - BuyBackBurner implementation contract
-contract BuyBackBurner {
+abstract contract BuyBackBurner {
     event ImplementationUpdated(address indexed implementation);
     event OwnerUpdated(address indexed owner);
+    event BridgeItLikeItsBurn(uint256 olasAmount);
 
     // Version number
-    string public constant VERSION = "0.0.1";
+    string public constant VERSION = "0.2.0";
     // Code position in storage is keccak256("BUY_BACK_BURNER_PROXY") = "c6d7bd4bd971fa336816fe30b665cc6caccce8b123cc8ea692d132f342c4fc19"
     bytes32 public constant BUY_BACK_BURNER_PROXY = 0xc6d7bd4bd971fa336816fe30b665cc6caccce8b123cc8ea692d132f342c4fc19;
     // L1 OLAS Burner address
@@ -31,8 +32,26 @@ contract BuyBackBurner {
     // Seconds ago to look back for TWAP pool values
     uint32 public constant SECONDS_AGO = 1800;
 
+    // Reentrancy lock
+    uint256 internal _locked = 1;
     // Contract owner
     address public owner;
+
+    /// @dev Bridges OLAS amount back to L1 and burns.
+    /// @param olasAmount OLAS amount.
+    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
+    /// @param bridgePayload Optional additional bridge payload.
+    /// @return leftovers msg.value leftovers if partially utilized by the bridge.
+    function _bridgeAndBurn(
+        uint256 olasAmount,
+        uint256 tokenGasLimit,
+        bytes memory bridgePayload
+    ) internal virtual returns (uint256 leftovers);
+
+    /// @dev Buys OLAS on DEX.
+    /// @param nativeTokenAmount Suggested native token amount.
+    /// @return olasAmount Obtained OLAS amount.
+    function _buyOLAS(uint256 nativeTokenAmount) internal virtual returns (uint256 olasAmount);
 
     function _getTwapFromOracle(address pool) internal view returns (uint256 priceX96) {
         // Query the pool for the current and historical tick
@@ -55,12 +74,19 @@ contract BuyBackBurner {
     }
 
     /// @dev BuyBackBurner initializer.
-    function initialize() external{
+    /// @param payload Initializer payload.
+    function _initialize(bytes memory payload) internal virtual;
+
+    /// @dev BuyBackBurner initializer.
+    /// @param payload Initializer payload.
+    function initialize(bytes memory payload) external {
         if (owner != address(0)) {
             revert AlreadyInitialized();
         }
 
         owner = msg.sender;
+
+        _initialize(payload);
     }
 
     /// @dev Changes the implementation contract address.
@@ -142,5 +168,41 @@ contract BuyBackBurner {
         }
 
         require(deviation <= MAX_ALLOWED_DEVIATION, "Price deviation too high");
+    }
+
+    /// @dev Bridges OLAS to Ethereum mainnet for burn.
+    /// @notice if nativeTokenAmount is zero or above the balance, it will be adjusted to current native token balance.
+    /// @param nativeTokenAmount Suggested native token amount.
+    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
+    /// @param bridgePayload Optional additional bridge payload.
+    function sendToHigherHeights(
+        uint256 nativeTokenAmount,
+        uint256 tokenGasLimit,
+        bytes memory bridgePayload
+    ) external payable {
+        require(_locked == 1, "Reentrancy guard");
+        _locked = 2;
+
+        // Buy OLAS
+        uint256 olasAmount = _buyOLAS(nativeTokenAmount);
+        require(olasAmount > 0, "Nothing to bridge");
+
+        // Burn OLAS
+        uint256 leftovers = _bridgeAndBurn(olasAmount, tokenGasLimit, bridgePayload);
+
+        // Send leftover amount, if any, back to the sender
+        if (leftovers > 0) {
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool success, ) = tx.origin.call{value: leftovers}("");
+            require(success, "Leftovers transfer failed");
+        }
+
+        // TODO Check if needed
+        // Update prices in oracle
+        //IOracle(oracle).updatePrice();
+
+        emit BridgeItLikeItsBurn(olasAmount);
+
+        _locked = 1;
     }
 }
