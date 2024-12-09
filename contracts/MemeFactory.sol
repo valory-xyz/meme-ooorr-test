@@ -107,7 +107,7 @@ abstract contract MemeFactory {
     // Uniswap V3 fee tier of 1%
     uint24 public constant FEE_TIER = 10_000;
     /// The minimum tick that corresponds to a selected fee tier
-    int24 public constant MIN_TICK = -887200; // TODO: double check
+    int24 public constant MIN_TICK = -887200;
     /// The maximum tick that corresponds to a selected fee tier
     int24 public constant MAX_TICK = -MIN_TICK;
     // Meme token decimals

@@ -44,4 +44,4 @@ https://support.uniswap.org/hc/en-us/articles/21069524840589-What-is-a-tick-when
 https://support.uniswap.org/hc/en-us/articles/7423663459597-Why-does-the-price-input-automatically-round
 https://medium.com/@jaysojitra1011/uniswap-v3-deep-dive-visualizing-ticks-and-liquidity-provisioning-part-3-081db166243b
 ```
-
+[x] Confirmed, does not need update
