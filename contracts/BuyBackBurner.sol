@@ -257,7 +257,7 @@ abstract contract BuyBackBurner {
         require(olasAmount >= minBridgedAmount, "Not enough OLAS to bridge");
 
         // Burn OLAS
-        (uint256 leftovers) = _bridgeAndBurn(olasAmount, tokenGasLimit, bridgePayload);
+        uint256 leftovers = _bridgeAndBurn(olasAmount, tokenGasLimit, bridgePayload);
 
         // Send leftover amount, if any, back to the sender
         if (leftovers > 0) {
