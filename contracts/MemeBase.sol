@@ -47,7 +47,7 @@ contract MemeBase is MemeFactory {
 
         // Initiate meme token map values
         // unleashTime is set to 1 such that no one is able to heart, collect or purge this token
-        memeSummons[launchCampaignNonce] = MemeSummon("Agent Token II", "AGNT II", 1_000_000_000 ether,
+        memeSummons[launchCampaignNonce] = MemeSummon("Agent Token", "AG3NT", 1_000_000_000 ether,
             CONTRIBUTION_AGNT, SUMMON_AGNT, 1, 0, 0, false);
 
         // To match original summon events (purposefully placed here to match order of original events)
@@ -67,12 +67,12 @@ contract MemeBase is MemeFactory {
         require(adjustedAmount == LIQUIDITY_AGNT, "Total amount adjusted for burn allocation must match liquidity amount");
     }
 
-    /// @dev AGNT II token launch campaign unleash.
+    /// @dev AG3NT token launch campaign unleash.
     /// @notice MAGA: Make Agents.Fun Great Again.
-    /// Unleashes a new version of AGNT, called `AGNT II`, that has the same 
-    /// LP setup (same amount of AGNT II and ETH, modulus a possibly rounding difference 
-    /// as new MemeBase uses UniV3, rather than UniV2), as the original AGN has.
-    /// Hearters of the original AGNT now have 24 hours to collect their `AGNT II` allocation.
+    /// Unleashes a new version of AGNT, called `AG3NT`, that has the same 
+    /// LP setup (same amount of AG3NT and ETH, modulus a possibly rounding difference 
+    /// as new MemeBase uses UniV3, rather than UniV2), as the original AGNT has.
+    /// Hearters of the original AGNT now have 24 hours to collect their `AG3NT` allocation.
     function _MAGA() private {
         // Get meme summon info
         MemeSummon storage memeSummon = memeSummons[launchCampaignNonce];
