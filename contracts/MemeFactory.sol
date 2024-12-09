@@ -530,7 +530,7 @@ abstract contract MemeFactory {
         MemeSummon memory memeSummon = memeSummons[memeNonce];
 
         // Check if the meme has been unleashed
-        require(memeSummon.unleashTime > 1, "Meme not unleashed");
+        require(memeSummon.unleashTime > 0, "Meme not unleashed");
         // Check if enough time has passed since the meme was unleashed
         require(block.timestamp > memeSummon.unleashTime + COLLECT_DELAY, "Purge only allowed from 24 hours after unleash");
 

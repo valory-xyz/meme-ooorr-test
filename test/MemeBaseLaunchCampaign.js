@@ -124,11 +124,11 @@ const main = async () => {
     ).to.be.revertedWith("Meme already unleashed");
     // Check that launch campaign meme cannot be collected
     await expect(
-        memeBase.connect(signers[1]).collectThisMeme(nonce0, {value: smallDeposit})
+        memeBase.connect(signers[1]).collectThisMeme("0xFD49CbaE7bD16743bF9Fbb97bdFB30158e0b857e")
     ).to.be.revertedWith("Meme not unleashed");
-    // Check that launch campaign meme cannot be purged
+    // // Check that launch campaign meme cannot be purged
     await expect(
-        memeBase.connect(signers[1]).purgeThisMeme(nonce0, {value: smallDeposit})
+        memeBase.connect(signers[1]).purgeThisMeme("0xFD49CbaE7bD16743bF9Fbb97bdFB30158e0b857e")
     ).to.be.revertedWith("Meme not unleashed");
 
     // Heart a new token by other accounts - positive cases
@@ -221,7 +221,7 @@ const main = async () => {
 
     // Test failing schedule for ascendance
     await expect(
-        memeBase.scheduleForAscendance({ gasLimit })
+        memeBase.scheduleForAscendance()
     ).to.be.revertedWith("Not enough to cover launch campaign")
 
     //// Second test unleashing of a meme
