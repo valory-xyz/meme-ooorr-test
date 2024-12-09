@@ -107,7 +107,7 @@ abstract contract MemeFactory {
     // Uniswap V3 fee tier of 1%
     uint24 public constant FEE_TIER = 10_000;
     /// The minimum tick that corresponds to a selected fee tier
-    int24 public constant MIN_TICK = -887200;
+    int24 public constant MIN_TICK = -887200; // TODO: double check
     /// The maximum tick that corresponds to a selected fee tier
     int24 public constant MAX_TICK = -MIN_TICK;
     // Meme token decimals
@@ -388,7 +388,7 @@ abstract contract MemeFactory {
         _locked = 2;
 
         // Check for name and symbol lengths
-        require(bytes(name).length > 0 && bytes(name).length > 0, "Name and symbol must not be empty");
+        require(bytes(name).length > 0 && bytes(symbol).length > 0, "Name and symbol must not be empty");
         // Check for minimum native token value
         require(msg.value >= minNativeTokenValue, "Minimum native token value is required to summon");
         // Check for minimum total supply
@@ -529,7 +529,7 @@ abstract contract MemeFactory {
         // Get meme summon info
         MemeSummon memory memeSummon = memeSummons[memeNonce];
 
-        // Check if the meme has been summoned
+        // Check if the meme has been unleashed
         require(memeSummon.unleashTime > 0, "Meme not unleashed");
         // Check if enough time has passed since the meme was unleashed
         require(block.timestamp > memeSummon.unleashTime + COLLECT_DELAY, "Purge only allowed from 24 hours after unleash");

@@ -10,6 +10,8 @@ const main = async () => {
     let dataFromJSON = fs.readFileSync(globalsFile, "utf8");
     const parsedData = JSON.parse(dataFromJSON);
 
+    const badName = "";
+    const badSymbol = "";
     const name = "Meme";
     const symbol = "MM";
     const totalSupply = "1" + "0".repeat(24);
@@ -75,6 +77,12 @@ const main = async () => {
     const MIN_TOTAL_SUPPLY = await memeBase.MIN_TOTAL_SUPPLY();
     const uint128MaxPlusOne = BigInt(2) ** BigInt(128);
     await expect(
+        memeBase.summonThisMeme(badName, badSymbol, totalSupply, {value: minNativeTokenValue})
+    ).to.be.revertedWith("Name and symbol must not be empty");
+    await expect(
+        memeBase.summonThisMeme(name, badSymbol, totalSupply, {value: minNativeTokenValue})
+    ).to.be.revertedWith("Name and symbol must not be empty");
+    await expect(
         memeBase.summonThisMeme(name, symbol, totalSupply, {value: minNativeTokenValue.sub(1)})
     ).to.be.revertedWith("Minimum native token value is required to summon");
     await expect(
@@ -114,6 +122,14 @@ const main = async () => {
     await expect(
         memeBase.connect(signers[1]).heartThisMeme(nonce0, {value: smallDeposit})
     ).to.be.revertedWith("Meme already unleashed");
+    // Check that launch campaign meme cannot be collected
+    await expect(
+        memeBase.connect(signers[1]).collectThisMeme("0xFD49CbaE7bD16743bF9Fbb97bdFB30158e0b857e")
+    ).to.be.revertedWith("Meme not unleashed");
+    // // Check that launch campaign meme cannot be purged
+    await expect(
+        memeBase.connect(signers[1]).purgeThisMeme("0xFD49CbaE7bD16743bF9Fbb97bdFB30158e0b857e")
+    ).to.be.revertedWith("Meme not unleashed");
 
     // Heart a new token by other accounts - positive cases
     await expect(
@@ -203,6 +219,11 @@ const main = async () => {
     baseBalance = await memeInstance.balanceOf(memeBase.address);
     expect(baseBalance).to.equal(0);
 
+    // Test failing schedule for ascendance
+    await expect(
+        memeBase.scheduleForAscendance()
+    ).to.be.revertedWith("Not enough to cover launch campaign")
+
     //// Second test unleashing of a meme
 
     // Summon a new meme token
@@ -249,7 +270,7 @@ const main = async () => {
     // Second signer cannot collect
     await expect(
         memeBase.connect(signers[2]).collectThisMeme(memeTokenTwo)
-    ).to.be.reverted;
+    ).to.be.revertedWith("Collect only allowed until 24 hours after unleash");
 
     // Purge remaining allocation
     await memeBase.purgeThisMeme(memeTokenTwo);
@@ -376,7 +397,9 @@ const main = async () => {
     await helpers.time.increase(10);
 
     // Collect fees
-    await memeBase.collectFees([memeToken], { gasLimit });
+    await expect(
+        memeBase.collectFees([memeToken], { gasLimit })
+    ).to.emit(memeBase, "FeesCollected")
 };
 
 main()
