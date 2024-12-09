@@ -18,6 +18,9 @@ interface IOracle {
 
     /// @dev Validates price according to slippage.
     function validatePrice(uint256 slippage) external view returns (bool);
+
+    /// @dev Updates the time-weighted average price.
+    function updatePrice() external returns (bool);
 }
 
 /// @dev Only `owner` has a privilege, but the `sender` was provided.
@@ -42,6 +45,7 @@ abstract contract BuyBackBurner {
     event MinBridgedAmountUpdated(uint256 minBridgedAmount);
     event BuyBack(uint256 olasAmount);
     event BridgeAndBurn(uint256 olasAmount);
+    event OraclePriceUpdated(address indexed oracle, address indexed sender);
 
     // Version number
     string public constant VERSION = "0.2.0";
@@ -71,6 +75,9 @@ abstract contract BuyBackBurner {
     uint256 public minBridgedAmount;
     // Reentrancy lock
     uint256 internal _locked = 1;
+
+    // Map of account => activity counter
+    mapping(address => uint256) public mapAccountActivities;
 
     /// @dev Bridges OLAS amount back to L1 and burns.
     /// @param olasAmount OLAS amount.
@@ -277,6 +284,9 @@ abstract contract BuyBackBurner {
         }
         require(nativeTokenAmount > 0, "Insufficient native token amount");
 
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
+
         // Buy OLAS
         uint256 olasAmount = _buyOLAS(nativeTokenAmount);
 
@@ -291,6 +301,9 @@ abstract contract BuyBackBurner {
     function bridgeAndBurn(uint256 tokenGasLimit, bytes memory bridgePayload) external virtual payable {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
+
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
 
         uint256 olasAmount = IERC20(olas).balanceOf(address(this));
         require(olasAmount >= minBridgedAmount, "Not enough OLAS to bridge");
@@ -308,5 +321,17 @@ abstract contract BuyBackBurner {
         emit BridgeAndBurn(olasAmount);
 
         _locked = 1;
+    }
+
+    /// @dev Triggers oracle price update.
+    function updateOraclePrice() external {
+        // Record msg.sender activity
+        mapAccountActivities[msg.sender]++;
+
+        // Update price
+        bool success = IOracle(oracle).updatePrice();
+        require(success, "Oracle price update failed");
+
+        emit OraclePriceUpdated(oracle, msg.sender);
     }
 }

@@ -123,6 +123,7 @@ contract BalancerPriceOracle {
         snapshot.lastUpdated = block.timestamp;
 
         emit PriceUpdated(msg.sender, currentPrice, snapshot.cumulativePrice);
+
         return true;
     }
 
