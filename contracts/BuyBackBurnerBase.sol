@@ -64,16 +64,6 @@ contract BuyBackBurnerBase is BuyBackBurner {
     // This is safe as the value is practically bigger than observed ones on numerous chains
     uint32 public constant TOKEN_GAS_LIMIT = 300_000;
 
-    // OLAS token address
-    address public olas;
-    // Native token (ERC-20) address
-    address public nativeToken;
-    // Oracle address
-    address public oracle;
-    // L2 token relayer bridge address
-    address public l2TokenRelayer;
-    // Oracle max slippage for ERC-20 native token <=> OLAS
-    uint256 public maxSlippage;
     // Balancer vault address
     address public balancerVault;
     // Balancer pool Id

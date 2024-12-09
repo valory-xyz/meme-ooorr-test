@@ -43,16 +43,6 @@ contract BuyBackBurnerCelo is BuyBackBurner {
     // Ethereum mainnet chain Id in Wormhole format
     uint16 public constant WORMHOLE_ETH_CHAIN_ID = 2;
 
-    // OLAS token address
-    address public olas;
-    // Native token (ERC-20) address
-    address public nativeToken;
-    // Oracle address
-    address public oracle;
-    // L2 token relayer bridge address
-    address public l2TokenRelayer;
-    // Oracle max slippage for ERC-20 native token <=> OLAS
-    uint256 public maxSlippage;
     // Ubeswap router address
     address public router;
 
