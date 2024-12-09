@@ -126,8 +126,8 @@ contract BalancerPriceOracle {
         return true;
     }
 
-    /// @dev Validates the current price against a TWAP according to slippage tolerance.
-    /// @param slippage the acceptable slippage tolerance
+    /// @dev Validates Current price against a TWAP according to slippage tolerance.
+    /// @param slippage Acceptable slippage tolerance.
     function validatePrice(uint256 slippage) external view returns (bool) {
         require(slippage <= maxSlippage, "Slippage overflow");
 

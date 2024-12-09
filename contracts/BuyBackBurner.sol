@@ -12,6 +12,14 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
+interface IOracle {
+    /// @dev Gets the current OLAS token price in 1e18 format.
+    function getPrice() external view returns (uint256);
+
+    /// @dev Validates price according to slippage.
+    function validatePrice(uint256 slippage) external view returns (bool);
+}
+
 /// @dev Only `owner` has a privilege, but the `sender` was provided.
 /// @param sender Sender address.
 /// @param owner Required sender address as an owner.
@@ -78,7 +86,24 @@ abstract contract BuyBackBurner {
     /// @dev Buys OLAS on DEX.
     /// @param nativeTokenAmount Suggested native token amount.
     /// @return olasAmount Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount) internal virtual returns (uint256 olasAmount);
+    function _buyOLAS(uint256 nativeTokenAmount) internal virtual returns (uint256 olasAmount) {
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(maxSlippage), "Before swap slippage limit is breached");
+
+        // Get current pool price
+        uint256 previousPrice = IOracle(oracle).getPrice();
+
+        olasAmount = _performSwap(nativeTokenAmount);
+
+        // Get current pool price
+        uint256 tradePrice = IOracle(oracle).getPrice();
+
+        // Validate against slippage thresholds
+        uint256 lowerBound = (previousPrice * (100 - maxSlippage)) / 100;
+        uint256 upperBound = (previousPrice * (100 + maxSlippage)) / 100;
+
+        require(tradePrice >= lowerBound && tradePrice <= upperBound, "After swap slippage limit is breached");
+    }
 
     function _getTwapFromOracle(address pool) internal view returns (uint256 price) {
         // Query the pool for the current and historical tick
@@ -103,6 +128,11 @@ abstract contract BuyBackBurner {
     /// @dev BuyBackBurner initializer.
     /// @param payload Initializer payload.
     function _initialize(bytes memory payload) internal virtual;
+
+    /// @dev Performs swap for OLAS on DEX.
+    /// @param nativeTokenAmount Native token amount.
+    /// @return olasAmount Obtained OLAS amount.
+    function _performSwap(uint256 nativeTokenAmount) internal virtual returns (uint256 olasAmount);
 
     /// @dev BuyBackBurner initializer.
     /// @param payload Initializer payload.
@@ -238,6 +268,15 @@ abstract contract BuyBackBurner {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
+        // Get nativeToken balance
+        uint256 balance = IERC20(nativeToken).balanceOf(address(this));
+
+        // Adjust native token amount, if needed
+        if (nativeTokenAmount == 0 || nativeTokenAmount > balance) {
+            nativeTokenAmount = balance;
+        }
+        require(nativeTokenAmount > 0, "Insufficient native token amount");
+
         // Buy OLAS
         uint256 olasAmount = _buyOLAS(nativeTokenAmount);
 
@@ -256,7 +295,7 @@ abstract contract BuyBackBurner {
         uint256 olasAmount = IERC20(olas).balanceOf(address(this));
         require(olasAmount >= minBridgedAmount, "Not enough OLAS to bridge");
 
-        // Burn OLAS
+        // Bridge and burn OLAS
         uint256 leftovers = _bridgeAndBurn(olasAmount, tokenGasLimit, bridgePayload);
 
         // Send leftover amount, if any, back to the sender

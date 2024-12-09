@@ -24,11 +24,6 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
-interface IOracle {
-    /// @dev Validates price according to slippage.
-    function validatePrice(uint256 slippage) external view returns (bool);
-}
-
 // UniswapV2 interface
 interface IUniswap {
     /// @dev Swaps an exact amount of input tokens along the route determined by the path.
@@ -88,31 +83,16 @@ contract BuyBackBurnerCelo is BuyBackBurner {
         leftovers = msg.value;
     }
 
-    /// @dev Buys OLAS on DEX.
-    /// @param nativeTokenAmount Suggested native token amount.
+    /// @dev Performs swap for OLAS on DEX.
+    /// @param nativeTokenAmount Native token amount.
     /// @return olasAmount Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount) internal virtual override returns (uint256 olasAmount) {
-        // Get nativeToken balance
-        uint256 balance = IERC20(nativeToken).balanceOf(address(this));
-
-        // Adjust native token amount, if needed
-        if (nativeTokenAmount == 0 || nativeTokenAmount > balance) {
-            nativeTokenAmount = balance;
-        }
-        require(nativeTokenAmount > 0, "Insufficient native token amount");
-
-        // Apply slippage protection
-        require(IOracle(oracle).validatePrice(maxSlippage), "Slippage limit is breached");
-
+    function _performSwap(uint256 nativeTokenAmount) internal virtual override returns (uint256 olasAmount) {
         // Approve nativeToken for the router
         IERC20(nativeToken).approve(router, nativeTokenAmount);
 
         address[] memory path = new address[](2);
         path[0] = nativeToken;
         path[1] = olas;
-
-        // Approve native token
-        IERC20(nativeToken).approve(router, nativeTokenAmount);
 
         // Swap nativeToken for OLAS
         uint256[] memory amounts = IUniswap(router).swapExactTokensForTokens(
