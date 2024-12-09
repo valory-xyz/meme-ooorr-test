@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 import {TickMath} from "./libraries/TickMath.sol";
-
+import "hardhat/console.sol";
 // ERC20 interface
 interface IERC20 {
     /// @dev Gets the amount of tokens owned by a specified account.
@@ -147,11 +147,13 @@ abstract contract BuyBackBurner {
     /// @dev BuyBackBurner initializer.
     /// @param payload Initializer payload.
     function initialize(bytes memory payload) external {
+        // Check for already being initialized
         if (owner != address(0)) {
             revert AlreadyInitialized();
         }
 
         owner = msg.sender;
+        _locked = 1;
 
         _initialize(payload);
     }

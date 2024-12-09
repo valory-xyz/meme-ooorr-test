@@ -175,6 +175,9 @@ const main = async () => {
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
 
+    // Update oracle price
+    await buyBackBurner.updateOraclePrice();
+
     // native token balance should be equal to contributions
     let balanceNow = ethers.BigNumber.from(smallDeposit).mul(3);
     baseBalance = await ethers.provider.getBalance(memeBase.address);
@@ -411,6 +414,34 @@ const main = async () => {
     await expect(
         memeBase.collectFees([memeToken], { gasLimit })
     ).to.emit(memeBase, "FeesCollected")
+
+    // Update oracle price
+    await buyBackBurner.updateOraclePrice();
+
+    // TODO: fail to do swaps right away
+    // Swap native token for OLAS
+    //await buyBackBurner.buyBack(ethers.utils.parseEther("5"));
+
+    // Wait for 10 seconds more in order not to engage with oracle in the same timestamp
+    await helpers.time.increase(10);
+
+    // TODO: fail to do huge swaps
+    // Swap native token for OLAS
+    //await buyBackBurner.buyBack(0);
+
+    // TODO: fail to do swaps breaching the after-swap limit (find value)
+    // Swap native token for OLAS
+    //await buyBackBurner.buyBack(ethers.utils.parseEther("10"));
+
+    // TODO Error to bridge when there's not enough value to bridge
+    // Bridge OLAS to burn
+    //await buyBackBurner.bridgeAndBurn(0, "0x");
+
+    // Swap native token for OLAS
+    await buyBackBurner.buyBack(ethers.utils.parseEther("5"));
+
+    // Bridge OLAS to burn
+    await buyBackBurner.bridgeAndBurn(0, "0x");
 };
 
 main()
