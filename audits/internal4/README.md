@@ -20,6 +20,7 @@ Double testing
         // Calculate the price ratio (amount1 / amount0) scaled by 1e18 to avoid floating point issues
         uint256 priceX96 = (amount1 * 1e18) / amount0;
 ```
+[x] Verified
 
 ## Fixing TODO
 ```
@@ -44,4 +45,4 @@ https://support.uniswap.org/hc/en-us/articles/21069524840589-What-is-a-tick-when
 https://support.uniswap.org/hc/en-us/articles/7423663459597-Why-does-the-price-input-automatically-round
 https://medium.com/@jaysojitra1011/uniswap-v3-deep-dive-visualizing-ticks-and-liquidity-provisioning-part-3-081db166243b
 ```
-
+[x] Confirmed, does not need update
