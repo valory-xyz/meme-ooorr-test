@@ -111,6 +111,9 @@ contract BuyBackBurnerCelo is BuyBackBurner {
         }
         require(nativeTokenAmount > 0, "Insufficient native token amount");
 
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(maxSlippage), "Slippage limit is breached");
+
         // Approve nativeToken for the router
         IERC20(nativeToken).approve(router, nativeTokenAmount);
 
@@ -132,9 +135,6 @@ contract BuyBackBurnerCelo is BuyBackBurner {
 
         // Record OLAS amount
         olasAmount = amounts[1];
-
-        // Apply slippage protection
-        require(IOracle(oracle).validatePrice(maxSlippage), "Slippage limit is breached");
     }
 
     /// @dev BuyBackBurner initializer.

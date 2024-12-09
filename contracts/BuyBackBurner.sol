@@ -197,10 +197,6 @@ abstract contract BuyBackBurner {
             require(success, "Leftovers transfer failed");
         }
 
-        // TODO Check if needed
-        // Update prices in oracle
-        //IOracle(oracle).updatePrice();
-
         emit BridgeItLikeItsBurn(olasAmount);
 
         _locked = 1;

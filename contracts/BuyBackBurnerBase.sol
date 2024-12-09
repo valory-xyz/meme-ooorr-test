@@ -115,6 +115,9 @@ contract BuyBackBurnerBase is BuyBackBurner {
         }
         require(nativeTokenAmount > 0, "Insufficient native token amount");
 
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(maxSlippage), "Slippage limit is breached");
+
         // Approve nativeToken for the Balancer Vault
         IERC20(nativeToken).approve(balancerVault, nativeTokenAmount);
 
@@ -126,9 +129,6 @@ contract BuyBackBurnerBase is BuyBackBurner {
 
         // Perform swap
         olasAmount = IBalancer(balancerVault).swap(singleSwap, fundManagement, 0, block.timestamp);
-
-        // Apply slippage protection
-        require(IOracle(oracle).validatePrice(maxSlippage), "Slippage limit is breached");
     }
 
     /// @dev BuyBackBurner initializer.

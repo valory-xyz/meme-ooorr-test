@@ -27,14 +27,14 @@ The audit focused on Meme* contracts <BR>
         // Update OLAS leftovers
         olasLeftovers = olasAmount - transferAmount;
 ```
-[]
+[x] Discussed, all fine
 
 ### Low, CEI - Check before interaction
 ```
         // Apply slippage protection
         require(IOracle(oracle).validatePrice(maxSlippage), "Slippage limit is breached"); move to top
 ```
-[]
+[x] Fixed
 
 ### To discussion UniswapPriceOracle. IMO no change code
 ```
@@ -65,7 +65,7 @@ The audit focused on Meme* contracts <BR>
         On the other hand, if we put a barrier, we will create a trap for ourselves, that any price update through swap will block it.
         IMO: better code as is.
 ```
-[]
+[x] Noted
 
 ## Notes to TODO
 ```
@@ -74,4 +74,4 @@ Let Oracle (Balancer) update independently. No needed
         // Update prices in oracle
         //IOracle(oracle).updatePrice();
 ```
-[]
+[x] Fixed
