@@ -20,6 +20,7 @@ Double testing
         // Calculate the price ratio (amount1 / amount0) scaled by 1e18 to avoid floating point issues
         uint256 priceX96 = (amount1 * 1e18) / amount0;
 ```
+[x] Verified
 
 ## Fixing TODO
 ```

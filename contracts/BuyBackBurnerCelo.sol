@@ -43,16 +43,6 @@ contract BuyBackBurnerCelo is BuyBackBurner {
     // Ethereum mainnet chain Id in Wormhole format
     uint16 public constant WORMHOLE_ETH_CHAIN_ID = 2;
 
-    // OLAS token address
-    address public olas;
-    // Native token (ERC-20) address
-    address public nativeToken;
-    // Oracle address
-    address public oracle;
-    // L2 token relayer bridge address
-    address public l2TokenRelayer;
-    // Oracle max slippage for ERC-20 native token <=> OLAS
-    uint256 public maxSlippage;
     // Ubeswap router address
     address public router;
 
@@ -111,6 +101,9 @@ contract BuyBackBurnerCelo is BuyBackBurner {
         }
         require(nativeTokenAmount > 0, "Insufficient native token amount");
 
+        // Apply slippage protection
+        require(IOracle(oracle).validatePrice(maxSlippage), "Slippage limit is breached");
+
         // Approve nativeToken for the router
         IERC20(nativeToken).approve(router, nativeTokenAmount);
 
@@ -132,9 +125,6 @@ contract BuyBackBurnerCelo is BuyBackBurner {
 
         // Record OLAS amount
         olasAmount = amounts[1];
-
-        // Apply slippage protection
-        require(IOracle(oracle).validatePrice(maxSlippage), "Slippage limit is breached");
     }
 
     /// @dev BuyBackBurner initializer.
