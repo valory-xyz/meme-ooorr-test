@@ -253,7 +253,7 @@ abstract contract BuyBackBurner {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
-        uint256 olasAmount = IERC20(olas).balanceOf(olas);
+        uint256 olasAmount = IERC20(olas).balanceOf(address(this));
         require(olasAmount >= minBridgedAmount, "Not enough OLAS to bridge");
 
         // Burn OLAS
