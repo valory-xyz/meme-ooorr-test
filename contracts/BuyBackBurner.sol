@@ -112,6 +112,9 @@ abstract contract BuyBackBurner {
         require(tradePrice >= lowerBound && tradePrice <= upperBound, "After swap slippage limit is breached");
     }
 
+    /// @dev Gets TWAP price via the built-in Uniswap V3 oracle.
+    /// @param pool Pool address.
+    /// @return price Calculated price.
     function _getTwapFromOracle(address pool) internal view returns (uint256 price) {
         // Query the pool for the current and historical tick
         uint32[] memory secondsAgos = new uint32[](2);
@@ -225,6 +228,10 @@ abstract contract BuyBackBurner {
         emit MinBridgedAmountUpdated(newMinBridgedAmount);
     }
 
+    /// @dev Checks pool prices via Uniswap V3 built-in oracle.
+    /// @param token0 Token0 address.
+    /// @param token1 Token1 address.
+    /// @param fee Fee tier.
     function checkPoolPrices(
         address token0,
         address token1,
@@ -268,7 +275,7 @@ abstract contract BuyBackBurner {
         require(deviation <= MAX_ALLOWED_DEVIATION, "Price deviation too high");
     }
 
-    /// @dev Bridges OLAS to Ethereum mainnet for burn.
+    /// @dev Buys OLAS on DEX.
     /// @notice if nativeTokenAmount is zero or above the balance, it will be adjusted to current native token balance.
     /// @param nativeTokenAmount Suggested native token amount.
     function buyBack(uint256 nativeTokenAmount) external virtual {
