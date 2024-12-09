@@ -47,18 +47,29 @@ const main = async () => {
         amounts.push(campaignData[i]["amount"].toString());
     }
 
-    // BuyBackBurner implementation and proxy
-    const BuyBackBurner = await ethers.getContractFactory("BuyBackBurner");
-    const buyBackBurnerImplementation = await BuyBackBurner.deploy();
+    // BalancerPriceOracle
+    const BalancerPriceOracle = await ethers.getContractFactory("BalancerPriceOracle");
+    const balancerPriceOracle = await BalancerPriceOracle.deploy(parsedData.olasAddress, parsedData.wethAddress,
+        parsedData.maxOracleSlippage, parsedData.minUpdateTimePeriod, parsedData.balancerVaultAddress,
+        parsedData.balancerPoolId);
+    await balancerPriceOracle.deployed();
+
+    // BuyBackBurnerBase implementation and proxy
+    const BuyBackBurnerBase = await ethers.getContractFactory("BuyBackBurnerBase");
+    const buyBackBurnerImplementation = await BuyBackBurnerBase.deploy();
     await buyBackBurnerImplementation.deployed();
 
     // Initialize buyBackBurner
-    const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", []);
+    const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "bytes32", "uint256", "uint256"],
+         [[parsedData.olasAddress, parsedData.wethAddress, balancerPriceOracle.address, parsedData.l2TokenBridgeAddress,
+         parsedData.balancerVaultAddress], parsedData.balancerPoolId, parsedData.maxBuyBackSlippage,
+         parsedData.minBridgedAmount]);
+    const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", [proxyPayload]);
     const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
     const buyBackBurnerProxy = await BuyBackBurnerProxy.deploy(buyBackBurnerImplementation.address, proxyData);
     await buyBackBurnerProxy.deployed();
 
-    const buyBackBurner = await ethers.getContractAt("BuyBackBurner", buyBackBurnerProxy.address);
+    const buyBackBurner = await ethers.getContractAt("BuyBackBurnerBase", buyBackBurnerProxy.address);
 
     const MemeBase = await ethers.getContractFactory("MemeBase");
     const memeBase = await MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
@@ -314,7 +325,7 @@ const main = async () => {
     const quoterABI = fs.readFileSync("abis/misc/quoter.json", "utf8");
     const quoter = new ethers.Contract(parsedData.quoterAddress, quoterABI, ethers.provider);
     const routerABI = fs.readFileSync("abis/misc/swaprouter.json", "utf8");
-    const router = new ethers.Contract(parsedData.routerAddress, routerABI, ethers.provider);
+    const router = new ethers.Contract(parsedData.routerV3Address, routerABI, ethers.provider);
     const poolAddress = await factory.getPool(weth.address, memeToken, fee);
     const poolABI = fs.readFileSync("abis/misc/pool.json", "utf8");
     const pool = new ethers.Contract(poolAddress, poolABI, ethers.provider);
@@ -328,7 +339,7 @@ const main = async () => {
     const memeBalance = await memeTokenInstance.balanceOf(deployer.address);
     const amount = memeBalance.div(3);
     // Approve tokens
-    await memeTokenInstance.approve(parsedData.routerAddress, amount);
+    await memeTokenInstance.approve(parsedData.routerV3Address, amount);
 
     const quote = {
         tokenIn: memeTokenInstance.address,
@@ -368,7 +379,7 @@ const main = async () => {
     await helpers.time.increase(10);
 
     // Approve tokens
-    await memeTokenInstance.approve(parsedData.routerAddress, amount);
+    await memeTokenInstance.approve(parsedData.routerV3Address, amount);
     // Get amount out for another swap
     quotedAmountOut = await quoter.callStatic.quoteExactInputSingle(quote);
     // Amount our must be bigger
