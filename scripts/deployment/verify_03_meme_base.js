@@ -3,7 +3,7 @@ const globalsFile = "globals.json";
 let dataFromJSON = fs.readFileSync(globalsFile, "utf8");
 const parsedData = JSON.parse(dataFromJSON);
 
-const redemptionsFile = "scripts/deployment/memebase_redemption.json";
+const redemptionsFile = "scripts/deployment/memebase_campaign.json";
 dataFromJSON = fs.readFileSync(redemptionsFile, "utf8");
 const redemptionsData = JSON.parse(dataFromJSON);
 

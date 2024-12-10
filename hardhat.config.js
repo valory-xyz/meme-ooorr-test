@@ -71,7 +71,7 @@ module.exports = {
             chainId: 10,
         },
         base: {
-            url: "https://mainnet.base",
+            url: "https://mainnet.base.org",
             accounts: accounts,
             chainId: 8453,
         },
