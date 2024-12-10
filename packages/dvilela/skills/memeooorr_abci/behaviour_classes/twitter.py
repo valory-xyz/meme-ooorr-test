@@ -21,7 +21,7 @@
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Generator, List, Optional, Type, Union
 
 from twitter_text import parse_tweet  # type: ignore
@@ -335,13 +335,15 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 method="get_user_tweets",
                 twitter_handle=agent_handle,
             )
+            if not latest_tweets:
+                continue
             tweet_id = latest_tweets[0]["id"]
             tweet_time = datetime.strptime(
                 latest_tweets[0]["created_at"], "%a %b %d %H:%M:%S %z %Y"
             )
 
             # Only respond to new tweets (last hour)
-            if (datetime.now() - tweet_time).total_seconds() >= 3600:
+            if (datetime.now(timezone.utc) - tweet_time).total_seconds() >= 3600:
                 continue
 
             tweet_id_to_response[tweet_id] = latest_tweets[0]["text"]
