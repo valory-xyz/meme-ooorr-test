@@ -69,6 +69,7 @@ const main = async () => {
     await buyBackBurnerProxy.deployed();
 
     const buyBackBurner = await ethers.getContractAt("BuyBackBurnerBase", buyBackBurnerProxy.address);
+    expect(deployer.address).to.equal(await buyBackBurner.owner());
 
     const MemeBase = await ethers.getContractFactory("MemeBase");
     const memeBase = await MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
@@ -98,6 +99,10 @@ const main = async () => {
     await expect(
         buyBackBurner.updateOraclePrice()
     ).to.be.revertedWith("Oracle price update failed");
+    // Try to initialize buyBackBurner again
+    await expect(
+        buyBackBurner.initialize(proxyPayload)
+    ).to.be.revertedWithCustomError(BuyBackBurnerBase, "AlreadyInitialized");
 
     // Try to deploy meme base with incorrect campaign params
     // Incorrect array sizes
