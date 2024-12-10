@@ -315,7 +315,7 @@ abstract contract MemeFactory {
         bytes memory payload = abi.encodePacked(type(Meme).creationCode, abi.encode(name, symbol, DECIMALS, totalSupply));
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            memeToken := create2(0x0, add(0x20, payload), mload(payload), memeNonce) // TOFIX: revert to randomNonce
+            memeToken := create2(0x0, add(0x20, payload), mload(payload), randomNonce)
         }
 
         // Check for non-zero token address

@@ -37,8 +37,8 @@ interface IERC20 {
     function approve(address spender, uint256 amount) external returns (bool);
 }
 
-/// @title BuyBackBurnerBase - BuyBackBurner implementation contract for Base
-contract BuyBackBurnerBase is BuyBackBurner {
+/// @title BuyBackBurnerBalancer - BuyBackBurner implementation contract for interaction with Balancer
+contract BuyBackBurnerBalancer is BuyBackBurner {
     // Balancer vault address
     address public balancerVault;
     // Balancer pool Id

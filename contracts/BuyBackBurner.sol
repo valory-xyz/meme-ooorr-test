@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {FixedPointMathLib} from "../lib/solmate/src/utils/FixedPointMathLib.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 import {TickMath} from "./libraries/TickMath.sol";
 
@@ -115,7 +116,8 @@ abstract contract BuyBackBurner {
         uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(averageTick);
 
         // Calculate the price using the sqrtPriceX96
-        price = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
+        // Max result is uint160 * uint160 == uint320, not to overflow: 320 - 256 = 64 (2^64)
+        price = FixedPointMathLib.mulDivDown(uint256(sqrtPriceX96), uint256(sqrtPriceX96), (1 << 64));
     }
 
     /// @dev BuyBackBurner initializer.
@@ -225,13 +227,14 @@ abstract contract BuyBackBurner {
         // Check TWAP or historical data
         uint256 twapPrice = _getTwapFromOracle(pool);
         // Get instant price
-        uint256 instantPrice = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
+        // Max result is uint160 * uint160 == uint320, not to overflow: 320 - 256 = 64 (2^64)
+        uint256 instantPrice = FixedPointMathLib.mulDivDown(uint256(sqrtPriceX96), uint256(sqrtPriceX96), (1 << 64));
 
         uint256 deviation;
         if (twapPrice > 0) {
             deviation = (instantPrice > twapPrice) ?
-                ((instantPrice - twapPrice) * 1e18) / twapPrice :
-                ((twapPrice - instantPrice) * 1e18) / twapPrice;
+                FixedPointMathLib.mulDivDown((instantPrice - twapPrice), 1e18, twapPrice) :
+                FixedPointMathLib.mulDivDown((twapPrice - instantPrice), 1e18, twapPrice);
         }
 
         require(deviation <= MAX_ALLOWED_DEVIATION, "Price deviation too high");

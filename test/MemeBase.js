@@ -32,9 +32,9 @@ const main = async () => {
         parsedData.balancerPoolId);
     await balancerPriceOracle.deployed();
 
-    // BuyBackBurnerBase implementation and proxy
-    const BuyBackBurnerBase = await ethers.getContractFactory("BuyBackBurnerBase");
-    const buyBackBurnerImplementation = await BuyBackBurnerBase.deploy();
+    // BuyBackBurnerBalancer implementation and proxy
+    const BuyBackBurnerBalancer = await ethers.getContractFactory("BuyBackBurnerBalancer");
+    const buyBackBurnerImplementation = await BuyBackBurnerBalancer.deploy();
     await buyBackBurnerImplementation.deployed();
 
     // Initialize buyBackBurner
@@ -46,7 +46,7 @@ const main = async () => {
     const buyBackBurnerProxy = await BuyBackBurnerProxy.deploy(buyBackBurnerImplementation.address, proxyData);
     await buyBackBurnerProxy.deployed();
 
-    const buyBackBurner = await ethers.getContractAt("BuyBackBurnerBase", buyBackBurnerProxy.address);
+    const buyBackBurner = await ethers.getContractAt("BuyBackBurnerBalancer", buyBackBurnerProxy.address);
 
     // MemeBase
     const MemeBase = await ethers.getContractFactory("MemeBase");
