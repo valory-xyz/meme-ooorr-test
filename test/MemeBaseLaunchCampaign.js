@@ -76,6 +76,49 @@ const main = async () => {
         accounts, amounts);
     await memeBase.deployed();
 
+    // Try to deploy oracle with incorrect values
+    await expect(
+        BalancerPriceOracle.deploy(parsedData.olasAddress, parsedData.wethAddress, 100,
+            parsedData.minUpdateTimePeriod, parsedData.balancerVaultAddress, parsedData.balancerPoolId)
+    ).to.be.revertedWith("Slippage must be less than 100%");
+    // Try to validate price with the slippage too high
+    await expect(
+        balancerPriceOracle.validatePrice(100)
+    ).to.be.revertedWith("Slippage overflow");
+
+    // Try to check prices on non-existent pool
+    await expect(
+        buyBackBurner.checkPoolPrices(parsedData.olasAddress, parsedData.wethAddress, parsedData.uniV3positionManagerAddress, 1)
+    ).to.be.revertedWith("Pool does not exist");
+    // Try to buy OLAS on empty amounts
+    await expect(
+        buyBackBurner.buyBack(0)
+    ).to.be.revertedWith("Insufficient native token amount");
+    // Try to update oracle price right away
+    await expect(
+        buyBackBurner.updateOraclePrice()
+    ).to.be.revertedWith("Oracle price update failed");
+
+    // Try to deploy meme base with incorrect campaign params
+    // Incorrect array sizes
+    await expect(
+        MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
+            parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue,
+            accounts, [])
+    ).to.be.revertedWith("Array lengths are not equal");
+    await expect(
+        MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
+            parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue,
+            accounts, [amounts[0]])
+    ).to.be.revertedWith("Array lengths are not equal");
+
+    // Incorrect accumulated CONTRIBUTION_AGNT amount
+    await expect(
+        MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
+            parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue,
+            [accounts[0]], [amounts[0]])
+    ).to.be.revertedWith("Total amount must match original contribution amount");
+
     const wethABI = fs.readFileSync("abis/misc/weth.json", "utf8");
     const weth = new ethers.Contract(parsedData.wethAddress, wethABI, ethers.provider);
 
@@ -272,7 +315,7 @@ const main = async () => {
     // Deployer has already collected
     await expect(
         memeBase.collectThisMeme(memeTokenTwo)
-    ).to.be.reverted;
+    ).to.be.revertedWith("No token allocation");
 
     // Collect by the first signer
     await memeBase.connect(signers[1]).collectThisMeme(memeTokenTwo);
@@ -288,6 +331,11 @@ const main = async () => {
     // Purge remaining allocation
     await memeBase.purgeThisMeme(memeTokenTwo);
 
+    // Try to purge again
+    await expect(
+        memeBase.purgeThisMeme(memeTokenTwo)
+    ).to.be.revertedWith("Has been purged or nothing to purge");
+
     // Wait for 10 more seconds
     await helpers.time.increase(10);
 
@@ -302,7 +350,13 @@ const main = async () => {
     await expect(
         memeBase.scheduleForAscendance({ gasLimit })
     ).to.emit(memeBase, "Unleashed")
-    .and.to.emit(memeBase, "OLASJourneyToAscendance")
+    .and.to.emit(memeBase, "OLASJourneyToAscendance");
+
+    // Try to send to burner again
+    await expect(
+        memeBase.scheduleForAscendance()
+    ).to.be.revertedWith("Nothing to send");
+
     // Get meme token
     const campaignToken = await memeBase.memeTokens(2);
     console.log("Campaign token contract:", campaignToken);
