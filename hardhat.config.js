@@ -46,7 +46,7 @@ module.exports = {
             url: "http://127.0.0.1:9000",
         },
         mainnet: {
-            url: "https://virtual.mainnet.rpc.tenderly.co/2e087c34-80b4-417c-8f6c-dd29c1d2d6bc",
+            url: "https://eth-mainnet.g.alchemy.com/v2/" + ALCHEMY_API_KEY_MAINNET,
             accounts: accounts,
             chainId: 1,
         },
