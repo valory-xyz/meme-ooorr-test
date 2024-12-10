@@ -537,9 +537,9 @@ const main = async () => {
 
     // Try to swap native token for OLAS right away
     // NOTE: Comment this out when testing on Tenderly fork as it correctly moves the time along with blocks
-//    await expect(
-//        buyBackBurner.buyBack(ethers.utils.parseEther("5"))
-//    ).to.be.revertedWith("Before swap slippage limit is breached");
+    await expect(
+        buyBackBurner.buyBack(ethers.utils.parseEther("5"))
+    ).to.be.revertedWith("Before swap slippage limit is breached");
 
     // Wait for 10 seconds more in order not to engage with oracle in the same timestamp
     await helpers.time.increase(10);
