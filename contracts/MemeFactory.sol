@@ -29,7 +29,7 @@ interface IERC20 {
 }
 
 /// @title MemeFactory - a smart contract factory for Meme Token creation
-/// @dev This contract let's:
+/// @dev This contract lets:
 ///      1) Any msg.sender summons a meme by contributing at least 0.01 ETH (or equivalent native asset for other chains).
 ///      2) Within 24h of a meme being summoned, any msg.sender can heart a meme (thereby becoming a hearter).
 ///         This requires the msg.sender to send a non-zero ETH value (or equivalent native asset for other chains),
@@ -137,7 +137,7 @@ abstract contract MemeFactory {
 
     // Map of meme nonce => Meme summon struct
     mapping(uint256 => MemeSummon) public memeSummons;
-    // Map of mem nonce => (map of hearter => native token balance)
+    // Map of meme nonce => (map of hearter => native token balance)
     mapping(uint256 => mapping(address => uint256)) public memeHearters;
     // Map of meme token address => Meme nonce
     mapping(address => uint256) public memeTokenNonces;

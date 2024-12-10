@@ -9,7 +9,7 @@ interface IWETH {
 
 /// @title MemeEthereum - a smart contract factory for Meme Token creation on Ethereum.
 contract MemeEthereum is MemeFactory {
-    /// @dev MemeBase constructor
+    /// @dev MemeEthereum constructor
     constructor(
         address _olas,
         address _nativeToken,
