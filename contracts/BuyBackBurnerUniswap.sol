@@ -19,8 +19,8 @@ interface IUniswap {
         uint256 deadline) external returns (uint256[] memory amounts);
 }
 
-/// @title BuyBackBurnerCelo - BuyBackBurner implementation contract for Celo
-contract BuyBackBurnerCelo is BuyBackBurner {
+/// @title BuyBackBurnerUniswap - BuyBackBurner implementation contract for interaction with UniswapV2
+contract BuyBackBurnerUniswap is BuyBackBurner {
     // Router address
     address public router;
 

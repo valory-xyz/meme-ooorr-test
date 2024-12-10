@@ -30,8 +30,11 @@ const main = async () => {
     const signers = await ethers.getSigners();
     const deployer = signers[0];
 
+    console.log("deployer address:", deployer.address);
     console.log("Balance of deployer:", await ethers.provider.getBalance(deployer.address));
+    console.log("signers[1] address:", signers[1].address);
     console.log("Balance of signer 1:", await ethers.provider.getBalance(signers[1].address));
+    console.log("signers[2] address:", signers[2].address);
     console.log("Balance of signer 2", await ethers.provider.getBalance(signers[2].address));
 
     console.log("Getting launch campaign data");
@@ -54,9 +57,9 @@ const main = async () => {
         parsedData.balancerPoolId);
     await balancerPriceOracle.deployed();
 
-    // BuyBackBurnerBase implementation and proxy
-    const BuyBackBurnerBase = await ethers.getContractFactory("BuyBackBurnerBase");
-    const buyBackBurnerImplementation = await BuyBackBurnerBase.deploy();
+    // BuyBackBurnerBalancer implementation and proxy
+    const BuyBackBurnerBalancer = await ethers.getContractFactory("BuyBackBurnerBalancer");
+    const buyBackBurnerImplementation = await BuyBackBurnerBalancer.deploy();
     await buyBackBurnerImplementation.deployed();
 
     // Initialize buyBackBurner
@@ -68,7 +71,7 @@ const main = async () => {
     const buyBackBurnerProxy = await BuyBackBurnerProxy.deploy(buyBackBurnerImplementation.address, proxyData);
     await buyBackBurnerProxy.deployed();
 
-    const buyBackBurner = await ethers.getContractAt("BuyBackBurnerBase", buyBackBurnerProxy.address);
+    const buyBackBurner = await ethers.getContractAt("BuyBackBurnerBalancer", buyBackBurnerProxy.address);
     expect(deployer.address).to.equal(await buyBackBurner.owner());
 
     const MemeBase = await ethers.getContractFactory("MemeBase");
@@ -102,7 +105,7 @@ const main = async () => {
     // Try to initialize buyBackBurner again
     await expect(
         buyBackBurner.initialize(proxyPayload)
-    ).to.be.revertedWithCustomError(BuyBackBurnerBase, "AlreadyInitialized");
+    ).to.be.revertedWithCustomError(BuyBackBurnerBalancer, "AlreadyInitialized");
 
     // Try to deploy meme base with incorrect campaign params
     // Incorrect array sizes
@@ -533,9 +536,10 @@ const main = async () => {
     await buyBackBurner.updateOraclePrice();
 
     // Try to swap native token for OLAS right away
-    await expect(
-        buyBackBurner.buyBack(ethers.utils.parseEther("5"))
-    ).to.be.revertedWith("Before swap slippage limit is breached");
+    // NOTE: Comment this out when testing on Tenderly fork as it correctly moves the time along with blocks
+//    await expect(
+//        buyBackBurner.buyBack(ethers.utils.parseEther("5"))
+//    ).to.be.revertedWith("Before swap slippage limit is breached");
 
     // Wait for 10 seconds more in order not to engage with oracle in the same timestamp
     await helpers.time.increase(10);

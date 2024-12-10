@@ -27,7 +27,7 @@ const main = async () => {
 
     // UniswapPriceOracle
     const UniswapPriceOracle = await ethers.getContractFactory("UniswapPriceOracle");
-    const uniswapPriceOracle = await UniswapPriceOracle.deploy(parsedData.celoAddress, parsedData.maxOracleSlippage,
+    const uniswapPriceOracle = await UniswapPriceOracle.deploy(parsedData.wethAddress, parsedData.maxOracleSlippage,
         parsedData.pairAddress);
     await uniswapPriceOracle.deployed();
 
@@ -38,7 +38,7 @@ const main = async () => {
 
     // Initialize buyBackBurner
     const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "uint256"],
-         [[parsedData.olasAddress, parsedData.celoAddress, uniswapPriceOracle.address,
+         [[parsedData.olasAddress, parsedData.wethAddress, uniswapPriceOracle.address,
          parsedData.routerV2Address], parsedData.maxBuyBackSlippage]);
     const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", [proxyPayload]);
     const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
@@ -47,17 +47,29 @@ const main = async () => {
 
     const buyBackBurner = await ethers.getContractAt("BuyBackBurnerUniswap", buyBackBurnerProxy.address);
 
-    const MemeCelo = await ethers.getContractFactory("MemeCelo");
-    const memeCelo = await MemeCelo.deploy(parsedData.olasAddress, parsedData.celoAddress,
+    const MemeEthereum = await ethers.getContractFactory("MemeEthereum");
+    const memeEthereum = await MemeEthereum.deploy(parsedData.olasAddress, parsedData.wethAddress,
         parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue);
-    await memeCelo.deployed();
+    await memeEthereum.deployed();
 
     // Summon a new meme token
-    await memeCelo.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
+    await memeEthereum.summonThisMeme(name, symbol, totalSupply, {value: defaultDeposit});
 
     // Heart a new token by other accounts
-    await memeCelo.connect(signers[1]).heartThisMeme(nonce, {value: defaultDeposit});
-    await memeCelo.connect(signers[2]).heartThisMeme(nonce, {value: defaultDeposit});
+    await memeEthereum.connect(signers[1]).heartThisMeme(nonce, {value: defaultDeposit});
+    await memeEthereum.connect(signers[2]).heartThisMeme(nonce, {value: defaultDeposit});
+
+    // Increase time to for 24 hours+
+    await helpers.time.increase(oneDay + 100);
+
+    // Unleash the meme token
+    await memeEthereum.unleashThisMeme(nonce);
+
+    const memeToken = await memeEthereum.memeTokens(0);
+    console.log("New meme contract:", memeToken);
+
+    // Collect by the first signer
+    await memeEthereum.connect(signers[1]).collectThisMeme(memeToken);
 };
 
 main()
