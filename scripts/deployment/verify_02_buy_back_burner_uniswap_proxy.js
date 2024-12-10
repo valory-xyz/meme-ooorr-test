@@ -5,11 +5,11 @@ const dataFromJSON = fs.readFileSync(globalsFile, "utf8");
 const parsedData = JSON.parse(dataFromJSON);
 const buyBackBurnerAddress = parsedData.buyBackBurnerAddress;
 const nativeTokenAddress = parsedData.celoAddress;
-const buyBackBurner = await ethers.getContractAt("BuyBackBurnerProxy", buyBackBurnerAddress);
 const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "uint256"],
-     [[parsedData.olasAddress, nativeTokenAddress, balancerPriceOracle.address,
+     [[parsedData.olasAddress, nativeTokenAddress, parsedData.balancerPriceOracleAddress,
      parsedData.routerV2Address], parsedData.maxBuyBackSlippage]);
-const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", [proxyPayload]);
+const iface = new ethers.utils.Interface(["function initialize(bytes memory payload)"]);
+const proxyData = iface.encodeFunctionData("initialize", [proxyPayload]);
 
 module.exports = [
     buyBackBurnerAddress,

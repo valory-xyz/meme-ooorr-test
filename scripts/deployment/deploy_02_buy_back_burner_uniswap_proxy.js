@@ -45,9 +45,9 @@ async function main() {
     // Assemble the contributors proxy data
     const buyBackBurner = await ethers.getContractAt("BuyBackBurnerUniswap", buyBackBurnerAddress);
     const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "uint256"],
-         [[parsedData.olasAddress, nativeTokenAddress, balancerPriceOracle.address,
+         [[parsedData.olasAddress, nativeTokenAddress, parsedData.balancerPriceOracleAddress,
          parsedData.routerV2Address], parsedData.maxBuyBackSlippage]);
-    const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", [proxyPayload]);
+    const proxyData = buyBackBurner.interface.encodeFunctionData("initialize", [proxyPayload]);
 
     // Transaction signing and execution
     console.log("2-2. EOA to deploy BuyBackBurnerProxy based on BuyBackBurnerUniswap ");
