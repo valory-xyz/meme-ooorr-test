@@ -26,9 +26,10 @@ import json
 import os
 from pathlib import Path
 from typing import Any, Dict
-
+import time
 import dotenv
 import twikit
+import random
 
 
 dotenv.load_dotenv(override=True)
@@ -71,13 +72,10 @@ async def cookie_login():
         return client
 
 
-async def get_tweets() -> None:
+async def get_tweets(client) -> None:
     """Get tweets"""
 
-    client = await cookie_login()
-    client.save_cookies(os.getenv("TWIKIT_COOKIES_PATH"))
-
-    user = await client.get_user_by_screen_name(screen_name="percebot")
+    user = await client.get_user_by_screen_name(screen_name="autonolas")
 
     latest_tweets = await client.get_user_tweets(
         user_id=user.id, tweet_type="Tweets", count=1
@@ -86,4 +84,14 @@ async def get_tweets() -> None:
     return [tweet_to_json(t) for t in latest_tweets]
 
 
-asyncio.run(get_tweets())
+async def stress_test() -> None:
+    """Stress test"""
+    client = await cookie_login()
+    while True:
+        print("Getting tweets")
+        tweets = await get_tweets(client)
+        print(tweets)
+        time.sleep(random.randint(30, 60))
+
+
+asyncio.run(stress_test())
