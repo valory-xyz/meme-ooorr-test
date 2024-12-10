@@ -214,20 +214,24 @@ abstract contract BuyBackBurner {
         require(pool != address(0), "Pool does not exist");
 
         // Get current pool reserves
-        (uint160 sqrtPriceX96, , uint16 observationCardinality, , , , ) = IUniswapV3(pool).slot0();
+        (uint160 sqrtPriceX96, , uint16 observationIndex, uint16 observationCardinality, , , ) = IUniswapV3(pool).slot0();
+        console.log("observationCardinality", observationCardinality);
         // Check observation cardinality
         if (observationCardinality < 2) {
+            console.log("!!!!!!!!! SET OBSERVATIONS");
             // Increase observation cardinality to get more accurate twap
             IUniswapV3(pool).increaseObservationCardinalityNext(60);
             return;
         }
-
+        console.log("!!!!!!!!! HELOOOOOO2");
         // Check if the pool has sufficient observation history
-        (uint32 oldestTimestamp, , , ) = IUniswapV3(pool).observations(0);
-        if (oldestTimestamp + SECONDS_AGO >= block.timestamp) {
+        (uint32 oldestTimestamp, , , ) = IUniswapV3(pool).observations(observationIndex);
+        console.log("oldestTimestamp + SECONDS_AGO", oldestTimestamp + SECONDS_AGO);
+        console.log("block.timestamp", block.timestamp);
+        if (oldestTimestamp + SECONDS_AGO < block.timestamp) {
             return;
         }
-
+        console.log("!!!!!!!!! HELOOOOOO3");
         // Check TWAP or historical data
         uint256 twapPrice = _getTwapFromOracle(pool);
         // Get instant price

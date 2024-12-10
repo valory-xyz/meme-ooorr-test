@@ -308,7 +308,8 @@ const main = async () => {
     // Unleash the meme token
     await expect(
         memeBase.unleashThisMeme(nonce2, { gasLimit })
-    ).to.emit(memeBase, "Unleashed").and.to.emit(memeBase, "Unleashed");
+    ).to.emit(memeBase, "Unleashed")
+    .and.to.emit(memeBase, "Collected");
 
     // Get campaign token
     const memeTokenTwo = await memeBase.memeTokens(1);
@@ -351,18 +352,22 @@ const main = async () => {
 
     // Collect fees
     scheduledForAscendance = await memeBase.scheduledForAscendance();
-    await memeBase.collectFees([memeToken, memeTokenTwo], { gasLimit });
+    // Try to collect fees
+    await expect(
+        memeBase.collectFees([memeToken, memeTokenTwo])
+    ).to.be.revertedWith("Zero fees available");
+
     let newScheduledForAscendance = await memeBase.scheduledForAscendance();
     // since no fees to collect, expect identical
     expect(newScheduledForAscendance).to.equal(scheduledForAscendance);
 
-    // Send to burner
+    // Send to buyBackBurner
     await expect(
         memeBase.scheduleForAscendance({ gasLimit })
     ).to.emit(memeBase, "Unleashed")
     .and.to.emit(memeBase, "OLASJourneyToAscendance");
 
-    // Try to send to burner again
+    // Try to send to buyBackBurner again
     await expect(
         memeBase.scheduleForAscendance()
     ).to.be.revertedWith("Nothing to send");
@@ -398,8 +403,8 @@ const main = async () => {
 
     //let slot0 = await pool.slot0();
     //console.log("0. slot0:", slot0);
-    //let observations0 = await pool.observations(0);
-    //console.log("0. observations0:", observations0);
+    let observations0 = await pool.observations(0);
+    console.log("0. observations0:", observations0);
 
     const memeTokenInstance = await ethers.getContractAt("Meme", memeToken);
     const memeBalance = await memeTokenInstance.balanceOf(deployer.address);
@@ -436,13 +441,16 @@ const main = async () => {
     // Swap tokens
     await router.connect(deployer).exactInputSingle(params);
 
-    //slot0 = await pool.slot0();
-    //console.log("1. slot0:", slot0);
-    //observations0 = await pool.observations(0);
-    //console.log("1. observations0:", observations0);
+    slot0 = await pool.slot0();
+    console.log("1. slot0:", slot0);
+    observations0 = await pool.observations(0);
+    console.log("1. observations0:", observations0);
 
-    // Wait for 10 seconds
-    await helpers.time.increase(10);
+    // Wait for 1800 seconds to have enough time for the oldest observation
+    await helpers.time.increase(1800);
+
+    // Collect fees for the first time
+    await memeBase.collectFees([memeToken]);
 
     // Approve tokens
     await memeTokenInstance.approve(parsedData.routerV3Address, amount);
@@ -465,13 +473,42 @@ const main = async () => {
     // Perform another swap
     await router.connect(deployer).exactInputSingle(params);
 
-    //slot0 = await pool.slot0();
-    //console.log("2. slot0:", slot0);
-    //observations0 = await pool.observations(0);
-    //console.log("2. observations0:", observations0);
+    slot0 = await pool.slot0();
+    console.log("2. slot0:", slot0);
+    observations0 = await pool.observations(0);
+    console.log("2. observations0:", observations0);
 
-    // Wait for 10 seconds
-    await helpers.time.increase(10);
+    // Wait for 100 seconds
+    await helpers.time.increase(100);
+
+    // Approve tokens
+    await memeTokenInstance.approve(parsedData.routerV3Address, amount);
+    // Get amount out for another swap
+    quotedAmountOut = await quoter.callStatic.quoteExactInputSingle(quote);
+    // Amount our must be bigger
+    expect(quotedAmountOut.amountOut).to.gt(0);
+
+    params = {
+        tokenIn: memeTokenInstance.address,
+        tokenOut: weth.address,
+        fee,
+        recipient: deployer.address,
+        deadline: Math.floor(new Date().getTime() / 1000 + oneDay),
+        amountIn: amount,
+        amountOutMinimum: quotedAmountOut.amountOut,
+        sqrtPriceLimitX96: 0,
+    };
+
+    // Perform another swap
+    await router.connect(deployer).exactInputSingle(params);
+
+    slot0 = await pool.slot0();
+    console.log("3. slot0:", slot0);
+    observations0 = await pool.observations(0);
+    console.log("3. observations0:", observations0);
+
+    // Wait for 100 seconds
+    await helpers.time.increase(100);
 
     // Try to collect fees - but not enough time passed after huge swaps
     // NOTE: In order for revert to work correctly one needs to remove gasLimit, as it's conflicting with the estimation
@@ -479,8 +516,8 @@ const main = async () => {
         memeBase.collectFees([memeToken])
     ).to.be.revertedWith("Price deviation too high");
 
-    // Wait for 1700 seconds - not more than 1800 seconds, because after 1800 of inactivity the price is considered correct
-    await helpers.time.increase(1700);
+    // Wait for 1200 seconds - not more than 1800 seconds, because after 1800 of inactivity the price is considered correct
+    await helpers.time.increase(1200);
 
     // Collect fees
     await expect(
