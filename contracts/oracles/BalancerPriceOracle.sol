@@ -83,7 +83,7 @@ contract BalancerPriceOracle {
     /// @notice This implementation only accounts for the first price update in a block.
     function updatePrice() public returns (bool) {
         uint256 currentPrice = getPrice();
-        require(currentPrice > 0, "Price must be non-zero.");
+        require(currentPrice > 0, "Price must be non-zero");
 
         PriceSnapshot storage snapshot = snapshotHistory;
 
@@ -123,6 +123,7 @@ contract BalancerPriceOracle {
         snapshot.lastUpdated = block.timestamp;
 
         emit PriceUpdated(msg.sender, currentPrice, snapshot.cumulativePrice);
+
         return true;
     }
 

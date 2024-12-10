@@ -47,24 +47,82 @@ const main = async () => {
         amounts.push(campaignData[i]["amount"].toString());
     }
 
-    // BuyBackBurner implementation and proxy
-    const BuyBackBurner = await ethers.getContractFactory("BuyBackBurner");
-    const buyBackBurnerImplementation = await BuyBackBurner.deploy();
+    // BalancerPriceOracle
+    const BalancerPriceOracle = await ethers.getContractFactory("BalancerPriceOracle");
+    const balancerPriceOracle = await BalancerPriceOracle.deploy(parsedData.olasAddress, parsedData.wethAddress,
+        parsedData.maxOracleSlippage, parsedData.minUpdateTimePeriod, parsedData.balancerVaultAddress,
+        parsedData.balancerPoolId);
+    await balancerPriceOracle.deployed();
+
+    // BuyBackBurnerBase implementation and proxy
+    const BuyBackBurnerBase = await ethers.getContractFactory("BuyBackBurnerBase");
+    const buyBackBurnerImplementation = await BuyBackBurnerBase.deploy();
     await buyBackBurnerImplementation.deployed();
 
     // Initialize buyBackBurner
-    const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", []);
+    const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "bytes32", "uint256"],
+         [[parsedData.olasAddress, parsedData.wethAddress, balancerPriceOracle.address,
+         parsedData.balancerVaultAddress], parsedData.balancerPoolId, parsedData.maxBuyBackSlippage]);
+    const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", [proxyPayload]);
     const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
     const buyBackBurnerProxy = await BuyBackBurnerProxy.deploy(buyBackBurnerImplementation.address, proxyData);
     await buyBackBurnerProxy.deployed();
 
-    const buyBackBurner = await ethers.getContractAt("BuyBackBurner", buyBackBurnerProxy.address);
+    const buyBackBurner = await ethers.getContractAt("BuyBackBurnerBase", buyBackBurnerProxy.address);
+    expect(deployer.address).to.equal(await buyBackBurner.owner());
 
     const MemeBase = await ethers.getContractFactory("MemeBase");
     const memeBase = await MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
         parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue,
         accounts, amounts);
     await memeBase.deployed();
+
+    // Try to deploy oracle with incorrect values
+    await expect(
+        BalancerPriceOracle.deploy(parsedData.olasAddress, parsedData.wethAddress, 100,
+            parsedData.minUpdateTimePeriod, parsedData.balancerVaultAddress, parsedData.balancerPoolId)
+    ).to.be.revertedWith("Slippage must be less than 100%");
+    // Try to validate price with the slippage too high
+    await expect(
+        balancerPriceOracle.validatePrice(100)
+    ).to.be.revertedWith("Slippage overflow");
+
+    // Try to check prices on non-existent pool
+    await expect(
+        buyBackBurner.checkPoolPrices(parsedData.olasAddress, parsedData.wethAddress, parsedData.uniV3positionManagerAddress, 1)
+    ).to.be.revertedWith("Pool does not exist");
+    // Try to buy OLAS on empty amounts
+    await expect(
+        buyBackBurner.buyBack(0)
+    ).to.be.revertedWith("Insufficient native token amount");
+    // Try to update oracle price right away
+    await expect(
+        buyBackBurner.updateOraclePrice()
+    ).to.be.revertedWith("Oracle price update failed");
+    // Try to initialize buyBackBurner again
+    await expect(
+        buyBackBurner.initialize(proxyPayload)
+    ).to.be.revertedWithCustomError(BuyBackBurnerBase, "AlreadyInitialized");
+
+    // Try to deploy meme base with incorrect campaign params
+    // Incorrect array sizes
+    await expect(
+        MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
+            parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue,
+            accounts, [])
+    ).to.be.revertedWith("Array lengths are not equal");
+    await expect(
+        MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
+            parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue,
+            accounts, [amounts[0]])
+    ).to.be.revertedWith("Array lengths are not equal");
+
+    // Incorrect accumulated CONTRIBUTION_AGNT amount
+    await expect(
+        MemeBase.deploy(parsedData.olasAddress, parsedData.wethAddress,
+            parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue,
+            [accounts[0]], [amounts[0]])
+    ).to.be.revertedWith("Total amount must match original contribution amount");
 
     const wethABI = fs.readFileSync("abis/misc/weth.json", "utf8");
     const weth = new ethers.Contract(parsedData.wethAddress, wethABI, ethers.provider);
@@ -164,6 +222,9 @@ const main = async () => {
     // Increase time to for 24 hours+
     await helpers.time.increase(oneDay + 10);
 
+    // Update oracle price
+    await buyBackBurner.updateOraclePrice();
+
     // native token balance should be equal to contributions
     let balanceNow = ethers.BigNumber.from(smallDeposit).mul(3);
     baseBalance = await ethers.provider.getBalance(memeBase.address);
@@ -189,6 +250,11 @@ const main = async () => {
     // Get first token address
     const memeToken = await memeBase.memeTokens(0);
     console.log("First new meme token contract:", memeToken);
+
+    // Try to collect fees right away when the TWAP data is still unavailable
+    await expect(
+        memeBase.collectFees([memeToken])
+    ).to.be.revertedWith("OLD");
 
     memeSummon = await memeBase.memeSummons(nonce1);
     expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(3));
@@ -242,7 +308,8 @@ const main = async () => {
     // Unleash the meme token
     await expect(
         memeBase.unleashThisMeme(nonce2, { gasLimit })
-    ).to.emit(memeBase, "Unleashed").and.to.emit(memeBase, "Unleashed");
+    ).to.emit(memeBase, "Unleashed")
+    .and.to.emit(memeBase, "Collected");
 
     // Get campaign token
     const memeTokenTwo = await memeBase.memeTokens(1);
@@ -259,7 +326,7 @@ const main = async () => {
     // Deployer has already collected
     await expect(
         memeBase.collectThisMeme(memeTokenTwo)
-    ).to.be.reverted;
+    ).to.be.revertedWith("No token allocation");
 
     // Collect by the first signer
     await memeBase.connect(signers[1]).collectThisMeme(memeTokenTwo);
@@ -275,21 +342,36 @@ const main = async () => {
     // Purge remaining allocation
     await memeBase.purgeThisMeme(memeTokenTwo);
 
+    // Try to purge again
+    await expect(
+        memeBase.purgeThisMeme(memeTokenTwo)
+    ).to.be.revertedWith("Has been purged or nothing to purge");
+
     // Wait for 10 more seconds
     await helpers.time.increase(10);
 
     // Collect fees
     scheduledForAscendance = await memeBase.scheduledForAscendance();
-    await memeBase.collectFees([memeToken, memeTokenTwo], { gasLimit });
+    // Try to collect fees when there were no swaps
+    await expect(
+        memeBase.collectFees([memeToken, memeTokenTwo])
+    ).to.be.revertedWith("Zero fees available");
+
     let newScheduledForAscendance = await memeBase.scheduledForAscendance();
     // since no fees to collect, expect identical
     expect(newScheduledForAscendance).to.equal(scheduledForAscendance);
 
-    // Send to burner
+    // Send to buyBackBurner
     await expect(
         memeBase.scheduleForAscendance({ gasLimit })
     ).to.emit(memeBase, "Unleashed")
-    .and.to.emit(memeBase, "OLASJourneyToAscendance")
+    .and.to.emit(memeBase, "OLASJourneyToAscendance");
+
+    // Try to send to buyBackBurner again
+    await expect(
+        memeBase.scheduleForAscendance()
+    ).to.be.revertedWith("Nothing to send");
+
     // Get meme token
     const campaignToken = await memeBase.memeTokens(2);
     console.log("Campaign token contract:", campaignToken);
@@ -314,7 +396,7 @@ const main = async () => {
     const quoterABI = fs.readFileSync("abis/misc/quoter.json", "utf8");
     const quoter = new ethers.Contract(parsedData.quoterAddress, quoterABI, ethers.provider);
     const routerABI = fs.readFileSync("abis/misc/swaprouter.json", "utf8");
-    const router = new ethers.Contract(parsedData.routerAddress, routerABI, ethers.provider);
+    const router = new ethers.Contract(parsedData.routerV3Address, routerABI, ethers.provider);
     const poolAddress = await factory.getPool(weth.address, memeToken, fee);
     const poolABI = fs.readFileSync("abis/misc/pool.json", "utf8");
     const pool = new ethers.Contract(poolAddress, poolABI, ethers.provider);
@@ -328,7 +410,7 @@ const main = async () => {
     const memeBalance = await memeTokenInstance.balanceOf(deployer.address);
     const amount = memeBalance.div(3);
     // Approve tokens
-    await memeTokenInstance.approve(parsedData.routerAddress, amount);
+    await memeTokenInstance.approve(parsedData.routerV3Address, amount);
 
     const quote = {
         tokenIn: memeTokenInstance.address,
@@ -364,11 +446,14 @@ const main = async () => {
     //observations0 = await pool.observations(0);
     //console.log("1. observations0:", observations0);
 
-    // Wait for 10 seconds
-    await helpers.time.increase(10);
+    // Wait for 1800 seconds to have enough time for the oldest observation
+    await helpers.time.increase(1800);
+
+    // Collect fees for the first time
+    await memeBase.collectFees([memeToken]);
 
     // Approve tokens
-    await memeTokenInstance.approve(parsedData.routerAddress, amount);
+    await memeTokenInstance.approve(parsedData.routerV3Address, amount);
     // Get amount out for another swap
     quotedAmountOut = await quoter.callStatic.quoteExactInputSingle(quote);
     // Amount our must be bigger
@@ -393,13 +478,80 @@ const main = async () => {
     //observations0 = await pool.observations(0);
     //console.log("2. observations0:", observations0);
 
-    // Wait for 10 seconds
-    await helpers.time.increase(10);
+    // Wait for 100 seconds
+    await helpers.time.increase(100);
+
+    // Approve tokens
+    await memeTokenInstance.approve(parsedData.routerV3Address, amount);
+    // Get amount out for another swap
+    quotedAmountOut = await quoter.callStatic.quoteExactInputSingle(quote);
+    // Amount our must be bigger
+    expect(quotedAmountOut.amountOut).to.gt(0);
+
+    params = {
+        tokenIn: memeTokenInstance.address,
+        tokenOut: weth.address,
+        fee,
+        recipient: deployer.address,
+        deadline: Math.floor(new Date().getTime() / 1000 + oneDay),
+        amountIn: amount,
+        amountOutMinimum: quotedAmountOut.amountOut,
+        sqrtPriceLimitX96: 0,
+    };
+
+    // Perform another swap
+    await router.connect(deployer).exactInputSingle(params);
+
+    //slot0 = await pool.slot0();
+    //console.log("3. slot0:", slot0);
+    //observations0 = await pool.observations(0);
+    //console.log("3. observations0:", observations0);
+
+    // Wait for 100 seconds
+    await helpers.time.increase(100);
+
+    // Try to collect fees - but not enough time passed after huge swaps
+    // NOTE: In order for revert to work correctly one needs to remove gasLimit, as it's conflicting with the estimation
+    await expect(
+        memeBase.collectFees([memeToken])
+    ).to.be.revertedWith("Price deviation too high");
+
+    // Wait for 1200 seconds - not more than 1800 seconds, because after 1800 of inactivity the price is considered correct
+    await helpers.time.increase(1200);
 
     // Collect fees
     await expect(
         memeBase.collectFees([memeToken], { gasLimit })
-    ).to.emit(memeBase, "FeesCollected")
+    ).to.emit(memeBase, "FeesCollected");
+
+    // Try to collect fees again
+    await expect(
+        memeBase.collectFees([memeToken])
+    ).to.be.revertedWith("Zero fees available");
+
+    // Update oracle price
+    await buyBackBurner.updateOraclePrice();
+
+    // Try to swap native token for OLAS right away
+    await expect(
+        buyBackBurner.buyBack(ethers.utils.parseEther("5"))
+    ).to.be.revertedWith("Before swap slippage limit is breached");
+
+    // Wait for 10 seconds more in order not to engage with oracle in the same timestamp
+    await helpers.time.increase(10);
+
+    // Try to do a very big swap that completely unbalances the pool
+    await expect(
+        buyBackBurner.buyBack(0)
+    ).to.be.revertedWith("BAL#304");
+
+    // Fail to do swaps breaching the after-swap limit
+    await expect(
+        buyBackBurner.buyBack(ethers.utils.parseEther("10"))
+    ).to.be.revertedWith("After swap slippage limit is breached");
+
+    // Swap native token for OLAS
+    await buyBackBurner.buyBack(ethers.utils.parseEther("5"));
 };
 
 main()

@@ -80,15 +80,8 @@ interface IUniswapV3 {
     /// is the lower 4 bits. Used as the denominator of a fraction of the swap fee, e.g. 4 means 1/4th of the swap fee.
     /// unlocked Whether the pool is currently locked to reentrancy
     function slot0() external view
-        returns (
-            uint160 sqrtPriceX96,
-            int24 tick,
-            uint16 observationIndex,
-            uint16 observationCardinality,
-            uint16 observationCardinalityNext,
-            uint8 feeProtocol,
-            bool unlocked
-        );
+        returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality,
+            uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked);
 
     /// @notice Returns the cumulative tick and liquidity as of each timestamp `secondsAgo` from the current block timestamp
     /// @dev To get a time weighted average tick or liquidity-in-range, you must call this with two values, one representing

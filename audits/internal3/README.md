@@ -38,7 +38,7 @@ So, we must revert if pool exist at moment unleashThisMeme
 ```
 Internal functions are mixed with public ones, which makes it difficult to understand contracts.
 ```
-[]
+[x] Fixed
 
 ### Low issue: checking name, symbol. Not requrments ERC20
 ```

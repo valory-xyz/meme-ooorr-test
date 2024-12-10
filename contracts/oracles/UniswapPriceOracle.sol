@@ -44,9 +44,10 @@ contract UniswapPriceOracle {
     }
 
     /// @dev Updates the time-weighted average price.
+    /// @notice This is a compatibility function, which always needs to return false, as TWAP is updated automatically.
     function updatePrice() external pure returns (bool) {
         // Nothing to update; use built-in TWAP from Uniswap V2 pool
-        return true;
+        return false;
     }
 
     /// @dev Validates the current price against a TWAP according to slippage tolerance.

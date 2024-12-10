@@ -6,7 +6,7 @@ import {Meme} from "./Meme.sol";
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 
 interface IBuyBackBurner {
-    function checkPoolPrices(address token0, address token1, address uniV3PositionManager, uint24 fee) external;
+    function checkPoolPrices(address token0, address token1, address uniV3PositionManager, uint24 fee) external view;
 }
 
 // ERC20 interface
@@ -195,7 +195,7 @@ abstract contract MemeFactory {
         require(pool == address(0), "Pool address must be zero");
 
         // Create pool
-        IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1, FEE_TIER, sqrtPriceX96);
+        pool = IUniswapV3(uniV3PositionManager).createAndInitializePoolIfNecessary(token0, token1, FEE_TIER, sqrtPriceX96);
 
         // Approve tokens for router
         IERC20(token0).approve(uniV3PositionManager, amount0);
@@ -224,6 +224,9 @@ abstract contract MemeFactory {
         if (nativeLeftovers > 0) {
             scheduledForAscendance += nativeLeftovers;
         }
+
+        // Increase observation cardinality
+        IUniswapV3(pool).increaseObservationCardinalityNext(60);
     }
 
     /// @dev Collects fees from LP position, burns the meme token part and schedules for ascendance the native token part.
@@ -243,8 +246,9 @@ abstract contract MemeFactory {
             amount1Max: type(uint128).max
         });
 
-        // Get the corresponding tokens
+        // Get corresponding token fees
         (uint256 amount0, uint256 amount1) = IUniswapV3(uniV3PositionManager).collect(params);
+        require(amount0 > 0 || amount1 > 0, "Zero fees available");
 
         uint256 nativeAmountForOLASBurn;
         uint256 memeAmountToBurn;
@@ -345,7 +349,7 @@ abstract contract MemeFactory {
 
         // Create Uniswap pair with LP allocation
         (uint256 positionId, uint256 liquidity, bool isNativeFirst) =
-                        _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
+            _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;
@@ -577,7 +581,7 @@ abstract contract MemeFactory {
 
     /// @dev Collects all accumulated LP fees.
     /// @param tokens List of tokens to be iterated over.
-    function collectFees(address[] memory tokens) external {
+    function collectFees(address[] memory tokens) public {
         require(_locked == 1, "Reentrancy guard");
         _locked = 2;
 
