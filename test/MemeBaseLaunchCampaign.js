@@ -409,19 +409,19 @@ const main = async () => {
     // Wait for 10 seconds
     await helpers.time.increase(10);
 
-// TODO Fix this, does not revert and does not execute either, although there is a revert in the log
-//    // Try to collect fees - but not enough time passed after huge swaps
-//    await expect(
-//        memeBase.collectFees([memeToken], { gasLimit })
-//    ).to.be.revertedWith("Price deviation too high");
-//
-//    // Wait for 2000 seconds
-//    await helpers.time.increase(2000);
-//
-//    // Collect fees
-//    await expect(
-//        memeBase.collectFees([memeToken], { gasLimit })
-//    ).to.emit(memeBase, "FeesCollected");
+    // Try to collect fees - but not enough time passed after huge swaps
+    // NOTE: In order for revert to work correctly one needs to remove gasLimit, as it's conflicting with the estimation
+    await expect(
+        memeBase.collectFees([memeToken])
+    ).to.be.revertedWith("Price deviation too high");
+
+    // Wait for 1700 seconds - not more than 1800 seconds, because after 1800 of inactivity the price is considered correct
+    await helpers.time.increase(1700);
+
+    // Collect fees
+    await expect(
+        memeBase.collectFees([memeToken], { gasLimit })
+    ).to.emit(memeBase, "FeesCollected");
 
     // Update oracle price
     await buyBackBurner.updateOraclePrice();
