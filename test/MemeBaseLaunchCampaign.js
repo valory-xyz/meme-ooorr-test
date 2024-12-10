@@ -251,10 +251,10 @@ const main = async () => {
     const memeToken = await memeBase.memeTokens(0);
     console.log("First new meme token contract:", memeToken);
 
-    // Try to collect fees right away
+    // Try to collect fees right away when the TWAP data is still unavailable
     await expect(
         memeBase.collectFees([memeToken])
-    ).to.be.revertedWith("Zero fees available");
+    ).to.be.revertedWith("OLD");
 
     memeSummon = await memeBase.memeSummons(nonce1);
     expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(3));
@@ -352,7 +352,7 @@ const main = async () => {
 
     // Collect fees
     scheduledForAscendance = await memeBase.scheduledForAscendance();
-    // Try to collect fees
+    // Try to collect fees when there were no swaps
     await expect(
         memeBase.collectFees([memeToken, memeTokenTwo])
     ).to.be.revertedWith("Zero fees available");
@@ -403,8 +403,8 @@ const main = async () => {
 
     //let slot0 = await pool.slot0();
     //console.log("0. slot0:", slot0);
-    let observations0 = await pool.observations(0);
-    console.log("0. observations0:", observations0);
+    //let observations0 = await pool.observations(0);
+    //console.log("0. observations0:", observations0);
 
     const memeTokenInstance = await ethers.getContractAt("Meme", memeToken);
     const memeBalance = await memeTokenInstance.balanceOf(deployer.address);
@@ -441,10 +441,10 @@ const main = async () => {
     // Swap tokens
     await router.connect(deployer).exactInputSingle(params);
 
-    slot0 = await pool.slot0();
-    console.log("1. slot0:", slot0);
-    observations0 = await pool.observations(0);
-    console.log("1. observations0:", observations0);
+    //slot0 = await pool.slot0();
+    //console.log("1. slot0:", slot0);
+    //observations0 = await pool.observations(0);
+    //console.log("1. observations0:", observations0);
 
     // Wait for 1800 seconds to have enough time for the oldest observation
     await helpers.time.increase(1800);
@@ -473,10 +473,10 @@ const main = async () => {
     // Perform another swap
     await router.connect(deployer).exactInputSingle(params);
 
-    slot0 = await pool.slot0();
-    console.log("2. slot0:", slot0);
-    observations0 = await pool.observations(0);
-    console.log("2. observations0:", observations0);
+    //slot0 = await pool.slot0();
+    //console.log("2. slot0:", slot0);
+    //observations0 = await pool.observations(0);
+    //console.log("2. observations0:", observations0);
 
     // Wait for 100 seconds
     await helpers.time.increase(100);
@@ -502,10 +502,10 @@ const main = async () => {
     // Perform another swap
     await router.connect(deployer).exactInputSingle(params);
 
-    slot0 = await pool.slot0();
-    console.log("3. slot0:", slot0);
-    observations0 = await pool.observations(0);
-    console.log("3. observations0:", observations0);
+    //slot0 = await pool.slot0();
+    //console.log("3. slot0:", slot0);
+    //observations0 = await pool.observations(0);
+    //console.log("3. observations0:", observations0);
 
     // Wait for 100 seconds
     await helpers.time.increase(100);
@@ -523,6 +523,11 @@ const main = async () => {
     await expect(
         memeBase.collectFees([memeToken], { gasLimit })
     ).to.emit(memeBase, "FeesCollected");
+
+    // Try to collect fees again
+    await expect(
+        memeBase.collectFees([memeToken])
+    ).to.be.revertedWith("Zero fees available");
 
     // Update oracle price
     await buyBackBurner.updateOraclePrice();
