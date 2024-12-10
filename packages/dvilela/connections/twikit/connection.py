@@ -151,18 +151,17 @@ class TwikitConnection(Connection):
 
         self.state = ConnectionStates.disconnected
 
-    def run_async(
-        self, func: Callable, *args: Any, timeout: Optional[float] = None
-    ) -> Task:
-        """Run a function asynchronously by using threads."""
-        operation = self.loop.run_in_executor(
-            self.loop_executor,
-            func,
-            *args,
-        )
-        timely_operation = asyncio.wait_for(operation, timeout=timeout)
-        task = self.loop.create_task(timely_operation)
-        return task
+    async def receive(
+        self, *args: Any, **kwargs: Any
+    ) -> Optional[Union["Envelope", None]]:
+        """
+        Receive an envelope.
+
+        :param args: arguments
+        :param kwargs: keyword arguments
+        :return: the envelope received, or None.
+        """
+        return await self.response_envelopes.get()
 
     async def send(self, envelope: Envelope) -> None:
         """Send an envelope."""
@@ -199,17 +198,18 @@ class TwikitConnection(Connection):
         # not handling `asyncio.QueueFull` exception, because the maxsize we defined for the Queue is infinite
         self.response_envelopes.put_nowait(response_envelope)
 
-    async def receive(
-        self, *args: Any, **kwargs: Any
-    ) -> Optional[Union["Envelope", None]]:
-        """
-        Receive an envelope.
-
-        :param args: arguments
-        :param kwargs: keyword arguments
-        :return: the envelope received, or None.
-        """
-        return await self.response_envelopes.get()
+    def run_async(
+        self, func: Callable, *args: Any, timeout: Optional[float] = None
+    ) -> Task:
+        """Run a function asynchronously by using threads."""
+        operation = self.loop.run_in_executor(
+            self.loop_executor,
+            func,
+            *args,
+        )
+        timely_operation = asyncio.wait_for(operation, timeout=timeout)
+        task = self.loop.create_task(timely_operation)
+        return task
 
     async def _get_response(
         self, srr_message: SrrMessage, dialogue: BaseDialogue
