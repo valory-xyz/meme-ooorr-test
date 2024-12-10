@@ -116,6 +116,7 @@ function getTwapFromOracle(
     return price;
 }
 ```
+[x] Fixed in later version
 
 ### Same for function _collectFees(address memeToken, uint256 positionId, bool isNativeFirst) internal (critical)
 ```
@@ -176,6 +177,7 @@ function safeCollect(
     );
 }
 ```
+[x] Fixed in later version
 
 ### Low issue: Oracle not finished?
 ```

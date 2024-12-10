@@ -23,6 +23,8 @@ Needing re-design with TWAP Oracle
         uint256 limit = _getLowSlippageSafeSwapAmount();
 This is correctly reflected in TODO
 ``` 
+[x] Refactored
+
 ### Medium issue
 #### Not check that this LP token doesn't exist, DOS if exist
 ```

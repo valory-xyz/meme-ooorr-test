@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {IUniswapV3} from "./interfaces/IUniswapV3.sol";
 import {TickMath} from "./libraries/TickMath.sol";
-import "hardhat/console.sol";
+
 // ERC20 interface
 interface IERC20 {
     /// @dev Gets the amount of tokens owned by a specified account.
@@ -205,7 +205,7 @@ abstract contract BuyBackBurner {
         address token1,
         address uniV3PositionManager,
         uint24 fee
-    ) external {
+    ) external view {
         // Get factory address
         address factory = IUniswapV3(uniV3PositionManager).factory();
 
@@ -213,18 +213,12 @@ abstract contract BuyBackBurner {
         address pool = IUniswapV3(factory).getPool(token0, token1, fee);
         require(pool != address(0), "Pool does not exist");
 
-        // Get current pool reserves
-        (uint160 sqrtPriceX96, , uint16 observationCardinality, , , , ) = IUniswapV3(pool).slot0();
-        // Check observation cardinality
-        if (observationCardinality < 2) {
-            // Increase observation cardinality to get more accurate twap
-            IUniswapV3(pool).increaseObservationCardinalityNext(60);
-            return;
-        }
+        // Get current pool reserves and observation index
+        (uint160 sqrtPriceX96, , uint16 observationIndex, , , , ) = IUniswapV3(pool).slot0();
 
         // Check if the pool has sufficient observation history
-        (uint32 oldestTimestamp, , , ) = IUniswapV3(pool).observations(0);
-        if (oldestTimestamp + SECONDS_AGO >= block.timestamp) {
+        (uint32 oldestTimestamp, , , ) = IUniswapV3(pool).observations(observationIndex);
+        if (oldestTimestamp + SECONDS_AGO < block.timestamp) {
             return;
         }
 
@@ -240,8 +234,6 @@ abstract contract BuyBackBurner {
                 ((twapPrice - instantPrice) * 1e18) / twapPrice;
         }
 
-        console.log("deviation", deviation);
-        console.log("MAX_ALLOWED_DEVIATION", MAX_ALLOWED_DEVIATION);
         require(deviation <= MAX_ALLOWED_DEVIATION, "Price deviation too high");
     }
 
