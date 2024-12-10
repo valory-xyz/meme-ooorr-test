@@ -40,8 +40,8 @@ async function main() {
     const deployer = await EOA.getAddress();
     console.log("EOA is:", deployer);
 
-    console.log("Getting redemption data");
-    const redemptionsFile = "scripts/deployment/memebase_redemption.json";
+    console.log("Getting campaign data");
+    const redemptionsFile = "scripts/deployment/memebase_campaign.json";
     dataFromJSON = fs.readFileSync(redemptionsFile, "utf8");
     const redemptionsData = JSON.parse(dataFromJSON);
     console.log("Number of entries:", redemptionsData.length);
@@ -60,7 +60,7 @@ async function main() {
     console.log("You are signing the following transaction: MemeBase.connect(EOA).deploy()");
     const memeBase = await MemeBase.connect(EOA).deploy(parsedData.olasAddress, parsedData.wethAddress,
         parsedData.uniV3positionManagerAddress, parsedData.buyBackBurnerProxyAddress, parsedData.minNativeTokenValue,
-        accounts, amounts, { gasPrice });
+        accounts, amounts, { gasPrice, gasLimit: 11000000});
     const result = await memeBase.deployed();
 
     // Transaction details

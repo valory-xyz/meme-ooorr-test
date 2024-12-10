@@ -71,7 +71,7 @@ module.exports = {
             chainId: 10,
         },
         base: {
-            url: "https://mainnet.base.org",
+            url: "https://mainnet.base",
             accounts: accounts,
             chainId: 8453,
         },
@@ -256,7 +256,7 @@ module.exports = {
                         enabled: true,
                         runs: 1000000,
                     },
-                    evmVersion: "paris"
+                    evmVersion: "cancun"
                 },
             }
         ]
