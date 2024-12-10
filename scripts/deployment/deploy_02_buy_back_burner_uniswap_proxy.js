@@ -54,25 +54,25 @@ async function main() {
     const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
     const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
     console.log("You are signing the following transaction: BuyBackBurnerProxy.connect(EOA).deploy()");
-    const buyBackBurner = await BuyBackBurnerProxy.connect(EOA).deploy(buyBackBurnerAddress, proxyData, { gasPrice });
-    const result = await buyBackBurner.deployed();
+    const buyBackBurnerProxy = await BuyBackBurnerProxy.connect(EOA).deploy(buyBackBurnerAddress, proxyData, { gasPrice });
+    const result = await buyBackBurnerProxy.deployed();
 
     // Transaction details
     console.log("Contract deployment: buyBackBurnerProxy");
-    console.log("Contract address:", buyBackBurner.address);
+    console.log("Contract address:", buyBackBurnerProxy.address);
     console.log("Transaction:", result.deployTransaction.hash);
 
     // Wait for half a minute for the transaction completion
     await new Promise(r => setTimeout(r, 30000));
 
     // Writing updated parameters back to the JSON file
-    parsedData.buyBackBurnerAddress = buyBackBurner.address;
+    parsedData.buyBackBurnerAddress = buyBackBurnerProxy.address;
     fs.writeFileSync(globalsFile, JSON.stringify(parsedData));
 
     // Contract verification
     if (parsedData.contractVerification) {
         const execSync = require("child_process").execSync;
-        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_02_buy_back_burner_uniswap_proxy.js --network " + providerName + " " + buyBackBurner.address, { encoding: "utf-8" });
+        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_02_buy_back_burner_uniswap_proxy.js --network " + providerName + " " + buyBackBurnerProxy.address, { encoding: "utf-8" });
     }
 }
 
