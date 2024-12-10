@@ -28,17 +28,6 @@ interface IBalancer {
     external payable returns (uint256);
 }
 
-// Bridge interface
-interface IBridge {
-    /// @dev Initiates a withdrawal from L2 to L1 to a target account on L1.
-    /// @param l2Token Address of the L2 token to withdraw.
-    /// @param to Recipient account on L1.
-    /// @param amount Amount of the L2 token to withdraw.
-    /// @param minGasLimit Minimum gas limit to use for the transaction.
-    /// @param extraData Extra data attached to the withdrawal.
-    function withdrawTo(address l2Token, address to, uint256 amount, uint32 minGasLimit, bytes calldata extraData) external;
-}
-
 // ERC20 interface
 interface IERC20 {
     /// @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
@@ -46,46 +35,14 @@ interface IERC20 {
     /// @param amount Token amount.
     /// @return True if the function execution is successful.
     function approve(address spender, uint256 amount) external returns (bool);
-
-    /// @dev Gets the amount of tokens owned by a specified account.
-    /// @param account Account address.
-    /// @return Amount of tokens owned.
-    function balanceOf(address account) external view returns (uint256);
 }
 
 /// @title BuyBackBurnerBase - BuyBackBurner implementation contract for Base
 contract BuyBackBurnerBase is BuyBackBurner {
-    // Token transfer gas limit for L1
-    // This is safe as the value is practically bigger than observed ones on numerous chains
-    uint32 public constant TOKEN_GAS_LIMIT = 300_000;
-
     // Balancer vault address
     address public balancerVault;
     // Balancer pool Id
     bytes32 public balancerPoolId;
-
-    /// @dev Bridges OLAS amount back to L1 and burns.
-    /// @param olasAmount OLAS amount.
-    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
-    /// @return leftovers msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(
-        uint256 olasAmount,
-        uint256 tokenGasLimit,
-        bytes memory
-    ) internal virtual override returns (uint256 leftovers) {
-        // Approve bridge to use OLAS
-        IERC20(olas).approve(l2TokenRelayer, olasAmount);
-
-        // Check for sufficient minimum gas limit
-        if (tokenGasLimit < TOKEN_GAS_LIMIT) {
-            tokenGasLimit = TOKEN_GAS_LIMIT;
-        }
-
-        // Bridge OLAS to mainnet to get burned
-        IBridge(l2TokenRelayer).withdrawTo(olas, OLAS_BURNER, olasAmount, uint32(tokenGasLimit), "0x");
-
-        leftovers = msg.value;
-    }
 
     /// @dev Performs swap for OLAS on DEX.
     /// @param nativeTokenAmount Native token amount.
@@ -108,13 +65,11 @@ contract BuyBackBurnerBase is BuyBackBurner {
     /// @param payload Initializer payload.
     function _initialize(bytes memory payload) internal override virtual {
         address[] memory accounts;
-        (accounts, balancerPoolId, maxSlippage, minBridgedAmount) =
-            abi.decode(payload, (address[], bytes32, uint256, uint256));
+        (accounts, balancerPoolId, maxSlippage) = abi.decode(payload, (address[], bytes32, uint256));
 
         olas = accounts[0];
         nativeToken = accounts[1];
         oracle = accounts[2];
-        l2TokenRelayer = accounts[3];
-        balancerVault = accounts[4];
+        balancerVault = accounts[3];
     }
 }

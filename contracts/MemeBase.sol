@@ -43,7 +43,7 @@ contract MemeBase is MemeFactory {
     /// @param accounts Original accounts.
     /// @param amounts Corresponding original amounts (without subtraction for burn).
     function _launchCampaignSetup(address[] memory accounts, uint256[] memory amounts) private {
-        require(accounts.length == amounts.length);
+        require(accounts.length == amounts.length, "Array lengths are not equal");
 
         // Initiate meme token map values
         // unleashTime is set to 1 such that no one is able to heart, collect or purge this token

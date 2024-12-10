@@ -245,6 +245,7 @@ abstract contract MemeFactory {
 
         // Get the corresponding tokens
         (uint256 amount0, uint256 amount1) = IUniswapV3(uniV3PositionManager).collect(params);
+        //require(amount0 > 0 || amount1 > 0, "No rewards");
 
         uint256 nativeAmountForOLASBurn;
         uint256 memeAmountToBurn;

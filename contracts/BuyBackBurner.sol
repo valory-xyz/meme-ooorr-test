@@ -42,9 +42,7 @@ abstract contract BuyBackBurner {
     event ImplementationUpdated(address indexed implementation);
     event OwnerUpdated(address indexed owner);
     event OracleUpdated(address indexed oracle);
-    event MinBridgedAmountUpdated(uint256 minBridgedAmount);
     event BuyBack(uint256 olasAmount);
-    event BridgeAndBurn(uint256 olasAmount);
     event OraclePriceUpdated(address indexed oracle, address indexed sender);
 
     // Version number
@@ -66,29 +64,14 @@ abstract contract BuyBackBurner {
     address public nativeToken;
     // Oracle address
     address public oracle;
-    // L2 token relayer bridge address
-    address public l2TokenRelayer;
 
     // Oracle max slippage for ERC-20 native token <=> OLAS
     uint256 public maxSlippage;
-    // Minimum bridge amount
-    uint256 public minBridgedAmount;
     // Reentrancy lock
     uint256 internal _locked = 1;
 
     // Map of account => activity counter
     mapping(address => uint256) public mapAccountActivities;
-
-    /// @dev Bridges OLAS amount back to L1 and burns.
-    /// @param olasAmount OLAS amount.
-    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
-    /// @param bridgePayload Optional additional bridge payload.
-    /// @return leftovers msg.value leftovers if partially utilized by the bridge.
-    function _bridgeAndBurn(
-        uint256 olasAmount,
-        uint256 tokenGasLimit,
-        bytes memory bridgePayload
-    ) internal virtual returns (uint256 leftovers);
 
     /// @dev Buys OLAS on DEX.
     /// @param nativeTokenAmount Suggested native token amount.
@@ -213,23 +196,6 @@ abstract contract BuyBackBurner {
         emit OracleUpdated(newOracle);
     }
 
-    /// @dev Changes minimum OLAS bridge amount.
-    /// @param newMinBridgedAmount New minimum bridged amount.
-    function changeMinBridgedAmount(uint256 newMinBridgedAmount) external virtual {
-        // Check for the ownership
-        if (msg.sender != owner) {
-            revert OwnerOnly(msg.sender, owner);
-        }
-
-        // Check for the zero value
-        if (newMinBridgedAmount == 0) {
-            revert ZeroValue();
-        }
-
-        minBridgedAmount = newMinBridgedAmount;
-        emit MinBridgedAmountUpdated(newMinBridgedAmount);
-    }
-
     /// @dev Checks pool prices via Uniswap V3 built-in oracle.
     /// @param token0 Token0 address.
     /// @param token1 Token1 address.
@@ -274,6 +240,8 @@ abstract contract BuyBackBurner {
                 ((twapPrice - instantPrice) * 1e18) / twapPrice;
         }
 
+        console.log("deviation", deviation);
+        console.log("MAX_ALLOWED_DEVIATION", MAX_ALLOWED_DEVIATION);
         require(deviation <= MAX_ALLOWED_DEVIATION, "Price deviation too high");
     }
 
@@ -300,34 +268,6 @@ abstract contract BuyBackBurner {
         uint256 olasAmount = _buyOLAS(nativeTokenAmount);
 
         emit BuyBack(olasAmount);
-
-        _locked = 1;
-    }
-
-    /// @dev Bridges OLAS to Ethereum mainnet for burn.
-    /// @param tokenGasLimit Token gas limit for bridging OLAS to L1.
-    /// @param bridgePayload Optional additional bridge payload.
-    function bridgeAndBurn(uint256 tokenGasLimit, bytes memory bridgePayload) external virtual payable {
-        require(_locked == 1, "Reentrancy guard");
-        _locked = 2;
-
-        // Record msg.sender activity
-        mapAccountActivities[msg.sender]++;
-
-        uint256 olasAmount = IERC20(olas).balanceOf(address(this));
-        require(olasAmount >= minBridgedAmount, "Not enough OLAS to bridge");
-
-        // Bridge and burn OLAS
-        uint256 leftovers = _bridgeAndBurn(olasAmount, tokenGasLimit, bridgePayload);
-
-        // Send leftover amount, if any, back to the sender
-        if (leftovers > 0) {
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool success, ) = tx.origin.call{value: leftovers}("");
-            require(success, "Leftovers transfer failed");
-        }
-
-        emit BridgeAndBurn(olasAmount);
 
         _locked = 1;
     }
