@@ -13,6 +13,7 @@ async function main() {
     const providerName = parsedData.providerName;
     const gasPriceInGwei = parsedData.gasPriceInGwei;
     const buyBackBurnerAddress = parsedData.buyBackBurnerAddress;
+    const nativeTokenAddress = parsedData.celoAddress;
 
     let networkURL = parsedData.networkURL;
     if (providerName === "polygon") {
@@ -42,14 +43,14 @@ async function main() {
     console.log("EOA is:", deployer);
 
     // Assemble the contributors proxy data
-    const buyBackBurner = await ethers.getContractAt("BuyBackBurnerProxy", buyBackBurnerAddress);
-    const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "bytes32", "uint256"],
-         [[parsedData.olasAddress, parsedData.wethAddress, balancerPriceOracle.address,
-         parsedData.balancerVaultAddress], parsedData.balancerPoolId, parsedData.maxBuyBackSlippage]);
+    const buyBackBurner = await ethers.getContractAt("BuyBackBurnerUniswap", buyBackBurnerAddress);
+    const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "uint256"],
+         [[parsedData.olasAddress, nativeTokenAddress, balancerPriceOracle.address,
+         parsedData.routerV2Address], parsedData.maxBuyBackSlippage]);
     const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", [proxyPayload]);
 
     // Transaction signing and execution
-    console.log("2. EOA to deploy BuyBackBurnerProxy");
+    console.log("2-2. EOA to deploy BuyBackBurnerProxy based on BuyBackBurnerUniswap ");
     const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
     const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
     console.log("You are signing the following transaction: BuyBackBurnerProxy.connect(EOA).deploy()");
@@ -71,7 +72,7 @@ async function main() {
     // Contract verification
     if (parsedData.contractVerification) {
         const execSync = require("child_process").execSync;
-        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_02_buy_back_burner_proxy.js --network " + providerName + " " + buyBackBurner.address, { encoding: "utf-8" });
+        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_02_buy_back_burner_uniswap_proxy.js --network " + providerName + " " + buyBackBurner.address, { encoding: "utf-8" });
     }
 }
 

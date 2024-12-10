@@ -12,6 +12,7 @@ async function main() {
     const derivationPath = parsedData.derivationPath;
     const providerName = parsedData.providerName;
     const gasPriceInGwei = parsedData.gasPriceInGwei;
+    const buyBackBurnerAddress = parsedData.buyBackBurnerAddress;
 
     let networkURL = parsedData.networkURL;
     if (providerName === "polygon") {
@@ -40,16 +41,23 @@ async function main() {
     const deployer = await EOA.getAddress();
     console.log("EOA is:", deployer);
 
+    // Assemble the contributors proxy data
+    const buyBackBurner = await ethers.getContractAt("BuyBackBurnerBalancer", buyBackBurnerAddress);
+    const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "bytes32", "uint256"],
+         [[parsedData.olasAddress, parsedData.wethAddress, balancerPriceOracle.address,
+         parsedData.balancerVaultAddress], parsedData.balancerPoolId, parsedData.maxBuyBackSlippage]);
+    const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", [proxyPayload]);
+
     // Transaction signing and execution
-    console.log("1. EOA to deploy BuyBackBurner");
+    console.log("2-1. EOA to deploy BuyBackBurnerProxy based on BuyBackBurnerBalancer");
     const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
-    const BuyBackBurner = await ethers.getContractFactory("BuyBackBurner");
-    console.log("You are signing the following transaction: BuyBackBurner.connect(EOA).deploy()");
-    const buyBackBurner = await BuyBackBurner.connect(EOA).deploy({ gasPrice });
+    const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
+    console.log("You are signing the following transaction: BuyBackBurnerProxy.connect(EOA).deploy()");
+    const buyBackBurner = await BuyBackBurnerProxy.connect(EOA).deploy(buyBackBurnerAddress, proxyData, { gasPrice });
     const result = await buyBackBurner.deployed();
 
     // Transaction details
-    console.log("Contract deployment: BuyBackBurner");
+    console.log("Contract deployment: buyBackBurnerProxy");
     console.log("Contract address:", buyBackBurner.address);
     console.log("Transaction:", result.deployTransaction.hash);
 
@@ -63,7 +71,7 @@ async function main() {
     // Contract verification
     if (parsedData.contractVerification) {
         const execSync = require("child_process").execSync;
-        execSync("npx hardhat verify --network " + providerName + " " + buyBackBurner.address, { encoding: "utf-8" });
+        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_02_buy_back_burner_balancer_proxy.js --network " + providerName + " " + buyBackBurner.address, { encoding: "utf-8" });
     }
 }
 
