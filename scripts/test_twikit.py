@@ -57,6 +57,7 @@ async def password_login():
         auth_info_2=os.getenv("TWIKIT_EMAIL"),
         password=os.getenv("TWIKIT_PASSWORD"),
     )
+    client.save_cookies(os.getenv("TWIKIT_COOKIES_PATH"))
     return client
 
 
@@ -86,6 +87,4 @@ async def get_tweets() -> None:
     return [tweet_to_json(t) for t in latest_tweets]
 
 
-tweets = asyncio.run(get_tweets())
-date = datetime.strptime(tweets[0]["created_at"], "%a %b %d %H:%M:%S %z %Y")
-print(date)
+asyncio.run(password_login())

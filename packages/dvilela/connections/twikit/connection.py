@@ -119,7 +119,6 @@ class TwikitConnection(Connection):
 
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
         self._response_envelopes: Optional[asyncio.Queue] = None
-        self.loop_executor: Optional[Executor] = None
         self.task_to_request: Dict[asyncio.Future, Envelope] = {}
 
     @property
@@ -174,7 +173,7 @@ class TwikitConnection(Connection):
         message = cast(SrrMessage, envelope.message)
         handler = getattr(self, "_get_response")
         dialogue = self.dialogues.update(message)
-        task = self.run_async(handler, message, dialogue)
+        task = self.loop.create_task(handler(message, dialogue))
         return task
 
     def _handle_done_task(self, task: asyncio.Future) -> None:
@@ -197,19 +196,6 @@ class TwikitConnection(Connection):
 
         # not handling `asyncio.QueueFull` exception, because the maxsize we defined for the Queue is infinite
         self.response_envelopes.put_nowait(response_envelope)
-
-    def run_async(
-        self, func: Callable, *args: Any, timeout: Optional[float] = None
-    ) -> Task:
-        """Run a function asynchronously by using threads."""
-        operation = self.loop.run_in_executor(
-            self.loop_executor,
-            func,
-            *args,
-        )
-        timely_operation = asyncio.wait_for(operation, timeout=timeout)
-        task = self.loop.create_task(timely_operation)
-        return task
 
     async def _get_response(
         self, srr_message: SrrMessage, dialogue: BaseDialogue
