@@ -12,6 +12,7 @@ async function main() {
     const derivationPath = parsedData.derivationPath;
     const providerName = parsedData.providerName;
     const gasPriceInGwei = parsedData.gasPriceInGwei;
+    const nativeTokenAddress = parsedData.celoAddress;
 
     let networkURL = parsedData.networkURL;
     if (providerName === "polygon") {
@@ -40,45 +41,31 @@ async function main() {
     const deployer = await EOA.getAddress();
     console.log("EOA is:", deployer);
 
-    console.log("Getting redemption data");
-    const redemptionsFile = "scripts/deployment/memebase_redemption.json";
-    dataFromJSON = fs.readFileSync(redemptionsFile, "utf8");
-    const redemptionsData = JSON.parse(dataFromJSON);
-    console.log("Number of entries:", redemptionsData.length);
-
-    const accounts = new Array();
-    const amounts = new Array();
-    for (let i = 0; i < redemptionsData.length; i++) {
-        accounts.push(redemptionsData[i]["hearter"]);
-        amounts.push(redemptionsData[i]["amount"].toString());
-    }
-
     // Transaction signing and execution
-    console.log("3. EOA to deploy MemeBase");
+    console.log("0-2. EOA to deploy UniswapPriceOracle");
     const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
-    const MemeBase = await ethers.getContractFactory("MemeBase");
-    console.log("You are signing the following transaction: MemeBase.connect(EOA).deploy()");
-    const memeBase = await MemeBase.connect(EOA).deploy(parsedData.olasAddress, parsedData.wethAddress,
-        parsedData.uniV3positionManagerAddress, parsedData.buyBackBurnerProxyAddress, parsedData.minNativeTokenValue,
-        accounts, amounts, { gasPrice });
-    const result = await memeBase.deployed();
+    const UniswapPriceOracle = await ethers.getContractFactory("UniswapPriceOracle");
+    console.log("You are signing the following transaction: UniswapPriceOracle.connect(EOA).deploy()");
+    const uniswapPriceOracle = await UniswapPriceOracle.connect(EOA).deploy(nativeTokenAddress,
+        parsedData.maxOracleSlippage, parsedData.pairAddress, { gasPrice });
+    const result = await uniswapPriceOracle.deployed();
 
     // Transaction details
-    console.log("Contract deployment: MemeBase");
-    console.log("Contract address:", memeBase.address);
+    console.log("Contract deployment: UniswapPriceOracle");
+    console.log("Contract address:", uniswapPriceOracle.address);
     console.log("Transaction:", result.deployTransaction.hash);
 
     // Wait for half a minute for the transaction completion
     await new Promise(r => setTimeout(r, 30000));
 
     // Writing updated parameters back to the JSON file
-    parsedData.memeBaseAddress = memeBase.address;
+    parsedData.uniswapPriceOracleAddress = uniswapPriceOracle.address;
     fs.writeFileSync(globalsFile, JSON.stringify(parsedData));
 
     // Contract verification
     if (parsedData.contractVerification) {
         const execSync = require("child_process").execSync;
-        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_03_meme_base.js --network " + providerName + " " + memeBase.address, { encoding: "utf-8" });
+        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_00_uniswap_price_oracle.js --network " + providerName + " " + uniswapPriceOracle.address, { encoding: "utf-8" });
     }
 }
 
