@@ -24,7 +24,6 @@
 import asyncio
 import json
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
@@ -87,4 +86,4 @@ async def get_tweets() -> None:
     return [tweet_to_json(t) for t in latest_tweets]
 
 
-asyncio.run(password_login())
+asyncio.run(get_tweets())

@@ -24,10 +24,9 @@ import asyncio
 import json
 import time
 from asyncio import Task
-from concurrent.futures import Executor
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import twikit  # type: ignore
 from aea.configurations.base import PublicId
@@ -171,9 +170,8 @@ class TwikitConnection(Connection):
     def _handle_envelope(self, envelope: Envelope) -> Task:
         """Handle incoming envelopes by dispatching background tasks."""
         message = cast(SrrMessage, envelope.message)
-        handler = getattr(self, "_get_response")
         dialogue = self.dialogues.update(message)
-        task = self.loop.create_task(handler(message, dialogue))
+        task = self.loop.create_task(self._get_response(message, dialogue))
         return task
 
     def _handle_done_task(self, task: asyncio.Future) -> None:
@@ -198,15 +196,25 @@ class TwikitConnection(Connection):
         self.response_envelopes.put_nowait(response_envelope)
 
     async def _get_response(
-        self, srr_message: SrrMessage, dialogue: BaseDialogue
+        self, srr_message: SrrMessage, dialogue: Optional[BaseDialogue]
     ) -> SrrMessage:
         """Get response from Genai."""
 
         if srr_message.performative != SrrMessage.Performative.REQUEST:
-            self.logger.error(
-                f"Performative `{srr_message.performative.value}` is not supported."
+            response_message = cast(
+                SrrMessage,
+                dialogue.reply(  # type: ignore
+                    performative=SrrMessage.Performative.RESPONSE,
+                    target_message=srr_message,
+                    payload=json.dumps(
+                        {
+                            "error": f"Performative `{srr_message.performative.value}` is not supported."
+                        }
+                    ),
+                    error=True,
+                ),
             )
-            return
+            return response_message
 
         payload = json.loads(srr_message.payload)
 
@@ -214,15 +222,37 @@ class TwikitConnection(Connection):
         AVAILABLE_METHODS = ["search", "post", "get_user_tweets"]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
-            return {
-                "error": f"Some parameter is missing from the request data: required={REQUIRED_PROPERTIES}, got={list(payload.keys())}"
-            }, True
+            response_message = cast(
+                SrrMessage,
+                dialogue.reply(  # type: ignore
+                    performative=SrrMessage.Performative.RESPONSE,
+                    target_message=srr_message,
+                    payload=json.dumps(
+                        {
+                            "error": f"Some parameter is missing from the request data: required={REQUIRED_PROPERTIES}, got={list(payload.keys())}"
+                        }
+                    ),
+                    error=True,
+                ),
+            )
+            return response_message
 
         method_name = payload.get("method")
         if method_name not in AVAILABLE_METHODS:
-            return {
-                "error": f"Method {method_name} is not in the list of available methods {AVAILABLE_METHODS}"
-            }, True
+            response_message = cast(
+                SrrMessage,
+                dialogue.reply(  # type: ignore
+                    performative=SrrMessage.Performative.RESPONSE,
+                    target_message=srr_message,
+                    payload=json.dumps(
+                        {
+                            "error": f"Method {method_name} is not in the list of available methods {AVAILABLE_METHODS}"
+                        }
+                    ),
+                    error=True,
+                ),
+            )
+            return response_message
 
         method = getattr(self, method_name)
 
