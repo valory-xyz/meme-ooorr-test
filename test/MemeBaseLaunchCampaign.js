@@ -314,7 +314,7 @@ const main = async () => {
     ).to.emit(memeBase, "Unleashed")
     .and.to.emit(memeBase, "Collected");
 
-    // Get campaign token
+    // Get meme token two
     const memeTokenTwo = await memeBase.memeTokens(1);
     console.log("Second new meme contract:", memeTokenTwo);
 
@@ -375,7 +375,7 @@ const main = async () => {
         memeBase.scheduleForAscendance()
     ).to.be.revertedWith("Nothing to send");
 
-    // Get meme token
+    // Get campaign token
     const campaignToken = await memeBase.memeTokens(2);
     console.log("Campaign token contract:", campaignToken);
     scheduledForAscendance = await memeBase.scheduledForAscendance();
