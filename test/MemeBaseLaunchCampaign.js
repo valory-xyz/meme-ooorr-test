@@ -251,6 +251,11 @@ const main = async () => {
     const memeToken = await memeBase.memeTokens(0);
     console.log("First new meme token contract:", memeToken);
 
+    // Try to collect fees right away
+    await expect(
+        memeBase.collectFees([memeToken])
+    ).to.be.revertedWith("Zero fees available");
+
     memeSummon = await memeBase.memeSummons(nonce1);
     expect(memeSummon.nativeTokenContributed).to.equal(ethers.BigNumber.from(smallDeposit).mul(3));
 

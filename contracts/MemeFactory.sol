@@ -243,9 +243,9 @@ abstract contract MemeFactory {
             amount1Max: type(uint128).max
         });
 
-        // Get the corresponding tokens
+        // Get corresponding token fees
         (uint256 amount0, uint256 amount1) = IUniswapV3(uniV3PositionManager).collect(params);
-        //require(amount0 > 0 || amount1 > 0, "No rewards");
+        require(amount0 > 0 || amount1 > 0, "Zero fees available");
 
         uint256 nativeAmountForOLASBurn;
         uint256 memeAmountToBurn;
@@ -346,7 +346,7 @@ abstract contract MemeFactory {
 
         // Create Uniswap pair with LP allocation
         (uint256 positionId, uint256 liquidity, bool isNativeFirst) =
-                        _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
+            _createUniswapPair(memeToken, nativeAmountForLP, memeAmountForLP);
 
         // Record the actual meme unleash time
         memeSummon.unleashTime = block.timestamp;

@@ -29,7 +29,7 @@ remove updatePrice or return false.
         return true;
     }
 ```
-[]
+[x] Fixed
 
 ### Low - no checking fee. 
 ```
@@ -62,7 +62,7 @@ Improve:
 +
     require(amount0 > 0 || amount1 > 0, "No rewards");
 ```
-[]
+[x] Fixed
 
 ### Remove console.log in prod.
 ```
