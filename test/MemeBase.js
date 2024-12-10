@@ -38,10 +38,9 @@ const main = async () => {
     await buyBackBurnerImplementation.deployed();
 
     // Initialize buyBackBurner
-    const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "bytes32", "uint256", "uint256"],
-         [[parsedData.olasAddress, parsedData.wethAddress, balancerPriceOracle.address, parsedData.l2TokenBridgeAddress,
-         parsedData.balancerVaultAddress], parsedData.balancerPoolId, parsedData.maxBuyBackSlippage,
-         parsedData.minBridgedAmount]);
+    const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "bytes32", "uint256"],
+         [[parsedData.olasAddress, parsedData.wethAddress, balancerPriceOracle.address,
+         parsedData.balancerVaultAddress], parsedData.balancerPoolId, parsedData.maxBuyBackSlippage]);
     const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", [proxyPayload]);
     const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
     const buyBackBurnerProxy = await BuyBackBurnerProxy.deploy(buyBackBurnerImplementation.address, proxyData);

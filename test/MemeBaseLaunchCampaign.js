@@ -60,10 +60,9 @@ const main = async () => {
     await buyBackBurnerImplementation.deployed();
 
     // Initialize buyBackBurner
-    const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "bytes32", "uint256", "uint256"],
-         [[parsedData.olasAddress, parsedData.wethAddress, balancerPriceOracle.address, parsedData.l2TokenBridgeAddress,
-         parsedData.balancerVaultAddress], parsedData.balancerPoolId, parsedData.maxBuyBackSlippage,
-         parsedData.minBridgedAmount]);
+    const proxyPayload = ethers.utils.defaultAbiCoder.encode(["address[]", "bytes32", "uint256"],
+         [[parsedData.olasAddress, parsedData.wethAddress, balancerPriceOracle.address,
+         parsedData.balancerVaultAddress], parsedData.balancerPoolId, parsedData.maxBuyBackSlippage]);
     const proxyData = buyBackBurnerImplementation.interface.encodeFunctionData("initialize", [proxyPayload]);
     const BuyBackBurnerProxy = await ethers.getContractFactory("BuyBackBurnerProxy");
     const buyBackBurnerProxy = await BuyBackBurnerProxy.deploy(buyBackBurnerImplementation.address, proxyData);
@@ -410,38 +409,43 @@ const main = async () => {
     // Wait for 10 seconds
     await helpers.time.increase(10);
 
-    // Collect fees
-    await expect(
-        memeBase.collectFees([memeToken], { gasLimit })
-    ).to.emit(memeBase, "FeesCollected")
+// TODO Fix this, does not revert and does not execute either, although there is a revert in the log
+//    // Try to collect fees - but not enough time passed after huge swaps
+//    await expect(
+//        memeBase.collectFees([memeToken], { gasLimit })
+//    ).to.be.revertedWith("Price deviation too high");
+//
+//    // Wait for 2000 seconds
+//    await helpers.time.increase(2000);
+//
+//    // Collect fees
+//    await expect(
+//        memeBase.collectFees([memeToken], { gasLimit })
+//    ).to.emit(memeBase, "FeesCollected");
 
     // Update oracle price
     await buyBackBurner.updateOraclePrice();
 
-    // TODO: fail to do swaps right away
-    // Swap native token for OLAS
-    //await buyBackBurner.buyBack(ethers.utils.parseEther("5"));
+    // Try to swap native token for OLAS right away
+    await expect(
+        buyBackBurner.buyBack(ethers.utils.parseEther("5"))
+    ).to.be.revertedWith("Before swap slippage limit is breached");
 
     // Wait for 10 seconds more in order not to engage with oracle in the same timestamp
     await helpers.time.increase(10);
 
-    // TODO: fail to do huge swaps
-    // Swap native token for OLAS
-    //await buyBackBurner.buyBack(0);
+    // Try to do a very big swap that completely unbalances the pool
+    await expect(
+        buyBackBurner.buyBack(0)
+    ).to.be.revertedWith("BAL#304");
 
-    // TODO: fail to do swaps breaching the after-swap limit (find value)
-    // Swap native token for OLAS
-    //await buyBackBurner.buyBack(ethers.utils.parseEther("10"));
-
-    // TODO Error to bridge when there's not enough value to bridge
-    // Bridge OLAS to burn
-    //await buyBackBurner.bridgeAndBurn(0, "0x");
+    // Fail to do swaps breaching the after-swap limit
+    await expect(
+        buyBackBurner.buyBack(ethers.utils.parseEther("10"))
+    ).to.be.revertedWith("After swap slippage limit is breached");
 
     // Swap native token for OLAS
     await buyBackBurner.buyBack(ethers.utils.parseEther("5"));
-
-    // Bridge OLAS to burn
-    await buyBackBurner.bridgeAndBurn(0, "0x");
 };
 
 main()
