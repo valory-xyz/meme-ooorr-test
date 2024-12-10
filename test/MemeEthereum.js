@@ -21,12 +21,20 @@ const main = async () => {
     const payload = "0x";
     const oneDay = 86400;
     const twoDays = 2 * oneDay;
+    const gasLimit = 10000000;
     const fee = 10000;
     const nonce0 = 1;
     const nonce1 = 2;
 
-    signers = await ethers.getSigners();
-    deployer = signers[0];
+    const signers = await ethers.getSigners();
+    const deployer = signers[0];
+
+    console.log("deployer address:", deployer.address);
+    console.log("Balance of deployer:", await ethers.provider.getBalance(deployer.address));
+    console.log("signers[1] address:", signers[1].address);
+    console.log("Balance of signer 1:", await ethers.provider.getBalance(signers[1].address));
+    console.log("signers[2] address:", signers[2].address);
+    console.log("Balance of signer 2", await ethers.provider.getBalance(signers[2].address));
 
     // UniswapPriceOracle
     const UniswapPriceOracle = await ethers.getContractFactory("UniswapPriceOracle");
@@ -159,7 +167,7 @@ const main = async () => {
         memeEthereum.unleashThisMeme(nonce1)
     ).to.be.revertedWith("Meme not yet summoned");
     await expect(
-        memeEthereum.unleashThisMeme(nonce0)
+        memeEthereum.unleashThisMeme(nonce0, { gasLimit })
     ).to.emit(memeEthereum, "Unleashed")
     // .withArgs(deployer.address, null, null, null, 0)
     .and.to.emit(memeEthereum, "Collected");
@@ -226,7 +234,7 @@ const main = async () => {
 
     // Unleash the meme token
     await expect(
-        memeEthereum.unleashThisMeme(nonce1)
+        memeEthereum.unleashThisMeme(nonce1, { gasLimit })
     ).to.emit(memeEthereum, "Unleashed")
     .and.to.emit(memeEthereum, "Collected");
 
@@ -357,7 +365,7 @@ const main = async () => {
     await helpers.time.increase(1800);
 
     // Collect fees for the first time
-    await memeEthereum.collectFees([memeToken]);
+    await memeEthereum.collectFees([memeToken], { gasLimit });
 
     // Approve tokens
     await memeTokenInstance.approve(parsedData.routerV3Address, amount);
@@ -418,6 +426,7 @@ const main = async () => {
     await helpers.time.increase(100);
 
     // Try to collect fees - but not enough time passed after huge swaps
+    // NOTE: In order for revert to work correctly one needs to remove gasLimit, as it's conflicting with the estimation
     await expect(
         memeEthereum.collectFees([memeToken])
     ).to.be.revertedWith("Price deviation too high");
@@ -427,7 +436,7 @@ const main = async () => {
 
     // Collect fees
     await expect(
-        memeEthereum.collectFees([memeToken])
+        memeEthereum.collectFees([memeToken], { gasLimit })
     ).to.emit(memeEthereum, "FeesCollected");
 
     // Try to collect fees again

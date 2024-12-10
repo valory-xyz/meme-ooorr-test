@@ -40,45 +40,30 @@ async function main() {
     const deployer = await EOA.getAddress();
     console.log("EOA is:", deployer);
 
-    console.log("Getting redemption data");
-    const redemptionsFile = "scripts/deployment/memebase_redemption.json";
-    dataFromJSON = fs.readFileSync(redemptionsFile, "utf8");
-    const redemptionsData = JSON.parse(dataFromJSON);
-    console.log("Number of entries:", redemptionsData.length);
-
-    const accounts = new Array();
-    const amounts = new Array();
-    for (let i = 0; i < redemptionsData.length; i++) {
-        accounts.push(redemptionsData[i]["hearter"]);
-        amounts.push(redemptionsData[i]["amount"].toString());
-    }
-
     // Transaction signing and execution
-    console.log("3. EOA to deploy MemeBase");
+    console.log("1-1. EOA to deploy BuyBackBurnerBalancer");
     const gasPrice = ethers.utils.parseUnits(gasPriceInGwei, "gwei");
-    const MemeBase = await ethers.getContractFactory("MemeBase");
-    console.log("You are signing the following transaction: MemeBase.connect(EOA).deploy()");
-    const memeBase = await MemeBase.connect(EOA).deploy(parsedData.olasAddress, parsedData.wethAddress,
-        parsedData.uniV3positionManagerAddress, parsedData.buyBackBurnerProxyAddress, parsedData.minNativeTokenValue,
-        accounts, amounts, { gasPrice });
-    const result = await memeBase.deployed();
+    const BuyBackBurnerBalancer = await ethers.getContractFactory("BuyBackBurnerBalancer");
+    console.log("You are signing the following transaction: BuyBackBurnerBalancer.connect(EOA).deploy()");
+    const buyBackBurner = await BuyBackBurnerBalancer.connect(EOA).deploy({ gasPrice });
+    const result = await buyBackBurner.deployed();
 
     // Transaction details
-    console.log("Contract deployment: MemeBase");
-    console.log("Contract address:", memeBase.address);
+    console.log("Contract deployment: BuyBackBurnerBalancer");
+    console.log("Contract address:", buyBackBurner.address);
     console.log("Transaction:", result.deployTransaction.hash);
 
     // Wait for half a minute for the transaction completion
     await new Promise(r => setTimeout(r, 30000));
 
     // Writing updated parameters back to the JSON file
-    parsedData.memeBaseAddress = memeBase.address;
+    parsedData.buyBackBurnerAddress = buyBackBurner.address;
     fs.writeFileSync(globalsFile, JSON.stringify(parsedData));
 
     // Contract verification
     if (parsedData.contractVerification) {
         const execSync = require("child_process").execSync;
-        execSync("npx hardhat verify --constructor-args scripts/deployment/verify_03_meme_base.js --network " + providerName + " " + memeBase.address, { encoding: "utf-8" });
+        execSync("npx hardhat verify --network " + providerName + " " + buyBackBurner.address, { encoding: "utf-8" });
     }
 }
 

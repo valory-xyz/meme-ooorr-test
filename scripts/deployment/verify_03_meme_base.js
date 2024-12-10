@@ -14,21 +14,11 @@ for (let i = 0; i < redemptionsData.length; i++) {
     amounts.push(redemptionsData[i]["amount"].toString());
 }
 
-const factoryParams = {
-    olas: parsedData.olasAddress,
-    nativeToken: parsedData.wethAddress,
-    router: parsedData.routerAddress,
-    factory: parsedData.factoryAddress,
-    oracle: parsedData.oracleAddress,
-    maxSlippageMeme: parsedData.maxSlippageMeme,
-    minNativeTokenValue: parsedData.minNativeTokenValue
-}
-
 module.exports = [
     parsedData.olasAddress,
     parsedData.wethAddress,
     parsedData.uniV3positionManagerAddress,
-    parsedData.buyBackBurnerAddress,
+    parsedData.buyBackBurnerProxyAddress,
     parsedData.minNativeTokenValue,
     accounts,
     amounts

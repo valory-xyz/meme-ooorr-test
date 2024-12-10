@@ -7,6 +7,6 @@ module.exports = [
     parsedData.olasAddress,
     parsedData.wethAddress,
     parsedData.uniV3positionManagerAddress,
-    parsedData.buyBackBurnerAddress,
-    parsedData.minNativeTokenValue,
+    parsedData.buyBackBurnerProxyAddress,
+    parsedData.minNativeTokenValue
 ];
