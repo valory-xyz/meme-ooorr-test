@@ -92,7 +92,7 @@ async def stress_test() -> None:
         print("Getting tweets")
         tweets = await get_tweets(client)
         print(tweets)
-        time.sleep(random.randint(30, 60))
+        time.sleep(random.randint(30, 60))  # nosec
 
 
 asyncio.run(stress_test())
