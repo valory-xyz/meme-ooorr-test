@@ -4,9 +4,9 @@ const { keccak256 } = require('@ethersproject/keccak256');
 const { ethers } = require("hardhat");
 const { LedgerSigner } = require("@anders-t/ethers-ledger");
 
-const l2ToL1MessagePasserAbi = require('./../../abi/l2ToL1MessagePasser.json');
-const l2OuputOracleAbi = require('./../../abi/l2OutputOracle.json');
-const optimismPortalAbi = require('./../../abi/optimismPortal.json');
+const l2ToL1MessagePasserAbi = require('abis/bridging/l2ToL1MessagePasser.json');
+const l2OuputOracleAbi = require('abis/bridging/l2OutputOracle.json');
+const optimismPortalAbi = require('abis/bridging/optimismPortal.json');
 
 /// https://docs.base.org/docs/base-contracts/
 const l2ToL1MessagePasser = '0x4200000000000000000000000000000000000016';
