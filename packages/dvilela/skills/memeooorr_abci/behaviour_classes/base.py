@@ -37,7 +37,6 @@ from packages.dvilela.connections.kv_store.connection import (
 from packages.dvilela.connections.twikit.connection import (
     PUBLIC_ID as TWIKIT_CONNECTION_PUBLIC_ID,
 )
-from packages.dvilela.contracts.meme.contract import MemeContract
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.protocols.kv_store.dialogues import (
     KvStoreDialogue,
@@ -254,7 +253,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         return balance
 
     def get_meme_available_actions(
-        self, meme_address: str, hearted_memes: List[str]
+        self, meme_nonce: int, hearted_memes: List[str]
     ) -> Generator[None, None, Optional[List]]:
         """Get the available actions"""
 
@@ -264,7 +263,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             contract_address=self.params.meme_factory_address,
             contract_id=str(MemeFactoryContract.contract_id),
             contract_callable="get_summon_data",
-            meme_address=meme_address,
+            meme_nonce=meme_nonce,
             chain_id=self.get_chain_id(),
         )
 
@@ -314,34 +313,11 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         return available_actions
 
     def get_extra_meme_info(self, meme_coins: List) -> Generator[None, None, List]:
-        """Get the meme coin names, symbols and other info"""
+        """Get other meme info"""
 
         enriched_meme_coins = []
 
         for meme_coin in meme_coins:
-            self.context.logger.info(
-                f"Gathering extra info for token {meme_coin['token_address']}"
-            )
-            response_msg = yield from self.get_contract_api_response(
-                performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-                contract_address=meme_coin["token_address"],
-                contract_id=str(MemeContract.contract_id),
-                contract_callable="get_token_data",
-                chain_id=self.get_chain_id(),
-            )
-
-            # Check that the response is what we expect
-            if response_msg.performative != ContractApiMessage.Performative.STATE:
-                self.context.logger.error(
-                    f"Error while getting the token data: {response_msg}"
-                )
-                continue
-
-            meme_coin["token_name"] = response_msg.state.body.get("name")
-            meme_coin["token_ticker"] = response_msg.state.body.get("symbol")
-            meme_coin["token_supply"] = response_msg.state.body.get("total_supply")
-            meme_coin["decimals"] = response_msg.state.body.get("decimals")
-
             # Load previously hearted memes
             db_data = yield from self._read_kv(keys=("hearted_memes",))
 
@@ -353,7 +329,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
             # Get available actions
             available_actions = yield from self.get_meme_available_actions(
-                meme_coin["token_address"], hearted_memes
+                meme_coin["token_nonce"], hearted_memes
             )
             meme_coin["available_actions"] = available_actions
             self.context.logger.info(f"Available actions: {available_actions}")
@@ -389,6 +365,13 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         try:
             meme_coins = [
                 {
+                    "token_name": t["name"],  # TODO: await for new subgraph fixes
+                    "token_ticker": t["symbol"],  # TODO: await for new subgraph fixes
+                    "token_supply": t[
+                        "totalSupply"
+                    ],  # TODO: await for new subgraph fixes
+                    "decimals": 18,
+                    "token_nonce": t["nonce"],  # TODO: await for new subgraph fixes
                     "token_address": t["id"],
                     "liquidity": int(t["liquidity"]),
                     "heart_count": int(t["heartCount"]),
@@ -396,7 +379,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                     "timestamp": t["timestamp"],
                 }
                 for t in response_json["data"]["memeTokens"]["items"]
-                if t["chain"] == "base"  # TODO: adapt to Celo
+                if t["chain"] == self.params.home_chain_id.lower()
             ]
         except KeyError as e:
             self.context.logger.error(

@@ -377,19 +377,45 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         # Check that the response is what we expect
         if response_msg.performative != ContractApiMessage.Performative.STATE:
             self.context.logger.error(
-                f"Could not get the memecoin events: {response_msg}"
+                f"Could not get the memecoin summon events: {response_msg}"
             )
             return None
 
-        events = cast(list, response_msg.state.body.get("events", None))
+        summon_events = cast(list, response_msg.state.body.get("events", None))
 
-        if events is None:
-            self.context.logger.error("Could not get the memecoin events")
+        if summon_events is None:
+            self.context.logger.error("Could not get the memecoin summon events")
             return None
 
-        self.context.logger.info(f"Got {len(events)} summon events")
+        self.context.logger.info(f"Got {len(summon_events)} summon events")
 
-        meme_coins = yield from self.analyze_summon_events(events)
+        # Use the contract api to interact with the factory contract
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.params.meme_factory_address,
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_events",
+            from_block=from_block,
+            event_name="Unleashed",
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the memecoin unleash events: {response_msg}"
+            )
+            return None
+
+        unleash_events = cast(list, response_msg.state.body.get("events", None))
+
+        if unleash_events is None:
+            self.context.logger.error("Could not get the memecoin unleash events")
+            return None
+
+        self.context.logger.info(f"Got {len(unleash_events)} unleash events")
+
+        meme_coins = yield from self.analyze_events(summon_events, unleash_events)
 
         return meme_coins
 
@@ -419,10 +445,16 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         return block_number
 
-    def analyze_summon_events(
-        self, events: List
+    def analyze_events(
+        self, summon_events: List, unleash_events: List
     ) -> Generator[None, None, Optional[List]]:
-        """Analyze summon events"""
+        """Analyze events"""
+
+        # Merge event lists
+        merged_events = {e["token_nonce"]: e for e in summon_events}
+        for e in unleash_events:
+            merged_events[e["token_nonce"]].update(e)
+        merged_events = list(merged_events.values())
 
         meme_coins = []
 
@@ -435,12 +467,12 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         else:
             hearted_memes = db_data["hearted_memes"] or []
 
-        for event in events:
-            meme_address = event["token_address"]
+        for event in merged_events:
+            token_nonce = event["token_nonce"]
             available_actions = yield from self.get_meme_available_actions(
-                meme_address, hearted_memes
+                token_nonce, hearted_memes
             )
-            meme_coin = {"token_address": meme_address, "actions": available_actions}
+            meme_coin = {"token_nonce": token_nonce, "actions": available_actions}
             meme_coins.append(meme_coin)
 
         self.context.logger.info(f"Analyzed meme coins: {meme_coins}")
@@ -479,19 +511,19 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         if not token_action:
             return None, None
 
-        token_address = token_action["token_address"]
         action = token_action["action"]
 
         contract_callable = f"build_{action}_tx"
 
         kwargs = {}
 
-        if action != "burn":
-            kwargs["meme_address"] = token_address
+        if action in ["heart", "unleash"]:
+            kwargs["meme_nonce"] = token_action["token_nonce"]
 
-        self.context.logger.info(
-            f"Preparing the {action} transaction for token {token_address}. kwargs={kwargs}"
-        )
+        if action in ["collect", "purge"]:
+            kwargs["meme_address"] = token_action["token_address"]
+
+        self.context.logger.info(f"Preparing the {action} transaction: kwargs={kwargs}")
 
         # Use the contract api to interact with the factory contract
         response_msg = yield from self.get_contract_api_response(
