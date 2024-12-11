@@ -154,7 +154,8 @@ models:
       meme_factory_address: '0x0000000000000000000000000000000000000000'
       olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
       persona: a cat lover that is crazy about all-things cats.
-      feedback_period_hours: 3
+      feedback_period_min_hours: 1
+      feedback_period_max_hours: 3
       home_chain_id: BASE
       twitter_username: dummy_twitter_name
     class_name: Params

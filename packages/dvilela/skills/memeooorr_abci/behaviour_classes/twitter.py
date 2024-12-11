@@ -121,8 +121,14 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         now = datetime.fromtimestamp(self.get_sync_timestamp())
         hours_since_last_tweet = (now - latest_tweet_time).total_seconds() / 3600
 
+        # Too much time has passed since last tweet without feedback, tweet again
+        if hours_since_last_tweet >= self.params.feedback_period_max_hours:
+            self.context.logger.info("Creating a new tweet...")
+            latest_tweet = yield from self.post_tweet(tweet=None)
+            return latest_tweet
+
         # If we have posted befored, but not enough time has passed to collect feedback, we wait
-        if hours_since_last_tweet < self.params.feedback_period_hours:
+        if hours_since_last_tweet < self.params.feedback_period_min_hours:
             self.context.logger.info(
                 f"{hours_since_last_tweet:.1f} hours have passed since last tweet. Awaiting for the feedback period..."
             )
