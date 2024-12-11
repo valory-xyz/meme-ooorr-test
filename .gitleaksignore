@@ -367,3 +367,7 @@ a36c8662abbacb603cbb477a4233dabfe812ee22:contracts/MemeBase.sol:generic-api-key:
 3938310261fa8a61efb948c6aefe00281d97e58b:scripts/deployment/globals_arbitrum_one_meme_alpha.json:generic-api-key:16
 3938310261fa8a61efb948c6aefe00281d97e58b:scripts/deployment/globals_arbitrum_one_meme_alpha.json:generic-api-key:18
 2447fd38f7b858c5a12d7e602a305bdd75930fb3:audits/internal3/analysis/contracts/MemeBase-flatten.sol:generic-api-key:1303
+00ba59aa388992e5bb8f748bf9cd9e85c82c76ad:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
+4f42aede5adc82ba13e7bec57f1a83b63c58b89e:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
+43f10cbb095f69ebf809e1facdeae8e9229fd256:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
+7741a824dd3340cde06b8ef655b00778cec4776d:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1

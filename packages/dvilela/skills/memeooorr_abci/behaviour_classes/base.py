@@ -356,6 +356,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                 meme_coin["token_address"], hearted_memes
             )
             meme_coin["available_actions"] = available_actions
+            self.context.logger.info(f"Available actions: {available_actions}")
 
             enriched_meme_coins.append(meme_coin)
 
