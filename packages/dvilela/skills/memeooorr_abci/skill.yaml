@@ -9,7 +9,7 @@ fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeif2f7626gxt2g3xzppsdjk4nu2gm4spnc43gujizc2cl36fgxo5bi
-  behaviour_classes/chain.py: bafybeidfs4c7ex26jp6u2s45ma6yz27cfhxqha3kjrzvar2dbk6fn7pk7q
+  behaviour_classes/chain.py: bafybeibyu77uwfoov2fqk3vj2atrjokwh3goectqdt7625lsy5jpo5cqga
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
   behaviour_classes/llm.py: bafybeifue224iv36mfjgl65z7ojgr6ixw3emkboafhbb4fafcontdi73ji
   behaviour_classes/twitter.py: bafybeihr4cl7kuf6pp75bcpj3dnz5fayx4p4vhufyfmsta77x6jpmeysiy
@@ -150,7 +150,7 @@ models:
       validate_timeout: 1205
       default_chain_id: ethereum
       service_endpoint: memeooorr.dummy.com/
-      minimum_gas_balance: 0.01
+      minimum_gas_balance: 0.001
       min_feedback_replies: 10
       meme_factory_address: '0x0000000000000000000000000000000000000000'
       olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
