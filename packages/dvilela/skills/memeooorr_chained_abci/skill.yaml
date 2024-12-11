@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/termination_abci:0.1.0:bafybeid54buqxipiuduw7b6nnliiwsxajnltseuroad53wukfonpxca2om
-- dvilela/memeooorr_abci:0.1.0:bafybeigxrbzxx642utlqma5xpkmmbxe5zass3mlqb3u2y4phvr5lxgbvie
+- dvilela/memeooorr_abci:0.1.0:bafybeihxvdpwetnwv6zefhmjoegnzv64kshyex4oeb6xzbtx5yxxvrvsre
 behaviours:
   main:
     args: {}
@@ -141,7 +141,7 @@ models:
       ipfs_address: https://gateway.autonolas.tech/ipfs/
       default_chain_id: ethereum
       service_endpoint: memeooorr.dummy.com/
-      minimum_gas_balance: 0.01
+      minimum_gas_balance: 0.001
       min_feedback_replies: 10
       meme_factory_address: '0x0000000000000000000000000000000000000000'
       olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
