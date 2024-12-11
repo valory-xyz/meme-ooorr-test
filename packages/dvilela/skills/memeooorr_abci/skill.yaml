@@ -8,8 +8,8 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeif2f7626gxt2g3xzppsdjk4nu2gm4spnc43gujizc2cl36fgxo5bi
-  behaviour_classes/chain.py: bafybeibyu77uwfoov2fqk3vj2atrjokwh3goectqdt7625lsy5jpo5cqga
+  behaviour_classes/base.py: bafybeifau5aku6wc6ejz2m2l5dd73digwndqi5he6meqyhgrnthavxqqni
+  behaviour_classes/chain.py: bafybeihnnalo6zjtxdwh3aio4z7uz6to7d7btg46bckptlipszjf73qyca
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
   behaviour_classes/llm.py: bafybeifue224iv36mfjgl65z7ojgr6ixw3emkboafhbb4fafcontdi73ji
   behaviour_classes/twitter.py: bafybeihr4cl7kuf6pp75bcpj3dnz5fayx4p4vhufyfmsta77x6jpmeysiy
@@ -31,8 +31,7 @@ connections:
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiho6sbfts3zk3mftrngw37d5qnlvkqtnttt3fzexmcwkeevhu4wwi
-- dvilela/meme_factory:0.1.0:bafybeihh2fty6e3w2bvhn6y6jwa3yyssnn6yttopmmjczpgsudwrd7q4hq
-- dvilela/meme:0.1.0:bafybeihubei6hbhbyiwwyxcbredb5mhomhwfktxlwufmqxrzo4jj4ohweq
+- dvilela/meme_factory:0.1.0:bafybeibyvge4uchfwmfcpvzklh2kubbljvmj7obyeydjtgewjogt5mkgfu
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci

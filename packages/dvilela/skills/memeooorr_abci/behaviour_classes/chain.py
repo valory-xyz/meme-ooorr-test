@@ -339,7 +339,9 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            meme_coins = yield from self.get_meme_coins_from_subgraph()
+            # meme_coins = yield from self.get_meme_coins_from_subgraph()
+            meme_coins = yield from self.get_meme_coins_from_chain()
+            import pdb;pdb.set_trace()
 
             payload = PullMemesPayload(
                 sender=self.context.agent_address,
