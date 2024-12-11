@@ -214,7 +214,7 @@ class MemeFactoryContract(Contract):
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
-        event_name,
+        event_name: str,
         from_block: int,
         to_block: Union[int, str] = "latest",
     ) -> Optional[JSONLike]:

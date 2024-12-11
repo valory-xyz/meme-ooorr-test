@@ -335,7 +335,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
     def get_token_nonce(
         self,
-        token_address,
+        token_address: str,
     ) -> Generator[None, None, Optional[int]]:
         """Get the token nonce given its address"""
 
@@ -354,7 +354,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             self.context.logger.error(f"Could not get the token nonce: {response_msg}")
             return None
 
-        token_nonce = cast(str, response_msg.state.body.get("token_nonce", None))
+        token_nonce = cast(int, response_msg.state.body.get("token_nonce", None))
         self.context.logger.info(f"Token nonce is {token_nonce}")
         return token_nonce
 
@@ -480,10 +480,10 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         """Analyze events"""
 
         # Merge event lists
-        merged_events = {e["token_nonce"]: e for e in summon_events}
+        merged_event_dict = {e["token_nonce"]: e for e in summon_events}
         for e in unleash_events:
-            merged_events[e["token_nonce"]].update(e)
-        merged_events = list(merged_events.values())
+            merged_event_dict[e["token_nonce"]].update(e)
+        merged_events = list(merged_event_dict.values())
 
         meme_coins = []
 
