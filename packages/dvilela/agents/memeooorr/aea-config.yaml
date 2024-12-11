@@ -192,7 +192,7 @@ models:
       termination_from_block: ${int:0}
       minimum_gas_balance: ${float:0.001}
       min_feedback_replies: ${int:10}
-      meme_factory_address: ${str:0x42156841253f428cb644ea1230d4fddfb70f8891}
+      meme_factory_address: ${str:0x82a9c823332518c32a0c0edc050ef00934cf04d4}
       olas_token_address: ${str:0x54330d28ca3357F294334BDC454a032e7f353416}
       persona: ${str:a cat lover that is crazy about all-things cats.}
       feedback_period_hours: ${int:3}
