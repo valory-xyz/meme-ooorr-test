@@ -120,7 +120,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         return safe_tx_hash
 
-    def store_heart(self, token_address: str) -> Generator[None, None, None]:
+    def store_heart(self, token_nonce: int) -> Generator[None, None, None]:
         """Store a new hearted token to the db"""
         # Load previously hearted memes
         db_data = yield from self._read_kv(keys=("hearted_memes",))
@@ -132,7 +132,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
             hearted_memes = json.loads(db_data["hearted_memes"] or "[]")
 
         # Write the new hearted token
-        hearted_memes.append(token_address)
+        hearted_memes.append(token_nonce)
         yield from self._write_kv(
             {"hearted_memes": json.dumps(hearted_memes, sort_keys=True)}
         )
@@ -223,6 +223,10 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         if not token_address:
             return None, None, None
 
+        token_nonce = yield from self.get_token_nonce(token_address)
+        if not token_nonce:
+            return None, None, None
+
         # Read previous tokens from db
         db_data = yield from self._read_kv(keys=("tokens",))
 
@@ -238,7 +242,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         tokens.append(token_data)
         yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
         self.context.logger.info("Wrote latest token to db")
-        self.store_heart(token_address)
+        self.store_heart(token_nonce)
 
         return tx_hash, tx_flag, token_address
 
@@ -328,6 +332,31 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         token_address = cast(str, response_msg.state.body.get("token_address", None))
         self.context.logger.info(f"Token address is {token_address}")
         return token_address
+
+    def get_token_nonce(
+        self,
+        token_address,
+    ) -> Generator[None, None, Optional[int]]:
+        """Get the token nonce given its address"""
+
+        # Use the contract api to interact with the factory contract
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.params.meme_factory_address,
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_token_nonce",
+            meme_address=token_address,
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(f"Could not get the token nonce: {response_msg}")
+            return None
+
+        token_nonce = cast(str, response_msg.state.body.get("token_nonce", None))
+        self.context.logger.info(f"Token nonce is {token_nonce}")
+        return token_nonce
 
 
 class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
@@ -469,8 +498,9 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         for event in merged_events:
             token_nonce = event["token_nonce"]
+            token_address = event.get("token_address", None)
             available_actions = yield from self.get_meme_available_actions(
-                token_nonce, hearted_memes
+                token_nonce, token_address, hearted_memes
             )
             meme_coin = {"token_nonce": token_nonce, "actions": available_actions}
             meme_coins.append(meme_coin)
@@ -573,7 +603,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         # Optimistic design: we now store the hearted token address
         # Ideally, this should be done after a succesful heart transaction
         if action == "heart":
-            self.store_heart(token_address)
+            self.store_heart(token_action["token_nonce"])
 
         tx_flag = "action"
         return safe_tx_hash, tx_flag

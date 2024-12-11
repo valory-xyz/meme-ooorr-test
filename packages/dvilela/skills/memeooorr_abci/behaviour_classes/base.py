@@ -253,7 +253,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         return balance
 
     def get_meme_available_actions(
-        self, meme_nonce: int, hearted_memes: List[str]
+        self, meme_nonce: int, meme_address: Optional[int], hearted_memes: List[str]
     ) -> Generator[None, None, Optional[List]]:
         """Get the available actions"""
 
@@ -279,7 +279,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         unleash_time_ts = cast(int, response_msg.state.body.get("unleash_time", 0))
 
         self.context.logger.info(
-            f"Token {meme_address} summon_time_ts={summon_time_ts} unleash_time_ts={unleash_time_ts}"
+            f"Token nonce={meme_nonce} address={meme_address} summon_time_ts={summon_time_ts} unleash_time_ts={unleash_time_ts}"
         )
 
         # Get the times
@@ -329,7 +329,9 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
             # Get available actions
             available_actions = yield from self.get_meme_available_actions(
-                meme_coin["token_nonce"], hearted_memes
+                meme_coin["token_nonce"],
+                meme_coin.get("token_address", None),
+                hearted_memes,
             )
             meme_coin["available_actions"] = available_actions
             self.context.logger.info(f"Available actions: {available_actions}")
