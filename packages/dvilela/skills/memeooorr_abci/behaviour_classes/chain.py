@@ -166,6 +166,10 @@ class CheckFundsBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         # Gas check
         native_balance = yield from self.get_native_balance()
+
+        if not native_balance:
+            return Event.NO_FUNDS.value
+
         if native_balance < self.params.minimum_gas_balance:
             return Event.NO_FUNDS.value
 
