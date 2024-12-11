@@ -63,7 +63,7 @@ const main = async () => {
         parsedData.uniV3positionManagerAddress, buyBackBurner.address, parsedData.minNativeTokenValue);
     await memeEthereum.deployed();
 
-    const wethABI = fs.readFileSync("abis/misc/weth.json", "utf8");
+    const wethABI = fs.readFileSync("abis/uniswap/weth.json", "utf8");
     const weth = new ethers.Contract(parsedData.wethAddress, wethABI, ethers.provider);
 
     let ethBalance = await weth.balanceOf(memeEthereum.address);
@@ -306,14 +306,14 @@ const main = async () => {
     expect(numTokens).to.equal(2);
 
     // Swap tokens
-    const factoryABI = fs.readFileSync("abis/misc/factory.json", "utf8");
+    const factoryABI = fs.readFileSync("abis/uniswap/factory.json", "utf8");
     const factory = new ethers.Contract(parsedData.factoryAddress, factoryABI, ethers.provider);
-    const quoterABI = fs.readFileSync("abis/misc/quoter.json", "utf8");
+    const quoterABI = fs.readFileSync("abis/uniswap/quoter.json", "utf8");
     const quoter = new ethers.Contract(parsedData.quoterAddress, quoterABI, ethers.provider);
-    const routerABI = fs.readFileSync("abis/misc/swaprouter.json", "utf8");
+    const routerABI = fs.readFileSync("abis/uniswap/swaprouter.json", "utf8");
     const router = new ethers.Contract(parsedData.routerV3Address, routerABI, ethers.provider);
     const poolAddress = await factory.getPool(weth.address, memeToken, fee);
-    const poolABI = fs.readFileSync("abis/misc/pool.json", "utf8");
+    const poolABI = fs.readFileSync("abis/uniswap/pool.json", "utf8");
     const pool = new ethers.Contract(poolAddress, poolABI, ethers.provider);
 
     //let slot0 = await pool.slot0();
