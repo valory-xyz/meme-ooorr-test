@@ -50,6 +50,7 @@ from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 MAX_TWEET_CHARS = 280
 JSON_RESPONSE_REGEXES = [r"json({.*})", r"\`\`\`json(.*)\`\`\`"]
+MAX_TWEET_PREPARATIONS_RETRIES = 3
 
 
 def parse_json_from_llm(response: str) -> Optional[Union[Dict, List]]:
@@ -145,21 +146,29 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         self.context.logger.info("Preparing tweet...")
         persona = self.get_persona()
 
-        llm_response = yield from self._call_genai(
-            prompt=DEFAULT_TWEET_PROMPT.format(persona=persona)
-        )
-        self.context.logger.info(f"LLM response: {llm_response}")
+        retries = 0
 
-        if llm_response is None:
-            self.context.logger.error("Error getting a response from the LLM.")
-            return None
+        while retries < MAX_TWEET_PREPARATIONS_RETRIES:
+            llm_response = yield from self._call_genai(
+                prompt=DEFAULT_TWEET_PROMPT.format(persona=persona)
+            )
+            self.context.logger.info(f"LLM response: {llm_response}")
 
-        if not is_tweet_valid(llm_response):
-            self.context.logger.error("The tweet is too long.")
-            return None
+            if llm_response is None:
+                self.context.logger.error("Error getting a response from the LLM.")
+                retries += 1
+                continue
 
-        tweet = llm_response
-        return tweet
+            if not is_tweet_valid(llm_response):
+                self.context.logger.error("The tweet is too long.")
+                retries += 1
+                continue
+
+            tweet = llm_response
+            return tweet
+
+        self.context.logger.error("Max retries reached.")
+        return None
 
     def post_tweet(
         self, tweet: Optional[List] = None, store: bool = True
@@ -168,11 +177,12 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         # Prepare a tweet if needed
         if tweet is None:
             new_tweet = yield from self.prepare_tweet()
-            tweet = [new_tweet]
 
             # We fail to prepare the tweet
             if not tweet:
                 return None
+
+            tweet = [new_tweet]
 
         # Post the tweet
         tweet_ids = yield from self._call_twikit(
