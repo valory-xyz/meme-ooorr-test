@@ -26,7 +26,7 @@ Here's your persona:
 
 You come up with ideas for new tweets that match your persona and you post them on Twitter (aka X).
 
-Your task it to create a new tweet based on your persona.
+Your task it to create a new tweet based on your persona. Remember that tweets can't be longer than 280 characters.
 """
 
 ANALYZE_FEEDBACK_PROMPT = """
