@@ -10,7 +10,7 @@ fingerprint:
   behaviours.py: bafybeidabq5scnvljux2732bdbg7xnpnnz54y6t2kdooltd2jgugkz2voi
   composition.py: bafybeifnu7di2d5bhs4xodylmz7uzwblj4nww3lw672c2olaszdefth5bq
   dialogues.py: bafybeiawrgmlra5f6o63nhv5kc77wvzoqmcareub3lf4qceuwpjso4pjbe
-  fsm_specification.yaml: bafybeiftbgmzfbiu5xhsz5s5ws553rpvwmqclveyqsaeximkuzrzo7kgyy
+  fsm_specification.yaml: bafybeifdh2loucus7l7lqtmpsjpirk4qzu4h7fnymrskit37m5szdxtise
   handlers.py: bafybeibw5nfno2scl5qzly3fpvodgoovikl6h3hoiiu6e4sqpbbczbzfim
   models.py: bafybeihmxfjz6irdm5xje6mvnhfc6rwlehzyvhds5shyzz2okrzgac2xde
 fingerprint_ignore_patterns: []
@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/termination_abci:0.1.0:bafybeid54buqxipiuduw7b6nnliiwsxajnltseuroad53wukfonpxca2om
-- dvilela/memeooorr_abci:0.1.0:bafybeihhavir5kfp35qs7zc3il52yds5xxkyoxzqdf73nxu4huslr2sium
+- dvilela/memeooorr_abci:0.1.0:bafybeiedl2mx5sofn5k4vbwuh3uhxsqutdmeegthrdue5xh3qy6ik2qscq
 behaviours:
   main:
     args: {}
@@ -147,6 +147,8 @@ models:
       olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
       persona: a cat lover that is crazy about all-things cats.
       feedback_period_hours: 3
+      home_chain_id: BASE
+      twitter_username: dummy_twitter_name
     class_name: Params
   randomness_api:
     args:

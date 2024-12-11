@@ -8,6 +8,8 @@ An autonomous [Olas](https://olas.network/) AI agent that loves a meme (coin)!
 
 ## User flow:
 
+[Visit https://agents.fun for a full guide and more!](https://agents.fun)
+
 A user can get an autonomous AI agent adopt any persona they like and become active on-chain within seconds.
 
 1. Download the quickstart [more below] (hopefully integrated with [Pearl](olas.network/operate) one day)

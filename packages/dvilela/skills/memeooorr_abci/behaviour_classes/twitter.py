@@ -20,20 +20,26 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
+import re
 from datetime import datetime
-from typing import Dict, Generator, List, Optional, Type
+from typing import Dict, Generator, List, Optional, Type, Union
 
 from twitter_text import parse_tweet  # type: ignore
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import (
+    DEFAULT_TWEET_PROMPT,
+    ENGAGEMENT_TWEET_PROMPT,
+)
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionTweetPayload,
     ActionTweetRound,
     CollectFeedbackPayload,
     CollectFeedbackRound,
+    EngagePayload,
+    EngageRound,
     Event,
     PostAnnouncementRound,
     PostTweetPayload,
@@ -43,6 +49,22 @@ from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
 MAX_TWEET_CHARS = 280
+JSON_RESPONSE_REGEXES = [r"json({.*})", r"\`\`\`json(.*)\`\`\`"]
+
+
+def parse_json_from_llm(response: str) -> Optional[Union[Dict, List]]:
+    """Parse JSON from LLM response"""
+    for JSON_RESPONSE_REGEX in JSON_RESPONSE_REGEXES:
+        match = re.search(JSON_RESPONSE_REGEX, response, re.DOTALL)
+        if not match:
+            continue
+
+        try:
+            loaded_response = json.loads(match.groups()[0])
+            return loaded_response
+        except json.JSONDecodeError:
+            continue
+    return None
 
 
 def is_tweet_valid(tweet: str) -> bool:
@@ -106,7 +128,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             return {"wait": True}
 
         # Enough time has passed, collect feedback
-        if not self.synchronized_data.feedback:
+        if self.synchronized_data.feedback is None:
             self.context.logger.info(
                 "Feedback period has finished. Collecting feedback..."
             )
@@ -275,3 +297,101 @@ class ActionTweetBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ance
         self.context.logger.info("Sending the action tweet...")
         latest_tweet = yield from self.post_tweet(tweet=[pending_tweet], store=False)
         return Event.DONE.value if latest_tweet else Event.ERROR.value
+
+
+class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
+    """EngageBehaviour"""
+
+    matching_round: Type[AbstractRound] = EngageRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            event = yield from self.get_event()
+
+            payload = EngagePayload(
+                sender=self.context.agent_address,
+                event=event,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+    def get_event(self) -> Generator[None, None, str]:
+        """Get the next event"""
+
+        # Get other memeooorr handles
+        agent_handles = yield from self.get_memeooorr_handles()
+
+        # Get their latest tweet
+        tweet_id_to_response = {}
+        for agent_handle in agent_handles:
+            # By defaul only 1 tweet is retrieved (the latest one)
+            latest_tweets = yield from self._call_twikit(
+                method="get_user_tweets",
+                twitter_handle=agent_handle,
+            )
+            tweet_id = latest_tweets[0]["id"]
+            tweet_time = datetime.strptime(
+                latest_tweets[0]["created_at"], "%a %b %d %H:%M:%S %z %Y"
+            )
+
+            # Only respond to new tweets (last hour)
+            if (datetime.now() - tweet_time).total_seconds() >= 3600:
+                continue
+
+            tweet_id_to_response[tweet_id] = latest_tweets[0]["text"]
+
+        if not tweet_id_to_response:
+            self.context.logger.info("There are no tweets from other agents yet")
+            return Event.DONE.value
+
+        # Build and post responses
+        event = yield from self.respond_tweet(tweet_id_to_response)
+
+        return event
+
+    def respond_tweet(self, tweet_id_to_response: Dict) -> Generator[None, None, str]:
+        """Respond to tweets"""
+
+        self.context.logger.info("Preparing tweet responses...")
+        persona = self.get_persona()
+        tweets = "\n\n".join(
+            [
+                f"tweet_id: {t_id}\ntweet: {t}"
+                for t_id, t in tweet_id_to_response.items()
+            ]
+        )
+
+        llm_response = yield from self._call_genai(
+            prompt=ENGAGEMENT_TWEET_PROMPT.format(persona=persona, tweets=tweets)
+        )
+        self.context.logger.info(f"LLM response: {llm_response}")
+
+        if llm_response is None:
+            self.context.logger.error("Error getting a response from the LLM.")
+            return Event.ERROR.value
+
+        json_response = parse_json_from_llm(llm_response)
+
+        if not json_response:
+            return Event.ERROR.value
+
+        for response in json_response:
+            self.context.logger.info(f"Processing response: {response}")
+
+            if not is_tweet_valid(llm_response):
+                self.context.logger.error("The tweet is too long.")
+                continue
+
+            # Post the tweet
+            yield from self._call_twikit(
+                method="post",
+                tweets=[{"text": response["text"], "reply_to": response["tweet_id"]}],
+            )
+
+        return Event.DONE.value

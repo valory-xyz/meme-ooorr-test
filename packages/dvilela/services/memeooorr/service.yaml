@@ -7,13 +7,13 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeicsjfcl4s44hitgsmdjqh6qdjlpzwtblxna3xtdglamikux7jxwwa
+agent: dvilela/memeooorr:0.1.0:bafybeif7oov2oadgwaug4uqhisdyporjrgit3f2adtgep5wyf7k4rxh4j4
 number_of_agents: 1
 deployment:
   agent:
     ports:
       0:
-        8833: 8000
+        8833: 8833
 ---
 public_id: dvilela/memeooorr_chained_abci:0.1.0
 type: skill
@@ -60,7 +60,7 @@ extra:
         termination_sleep: ${TERMINATION_SLEEP:int:900}
         reset_pause_duration: ${RESET_PAUSE_DURATION:int:300}
         on_chain_service_id: ${ON_CHAIN_SERVICE_ID:int:null}
-        reset_tendermint_after: ${RESET_TENDERMINT_AFTER:int:30}
+        reset_tendermint_after: ${RESET_TENDERMINT_AFTER:int:1}
         retry_attempts: 400
         retry_timeout: 3
         request_retry_delay: 1.0
@@ -88,6 +88,8 @@ extra:
         olas_token_address: ${OLAS_TOKEN_ADDRESS:str:0x54330d28ca3357F294334BDC454a032e7f353416}
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
         feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
+        home_chain_id: ${HOME_CHAIN_ID:str:BASE}
+        twitter_username: ${TWIKIT_USERNAME:str:null}
 ---
 public_id: valory/ledger:0.19.0
 type: connection
@@ -98,6 +100,11 @@ config:
       chain_id: ${BASE_LEDGER_CHAIN_ID:int:8453}
       poa_chain: ${BASE_LEDGER_IS_POA_CHAIN:bool:false}
       default_gas_price_strategy: ${BASE_LEDGER_PRICING:str:eip1559}
+    celo:
+      address: ${CELO_LEDGER_RPC:str:http://host.docker.internal:8545}
+      chain_id: ${CELO_LEDGER_CHAIN_ID:int:42220}
+      poa_chain: ${CELO_LEDGER_IS_POA_CHAIN:bool:false}
+      default_gas_price_strategy: ${CELO_LEDGER_PRICING:str:eip1559}
 ---
 public_id: valory/p2p_libp2p_client:0.1.0
 type: connection
@@ -137,5 +144,5 @@ public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfezt
 type: connection
 config:
   host: ${HTTP_SERVER_HOST:str:0.0.0.0}
-  port: ${HTTP_SERVER_PORT:int:8000}
+  port: ${HTTP_SERVER_PORT:int:8833}
   target_skill_id: dvilela/memeooorr_chained_abci:0.1.0

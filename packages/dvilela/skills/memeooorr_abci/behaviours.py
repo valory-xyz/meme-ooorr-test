@@ -38,6 +38,7 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.llm import (
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     ActionTweetBehaviour,
     CollectFeedbackBehaviour,
+    EngageBehaviour,
     PostAnnouncementBehaviour,
     PostTweetBehaviour,
 )
@@ -66,4 +67,5 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
         ActionPreparationBehaviour,
         ActionTweetBehaviour,
         TransactionMultiplexerBehaviour,
+        EngageBehaviour,
     ]

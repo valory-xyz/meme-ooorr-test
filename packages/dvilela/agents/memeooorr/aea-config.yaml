@@ -13,7 +13,7 @@ connections:
 - valory/http_client:0.23.0:bafybeihi772xgzpqeipp3fhmvpct4y6e6tpjp4sogwqrnf3wqspgeilg4u
 - valory/ledger:0.19.0:bafybeihynkdraqthjtv74qk3nc5r2xubniqx2hhzpxn7bd4qmlf7q4wruq
 - valory/p2p_libp2p_client:0.1.0:bafybeid3xg5k2ol5adflqloy75ibgljmol6xsvzvezebsg7oudxeeolz7e
-- dvilela/twikit:0.1.0:bafybeib7ogtawmjl7zpeu5trqgnugtcvxprvgfgfsmparuh4gpc5lpkwaq
+- dvilela/twikit:0.1.0:bafybeifelwkeycvrqtgm5alln5n4ijqibi7cizgsu5oxndrei4exl77yjy
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 - dvilela/genai:0.1.0:bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq
@@ -41,8 +41,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
 - valory/registration_abci:0.1.0:bafybeicnth5q4httefsusywx3zrrq4al47owvge72dqf2fziruicq6hqta
 - valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
-- dvilela/memeooorr_abci:0.1.0:bafybeihhavir5kfp35qs7zc3il52yds5xxkyoxzqdf73nxu4huslr2sium
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeiag7iw4kgg7vpeuq63tkshe6xrs3cx5rkwdbpim2a2p63eu5k2vxu
+- dvilela/memeooorr_abci:0.1.0:bafybeiedl2mx5sofn5k4vbwuh3uhxsqutdmeegthrdue5xh3qy6ik2qscq
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeifo4fvzi23lua5tmougfdhatgukkt35yzqe3isln4vbfvf2onstve
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -96,8 +96,13 @@ config:
   ledger_apis:
     base:
       address: ${str:http://localhost:8545}
-      chain_id: ${int:31337}
+      chain_id: ${int:8453}
       poa_chain: ${bool:false}
+      default_gas_price_strategy: ${str:eip1559}
+    celo:
+      address: ${str:http://localhost:8545}
+      chain_id: ${int:42220}
+      poa_chain: ${bool:true}
       default_gas_price_strategy: ${str:eip1559}
 ---
 public_id: valory/p2p_libp2p_client:0.1.0
@@ -191,12 +196,14 @@ models:
       olas_token_address: ${str:0x54330d28ca3357F294334BDC454a032e7f353416}
       persona: ${str:a cat lover that is crazy about all-things cats.}
       feedback_period_hours: ${int:3}
+      home_chain_id: ${str:BASE}
+      twitter_username: ${str:null}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection
 config:
   host: ${str:0.0.0.0}
-  port: ${int:8000}
+  port: ${int:8833}
   target_skill_id: dvilela/memeooorr_chained_abci:0.1.0
 ---
 public_id: dvilela/genai:0.1.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq

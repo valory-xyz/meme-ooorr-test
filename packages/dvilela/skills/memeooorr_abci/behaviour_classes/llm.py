@@ -48,6 +48,7 @@ JSON_RESPONSE_REGEX = r"json({.*})"
 # fmt: off
 TOKEN_SUMMARY = (  # nosec
     """
+    token address: {token_address}
     token name: {token_name}
     token symbol: {token_ticker}
     total supply (wei): {token_supply}
@@ -84,10 +85,13 @@ class AnalizeFeedbackBehaviour(
 
         self.set_done()
 
-    def get_analysis(  # pylint: disable=too-many-locals
+    def get_analysis(  # pylint: disable=too-many-locals,too-many-return-statements
         self,
     ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
+
+        if self.synchronized_data.feedback is None:
+            return None
 
         tweet_responses = "\n\n".join(
             [
@@ -100,11 +104,16 @@ class AnalizeFeedbackBehaviour(
         if not native_balance:
             native_balance = 0
 
+        meme_coins = yield from self.get_meme_coins_from_subgraph()
+        n_memes = len(meme_coins) if meme_coins else "unknown"
+
         prompt_data = {
             "latest_tweet": self.synchronized_data.latest_tweet["text"],
             "tweet_responses": tweet_responses,
             "persona": self.get_persona(),
+            "n_memes": n_memes,
             "balance": native_balance,
+            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
         }
 
         llm_response = yield from self._call_genai(
@@ -209,7 +218,11 @@ class ActionDecisionBehaviour(
         if not native_balance:
             native_balance = 0
 
-        prompt_data = {"meme_coins": meme_coins, "balance": native_balance}
+        prompt_data = {
+            "meme_coins": meme_coins,
+            "balance": native_balance,
+            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
+        }
 
         llm_response = yield from self._call_genai(
             prompt=ACTION_DECISION_PROMPT.format(**prompt_data)
@@ -234,9 +247,13 @@ class ActionDecisionBehaviour(
             tweet = response.get("tweet", None)
 
             if action == "none":
+                self.context.logger.info("Action is none")
                 return Event.WAIT.value, None, None, None, None
 
             if token_address not in valid_addreses:
+                self.context.logger.info(
+                    f"Token address [{token_address}] is not in valid_addreses={valid_addreses}"
+                )
                 return Event.WAIT.value, None, None, None, None
 
             available_actions = []
@@ -246,11 +263,16 @@ class ActionDecisionBehaviour(
                     break
 
             if action not in available_actions:
+                self.context.logger.info(
+                    f"Action [{action}] is not in available_actions={available_actions}"
+                )
                 return Event.WAIT.value, None, None, None, None
 
             if not tweet:
+                self.context.logger.info("Tweet is none")
                 return Event.WAIT.value, None, None, None, None
 
+            self.context.logger.info("The LLM returned a valid response")
             return Event.DONE.value, token_address, action, amount, tweet
 
         # The response is not a valid json

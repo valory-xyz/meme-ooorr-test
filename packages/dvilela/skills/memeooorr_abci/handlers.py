@@ -23,9 +23,11 @@ import json
 import re
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
+import yaml
 from aea.configurations.data_types import PublicId
 from aea.protocols.base import Message
 
@@ -33,6 +35,7 @@ from packages.dvilela.protocols.kv_store.message import KvStoreMessage
 from packages.dvilela.skills.memeooorr_abci.dialogues import HttpDialogue, HttpDialogues
 from packages.dvilela.skills.memeooorr_abci.models import SharedState
 from packages.dvilela.skills.memeooorr_abci.rounds import SynchronizedData
+from packages.dvilela.skills.memeooorr_abci.rounds_info import ROUNDS_INFO
 from packages.valory.connections.http_server.connection import (
     PUBLIC_ID as HTTP_SERVER_PUBLIC_ID,
 )
@@ -68,6 +71,24 @@ LedgerApiHandler = BaseLedgerApiHandler
 ContractApiHandler = BaseContractApiHandler
 TendermintHandler = BaseTendermintHandler
 IpfsHandler = BaseIpfsHandler
+
+
+def camel_to_snake(camel_str: str) -> str:
+    """Converts from CamelCase to snake_case"""
+    snake_str = re.sub(r"(?<!^)(?=[A-Z])", "_", camel_str).lower()
+    return snake_str
+
+
+def load_fsm_spec() -> Dict:
+    """Load the chained FSM spec"""
+    with open(
+        Path(__file__).parent.parent
+        / "memeooorr_chained_abci"
+        / "fsm_specification.yaml",
+        "r",
+        encoding="utf-8",
+    ) as spec_file:
+        return yaml.safe_load(spec_file)
 
 
 class SrrHandler(AbstractResponseHandler):
@@ -140,6 +161,18 @@ class HttpHandler(BaseHttpHandler):
 
         self.json_content_header = "Content-Type: application/json\n"  # pylint: disable=attribute-defined-outside-init
         self.html_content_header = "Content-Type: text/html\n"  # pylint: disable=attribute-defined-outside-init
+
+        # Load round info for the healthcheck
+        fsm = load_fsm_spec()
+
+        self.rounds_info: Dict = {  # pylint: disable=attribute-defined-outside-init
+            camel_to_snake(k): v for k, v in ROUNDS_INFO.items()
+        }
+        for source_info, target_round in fsm["transition_func"].items():
+            source_round, event = source_info[1:-1].split(", ")
+            self.rounds_info[camel_to_snake(source_round)]["transitions"][
+                event.lower()
+            ] = camel_to_snake(target_round)
 
     @property
     def synchronized_data(self) -> SynchronizedData:
@@ -307,6 +340,7 @@ class HttpHandler(BaseHttpHandler):
             "reset_pause_duration": self.context.params.reset_pause_duration,
             "rounds": rounds,
             "is_transitioning_fast": is_transitioning_fast,
+            "rounds_info": self.rounds_info,
         }
 
         self._send_ok_response(http_msg, http_dialogue, data)

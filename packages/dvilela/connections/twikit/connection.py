@@ -23,16 +23,18 @@
 import asyncio
 import json
 import time
+from asyncio import Task
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import twikit  # type: ignore
 from aea.configurations.base import PublicId
-from aea.connections.base import BaseSyncConnection
+from aea.connections.base import Connection, ConnectionStates
 from aea.mail.base import Envelope
 from aea.protocols.base import Address, Message
 from aea.protocols.dialogue.base import Dialogue
+from aea.protocols.dialogue.base import Dialogue as BaseDialogue
 
 from packages.valory.protocols.srr.dialogues import SrrDialogue
 from packages.valory.protocols.srr.dialogues import SrrDialogues as BaseSrrDialogues
@@ -74,7 +76,7 @@ class SrrDialogues(BaseSrrDialogues):
         )
 
 
-class TwikitConnection(BaseSyncConnection):
+class TwikitConnection(Connection):
     """Proxy to the functionality of the Twikit library."""
 
     MAX_WORKER_THREADS = 1
@@ -112,104 +114,145 @@ class TwikitConnection(BaseSyncConnection):
         self.cookies = json.loads(cookies_str) if cookies_str else None
         self.disable_tweets = self.configuration.config.get("twikit_disable_tweets")
         self.client = twikit.Client(language="en-US")
-
-        self.run_task(self.twikit_login)
         self.last_call = datetime.now(timezone.utc)
 
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
+        self._response_envelopes: Optional[asyncio.Queue] = None
+        self.task_to_request: Dict[asyncio.Future, Envelope] = {}
 
-    def run_task(self, method: Callable, **kwargs: Any) -> Any:
-        """Run asyncio task"""
-        try:
-            # Get the loop
-            loop = asyncio.get_running_loop()
-            if loop.is_closed():
-                raise RuntimeError("Loop is closed")
-            # Run the task
-            return asyncio.ensure_future(method(**kwargs))
-        except RuntimeError:
-            return asyncio.run(method(**kwargs))
-
-    def main(self) -> None:
-        """
-        Run synchronous code in background.
-
-        SyncConnection `main()` usage:
-        The idea of the `main` method in the sync connection
-        is to provide for a way to actively generate messages by the connection via the `put_envelope` method.
-
-        A simple example is the generation of a message every second:
-        ```
-        while self.is_connected:
-            envelope = make_envelope_for_current_time()
-            self.put_enevelope(envelope)
-            time.sleep(1)
-        ```
-        In this case, the connection will generate a message every second
-        regardless of envelopes sent to the connection by the agent.
-        For instance, this way one can implement periodically polling some internet resources
-        and generate envelopes for the agent if some updates are available.
-        Another example is the case where there is some framework that runs blocking
-        code and provides a callback on some internal event.
-        This blocking code can be executed in the main function and new envelops
-        can be created in the event callback.
-        """
-
-    def on_send(self, envelope: Envelope) -> None:
-        """
-        Send an envelope.
-
-        :param envelope: the envelope to send.
-        """
-        srr_message = cast(SrrMessage, envelope.message)
-
-        dialogue = self.dialogues.update(srr_message)
-
-        if srr_message.performative != SrrMessage.Performative.REQUEST:
-            self.logger.error(
-                f"Performative `{srr_message.performative.value}` is not supported."
+    @property
+    def response_envelopes(self) -> asyncio.Queue:
+        """Returns the response envelopes queue."""
+        if self._response_envelopes is None:
+            raise ValueError(
+                "`TwikitConnection.response_envelopes` is not yet initialized. Is the connection setup?"
             )
+        return self._response_envelopes
+
+    async def connect(self) -> None:
+        """Connect to a HTTP server."""
+        self._response_envelopes = asyncio.Queue()
+        await self.twikit_login()
+        self.state = ConnectionStates.connected
+
+    async def disconnect(self) -> None:
+        """Disconnect from a HTTP server."""
+        if self.is_disconnected:  # pragma: nocover
             return
 
-        payload, error = self._get_response(
-            payload=json.loads(srr_message.payload),
-        )
+        self.state = ConnectionStates.disconnecting
 
-        response_message = cast(
-            SrrMessage,
-            dialogue.reply(  # type: ignore
-                performative=SrrMessage.Performative.RESPONSE,
-                target_message=srr_message,
-                payload=json.dumps(payload),
-                error=error,
-            ),
-        )
+        for task in self.task_to_request.keys():
+            if not task.cancelled():  # pragma: nocover
+                task.cancel()
+        self._response_envelopes = None
 
-        response_envelope = Envelope(
-            to=envelope.sender,
-            sender=envelope.to,
-            message=response_message,
-            context=envelope.context,
-        )
+        self.state = ConnectionStates.disconnected
 
-        self.put_envelope(response_envelope)
+    async def receive(
+        self, *args: Any, **kwargs: Any
+    ) -> Optional[Union["Envelope", None]]:
+        """
+        Receive an envelope.
 
-    def _get_response(self, payload: dict) -> Tuple[Dict, bool]:
+        :param args: arguments
+        :param kwargs: keyword arguments
+        :return: the envelope received, or None.
+        """
+        return await self.response_envelopes.get()
+
+    async def send(self, envelope: Envelope) -> None:
+        """Send an envelope."""
+        task = self._handle_envelope(envelope)
+        task.add_done_callback(self._handle_done_task)
+        self.task_to_request[task] = envelope
+
+    def _handle_envelope(self, envelope: Envelope) -> Task:
+        """Handle incoming envelopes by dispatching background tasks."""
+        message = cast(SrrMessage, envelope.message)
+        dialogue = self.dialogues.update(message)
+        task = self.loop.create_task(self._get_response(message, dialogue))
+        return task
+
+    def _handle_done_task(self, task: asyncio.Future) -> None:
+        """
+        Process a done receiving task.
+
+        :param task: the done task.
+        """
+        request = self.task_to_request.pop(task)
+        response_message: Optional[Message] = task.result()
+
+        response_envelope = None
+        if response_message is not None:
+            response_envelope = Envelope(
+                to=request.sender,
+                sender=request.to,
+                message=response_message,
+                context=request.context,
+            )
+
+        # not handling `asyncio.QueueFull` exception, because the maxsize we defined for the Queue is infinite
+        self.response_envelopes.put_nowait(response_envelope)
+
+    async def _get_response(
+        self, srr_message: SrrMessage, dialogue: Optional[BaseDialogue]
+    ) -> SrrMessage:
         """Get response from Genai."""
 
+        if srr_message.performative != SrrMessage.Performative.REQUEST:
+            response_message = cast(
+                SrrMessage,
+                dialogue.reply(  # type: ignore
+                    performative=SrrMessage.Performative.RESPONSE,
+                    target_message=srr_message,
+                    payload=json.dumps(
+                        {
+                            "error": f"Performative `{srr_message.performative.value}` is not supported."
+                        }
+                    ),
+                    error=True,
+                ),
+            )
+            return response_message
+
+        payload = json.loads(srr_message.payload)
+
         REQUIRED_PROPERTIES = ["method", "kwargs"]
-        AVAILABLE_METHODS = ["search", "post"]
+        AVAILABLE_METHODS = ["search", "post", "get_user_tweets"]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
-            return {
-                "error": f"Some parameter is missing from the request data: required={REQUIRED_PROPERTIES}, got={list(payload.keys())}"
-            }, True
+            response_message = cast(
+                SrrMessage,
+                dialogue.reply(  # type: ignore
+                    performative=SrrMessage.Performative.RESPONSE,
+                    target_message=srr_message,
+                    payload=json.dumps(
+                        {
+                            "error": f"Some parameter is missing from the request data: required={REQUIRED_PROPERTIES}, got={list(payload.keys())}"
+                        }
+                    ),
+                    error=True,
+                ),
+            )
+            return response_message
 
         method_name = payload.get("method")
         if method_name not in AVAILABLE_METHODS:
-            return {
-                "error": f"Method {method_name} is not in the list of available methods {AVAILABLE_METHODS}"
-            }, True
+            response_message = cast(
+                SrrMessage,
+                dialogue.reply(  # type: ignore
+                    performative=SrrMessage.Performative.RESPONSE,
+                    target_message=srr_message,
+                    payload=json.dumps(
+                        {
+                            "error": f"Method {method_name} is not in the list of available methods {AVAILABLE_METHODS}"
+                        }
+                    ),
+                    error=True,
+                ),
+            )
+            return response_message
 
         method = getattr(self, method_name)
 
@@ -222,32 +265,51 @@ class TwikitConnection(BaseSyncConnection):
         retries = 0
         while retries < MAX_POST_RETRIES:
             try:
-                response = self.run_task(method, **payload.get("kwargs", {}))
+                response = await method(**payload.get("kwargs", {}))
                 self.logger.info(f"Twikit response: {response}")
-                return {"response": response}, False  # type: ignore
+                response_message = cast(
+                    SrrMessage,
+                    dialogue.reply(  # type: ignore
+                        performative=SrrMessage.Performative.RESPONSE,
+                        target_message=srr_message,
+                        payload=json.dumps({"response": response}),
+                        error=False,
+                    ),
+                )
+                return response_message
+
             except KeyError as e:
                 self.logger.error(f"Exception while calling Twikit:\n{e}. Retrying...")
                 retries += 1
                 time.sleep(1)
                 continue
+
             except Exception as e:
-                return {"error": f"Exception while calling Twikit:\n{e}"}, True
+                response_message = cast(
+                    SrrMessage,
+                    dialogue.reply(  # type: ignore
+                        performative=SrrMessage.Performative.RESPONSE,
+                        target_message=srr_message,
+                        payload=json.dumps(
+                            {"error": f"Exception while calling Twikit:\n{e}"}
+                        ),
+                        error=True,
+                    ),
+                )
+                return response_message
 
-        return {"error": "Error calling Twikit. Max amount of retries reached."}, True
-
-    def on_connect(self) -> None:
-        """
-        Tear down the connection.
-
-        Connection status set automatically.
-        """
-
-    def on_disconnect(self) -> None:
-        """
-        Tear down the connection.
-
-        Connection status set automatically.
-        """
+        response_message = cast(
+            SrrMessage,
+            dialogue.reply(  # type: ignore
+                performative=SrrMessage.Performative.RESPONSE,
+                target_message=srr_message,
+                payload=json.dumps(
+                    {"error": "Error calling Twikit. Max amount of retries reached."}
+                ),
+                error=True,
+            ),
+        )
+        return response_message
 
     async def twikit_login(self) -> None:
         """Login into Twitter"""
@@ -267,7 +329,11 @@ class TwikitConnection(BaseSyncConnection):
                 password=self.password,
             )
 
+        if not self.cookies_path.parent.exists():
+            self.cookies_path.parent.mkdir(parents=True)
+
         self.client.save_cookies(self.cookies_path)
+        self.logged_in = True
 
     async def search(
         self, query: str, product: str = "Top", count: int = 10
@@ -354,6 +420,17 @@ class TwikitConnection(BaseSyncConnection):
             except Exception as e:
                 self.logger.error(f"Failed to delete the tweet: {e}. Retrying...")
                 retries += 1
+
+    async def get_user_tweets(
+        self, twitter_handle: str, tweet_type: str = "Tweets", count: int = 1
+    ) -> List[Dict]:
+        """Get user tweets"""
+
+        user = await self.client.get_user_by_screen_name(twitter_handle)
+        tweets = await self.client.get_user_tweets(
+            user_id=user.id, tweet_type=tweet_type, count=count
+        )
+        return [tweet_to_json(t) for t in tweets]
 
 
 def tweet_to_json(tweet: Any) -> Dict:
