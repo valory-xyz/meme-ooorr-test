@@ -253,43 +253,18 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         return balance
 
     def get_meme_available_actions(
-        self, meme_nonce: int, meme_address: Optional[int], hearted_memes: List[str]
+        self, meme_data: Dict, hearted_memes: List[str]
     ) -> Generator[None, None, Optional[List]]:
         """Get the available actions"""
 
-        # Use the contract api to interact with the factory contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-            contract_address=self.params.meme_factory_address,
-            contract_id=str(MemeFactoryContract.contract_id),
-            contract_callable="get_summon_data",
-            meme_nonce=meme_nonce,
-            chain_id=self.get_chain_id(),
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.STATE:
-            self.context.logger.error(
-                f"Could not get the memecoin summon data: {response_msg}"
-            )
-            return None
-
-        # Extract the data
-        summon_time_ts = cast(int, response_msg.state.body.get("summon_time", 0))
-        unleash_time_ts = cast(int, response_msg.state.body.get("unleash_time", 0))
-
-        self.context.logger.info(
-            f"Token nonce={meme_nonce} address={meme_address} summon_time_ts={summon_time_ts} unleash_time_ts={unleash_time_ts}"
-        )
-
         # Get the times
         now = datetime.fromtimestamp(self.get_sync_timestamp())
-        summon_time = datetime.fromtimestamp(summon_time_ts)
+        summon_time = datetime.fromtimestamp(meme_data["summon_time"])
         seconds_since_summon = (now - summon_time).total_seconds()
 
         available_actions = copy(AVAILABLE_ACTIONS)
 
-        is_unleashed = unleash_time_ts != 0
+        is_unleashed = meme_data["unleash_time"] != 0
 
         # We can unleash if it has not been unleashed
         if is_unleashed:
@@ -307,7 +282,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             available_actions.remove("burn")
 
             # We can collect if we have hearted this token
-            if meme_address not in hearted_memes:
+            if meme_data["token_address"] not in hearted_memes:
                 available_actions.remove("collect")
 
         return available_actions
@@ -327,10 +302,36 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             else:
                 hearted_memes = db_data["hearted_memes"] or []
 
+            meme_nonce = meme_coin["token_nonce"]
+            meme_address = meme_coin.get("token_address", None)
+
+            # Use the contract api to interact with the factory contract
+            response_msg = yield from self.get_contract_api_response(
+                performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+                contract_address=self.params.meme_factory_address,
+                contract_id=str(MemeFactoryContract.contract_id),
+                contract_callable="get_summon_data",
+                meme_nonce=meme_nonce,
+                chain_id=self.get_chain_id(),
+            )
+
+            # Check that the response is what we expect
+            if response_msg.performative != ContractApiMessage.Performative.STATE:
+                self.context.logger.error(
+                    f"Could not get the memecoin summon data: {response_msg}"
+                )
+                return None
+
+            # Add the data
+            meme_coin.update(response_msg.state.body)
+
+            self.context.logger.info(
+                f"Token nonce={meme_nonce} address={meme_address} summon_time_ts={meme_coin['summon_time']} unleash_time_ts={meme_coin['unleash_time']}"
+            )
+
             # Get available actions
             available_actions = yield from self.get_meme_available_actions(
-                meme_coin["token_nonce"],
-                meme_coin.get("token_address", None),
+                meme_coin,
                 hearted_memes,
             )
             meme_coin["available_actions"] = available_actions
@@ -367,14 +368,9 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         try:
             meme_coins = [
                 {
-                    "token_name": t["name"],  # TODO: await for new subgraph fixes
-                    "token_ticker": t["symbol"],  # TODO: await for new subgraph fixes
-                    "token_supply": t[
-                        "totalSupply"
-                    ],  # TODO: await for new subgraph fixes
                     "decimals": 18,
-                    "token_nonce": t["nonce"],  # TODO: await for new subgraph fixes
-                    "token_address": t["id"],
+                    "token_nonce": t["memeNonce"],
+                    "token_address": t.get("id", None),
                     "liquidity": int(t["liquidity"]),
                     "heart_count": int(t["heartCount"]),
                     "is_unleashed": t["isUnleashed"],
