@@ -1,12 +1,12 @@
-
+import os
 import typing
-from packages.dvilela.contracts.meme_factory.contract import (
-    MemeFactoryContract,
-)
+
+import dotenv
 from aea.contracts.base import Contract
 from aea_ledger_ethereum.ethereum import EthereumApi
-import dotenv
-import os
+
+from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
+
 
 dotenv.load_dotenv(override=True)
 
@@ -30,8 +30,6 @@ erc20_contract = typing.cast(
 
 from_block = ledger_api.api.eth.block_number - SUMMON_BLOCK_DELTA
 
-data = erc20_contract.get_events(
-    ledger_api, meme_factory_address, "Summoned", from_block
-)
+data = erc20_contract.get_summon_data(ledger_api, meme_factory_address)
 
 print(data)

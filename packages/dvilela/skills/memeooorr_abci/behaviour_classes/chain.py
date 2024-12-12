@@ -342,7 +342,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            meme_coins = yield from self.get_meme_coins_from_subgraph()
+            meme_coins = yield from self.get_meme_coins()
 
             payload = PullMemesPayload(
                 sender=self.context.agent_address,
@@ -354,73 +354,6 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             yield from self.wait_until_round_end()
 
         self.set_done()
-
-    def get_meme_coins_from_chain(self) -> Generator[None, None, Optional[List]]:
-        """Get a list of meme coins"""
-
-        current_block = yield from self.get_block_number()
-
-        if not current_block:
-            return None
-
-        # Get the event from the latest 100k blocks
-        from_block = current_block - SUMMON_BLOCK_DELTA
-
-        # Use the contract api to interact with the factory contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-            contract_address=self.params.meme_factory_address,
-            contract_id=str(MemeFactoryContract.contract_id),
-            contract_callable="get_events",
-            from_block=from_block,
-            event_name="Summoned",
-            chain_id=self.get_chain_id(),
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.STATE:
-            self.context.logger.error(
-                f"Could not get the memecoin summon events: {response_msg}"
-            )
-            return None
-
-        summon_events = cast(list, response_msg.state.body.get("events", None))
-
-        if summon_events is None:
-            self.context.logger.error("Could not get the memecoin summon events")
-            return None
-
-        self.context.logger.info(f"Got {len(summon_events)} summon events")
-
-        # Use the contract api to interact with the factory contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-            contract_address=self.params.meme_factory_address,
-            contract_id=str(MemeFactoryContract.contract_id),
-            contract_callable="get_events",
-            from_block=from_block,
-            event_name="Unleashed",
-            chain_id=self.get_chain_id(),
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.STATE:
-            self.context.logger.error(
-                f"Could not get the memecoin unleash events: {response_msg}"
-            )
-            return None
-
-        unleash_events = cast(list, response_msg.state.body.get("events", None))
-
-        if unleash_events is None:
-            self.context.logger.error("Could not get the memecoin unleash events")
-            return None
-
-        self.context.logger.info(f"Got {len(unleash_events)} unleash events")
-
-        meme_coins = yield from self.analyze_events(summon_events, unleash_events)
-
-        return meme_coins
 
     def get_block_number(self) -> Generator[None, None, Optional[int]]:
         """Get the block number"""
@@ -473,8 +406,9 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         for event in merged_events:
             token_nonce = event["token_nonce"]
             token_address = event.get("token_address", None)
-            available_actions = yield from self.get_meme_available_actions(
-                token_nonce, token_address, hearted_memes
+            token_data = {"token_address": token_address}
+            available_actions = self.get_meme_available_actions(
+                token_data, hearted_memes
             )
             meme_coin = {"token_nonce": token_nonce, "actions": available_actions}
             meme_coins.append(meme_coin)

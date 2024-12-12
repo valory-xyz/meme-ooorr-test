@@ -175,23 +175,37 @@ class MemeFactoryContract(Contract):
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
-        meme_nonce: str,
-    ) -> Dict[str, Optional[str]]:
+    ) -> Dict[str, List]:
         """Get the data from the Summoned event."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
+
+        summon_events = cls.get_events(
+            ledger_api,
+            contract_address,
+            "Summoned",
+        )
+        nonces = [e["token_nonce"] for e in summon_events]
+
         meme_summons = getattr(contract_instance.functions, "memeSummons")  # noqa
-        summon_data = meme_summons(meme_nonce).call()
-        return {
-            "name": summon_data[0],
-            "ticker": summon_data[1],
-            "total_supply": summon_data[2],
-            "eth_contributed": summon_data[3],
-            "summon_time": summon_data[4],
-            "unleash_time": summon_data[5],
-            "hearters_amount": summon_data[6],
-            "position_id": summon_data[7],
-            "is_native_first": summon_data[8],
-        }
+
+        tokens = []
+        for nonce in nonces:
+            summon_data = meme_summons(nonce).call()
+            token_data = {
+                "name": summon_data[0],
+                "ticker": summon_data[1],
+                "total_supply": summon_data[2],
+                "eth_contributed": summon_data[3],
+                "summon_time": summon_data[4],
+                "unleash_time": summon_data[5],
+                "hearters_amount": summon_data[6],
+                "position_id": summon_data[7],
+                "is_native_first": summon_data[8],
+            }
+            tokens.append(token_data)
+            nonce += 1
+
+        return {"tokens": tokens}
 
     @classmethod
     def get_events(  # pylint: disable=too-many-arguments
@@ -199,11 +213,14 @@ class MemeFactoryContract(Contract):
         ledger_api: EthereumApi,
         contract_address: str,
         event_name: str,
-        from_block: int,
+        from_block: Optional[int] = None,
         to_block: Union[int, str] = "latest",
     ) -> Optional[JSONLike]:
         """Get events."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
+
+        if from_block is None:
+            from_block = ledger_api.api.eth.get_block_number() - 15000  # approx 48h ago
 
         # Avoid parsing too many blocks at a time. This might take too long and
         # the connection could time out.

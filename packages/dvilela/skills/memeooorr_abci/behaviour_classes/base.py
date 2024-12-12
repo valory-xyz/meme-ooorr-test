@@ -254,7 +254,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
     def get_meme_available_actions(
         self, meme_data: Dict, hearted_memes: List[str]
-    ) -> Generator[None, None, Optional[List]]:
+    ) -> List:
         """Get the available actions"""
 
         # Get the times
@@ -286,114 +286,6 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                 available_actions.remove("collect")
 
         return available_actions
-
-    def get_extra_meme_info(self, meme_coins: List) -> Generator[None, None, List]:
-        """Get other meme info"""
-
-        enriched_meme_coins = []
-
-        for meme_coin in meme_coins:
-            # Load previously hearted memes
-            db_data = yield from self._read_kv(keys=("hearted_memes",))
-
-            if db_data is None:
-                self.context.logger.error("Error while loading the database")
-                hearted_memes: List[str] = []
-            else:
-                hearted_memes = db_data["hearted_memes"] or []
-
-            meme_nonce = meme_coin["token_nonce"]
-            meme_address = meme_coin.get("token_address", None)
-
-            # We cannot retrieve data from the new contracts without the nonce
-            if not meme_nonce:
-                continue
-
-            # Use the contract api to interact with the factory contract
-            response_msg = yield from self.get_contract_api_response(
-                performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-                contract_address=self.params.meme_factory_address,
-                contract_id=str(MemeFactoryContract.contract_id),
-                contract_callable="get_summon_data",
-                meme_nonce=meme_nonce,
-                chain_id=self.get_chain_id(),
-            )
-
-            # Check that the response is what we expect
-            if response_msg.performative != ContractApiMessage.Performative.STATE:
-                self.context.logger.error(
-                    f"Could not get the memecoin summon data: {response_msg}"
-                )
-                return None
-
-            # Add the data
-            meme_coin.update(response_msg.state.body)
-
-            self.context.logger.info(
-                f"Token nonce={meme_nonce} address={meme_address} summon_time_ts={meme_coin.get('summon_time', None)} unleash_time_ts={meme_coin.get('unleash_time', None)}"
-            )
-
-            # Get available actions
-            available_actions = yield from self.get_meme_available_actions(
-                meme_coin,
-                hearted_memes,
-            )
-            meme_coin["available_actions"] = available_actions
-            self.context.logger.info(f"Available actions: {available_actions}")
-
-            enriched_meme_coins.append(meme_coin)
-
-        return enriched_meme_coins
-
-    def get_meme_coins_from_subgraph(self) -> Generator[None, None, Optional[List]]:
-        """Get a list of meme coins"""
-
-        url = "https://agentsfun-indexer-production-6ab5.up.railway.app"
-
-        query = {"query": TOKENS_QUERY}
-
-        headers = {"Content-Type": "application/json"}
-
-        # Make the HTTP request
-        response = yield from self.get_http_response(
-            method="POST", url=url, content=json.dumps(query).encode(), headers=headers
-        )
-
-        # Handle HTTP errors
-        if response.status_code != HTTP_OK:
-            self.context.logger.error(
-                f"Error while pulling the memes from subgraph: {response.body!r}"
-            )
-            return []
-
-        # Load the response
-        response_json = json.loads(response.body)
-
-        try:
-            meme_coins = [
-                {
-                    "decimals": 18,
-                    "token_nonce": t.get("memeNonce", None),
-                    "token_address": t.get("id", None),
-                    "liquidity": int(t["liquidity"]),
-                    "heart_count": int(t["heartCount"]),
-                    "is_unleashed": t["isUnleashed"],
-                    "timestamp": t["timestamp"],
-                }
-                for t in response_json["data"]["memeTokens"]["items"]
-                if t["chain"] == self.params.home_chain_id.lower()
-            ]
-        except KeyError as e:
-            self.context.logger.error(
-                f"Error while pulling the memes from subgraph: {e}"
-            )
-            return []
-
-        enriched_meme_coins = yield from self.get_extra_meme_info(meme_coins)
-
-        self.context.logger.info(f"Got {len(enriched_meme_coins)} tokens")
-
-        return enriched_meme_coins
 
     def get_chain_id(self) -> str:
         """Get chain id"""
@@ -459,3 +351,37 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
             handles.append(handle)
         return handles
+
+    def get_meme_coins_from_chain(self) -> Generator[None, None, Optional[List]]:
+        """Get a list of meme coins"""
+
+        # Use the contract api to interact with the factory contract
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.params.meme_factory_address,
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_summon_data",
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the memecoin summon events: {response_msg}"
+            )
+            return None
+
+        tokens = cast(list, response_msg.state.body.get("tokens", None))
+
+        return tokens
+
+    def get_meme_coins(self) -> Generator[None, None, Optional[List]]:
+        """Get a list of meme coins"""
+
+        meme_coins = self.synchronized_data.meme_coins
+
+        if meme_coins:
+            return meme_coins
+        else:
+            meme_coins = yield from self.get_meme_coins_from_chain()
+            return meme_coins
