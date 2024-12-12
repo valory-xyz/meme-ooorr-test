@@ -369,7 +369,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             meme_coins = [
                 {
                     "decimals": 18,
-                    "token_nonce": t["memeNonce"],
+                    "token_nonce": t.get("memeNonce", None),
                     "token_address": t.get("id", None),
                     "liquidity": int(t["liquidity"]),
                     "heart_count": int(t["heartCount"]),
