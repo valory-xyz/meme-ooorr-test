@@ -373,6 +373,20 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         tokens = cast(list, response_msg.state.body.get("tokens", None))
 
+        # Load previously hearted memes
+        db_data = yield from self._read_kv(keys=("hearted_memes",))
+
+        if db_data is None:
+            self.context.logger.error("Error while loading the database")
+            hearted_memes: List[str] = []
+        else:
+            hearted_memes = db_data["hearted_memes"] or []
+
+        for token in tokens:
+            token["available_actions"] = self.get_meme_available_actions(
+                token, hearted_memes
+            )
+
         return tokens
 
     def get_meme_coins(self) -> Generator[None, None, Optional[List]]:

@@ -82,6 +82,7 @@ class ActionDecisionPayload(BaseTxPayload):
     """Represent a transaction payload for the ActionDecisionRound."""
 
     event: str
+    token_nonce: Optional[int]
     token_address: Optional[str]
     action: Optional[str]
     amount: Optional[float]

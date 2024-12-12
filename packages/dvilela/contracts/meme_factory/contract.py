@@ -192,15 +192,18 @@ class MemeFactoryContract(Contract):
         for nonce in nonces:
             summon_data = meme_summons(nonce).call()
             token_data = {
-                "name": summon_data[0],
-                "ticker": summon_data[1],
-                "total_supply": summon_data[2],
+                "token_nonce": nonce,
+                "token_address": None,
+                "token_name": summon_data[0],
+                "token_ticker": summon_data[1],
+                "token_supply": summon_data[2],
                 "eth_contributed": summon_data[3],
                 "summon_time": summon_data[4],
                 "unleash_time": summon_data[5],
-                "hearters_amount": summon_data[6],
+                "heart_count": summon_data[6],
                 "position_id": summon_data[7],
                 "is_native_first": summon_data[8],
+                "decimals": 18,
             }
             tokens.append(token_data)
 
@@ -270,7 +273,7 @@ class MemeFactoryContract(Contract):
                     {
                         "summoner": e.args["summoner"],
                         "token_nonce": e.args["memeNonce"],
-                        "eth_contributed": e.args["ethContributed"],
+                        "eth_contributed": e.args["amount"],
                     }
                     for e in events
                 ],
@@ -281,9 +284,10 @@ class MemeFactoryContract(Contract):
             return dict(
                 events=[
                     {
+                        "token_unleasher": e.args["unleasher"],
                         "token_nonce": e.args["memeNonce"],
                         "token_address": e.args["memeToken"],
-                        "position_id": e.args["positionId"],
+                        "position_id": e.args["lpTokenId"],
                         "liquidity": e.args["liquidity"],
                     }
                     for e in events

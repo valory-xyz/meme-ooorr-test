@@ -517,6 +517,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
 
             if event == Event.DONE:
                 token_action = {
+                    "token_nonce": payload.token_nonce,
                     "token_address": payload.token_address,
                     "action": payload.action,
                     "amount": payload.amount,

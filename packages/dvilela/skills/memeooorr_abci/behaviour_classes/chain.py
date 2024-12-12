@@ -266,7 +266,12 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         if data_hex is None:
             return None
 
-        value = max(int(self.synchronized_data.token_data["amount"]), self.get_min_deploy_value())
+        value = max(
+            int(self.synchronized_data.token_data["amount"]),
+            self.get_min_deploy_value(),
+        )
+
+        self.context.logger.info(f"Deployment value is {value}")
 
         # Prepare safe transaction
         safe_tx_hash = yield from self._build_safe_tx_hash(
@@ -393,42 +398,6 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         self.context.logger.error(f"Got block number: {block_number}")
 
         return block_number
-
-    def analyze_events(
-        self, summon_events: List, unleash_events: List
-    ) -> Generator[None, None, Optional[List]]:
-        """Analyze events"""
-
-        # Merge event lists
-        merged_event_dict = {e["token_nonce"]: e for e in summon_events}
-        for e in unleash_events:
-            merged_event_dict[e["token_nonce"]].update(e)
-        merged_events = list(merged_event_dict.values())
-
-        meme_coins = []
-
-        # Load previously hearted memes
-        db_data = yield from self._read_kv(keys=("hearted_memes",))
-
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            hearted_memes: List[str] = []
-        else:
-            hearted_memes = db_data["hearted_memes"] or []
-
-        for event in merged_events:
-            token_nonce = event["token_nonce"]
-            token_address = event.get("token_address", None)
-            token_data = {"token_address": token_address}
-            available_actions = self.get_meme_available_actions(
-                token_data, hearted_memes
-            )
-            meme_coin = {"token_nonce": token_nonce, "actions": available_actions}
-            meme_coins.append(meme_coin)
-
-        self.context.logger.info(f"Analyzed meme coins: {meme_coins}")
-
-        return meme_coins
 
 
 class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors

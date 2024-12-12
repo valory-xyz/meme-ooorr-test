@@ -21,8 +21,10 @@
 """Test balances"""
 
 import os
+
 import dotenv
 from web3 import Web3
+
 
 dotenv.load_dotenv(override=True)
 
@@ -31,7 +33,7 @@ web3 = Web3(Web3.HTTPProvider(os.getenv("BASE_LEDGER_RPC")))
 wallet_address = "0xAFfa43df44289672164E37CF415596315344C277"
 
 balance_wei = web3.eth.get_balance(wallet_address)
-balance_eth = web3.from_wei(balance_wei, 'ether')
+balance_eth = web3.from_wei(balance_wei, "ether")
 
 print(f"Balance: {balance_eth} ETH")
 print(os.getenv("BASE_LEDGER_RPC"))
