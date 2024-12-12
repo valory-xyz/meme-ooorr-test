@@ -17,7 +17,7 @@
   "stakingFactoryAddress":"0x1c2cD884127b080F940b7546c1e9aaf525b1FA55",
   "memeFactoryAddress":"0xEea5F1e202dc43607273d54101fF8b58FB008A99",
   "livenessRatio":"34722222222222",
-  "memeActivityCheckerAddress":"",
+  "memeActivityCheckerAddress":"0x3FD8C757dE190bcc82cF69Df3Cd9Ab15bCec1426",
   "stakingParams":
     {
       "metadataHash":"",
@@ -34,7 +34,7 @@
       "configHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
       "proxyHash":"0xb89c1b3bdf2cf8827818646bce9a8f6e372885f8c55e5c07acbd307cb133b000",
       "serviceRegistry":"0xE3607b00E75f6405248323A9417ff6b39B244b50",
-      "activityChecker":""
+      "activityChecker":"0x3FD8C757dE190bcc82cF69Df3Cd9Ab15bCec1426"
     },
   "stakingTokenInstanceAddress":""
 }
