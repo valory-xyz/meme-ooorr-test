@@ -179,12 +179,12 @@ class MemeFactoryContract(Contract):
         """Get the data from the Summoned event."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
 
-        summon_events = cls.get_events(
+        summon_events: Dict[str, List] = cls.get_events(  # type: ignore
             ledger_api,
             contract_address,
             "Summoned",
-        )
-        nonces = [e["token_nonce"] for e in summon_events]
+        )["events"]
+        nonces: List[int] = [e["token_nonce"] for e in summon_events]  # type: ignore
 
         meme_summons = getattr(contract_instance.functions, "memeSummons")  # noqa
 
@@ -203,7 +203,6 @@ class MemeFactoryContract(Contract):
                 "is_native_first": summon_data[8],
             }
             tokens.append(token_data)
-            nonce += 1
 
         return {"tokens": tokens}
 
@@ -215,7 +214,7 @@ class MemeFactoryContract(Contract):
         event_name: str,
         from_block: Optional[int] = None,
         to_block: Union[int, str] = "latest",
-    ) -> Optional[JSONLike]:
+    ) -> JSONLike:
         """Get events."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
 

@@ -378,10 +378,10 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
     def get_meme_coins(self) -> Generator[None, None, Optional[List]]:
         """Get a list of meme coins"""
 
-        meme_coins = self.synchronized_data.meme_coins
+        meme_coins: Optional[List] = self.synchronized_data.meme_coins
 
         if meme_coins:
             return meme_coins
-        else:
-            meme_coins = yield from self.get_meme_coins_from_chain()
-            return meme_coins
+
+        meme_coins = yield from self.get_meme_coins_from_chain()
+        return meme_coins
