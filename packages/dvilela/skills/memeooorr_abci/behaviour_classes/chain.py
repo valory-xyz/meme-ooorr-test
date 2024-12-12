@@ -245,6 +245,17 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         return tx_hash, tx_flag, token_nonce
 
+    def get_min_deploy_value(self):
+        """Get min deploy value"""
+        if self.get_chain_id() == "base":
+            return int(0.01 * 1e18)
+
+        if self.get_chain_id() == "celo":
+            return 10
+
+        # Should not happen
+        return 0
+
     def get_deployment_tx(self) -> Generator[None, None, Optional[str]]:
         """Prepare a deployment tx"""
 
@@ -255,11 +266,13 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         if data_hex is None:
             return None
 
+        value = max(int(self.synchronized_data.token_data["amount"]), self.get_min_deploy_value())
+
         # Prepare safe transaction
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,
             data=bytes.fromhex(data_hex),
-            value=int(self.synchronized_data.token_data["amount"]),
+            value=value,
         )
 
         self.context.logger.info(f"Deployment hash is {safe_tx_hash}")

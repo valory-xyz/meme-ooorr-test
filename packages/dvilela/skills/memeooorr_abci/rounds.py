@@ -287,8 +287,11 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
 
             analysis = json.loads(self.most_voted_payload)
 
+            if not analysis:
+                return self.synchronized_data, Event.ERROR
+
             # Update persona
-            if not analysis["deploy"]:
+            if not analysis.get("deploy", None):
                 self.context.logger.info(f"Updated persona: {analysis['persona']}")
                 synchronized_data = self.synchronized_data.update(
                     synchronized_data_class=SynchronizedData,

@@ -105,7 +105,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         # If there is a pending tweet, we send it
         if pending_tweet:
             self.context.logger.info("Sending a pending tweet...")
-            latest_tweet = yield from self.post_tweet(tweet=pending_tweet)
+            latest_tweet = yield from self.post_tweet(tweet=[pending_tweet])
             return latest_tweet
 
         # If we have not posted before, we prepare and send a new tweet

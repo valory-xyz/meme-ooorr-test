@@ -73,6 +73,7 @@ class AnalizeFeedbackBehaviour(
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             analysis = yield from self.get_analysis()
+            self.context.logger.info(f"Analysis: {analysis}")
 
             payload = AnalizeFeedbackPayload(
                 sender=self.context.agent_address,
