@@ -67,7 +67,7 @@ class DeploymentPayload(BaseTxPayload):
 
     tx_hash: Optional[str]
     tx_flag: Optional[str]
-    token_address: Optional[str] = None
+    token_nonce: Optional[int] = None
 
 
 @dataclass(frozen=True)

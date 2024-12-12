@@ -185,13 +185,13 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            tx_hash, tx_flag, token_address = yield from self.get_tx_hash()
+            tx_hash, tx_flag, token_nonce = yield from self.get_tx_hash()
 
             payload = DeploymentPayload(
                 sender=self.context.agent_address,
                 tx_hash=tx_hash,
                 tx_flag=tx_flag,
-                token_address=token_address,
+                token_nonce=token_nonce,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -202,7 +202,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
     def get_tx_hash(
         self,
-    ) -> Generator[None, None, Tuple[Optional[str], Optional[str], Optional[str]]]:
+    ) -> Generator[None, None, Tuple[Optional[str], Optional[str], Optional[int]]]:
         """Prepare the next transaction"""
 
         tx_flag: Optional[str] = self.synchronized_data.tx_flag
@@ -212,18 +212,17 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         if not tx_flag:
             tx_hash = yield from self.get_deployment_tx()
             tx_flag = "deploy"
-            token_address = None
-            return tx_hash, tx_flag, token_address
+            token_nonce = None
+            return tx_hash, tx_flag, token_nonce
 
         # Finished
         self.context.logger.info("The deployment has finished")
         tx_hash = None
         tx_flag = "done"
-        token_address = yield from self.get_token_address()
-        if not token_address:
+        token_nonce = yield from self.get_token_nonce()
+        if not token_nonce:
             return None, None, None
 
-        token_nonce = yield from self.get_token_nonce(token_address)
         if not token_nonce:
             return None, None, None
 
@@ -238,13 +237,13 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         # Write token to db
         token_data = self.synchronized_data.token_data
-        token_data["token_address"] = token_address
+        token_data["token_nonce"] = token_nonce
         tokens.append(token_data)
         yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
         self.context.logger.info("Wrote latest token to db")
         self.store_heart(token_nonce)
 
-        return tx_hash, tx_flag, token_address
+        return tx_hash, tx_flag, token_nonce
 
     def get_deployment_tx(self) -> Generator[None, None, Optional[str]]:
         """Prepare a deployment tx"""
@@ -309,9 +308,9 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         self.context.logger.info(f"Deployment data is {data_hex}")
         return data_hex
 
-    def get_token_address(
+    def get_token_nonce(
         self,
-    ) -> Generator[None, None, Optional[str]]:
+    ) -> Generator[None, None, Optional[int]]:
         """Get the data from the deployment event"""
 
         # Use the contract api to interact with the factory contract
@@ -329,32 +328,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             self.context.logger.error(f"Could not get the token data: {response_msg}")
             return None
 
-        token_address = cast(str, response_msg.state.body.get("token_address", None))
-        self.context.logger.info(f"Token address is {token_address}")
-        return token_address
-
-    def get_token_nonce(
-        self,
-        token_address: str,
-    ) -> Generator[None, None, Optional[int]]:
-        """Get the token nonce given its address"""
-
-        # Use the contract api to interact with the factory contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-            contract_address=self.params.meme_factory_address,
-            contract_id=str(MemeFactoryContract.contract_id),
-            contract_callable="get_token_nonce",
-            meme_address=token_address,
-            chain_id=self.get_chain_id(),
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.STATE:
-            self.context.logger.error(f"Could not get the token nonce: {response_msg}")
-            return None
-
-        token_nonce = cast(int, response_msg.state.body.get("token_nonce", None))
+        token_nonce = cast(str, response_msg.state.body.get("token_nonce", None))
         self.context.logger.info(f"Token nonce is {token_nonce}")
         return token_nonce
 

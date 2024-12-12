@@ -161,30 +161,14 @@ class MemeFactoryContract(Contract):
             try:
                 event = contract_instance.events.Summoned().process_log(log)
                 return {
-                    "token_address": event.args["memeToken"],
                     "summoner": event.args["summoner"],
-                    "eth_contributed": event.args["ethContributed"],
+                    "token_nonce": event.args["memeNonce"],
+                    "eth_contributed": event.args["amount"],
                 }
             except web3.exceptions.MismatchedABI:
                 continue
 
         return {"token_address": None, "summoner": None, "eth_contributed": None}
-
-    @classmethod
-    def get_token_nonce(
-        cls,
-        ledger_api: EthereumApi,
-        contract_address: str,
-        meme_address: str,
-    ) -> Dict[str, Optional[str]]:
-        """Get the data from the Summoned event."""
-        meme_address = web3.Web3.to_checksum_address(meme_address)
-        contract_instance = cls.get_instance(ledger_api, contract_address)
-        meme_summons = getattr(contract_instance.functions, "memeTokenNonces")  # noqa
-        token_nonce = meme_summons(meme_address).call()
-        return {
-            "token_nonce": token_nonce,
-        }
 
     @classmethod
     def get_summon_data(
