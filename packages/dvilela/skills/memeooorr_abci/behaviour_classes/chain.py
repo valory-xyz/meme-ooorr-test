@@ -21,7 +21,7 @@
 
 import json
 from abc import ABC
-from typing import Generator, List, Optional, Tuple, Type, cast
+from typing import Generator, Optional, Tuple, Type, cast
 
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
@@ -200,7 +200,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         self.set_done()
 
-    def get_tx_hash(
+    def get_tx_hash(  # pylint: disable=too-many-locals
         self,
     ) -> Generator[None, None, Tuple[Optional[str], Optional[str], Optional[int]]]:
         """Prepare the next transaction"""
@@ -245,7 +245,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         return tx_hash, tx_flag, token_nonce
 
-    def get_min_deploy_value(self):
+    def get_min_deploy_value(self) -> int:
         """Get min deploy value"""
         if self.get_chain_id() == "base":
             return int(0.01 * 1e18)

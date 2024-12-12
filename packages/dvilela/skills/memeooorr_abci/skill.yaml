@@ -8,19 +8,19 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeidzmgxldc2fkywi6ode5houahsgelie4uj4cqxpcncl2evnzlj2qa
-  behaviour_classes/chain.py: bafybeigrxdepcmvp2eeffxilo6x7vxj56jsmwvu2hj355d3c74qdvmsq5i
+  behaviour_classes/base.py: bafybeiantxmu4uwmmxllxchrrtldudzrjtwhifoyulkoexn4ehborq3ouu
+  behaviour_classes/chain.py: bafybeiankzdgjmdo3dysbhbqmlovjtqlwl2aajimd45ujkwcygcam7qjiy
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
-  behaviour_classes/llm.py: bafybeigmoxtucdrqjbrnuynma5lsan63xjzfsbhymiouvcoq7ukkebg5gq
+  behaviour_classes/llm.py: bafybeic4gmodpevko6iqf7qpmjsyyi5f3iql5yr4md3hm6fnsuksb6bdye
   behaviour_classes/twitter.py: bafybeifbas6ilnp2plzrpttwkvnuracppudlz3nhsvbq4bugwsm5qgjeiq
   behaviours.py: bafybeibdbimezloiomvsv3zgfdug4tw276gt7tb5agnezl2nuqcfcplscu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeidqesafw5vtekw2dtffjznuchdjllo52najwmmkj2npfdyaouigfa
   handlers.py: bafybeigdxkm45w27sh7cpgiwuperjldql6oupbhxqtizhbwfv7abxe3dku
   models.py: bafybeicecmx64ntw4665njlvr43qljbvmtlgz4bqsmgdkbtlsnsecd4rmm
-  payloads.py: bafybeicvotzgkcckmco7srswjdk2gc52shjszl6ntydozprgsb5if5tw6y
-  prompts.py: bafybeig365i4xeufzuieqm6dcru5beokvwbr4jp5iozduzw7tia5qyr5ve
-  rounds.py: bafybeich3kuw2s5hrjpoxiwdpxtiinjyi7gvlywy436c6ucczhso7ucez4
+  payloads.py: bafybeibyukr3aewwlbx6c6xe43j6nhgdqwqdgbemswrsvnqp3ftqodvvmi
+  prompts.py: bafybeicqvwxe25ytkaetkrouzybi4irbpusdkle7b6wfxew26qdgt23m3q
+  rounds.py: bafybeidgnbnznvt5tcoynxhssem47fbgkodzt3ieilxozagko7rtnmgbjq
   rounds_info.py: bafybeieqaemvqwiwku7nlxkdebsqzldpvvidijf6wcwy7e3xbyz335jr6i
   subgraph.py: bafybeigme6r3cwiiu5l7r55rcbj7y37b62cxtlsnewpkbjqcbadwte32xm
 fingerprint_ignore_patterns: []
@@ -31,7 +31,7 @@ connections:
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiho6sbfts3zk3mftrngw37d5qnlvkqtnttt3fzexmcwkeevhu4wwi
-- dvilela/meme_factory:0.1.0:bafybeiem7bgheiucthwrbzqgc4pzejyzw622h4c2ssesb4fwql7ensebsa
+- dvilela/meme_factory:0.1.0:bafybeiernwylranvc42xzzfkcitx64c5i3fwpan4j4lo2srcxfre6g6434
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci

@@ -201,7 +201,7 @@ class ActionDecisionBehaviour(
 
         self.set_done()
 
-    def get_event(  # pylint: disable=too-many-return-statements
+    def get_event(  # pylint: disable=too-many-locals,too-many-return-statements
         self,
     ) -> Generator[
         None,
