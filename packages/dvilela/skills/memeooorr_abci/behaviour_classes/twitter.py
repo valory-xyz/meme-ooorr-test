@@ -123,7 +123,9 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
         # Too much time has passed since last tweet without feedback, tweet again
         if hours_since_last_tweet >= self.params.feedback_period_max_hours:
-            self.context.logger.info("Creating a new tweet...")
+            self.context.logger.info(
+                "Too much time has passed since last tweet. Creating a new tweet..."
+            )
             latest_tweet = yield from self.post_tweet(tweet=None)
             return latest_tweet
 
@@ -170,6 +172,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
                 retries += 1
                 continue
 
+            self.context.logger.info("Tweet is OK!")
             tweet = llm_response
             return tweet
 
@@ -185,7 +188,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             new_tweet = yield from self.prepare_tweet()
 
             # We fail to prepare the tweet
-            if not tweet:
+            if not new_tweet:
                 return None
 
             tweet = [new_tweet]
