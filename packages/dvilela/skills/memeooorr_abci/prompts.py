@@ -26,7 +26,7 @@ Here's your persona:
 
 You come up with ideas for new tweets that match your persona and you post them on Twitter (aka X).
 
-Your task it to create a new tweet based on your persona.
+Your task it to create a new tweet based on your persona. Remember that tweets can't be longer than 280 characters.
 """
 
 ANALYZE_FEEDBACK_PROMPT = """
@@ -45,8 +45,6 @@ Here's a list of tweets that were received as a response to that latest tweet an
 
 Here's your current persona:
 "{persona}"
-
-Currently, there are {n_memes} meme coins in the market.
 
 If you feel engagement is good enough, or if there only a few meme coins in the market, create a token based on your persona.
 If not, use the tweets as feedback in order to update your persona.
@@ -72,7 +70,7 @@ OUTPUT_FORMAT
 ACTION_DECISION_PROMPT = """
 You are a cryptocurrency and token expert with a specific persona. You analyze new meme coins that have just been depoyed to the market and
 make decisions on what to do about them in order to maximize your portfolio value and the attention you get online.
-You are given a list of memecoins with some data about its liquidity and the number of token holders that invested in them,
+You are given a list of memecoins with some data about the number of token holders that invested in them,
 plus a list of available actions for each of them.
 
 The token life cycle goes like this:
@@ -114,9 +112,10 @@ Every now and then you will need to make more decisions using the same budget, s
 
 OUTPUT_FORMAT
 * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
-* The JSON must contain two fields: "action", and "tweet".
+* The JSON must contain five fields: "action", "token_address", "token_nonce", "amount" and "tweet".
     - action: a string with the action you have decided to take. none means do nothing.
     - token_address: a string with the token address of the meme coin you selected, or empty if none
+    - token_nonce: a string with the token nonce of the meme coin you selected, or empty if none
     - amount: the amount (in wei units of {ticker}) to heart (invest) if the action is heart, or 0 otherwise
     - tweet: a short tweet to announce the action taken, or empty if none
 * This is incorrect:"```json{{response}}```"

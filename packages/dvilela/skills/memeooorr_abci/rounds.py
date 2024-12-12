@@ -287,8 +287,11 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
 
             analysis = json.loads(self.most_voted_payload)
 
+            if not analysis:
+                return self.synchronized_data, Event.ERROR
+
             # Update persona
-            if not analysis["deploy"]:
+            if not analysis.get("deploy", None):
                 self.context.logger.info(f"Updated persona: {analysis['persona']}")
                 synchronized_data = self.synchronized_data.update(
                     synchronized_data_class=SynchronizedData,
@@ -369,15 +372,9 @@ class DeploymentRound(CollectSameUntilThresholdRound):
             )
 
             # The token has been deployed
-            if payload.token_address:
+            if payload.token_nonce:
                 token_data = cast(SynchronizedData, self.synchronized_data).token_data
-                token_data["token_address"] = payload.token_address
-
-                # Turn the tweet into a thread and add the token address
-                token_data["tweet"] = [
-                    token_data["tweet"],
-                    f"Find the token here: https://basescan.org/token/{payload.token_address}",
-                ]
+                token_data["token_nonce"] = payload.token_nonce
 
                 synchronized_data = self.synchronized_data.update(
                     synchronized_data_class=SynchronizedData,
@@ -520,6 +517,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
 
             if event == Event.DONE:
                 token_action = {
+                    "token_nonce": payload.token_nonce,
                     "token_address": payload.token_address,
                     "action": payload.action,
                     "amount": payload.amount,

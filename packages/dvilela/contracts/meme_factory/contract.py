@@ -68,15 +68,14 @@ class MemeFactoryContract(Contract):
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
-        meme_address: str,
+        meme_nonce: str,
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
-        meme_address = web3.Web3.to_checksum_address(meme_address)
         contract_instance = cls.get_instance(ledger_api, contract_address)
         data = contract_instance.encodeABI(
             fn_name="heartThisMeme",
             args=[
-                meme_address,
+                meme_nonce,
             ],
         )
         return {"data": bytes.fromhex(data[2:])}
@@ -86,14 +85,13 @@ class MemeFactoryContract(Contract):
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
-        meme_address: str,
+        meme_nonce: str,
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
-        meme_address = web3.Web3.to_checksum_address(meme_address)
         contract_instance = cls.get_instance(ledger_api, contract_address)
         data = contract_instance.encodeABI(
             fn_name="unleashThisMeme",
-            args=[meme_address, 0],  # set the limit to 0
+            args=[meme_nonce],
         )
         return {"data": bytes.fromhex(data[2:])}
 
@@ -138,16 +136,13 @@ class MemeFactoryContract(Contract):
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
-        limit: int = 0,
-        token_gas_limit: int = 0,
-        bridge_payload: bytes = b"0x",
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
 
         contract_instance = cls.get_instance(ledger_api, contract_address)
         data = contract_instance.encodeABI(
-            fn_name="scheduleOLASForAscendance",
-            args=[limit, token_gas_limit, bridge_payload],
+            fn_name="scheduleForAscendance",
+            args=[],
         )
         return {"data": bytes.fromhex(data[2:])}
 
@@ -166,9 +161,9 @@ class MemeFactoryContract(Contract):
             try:
                 event = contract_instance.events.Summoned().process_log(log)
                 return {
-                    "token_address": event.args["memeToken"],
                     "summoner": event.args["summoner"],
-                    "eth_contributed": event.args["ethContributed"],
+                    "token_nonce": event.args["memeNonce"],
+                    "eth_contributed": event.args["amount"],
                 }
             except web3.exceptions.MismatchedABI:
                 continue
@@ -180,33 +175,54 @@ class MemeFactoryContract(Contract):
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
-        meme_address: str,
-    ) -> Dict[str, Optional[str]]:
+    ) -> Dict[str, List]:
         """Get the data from the Summoned event."""
-        meme_address = web3.Web3.to_checksum_address(meme_address)
         contract_instance = cls.get_instance(ledger_api, contract_address)
+
+        summon_events: Dict[str, List] = cls.get_events(  # type: ignore
+            ledger_api,
+            contract_address,
+            "Summoned",
+        )["events"]
+        nonces: List[int] = [e["token_nonce"] for e in summon_events]  # type: ignore
+
         meme_summons = getattr(contract_instance.functions, "memeSummons")  # noqa
-        eth_contributed, summon_time, unleash_time, hearters_amount = meme_summons(
-            meme_address
-        ).call()
-        return {
-            "eth_contributed": eth_contributed,
-            "summon_time": summon_time,
-            "unleash_time": unleash_time,
-            "hearters_amount": hearters_amount,
-        }
+
+        tokens = []
+        for nonce in nonces:
+            summon_data = meme_summons(nonce).call()
+            token_data = {
+                "token_nonce": nonce,
+                "token_address": None,
+                "token_name": summon_data[0],
+                "token_ticker": summon_data[1],
+                "token_supply": summon_data[2],
+                "eth_contributed": summon_data[3],
+                "summon_time": summon_data[4],
+                "unleash_time": summon_data[5],
+                "heart_count": summon_data[6],
+                "position_id": summon_data[7],
+                "is_native_first": summon_data[8],
+                "decimals": 18,
+            }
+            tokens.append(token_data)
+
+        return {"tokens": tokens}
 
     @classmethod
     def get_events(  # pylint: disable=too-many-arguments
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
-        from_block: int,
+        event_name: str,
+        from_block: Optional[int] = None,
         to_block: Union[int, str] = "latest",
-        event_name: str = "Summoned",
-    ) -> Optional[JSONLike]:
+    ) -> JSONLike:
         """Get events."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
+
+        if from_block is None:
+            from_block = ledger_api.api.eth.get_block_number() - 15000  # approx 48h ago
 
         # Avoid parsing too many blocks at a time. This might take too long and
         # the connection could time out.
@@ -251,14 +267,32 @@ class MemeFactoryContract(Contract):
 
             events += new_events
 
-        return dict(
-            events=[
-                {
-                    "summoner": e.args["summoner"],
-                    "token_address": e.args["memeToken"],
-                    "eth_contributed": e.args["ethContributed"],
-                }
-                for e in events
-            ],
-            latest_block=int(to_block),
-        )
+        if event_name == "Summoned":
+            return dict(
+                events=[
+                    {
+                        "summoner": e.args["summoner"],
+                        "token_nonce": e.args["memeNonce"],
+                        "eth_contributed": e.args["amount"],
+                    }
+                    for e in events
+                ],
+                latest_block=int(to_block),
+            )
+
+        if event_name == "Unleashed":
+            return dict(
+                events=[
+                    {
+                        "token_unleasher": e.args["unleasher"],
+                        "token_nonce": e.args["memeNonce"],
+                        "token_address": e.args["memeToken"],
+                        "position_id": e.args["lpTokenId"],
+                        "liquidity": e.args["liquidity"],
+                    }
+                    for e in events
+                ],
+                latest_block=int(to_block),
+            )
+
+        return {}

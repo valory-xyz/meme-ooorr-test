@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeierttzbdgqtqpdyb5wfkgehfalwnuvvdjgub6iqlkrrvqkbbnoohu
+agent: dvilela/memeooorr:0.1.0:bafybeihocacd7vyqzb7i7bcx2enzoxcdfngy4tnzzbiqjnc4dbm6jh43z4
 number_of_agents: 1
 deployment:
   agent:
@@ -58,7 +58,7 @@ extra:
         max_healthcheck: 120
         multisend_address: ${MULTISEND_ADDRESS:str:0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761}
         termination_sleep: ${TERMINATION_SLEEP:int:900}
-        reset_pause_duration: ${RESET_PAUSE_DURATION:int:300}
+        reset_pause_duration: ${RESET_PAUSE_DURATION:int:3600}
         on_chain_service_id: ${ON_CHAIN_SERVICE_ID:int:null}
         reset_tendermint_after: ${RESET_TENDERMINT_AFTER:int:1}
         retry_attempts: 400
@@ -84,10 +84,11 @@ extra:
         termination_from_block: ${TERMINATION_FROM_BLOCK:int:21629820}
         minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.001}
         min_feedback_replies: ${MIN_FEEDBACK_REPLIES:int:10}
-        meme_factory_address: ${MEME_FACTORY_ADDRESS:str:0x42156841253f428cb644ea1230d4fddfb70f8891}
+        meme_factory_address: ${MEME_FACTORY_ADDRESS:str:0x82a9c823332518c32a0c0edc050ef00934cf04d4}
         olas_token_address: ${OLAS_TOKEN_ADDRESS:str:0x54330d28ca3357F294334BDC454a032e7f353416}
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
-        feedback_period_hours: ${FEEDBACK_PERIOD_HOURS:int:3}
+        feedback_period_min_hours: ${FEEDBACK_PERIOD_MIN_HOURS:int:1}
+        feedback_period_max_hours: ${FEEDBACK_PERIOD_MAX_HOURS:int:3}
         home_chain_id: ${HOME_CHAIN_ID:str:BASE}
         twitter_username: ${TWIKIT_USERNAME:str:null}
 ---

@@ -21,7 +21,7 @@
 
 import json
 from abc import ABC
-from typing import Generator, List, Optional, Tuple, Type, cast
+from typing import Generator, Optional, Tuple, Type, cast
 
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
@@ -120,7 +120,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         return safe_tx_hash
 
-    def store_heart(self, token_address: str) -> Generator[None, None, None]:
+    def store_heart(self, token_nonce: int) -> Generator[None, None, None]:
         """Store a new hearted token to the db"""
         # Load previously hearted memes
         db_data = yield from self._read_kv(keys=("hearted_memes",))
@@ -132,7 +132,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
             hearted_memes = json.loads(db_data["hearted_memes"] or "[]")
 
         # Write the new hearted token
-        hearted_memes.append(token_address)
+        hearted_memes.append(token_nonce)
         yield from self._write_kv(
             {"hearted_memes": json.dumps(hearted_memes, sort_keys=True)}
         )
@@ -185,13 +185,13 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            tx_hash, tx_flag, token_address = yield from self.get_tx_hash()
+            tx_hash, tx_flag, token_nonce = yield from self.get_tx_hash()
 
             payload = DeploymentPayload(
                 sender=self.context.agent_address,
                 tx_hash=tx_hash,
                 tx_flag=tx_flag,
-                token_address=token_address,
+                token_nonce=token_nonce,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -200,9 +200,9 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         self.set_done()
 
-    def get_tx_hash(
+    def get_tx_hash(  # pylint: disable=too-many-locals
         self,
-    ) -> Generator[None, None, Tuple[Optional[str], Optional[str], Optional[str]]]:
+    ) -> Generator[None, None, Tuple[Optional[str], Optional[str], Optional[int]]]:
         """Prepare the next transaction"""
 
         tx_flag: Optional[str] = self.synchronized_data.tx_flag
@@ -212,15 +212,18 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         if not tx_flag:
             tx_hash = yield from self.get_deployment_tx()
             tx_flag = "deploy"
-            token_address = None
-            return tx_hash, tx_flag, token_address
+            token_nonce = None
+            return tx_hash, tx_flag, token_nonce
 
         # Finished
         self.context.logger.info("The deployment has finished")
         tx_hash = None
         tx_flag = "done"
-        token_address = yield from self.get_token_address()
-        if not token_address:
+        token_nonce = yield from self.get_token_nonce()
+        if not token_nonce:
+            return None, None, None
+
+        if not token_nonce:
             return None, None, None
 
         # Read previous tokens from db
@@ -234,13 +237,24 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         # Write token to db
         token_data = self.synchronized_data.token_data
-        token_data["token_address"] = token_address
+        token_data["token_nonce"] = token_nonce
         tokens.append(token_data)
         yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
         self.context.logger.info("Wrote latest token to db")
-        self.store_heart(token_address)
+        self.store_heart(token_nonce)
 
-        return tx_hash, tx_flag, token_address
+        return tx_hash, tx_flag, token_nonce
+
+    def get_min_deploy_value(self) -> int:
+        """Get min deploy value"""
+        if self.get_chain_id() == "base":
+            return int(0.01 * 1e18)
+
+        if self.get_chain_id() == "celo":
+            return 10
+
+        # Should not happen
+        return 0
 
     def get_deployment_tx(self) -> Generator[None, None, Optional[str]]:
         """Prepare a deployment tx"""
@@ -252,11 +266,18 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         if data_hex is None:
             return None
 
+        value = max(
+            int(self.synchronized_data.token_data["amount"]),
+            self.get_min_deploy_value(),
+        )
+
+        self.context.logger.info(f"Deployment value is {value}")
+
         # Prepare safe transaction
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.meme_factory_address,
             data=bytes.fromhex(data_hex),
-            value=int(self.synchronized_data.token_data["amount"]),
+            value=value,
         )
 
         self.context.logger.info(f"Deployment hash is {safe_tx_hash}")
@@ -305,9 +326,9 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         self.context.logger.info(f"Deployment data is {data_hex}")
         return data_hex
 
-    def get_token_address(
+    def get_token_nonce(
         self,
-    ) -> Generator[None, None, Optional[str]]:
+    ) -> Generator[None, None, Optional[int]]:
         """Get the data from the deployment event"""
 
         # Use the contract api to interact with the factory contract
@@ -325,9 +346,9 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             self.context.logger.error(f"Could not get the token data: {response_msg}")
             return None
 
-        token_address = cast(str, response_msg.state.body.get("token_address", None))
-        self.context.logger.info(f"Token address is {token_address}")
-        return token_address
+        token_nonce = cast(int, response_msg.state.body.get("token_nonce", None))
+        self.context.logger.info(f"Token nonce is {token_nonce}")
+        return token_nonce
 
 
 class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
@@ -339,7 +360,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            meme_coins = yield from self.get_meme_coins_from_subgraph()
+            meme_coins = yield from self.get_meme_coins()
 
             payload = PullMemesPayload(
                 sender=self.context.agent_address,
@@ -351,47 +372,6 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             yield from self.wait_until_round_end()
 
         self.set_done()
-
-    def get_meme_coins_from_chain(self) -> Generator[None, None, Optional[List]]:
-        """Get a list of meme coins"""
-
-        current_block = yield from self.get_block_number()
-
-        if not current_block:
-            return None
-
-        # Get the event from the latest 100k blocks
-        from_block = current_block - SUMMON_BLOCK_DELTA
-
-        # Use the contract api to interact with the factory contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-            contract_address=self.params.meme_factory_address,
-            contract_id=str(MemeFactoryContract.contract_id),
-            contract_callable="get_events",
-            from_block=from_block,
-            event_name="Summoned",
-            chain_id=self.get_chain_id(),
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.STATE:
-            self.context.logger.error(
-                f"Could not get the memecoin events: {response_msg}"
-            )
-            return None
-
-        events = cast(list, response_msg.state.body.get("events", None))
-
-        if events is None:
-            self.context.logger.error("Could not get the memecoin events")
-            return None
-
-        self.context.logger.info(f"Got {len(events)} summon events")
-
-        meme_coins = yield from self.analyze_summon_events(events)
-
-        return meme_coins
 
     def get_block_number(self) -> Generator[None, None, Optional[int]]:
         """Get the block number"""
@@ -418,34 +398,6 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         self.context.logger.error(f"Got block number: {block_number}")
 
         return block_number
-
-    def analyze_summon_events(
-        self, events: List
-    ) -> Generator[None, None, Optional[List]]:
-        """Analyze summon events"""
-
-        meme_coins = []
-
-        # Load previously hearted memes
-        db_data = yield from self._read_kv(keys=("hearted_memes",))
-
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            hearted_memes: List[str] = []
-        else:
-            hearted_memes = db_data["hearted_memes"] or []
-
-        for event in events:
-            meme_address = event["token_address"]
-            available_actions = yield from self.get_meme_available_actions(
-                meme_address, hearted_memes
-            )
-            meme_coin = {"token_address": meme_address, "actions": available_actions}
-            meme_coins.append(meme_coin)
-
-        self.context.logger.info(f"Analyzed meme coins: {meme_coins}")
-
-        return meme_coins
 
 
 class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
@@ -479,19 +431,19 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         if not token_action:
             return None, None
 
-        token_address = token_action["token_address"]
         action = token_action["action"]
 
         contract_callable = f"build_{action}_tx"
 
         kwargs = {}
 
-        if action != "burn":
-            kwargs["meme_address"] = token_address
+        if action in ["heart", "unleash"]:
+            kwargs["meme_nonce"] = token_action["token_nonce"]
 
-        self.context.logger.info(
-            f"Preparing the {action} transaction for token {token_address}. kwargs={kwargs}"
-        )
+        if action in ["collect", "purge"]:
+            kwargs["meme_address"] = token_action["token_address"]
+
+        self.context.logger.info(f"Preparing the {action} transaction: kwargs={kwargs}")
 
         # Use the contract api to interact with the factory contract
         response_msg = yield from self.get_contract_api_response(
@@ -541,7 +493,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         # Optimistic design: we now store the hearted token address
         # Ideally, this should be done after a succesful heart transaction
         if action == "heart":
-            self.store_heart(token_address)
+            self.store_heart(token_action["token_nonce"])
 
         tx_flag = "action"
         return safe_tx_hash, tx_flag
