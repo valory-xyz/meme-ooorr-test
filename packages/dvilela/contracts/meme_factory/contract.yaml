@@ -14,7 +14,7 @@ fingerprint_ignore_patterns: []
 contracts: []
 class_name: MemeFactoryContract
 contract_interface_paths:
-  ethereum: build/MemeFactory.json
+  ethereum: build/MemeBase.json
 dependencies:
   ecdsa:
     version: '>=0.15'
