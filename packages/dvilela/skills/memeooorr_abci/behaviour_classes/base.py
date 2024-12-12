@@ -305,6 +305,10 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             meme_nonce = meme_coin["token_nonce"]
             meme_address = meme_coin.get("token_address", None)
 
+            # We cannot retrieve data from the new contracts without the nonce
+            if not meme_nonce:
+                continue
+
             # Use the contract api to interact with the factory contract
             response_msg = yield from self.get_contract_api_response(
                 performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
@@ -326,7 +330,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             meme_coin.update(response_msg.state.body)
 
             self.context.logger.info(
-                f"Token nonce={meme_nonce} address={meme_address} summon_time_ts={meme_coin['summon_time']} unleash_time_ts={meme_coin['unleash_time']}"
+                f"Token nonce={meme_nonce} address={meme_address} summon_time_ts={meme_coin.get('summon_time', None)} unleash_time_ts={meme_coin.get('unleash_time', None)}"
             )
 
             # Get available actions
