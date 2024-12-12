@@ -328,7 +328,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             self.context.logger.error(f"Could not get the token data: {response_msg}")
             return None
 
-        token_nonce = cast(str, response_msg.state.body.get("token_nonce", None))
+        token_nonce = cast(int, response_msg.state.body.get("token_nonce", None))
         self.context.logger.info(f"Token nonce is {token_nonce}")
         return token_nonce
 

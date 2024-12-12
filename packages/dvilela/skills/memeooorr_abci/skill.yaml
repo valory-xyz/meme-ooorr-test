@@ -9,7 +9,7 @@ fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeidv24ydzwpgmc6u7emoem5jgw7d2npvygpless3bpaiwy36jssu7y
-  behaviour_classes/chain.py: bafybeidbostpztk7wqmkhnpsqa3tvz2ir57t6goaeg7ciay2uohtixbara
+  behaviour_classes/chain.py: bafybeie7sqp3zfm76ll7lamahj2k6twe7pgsvvrmx2qxi2ktyd76gagecq
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
   behaviour_classes/llm.py: bafybeifue224iv36mfjgl65z7ojgr6ixw3emkboafhbb4fafcontdi73ji
   behaviour_classes/twitter.py: bafybeiblcpqygn7p34v6l4wczmipxdicf4tj6uajtyg5ifwjg7dlohxpga
@@ -18,9 +18,9 @@ fingerprint:
   fsm_specification.yaml: bafybeidqesafw5vtekw2dtffjznuchdjllo52najwmmkj2npfdyaouigfa
   handlers.py: bafybeigdxkm45w27sh7cpgiwuperjldql6oupbhxqtizhbwfv7abxe3dku
   models.py: bafybeicecmx64ntw4665njlvr43qljbvmtlgz4bqsmgdkbtlsnsecd4rmm
-  payloads.py: bafybeif5ycv3aaim4sbfkmx5jnwjm5yvx562zkykhng5on63zfeqskddse
+  payloads.py: bafybeicvotzgkcckmco7srswjdk2gc52shjszl6ntydozprgsb5if5tw6y
   prompts.py: bafybeihysgl3ntkftczri46k634eycr3iz6fxr553vl5nhuikcg5taj7tq
-  rounds.py: bafybeiek6i7n5hdoaicaknpae6ohdxolmei4dtfykupw4sqf74zrm6l6uq
+  rounds.py: bafybeid32va4rhd2wambsdhqfk7izvpmh7ermypxmipnrclrwqnw2lcboi
   rounds_info.py: bafybeieqaemvqwiwku7nlxkdebsqzldpvvidijf6wcwy7e3xbyz335jr6i
   subgraph.py: bafybeigme6r3cwiiu5l7r55rcbj7y37b62cxtlsnewpkbjqcbadwte32xm
 fingerprint_ignore_patterns: []
@@ -31,7 +31,7 @@ connections:
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiho6sbfts3zk3mftrngw37d5qnlvkqtnttt3fzexmcwkeevhu4wwi
-- dvilela/meme_factory:0.1.0:bafybeihj7u5fvjscynl6jp74vrhtwuq5lcs2waiqdjcvcve44cxcr52yzq
+- dvilela/meme_factory:0.1.0:bafybeicjzugs3rx74jrnrqy6s3a44nde2svtnaemhfinuafg4e74iiekiu
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
