@@ -245,17 +245,6 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         return tx_hash, tx_flag, token_nonce
 
-    def get_min_deploy_value(self) -> int:
-        """Get min deploy value"""
-        if self.get_chain_id() == "base":
-            return int(0.01 * 1e18)
-
-        if self.get_chain_id() == "celo":
-            return 10
-
-        # Should not happen
-        return 0
-
     def get_deployment_tx(self) -> Generator[None, None, Optional[str]]:
         """Prepare a deployment tx"""
 
@@ -266,11 +255,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         if data_hex is None:
             return None
 
-        value = max(
-            int(self.synchronized_data.token_data["amount"]),
-            self.get_min_deploy_value(),
-        )
-
+        value = self.synchronized_data.token_data["amount"]
         self.context.logger.info(f"Deployment value is {value}")
 
         # Prepare safe transaction
@@ -361,6 +346,7 @@ class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             meme_coins = yield from self.get_meme_coins()
+            self.context.logger.info(f"Meme token list: {meme_coins}")
 
             payload = PullMemesPayload(
                 sender=self.context.agent_address,

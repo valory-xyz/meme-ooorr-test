@@ -287,6 +287,13 @@ class ActionDecisionBehaviour(
                 self.context.logger.info("Tweet is none")
                 return Event.WAIT.value, None, None, None, None, None
 
+            # Fix amount if it is lower than the min required amount
+            if action == "heart":
+                amount = max(
+                    amount,
+                    self.get_min_deploy_value(),
+                )
+
             self.context.logger.info("The LLM returned a valid response")
             return Event.DONE.value, token_nonce, token_address, action, amount, tweet
 
