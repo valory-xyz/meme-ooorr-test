@@ -184,7 +184,7 @@ class MemeFactoryContract(Contract):
             contract_address,
             "Summoned",
         )["events"]
-        nonce_to_event = {e["token_nonce"]: e for e in summon_events}  # type: ignore
+        nonce_to_event: Dict[str, Dict] = {e["token_nonce"]: e for e in summon_events}  # type: ignore
 
         meme_summons = getattr(contract_instance.functions, "memeSummons")  # noqa
 
