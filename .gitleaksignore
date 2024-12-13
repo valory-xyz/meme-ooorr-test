@@ -381,3 +381,5 @@ a2eae7cc6176b84e4aaa59a85321249d4a906305:scripts/deployment/globals_celo_mainnet
 722650392739117747fb1729f46966282186d02c:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
 7efd156c77f4b4e6d1b94e643e651f1f91612154:scripts/deployment/globals_celo_mainnet.json:generic-api-key:1
 93830648ce39e12a4a3c4229363a02eb64f698c4:scripts/deployment/globals_arbitrum_one.json:generic-api-key:1
+f5704a9c546a17ac608b7d987a461963db3d37c4:scripts/deployment/globals_base_mainnet_meme_alpha.json:generic-api-key:41
+f5704a9c546a17ac608b7d987a461963db3d37c4:scripts/deployment/globals_celo_mainnet_meme_alpha.json:generic-api-key:39
