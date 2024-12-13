@@ -184,14 +184,15 @@ class MemeFactoryContract(Contract):
             contract_address,
             "Summoned",
         )["events"]
-        nonces: List[int] = [e["token_nonce"] for e in summon_events]  # type: ignore
+        nonce_to_event: Dict[str, Dict] = {e["token_nonce"]: e for e in summon_events}  # type: ignore
 
         meme_summons = getattr(contract_instance.functions, "memeSummons")  # noqa
 
         tokens = []
-        for nonce in nonces:
+        for nonce in nonce_to_event.keys():
             summon_data = meme_summons(nonce).call()
             token_data = {
+                "summoner": nonce_to_event[nonce]["summoner"],
                 "token_nonce": nonce,
                 "token_address": None,
                 "token_name": summon_data[0],

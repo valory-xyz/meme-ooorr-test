@@ -274,6 +274,17 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         if is_unleashed or seconds_since_summon > 48 * 3600:
             available_actions.remove("heart")
 
+        # We should not heart if we have summoned this token
+        if (
+            "heart" in available_actions
+            and meme_data["summoner"] == self.synchronized_data.safe_contract_address
+        ):
+            available_actions.remove("heart")
+
+        # We should not heart if we have already hearted
+        if "heart" in available_actions and meme_data["token_address"] in hearted_memes:
+            available_actions.remove("heart")
+
         # We use 47.5 to be on the safe side
         if seconds_since_summon < 47.5 * 3600:
             if "unleash" in available_actions:
@@ -399,3 +410,14 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         meme_coins = yield from self.get_meme_coins_from_chain()
         return meme_coins
+
+    def get_min_deploy_value(self) -> int:
+        """Get min deploy value"""
+        if self.get_chain_id() == "base":
+            return int(0.01 * 1e18)
+
+        if self.get_chain_id() == "celo":
+            return 10
+
+        # Should not happen
+        return 0
