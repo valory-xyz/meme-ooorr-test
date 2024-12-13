@@ -8,10 +8,10 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeiantxmu4uwmmxllxchrrtldudzrjtwhifoyulkoexn4ehborq3ouu
-  behaviour_classes/chain.py: bafybeiankzdgjmdo3dysbhbqmlovjtqlwl2aajimd45ujkwcygcam7qjiy
+  behaviour_classes/base.py: bafybeibpjk3e3hla3bmm5ehc3s5gpkt2qwuti2uw4rf63vbna4sedwen2m
+  behaviour_classes/chain.py: bafybeih34nhn7r2xq6lexic4xkn2pz56ns7mau3iswejhe3awiys7pc4ve
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
-  behaviour_classes/llm.py: bafybeic4gmodpevko6iqf7qpmjsyyi5f3iql5yr4md3hm6fnsuksb6bdye
+  behaviour_classes/llm.py: bafybeicrtm5dkbz3nuxsvesygjjjtlshiamca53h7ukijnxxrvzjytghwm
   behaviour_classes/twitter.py: bafybeifbas6ilnp2plzrpttwkvnuracppudlz3nhsvbq4bugwsm5qgjeiq
   behaviours.py: bafybeibdbimezloiomvsv3zgfdug4tw276gt7tb5agnezl2nuqcfcplscu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
@@ -31,7 +31,7 @@ connections:
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiho6sbfts3zk3mftrngw37d5qnlvkqtnttt3fzexmcwkeevhu4wwi
-- dvilela/meme_factory:0.1.0:bafybeiernwylranvc42xzzfkcitx64c5i3fwpan4j4lo2srcxfre6g6434
+- dvilela/meme_factory:0.1.0:bafybeie3sqgwiudngujd33isngj5zebigkca2cnt4kjnhsozg5yqaiefwa
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
