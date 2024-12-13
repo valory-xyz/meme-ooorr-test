@@ -298,6 +298,6 @@ class ActionDecisionBehaviour(
             return Event.DONE.value, token_nonce, token_address, action, amount, tweet
 
         # The response is not a valid json
-        except json.JSONDecodeError as e:
+        except (json.JSONDecodeError, ValueError) as e:
             self.context.logger.error(f"Error loading the LLM response: {e}")
             return Event.WAIT.value, None, None, None, None, None
