@@ -55,7 +55,6 @@ SAFE_GAS = 0
 ZERO_VALUE = 0
 TWO_MINUTES = 120
 SUMMON_BLOCK_DELTA = 100000
-AVAILABLE_ACTIONS = ["heart", "unleash", "collect", "purge", "burn"]
 
 
 class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-ancestors
