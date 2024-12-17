@@ -49,10 +49,12 @@ class ServiceRegistryContract(Contract):
         contract_instance = cls.get_instance(ledger_api, contract_address)
 
         # Get the number of registered services
-        n_services = contract_instance.functions.mapServices().call()
+        n_services = contract_instance.functions.totalSupply().call()
+        _logger.info(f"Got {n_services} services")
 
         services_data = []
         for i in range(1, n_services + 1):
+            _logger.info(f"Reading service {i}")
             service_data = contract_instance.functions.mapServices(i).call()
             services_data.append(
                 {

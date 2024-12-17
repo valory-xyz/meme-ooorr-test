@@ -58,7 +58,7 @@ BASE_CHAIN_ID = "base"
 CELO_CHAIN_ID = "celo"
 HTTP_OK = 200
 AVAILABLE_ACTIONS = ["heart", "unleash", "collect", "purge", "burn"]
-MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr (@\w+)$"
+MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr @(\w+)$"
 IPFS_ENDPOINT = "https://gateway.autonolas.tech/ipfs/{ipfs_hash}"
 
 
@@ -359,7 +359,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             handle = match.group(1)
 
             # Exclude my own username
-            if handle != self.params.twitter_username:
+            if handle == self.params.twitter_username:
                 continue
 
             handles.append(handle)
@@ -415,10 +415,12 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             handle = match.group(1)
 
             # Exclude my own username
-            if handle != self.params.twitter_username:
+            if handle == self.params.twitter_username:
                 continue
 
             handles.append(handle)
+
+        self.context.logger.info(f"Got Twitter handles: {handles}")
 
         return handles
 
