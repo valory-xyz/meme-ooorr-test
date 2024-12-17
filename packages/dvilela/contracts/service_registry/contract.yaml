@@ -6,10 +6,10 @@ description: Service registry contract
 license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
-  README.md: bafybeies3iafkjwo4xvqtqpdxvood7pf2wgto4t76dqswy55rya7vl5zgu
-  __init__.py: bafybeiddslgyschgiuwsfiovqgxqqbkazdy6h3d4swwnq3tvpqaxzy37si
-  build/MemeBase.json: bafybeibr3pkkofhukwqjuqxuxsb52g2xlquzhu5uv6xqo527s2zzmp3cq4
-  contract.py: bafybeielgqjcxrz5yuchvhhecicq3wiynisajhj35ihwuffhcph4rzgd3a
+  README.md: bafybeifm7ccf5zfk7okmebbuv4tn2oyoe3ii2tflk4ubwjbfj4alh2uz4y
+  __init__.py: bafybeigqbuh2n6fig4npnjtf4ghyxtfsicbf7doboiw2rcxtuix4tneeym
+  build/ServiceRegistryL2.json: bafybeif7o53y2itijv2scar6eebepprrc5nl6lnr5io7xx27ckiui5vfoe
+  contract.py: bafybeiccrudcb46ztfmbdvgikycgyonncpsmobatmjqtj3hjfltn5xpcom
 fingerprint_ignore_patterns: []
 contracts: []
 class_name: ServiceRegistryContract
