@@ -44,7 +44,7 @@ class ServiceRegistryContract(Contract):
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
-    ) -> List[Dict]:
+    ) -> Dict:
         """Get the data from the Summoned event."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
 
@@ -54,14 +54,16 @@ class ServiceRegistryContract(Contract):
         services_data = []
         for i in range(1, n_services + 1):
             service_data = contract_instance.functions.mapServices(i).call()
-            services_data.append({
-                "security_deposit": service_data[0],
-                "multisig_address": service_data[1],
-                "ipfs_hash": "f01701220" + service_data[2].hex(),
-                "threshold": service_data[3],
-                "max_num_agent_instances": service_data[4],
-                "num_agent_instances": service_data[5],
-                "state": service_data[6],
-            })
+            services_data.append(
+                {
+                    "security_deposit": service_data[0],
+                    "multisig_address": service_data[1],
+                    "ipfs_hash": "f01701220" + service_data[2].hex(),
+                    "threshold": service_data[3],
+                    "max_num_agent_instances": service_data[4],
+                    "num_agent_instances": service_data[5],
+                    "state": service_data[6],
+                }
+            )
 
-        return services_data
+        return {"services_data": services_data}

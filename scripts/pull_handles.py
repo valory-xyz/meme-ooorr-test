@@ -1,8 +1,10 @@
-from web3 import Web3
 import json
-import requests
 import os
+
 import dotenv
+import requests
+from web3 import Web3
+
 
 dotenv.load_dotenv(override=True)
 
@@ -22,5 +24,3 @@ for i in range(1, n_services + 1):
     ipfs_hash = "f01701220" + config_hash.hex()
     response = requests.get(f"https://gateway.autonolas.tech/ipfs/{ipfs_hash}")
     print(response.json()["description"])
-
-
