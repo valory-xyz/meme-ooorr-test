@@ -1,11 +1,11 @@
 {
     "dev": {
-        "contract/dvilela/meme_factory/0.1.0": "bafybeiecfhn33jiprqrz6kx565cexy6yq5pqsg2bltgzq6bbg3uusepj7i",
+        "contract/dvilela/meme_factory/0.1.0": "bafybeiawjmrohaarpx3fw5653if2tmwzirktihrqidmdnhmhw4nhu5nk6y",
         "connection/dvilela/twikit/0.1.0": "bafybeifelwkeycvrqtgm5alln5n4ijqibi7cizgsu5oxndrei4exl77yjy",
-        "skill/dvilela/memeooorr_abci/0.1.0": "bafybeicpl2oi57zjgmxhob2ext7paeerjwpbk56m64jolsdnryebkfdxzi",
-        "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeibzgpw45kybbwczmclzd3m7sa72pct62tgmf2r43vqd4fbylu6yje",
-        "agent/dvilela/memeooorr/0.1.0": "bafybeigelymnkt67uopco765xuyuhpxcxquj5q7uxdjcrkdeynzdqqoooy",
-        "service/dvilela/memeooorr/0.1.0": "bafybeieslmmd2k4xzpypzr6a2jlkisxodrmt4lbuwjvsvtm3ury3yxv32m"
+        "skill/dvilela/memeooorr_abci/0.1.0": "bafybeidikqgm2r6amkmhd26hvt65z4tp4qzu62fnsnkuypfy3darxenke4",
+        "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeicykhbdbhnzqhw2qfh42ctxp7ewakimazjnxkzcbdpyayyatk55ni",
+        "agent/dvilela/memeooorr/0.1.0": "bafybeiflkutz7yqdtywiy3trzmmlvduuta6sk6mdbdvmytjy5ngzssyz5y",
+        "service/dvilela/memeooorr/0.1.0": "bafybeiaytdqpa6bijy4kep36og46kpfrajmkrbx3r6k5faczu4gb5wyjoe"
     },
     "third_party": {
         "protocol/open_aea/signing/1.0.0": "bafybeihv62fim3wl2bayavfcg3u5e5cxu3b7brtu4cn5xoxd6lqwachasi",
@@ -32,7 +32,7 @@
         "connection/valory/http_client/0.23.0": "bafybeihi772xgzpqeipp3fhmvpct4y6e6tpjp4sogwqrnf3wqspgeilg4u",
         "connection/valory/ipfs/0.1.0": "bafybeias6633a2337nhq6nn5ikq4jaig47v63nxv2ixkjr6qqrqaywqara",
         "connection/valory/ledger/0.19.0": "bafybeigntoericenpzvwejqfuc3kqzo2pscs76qoygg5dbj6f4zxusru5e",
-        "connection/valory/p2p_libp2p_client/0.1.0": "bafybeihs5zlwa5wlozct3rjlxsirm3ve3e4buse5nfehiky6ymnnfrobne",
+        "connection/valory/p2p_libp2p_client/0.1.0": "bafybeid3xg5k2ol5adflqloy75ibgljmol6xsvzvezebsg7oudxeeolz7e",
         "connection/valory/http_server/0.22.0": "bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m",
         "connection/dvilela/kv_store/0.1.0": "bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4",
         "connection/dvilela/genai/0.1.0": "bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq",
