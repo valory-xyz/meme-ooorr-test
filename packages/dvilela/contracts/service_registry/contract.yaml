@@ -8,8 +8,8 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   README.md: bafybeifm7ccf5zfk7okmebbuv4tn2oyoe3ii2tflk4ubwjbfj4alh2uz4y
   __init__.py: bafybeigqbuh2n6fig4npnjtf4ghyxtfsicbf7doboiw2rcxtuix4tneeym
-  build/ServiceRegistryL2.json: bafybeif7o53y2itijv2scar6eebepprrc5nl6lnr5io7xx27ckiui5vfoe
-  contract.py: bafybeiccrudcb46ztfmbdvgikycgyonncpsmobatmjqtj3hjfltn5xpcom
+  build/ServiceRegistryL2.json: bafybeicvqr2ex2b4vp6ladgs5qywnfwdlnuvbggc3xwcwpklikt66pf3pq
+  contract.py: bafybeicywt4b6feug3ckctgxw4ihlgqc3jw4orqmrgj2ry2l6pabqjmmvm
 fingerprint_ignore_patterns: []
 contracts: []
 class_name: ServiceRegistryContract

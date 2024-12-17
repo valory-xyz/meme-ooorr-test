@@ -20,7 +20,7 @@
 """This module contains the class to connect to an Service Registry contract."""
 
 import logging
-from typing import Dict, List
+from typing import Dict
 
 from aea.configurations.base import PublicId
 from aea.contracts.base import Contract

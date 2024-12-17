@@ -390,7 +390,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         # Check that the response is what we expect
         if response_msg.performative != ContractApiMessage.Performative.STATE:
             self.context.logger.error(f"Could not get the service data: {response_msg}")
-            return None
+            return []
 
         services_data = cast(dict, response_msg.state.body.get("services_data", None))
 

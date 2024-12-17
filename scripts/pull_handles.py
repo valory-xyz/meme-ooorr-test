@@ -18,6 +18,7 @@
 #
 # ------------------------------------------------------------------------------
 
+"""Download Twitter handles from chain + IPFS"""
 
 import json
 import os
@@ -31,7 +32,7 @@ dotenv.load_dotenv(override=True)
 
 w3 = Web3(Web3.HTTPProvider(os.getenv("BASE_RPC")))
 
-with open("ServiceRegistryL2.json", "r") as inf:
+with open("ServiceRegistryL2.json", "r", encoding="utf-8") as inf:
     abi = json.load(inf)
 
 contract_address = "0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
