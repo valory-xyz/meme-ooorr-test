@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeigelymnkt67uopco765xuyuhpxcxquj5q7uxdjcrkdeynzdqqoooy
+agent: dvilela/memeooorr:0.1.0:bafybeih6ygmdtjg3lonleopuropnkzgmbmxil7emo4lhafzhhggalgelb4
 number_of_agents: 1
 deployment:
   agent:
@@ -91,6 +91,8 @@ extra:
         feedback_period_max_hours: ${FEEDBACK_PERIOD_MAX_HOURS:int:3}
         home_chain_id: ${HOME_CHAIN_ID:str:BASE}
         twitter_username: ${TWIKIT_USERNAME:str:null}
+        service_registry_address_base: ${SERVICE_REGISTRY_ADDRESS_BASE:str:0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE}
+        service_registry_address_celo: ${SERVICE_REGISTRY_ADDRESS_CELO:str:0xE3607b00E75f6405248323A9417ff6b39B244b50}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

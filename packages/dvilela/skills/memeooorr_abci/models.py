@@ -56,6 +56,12 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.min_feedback_replies = self._ensure("min_feedback_replies", kwargs, int)
         self.meme_factory_address = self._ensure("meme_factory_address", kwargs, str)
         self.olas_token_address = self._ensure("olas_token_address", kwargs, str)
+        self.service_registry_address_base = self._ensure(
+            "service_registry_address_base", kwargs, str
+        )
+        self.service_registry_address_celo = self._ensure(
+            "service_registry_address_celo", kwargs, str
+        )
         self.persona = self._ensure("persona", kwargs, str)
         self.feedback_period_min_hours = self._ensure(
             "feedback_period_min_hours", kwargs, int

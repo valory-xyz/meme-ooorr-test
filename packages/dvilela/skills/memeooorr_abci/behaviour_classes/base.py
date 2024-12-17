@@ -38,6 +38,7 @@ from packages.dvilela.connections.twikit.connection import (
     PUBLIC_ID as TWIKIT_CONNECTION_PUBLIC_ID,
 )
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
+from packages.dvilela.contracts.service_registry.contract import ServiceRegistryContract
 from packages.dvilela.protocols.kv_store.dialogues import (
     KvStoreDialogue,
     KvStoreDialogues,
@@ -57,7 +58,8 @@ BASE_CHAIN_ID = "base"
 CELO_CHAIN_ID = "celo"
 HTTP_OK = 200
 AVAILABLE_ACTIONS = ["heart", "unleash", "collect", "purge", "burn"]
-MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr (@\w+)$"
+MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr @(\w+)$"
+IPFS_ENDPOINT = "https://gateway.autonolas.tech/ipfs/{ipfs_hash}"
 
 
 TOKENS_QUERY = """
@@ -341,7 +343,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         response_json = json.loads(response.body)["data"]  # type: ignore
         return response_json
 
-    def get_memeooorr_handles(self) -> Generator[None, None, List[str]]:
+    def get_memeooorr_handles_from_subgraph(self) -> Generator[None, None, List[str]]:
         """Get Memeooorr service handles"""
         handles: List[str] = []
         services = yield from self.get_packages("service")
@@ -357,10 +359,69 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             handle = match.group(1)
 
             # Exclude my own username
-            if handle != self.params.twitter_username:
+            if handle == self.params.twitter_username:
                 continue
 
             handles.append(handle)
+        return handles
+
+    def get_service_registry_address(self) -> str:
+        """Get the service registry address"""
+        return (
+            self.params.service_registry_address_base
+            if self.get_chain_id() == "base"
+            else self.params.service_registry_address_celo
+        )
+
+    def get_memeooorr_handles_from_chain(self) -> Generator[None, None, List[str]]:
+        """Get Memeooorr service handles"""
+
+        handles = []
+
+        # Use the contract api to interact with the factory contract
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.get_service_registry_address(),
+            contract_id=str(ServiceRegistryContract.contract_id),
+            contract_callable="get_services_data",
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(f"Could not get the service data: {response_msg}")
+            return []
+
+        services_data = cast(dict, response_msg.state.body.get("services_data", None))
+
+        for service_data in services_data:
+            response = yield from self.get_http_response(  # type: ignore
+                method="GET",
+                url=IPFS_ENDPOINT.format(ipfs_hash=service_data["ipfs_hash"]),
+            )
+
+            if response.status_code != HTTP_OK:  # type: ignore
+                self.context.logger.error(
+                    f"Error getting data from IPFS endpoint: {response}"  # type: ignore
+                )
+                continue
+
+            metadata = json.loads(response.body)
+            match = re.match(MEMEOOORR_DESCRIPTION_PATTERN, metadata["description"])
+
+            if not match:
+                continue
+
+            handle = match.group(1)
+
+            # Exclude my own username
+            if handle == self.params.twitter_username:
+                continue
+
+            handles.append(handle)
+
+        self.context.logger.info(f"Got Twitter handles: {handles}")
+
         return handles
 
     def get_meme_coins_from_chain(self) -> Generator[None, None, Optional[List]]:
