@@ -96,6 +96,7 @@ async def stress_test() -> None:
 
 
 async def like_tweet() -> None:
+    """Like tweet"""
     client = await cookie_login()
     await client.favorite_tweet("1868952161427882053")
 

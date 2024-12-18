@@ -394,7 +394,7 @@ class TwikitConnection(Connection):
         )
         return [tweet_to_json(t) for t in tweets]
 
-    async def like_tweet(self, tweet_id: str) -> None:
+    async def like_tweet(self, tweet_id: str) -> Dict:
         """Like a tweet"""
         response = await self.client.favorite_tweet(tweet_id)
         return {"success": response.status_code == HTTP_OK}
