@@ -367,14 +367,14 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 self.context.logger.info("Tweet is not recent")
                 continue
 
+            # Like the tweet right away
+            yield from self.like_tweet(tweet_id)
             tweet_id_to_response[tweet_id] = latest_tweets[0]["text"]
 
         if not tweet_id_to_response:
             self.context.logger.info("There are no tweets from other agents yet")
             return Event.DONE.value
 
-        # Like the tweet right away
-        yield from self.like_tweet(tweet_id)
         # Build and post responses
         event = yield from self.respond_tweet(tweet_id_to_response)
 
