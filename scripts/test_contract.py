@@ -45,13 +45,13 @@ def load_contract(ctype: ContractType) -> ContractType:
 
 
 ledger_api = EthereumApi(address=os.getenv("BASE_LEDGER_RPC_ALCHEMY"))
-meme_factory_address = os.getenv("MEME_FACTORY_ADDRESS")
+meme_factory_address_base = os.getenv("MEME_FACTORY_ADDRESS_BASE")
 erc20_contract = typing.cast(
     typing.Type[MemeFactoryContract], load_contract(MemeFactoryContract)
 )
 
 from_block = ledger_api.api.eth.block_number - SUMMON_BLOCK_DELTA
 
-data = erc20_contract.get_summon_data(ledger_api, meme_factory_address)
+data = erc20_contract.get_summon_data(ledger_api, meme_factory_address_base)
 
 print(data)

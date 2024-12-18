@@ -8,31 +8,31 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeichprd3ran7gab4c7ongru7a423qk43d55zpzcudsgmdozqw347vq
-  behaviour_classes/chain.py: bafybeih34nhn7r2xq6lexic4xkn2pz56ns7mau3iswejhe3awiys7pc4ve
+  behaviour_classes/base.py: bafybeigo366arkc56coazlytm5hy74dcxct7e3revuhr6o3jq3pesnotz4
+  behaviour_classes/chain.py: bafybeigxfwko3rofqlzyjjhgeo6yabxseqngo2uz5muyfk3f2jjpgdrsli
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
   behaviour_classes/llm.py: bafybeifqdewudvaw6qh5iherjm6l3brzbe6z27ik3l4ptmdnlj4abx5k6e
-  behaviour_classes/twitter.py: bafybeigeibwqno2mrjvqjcdojtb2oqsjz2vswyiccylrg2jz56dtasbbr4
+  behaviour_classes/twitter.py: bafybeiet4k4nrmsbjf3ioyhtp4ehrj2ylntnwj34pzkzg3wlxfdughd4jy
   behaviours.py: bafybeibdbimezloiomvsv3zgfdug4tw276gt7tb5agnezl2nuqcfcplscu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeidqesafw5vtekw2dtffjznuchdjllo52najwmmkj2npfdyaouigfa
   handlers.py: bafybeigdxkm45w27sh7cpgiwuperjldql6oupbhxqtizhbwfv7abxe3dku
-  models.py: bafybeibso5vrqzo2cftoaoi25qdloaoj5on5sp4w6e7n4pup4jyeeian5u
+  models.py: bafybeia4mupvgav4eoipxz6t7m5gwygreqhlikz2cxpl4hcwaxvg6gt4um
   payloads.py: bafybeibyukr3aewwlbx6c6xe43j6nhgdqwqdgbemswrsvnqp3ftqodvvmi
   prompts.py: bafybeicqvwxe25ytkaetkrouzybi4irbpusdkle7b6wfxew26qdgt23m3q
-  rounds.py: bafybeidgnbnznvt5tcoynxhssem47fbgkodzt3ieilxozagko7rtnmgbjq
+  rounds.py: bafybeidbk55zxmhrdvcfehneff7nr7rqajpcacd7h3kctshskmkxjxtixi
   rounds_info.py: bafybeieqaemvqwiwku7nlxkdebsqzldpvvidijf6wcwy7e3xbyz335jr6i
   subgraph.py: bafybeigme6r3cwiiu5l7r55rcbj7y37b62cxtlsnewpkbjqcbadwte32xm
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
-- dvilela/twikit:0.1.0:bafybeidyxpocojj3ptc6e67fg4zbwb3anvvphj2erww764juvs2lwafp5y
+- dvilela/twikit:0.1.0:bafybeigevblbawp34wax2y3xsb3nyaea7s7yq3dyuruovssmu3pxmrfuda
 - dvilela/genai:0.1.0:bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeihtqcpqthb37msgqabpzcc2xc3l3yzkp5pl2sodeghqyzzzyuevgi
 - dvilela/meme_factory:0.1.0:bafybeiawjmrohaarpx3fw5653if2tmwzirktihrqidmdnhmhw4nhu5nk6y
-- dvilela/service_registry:0.1.0:bafybeiareztundn6q5fsvuagzf4oqb4ulmnjdnk5mkjkw3qbqvnlf2nprq
+- dvilela/service_registry:0.1.0:bafybeift2qis3njkyehk3hbjdj2n3srty6hepfb5gavaorhffztplke4dm
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
@@ -152,8 +152,10 @@ models:
       service_endpoint: memeooorr.dummy.com/
       minimum_gas_balance: 0.001
       min_feedback_replies: 10
-      meme_factory_address: '0x0000000000000000000000000000000000000000'
-      olas_token_address: '0x54330d28ca3357F294334BDC454a032e7f353416'
+      meme_factory_address_base: '0x82a9c823332518c32a0c0edc050ef00934cf04d4'
+      meme_factory_address_celo: '0xeea5f1e202dc43607273d54101ff8b58fb008a99'
+      olas_token_address_base: '0x54330d28ca3357F294334BDC454a032e7f353416'
+      olas_token_address_celo: '0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51'
       persona: a cat lover that is crazy about all-things cats.
       feedback_period_min_hours: 1
       feedback_period_max_hours: 3

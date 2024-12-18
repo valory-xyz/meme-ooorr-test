@@ -95,4 +95,10 @@ async def stress_test() -> None:
         time.sleep(random.randint(30, 60))  # nosec
 
 
-asyncio.run(stress_test())
+async def like_tweet() -> None:
+    """Like tweet"""
+    client = await cookie_login()
+    await client.favorite_tweet("1868952161427882053")
+
+
+asyncio.run(like_tweet())

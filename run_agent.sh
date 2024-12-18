@@ -16,17 +16,17 @@ trap cleanup EXIT
 # Remove previous agent if exists
 if test -d memeooorr; then
   echo "Removing previous agent build"
-  rm -r memeooorr
+  sudo rm -r memeooorr
 fi
 
 # Remove empty directories to avoid wrong hashes
 find . -empty -type d -delete
-
-# Ensure that third party packages are correctly synced
 make clean
-AUTONOMY_VERSION=v$(autonomy --version | grep -oP '(?<=version\s)\S+')
-AEA_VERSION=v$(aea --version | grep -oP '(?<=version\s)\S+')
-autonomy packages sync --source valory-xyz/open-aea:$AEA_VERSION --source valory-xyz/open-autonomy:$AUTONOMY_VERSION --update-packages
+
+# Ensure that third party packages are correctly synced  # TODO: temporarily disabled until Open-Autonomy hashes fix
+# AUTONOMY_VERSION=v$(autonomy --version | grep -oP '(?<=version\s)\S+')
+# AEA_VERSION=v$(aea --version | grep -oP '(?<=version\s)\S+')
+# autonomy packages sync --source valory-xyz/open-aea:$AEA_VERSION --source valory-xyz/open-autonomy:$AUTONOMY_VERSION --update-packages
 
 # Ensure hashes are updated
 autonomy packages lock
