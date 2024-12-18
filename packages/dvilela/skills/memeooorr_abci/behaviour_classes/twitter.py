@@ -367,6 +367,8 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 self.context.logger.info("Tweet is not recent")
                 continue
 
+            # Like the tweet right away
+            yield from self.like_tweet(tweet_id)
             tweet_id_to_response[tweet_id] = latest_tweets[0]["text"]
 
         if not tweet_id_to_response:
@@ -418,3 +420,9 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             )
 
         return Event.DONE.value
+
+    def like_tweet(self, tweet_id: str) -> Generator[None, None, None]:
+        """Like a tweet"""
+        self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
+        yield from self._call_twikit(method="like_tweet", tweet_id=tweet_id)
+        self.context.logger.info(f"Successfully liked tweet with ID: {tweet_id}")
