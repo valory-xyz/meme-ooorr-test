@@ -174,6 +174,21 @@ class TwikitConnection(Connection):
         task = self.loop.create_task(self._get_response(message, dialogue))
         return task
 
+    def prepare_error_message(
+        self, srr_message: SrrMessage, dialogue: Optional[BaseDialogue], error: str
+    ) -> SrrMessage:
+        """Prepare error message"""
+        response_message = cast(
+            SrrMessage,
+            dialogue.reply(  # type: ignore
+                performative=SrrMessage.Performative.RESPONSE,
+                target_message=srr_message,
+                payload=json.dumps({"error": error}),
+                error=True,
+            ),
+        )
+        return response_message
+
     def _handle_done_task(self, task: asyncio.Future) -> None:
         """
         Process a done receiving task.
@@ -201,20 +216,11 @@ class TwikitConnection(Connection):
         """Get response from Genai."""
 
         if srr_message.performative != SrrMessage.Performative.REQUEST:
-            response_message = cast(
-                SrrMessage,
-                dialogue.reply(  # type: ignore
-                    performative=SrrMessage.Performative.RESPONSE,
-                    target_message=srr_message,
-                    payload=json.dumps(
-                        {
-                            "error": f"Performative `{srr_message.performative.value}` is not supported."
-                        }
-                    ),
-                    error=True,
-                ),
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                f"Performative `{srr_message.performative.value}` is not supported.",
             )
-            return response_message
 
         payload = json.loads(srr_message.payload)
 
@@ -222,94 +228,46 @@ class TwikitConnection(Connection):
         AVAILABLE_METHODS = ["search", "post", "get_user_tweets"]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
-            response_message = cast(
-                SrrMessage,
-                dialogue.reply(  # type: ignore
-                    performative=SrrMessage.Performative.RESPONSE,
-                    target_message=srr_message,
-                    payload=json.dumps(
-                        {
-                            "error": f"Some parameter is missing from the request data: required={REQUIRED_PROPERTIES}, got={list(payload.keys())}"
-                        }
-                    ),
-                    error=True,
-                ),
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                f"Some parameter is missing from the request data: required={REQUIRED_PROPERTIES}, got={list(payload.keys())}",
             )
-            return response_message
 
         method_name = payload.get("method")
         if method_name not in AVAILABLE_METHODS:
-            response_message = cast(
-                SrrMessage,
-                dialogue.reply(  # type: ignore
-                    performative=SrrMessage.Performative.RESPONSE,
-                    target_message=srr_message,
-                    payload=json.dumps(
-                        {
-                            "error": f"Method {method_name} is not in the list of available methods {AVAILABLE_METHODS}"
-                        }
-                    ),
-                    error=True,
-                ),
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                f"Method {method_name} is not in the list of available methods {AVAILABLE_METHODS}",
             )
-            return response_message
 
         method = getattr(self, method_name)
 
-        # Avoid calling more than 1 time per second
-        while (datetime.now(timezone.utc) - self.last_call).total_seconds() < 1:
+        # Avoid calling more than 1 time per 5 seconds
+        while (datetime.now(timezone.utc) - self.last_call).total_seconds() < 5:
             time.sleep(1)
 
         self.logger.info(f"Calling twikit: {payload}")
 
-        retries = 0
-        while retries < MAX_POST_RETRIES:
-            try:
-                response = await method(**payload.get("kwargs", {}))
-                self.logger.info(f"Twikit response: {response}")
-                response_message = cast(
-                    SrrMessage,
-                    dialogue.reply(  # type: ignore
-                        performative=SrrMessage.Performative.RESPONSE,
-                        target_message=srr_message,
-                        payload=json.dumps({"response": response}),
-                        error=False,
-                    ),
-                )
-                return response_message
-
-            except KeyError as e:
-                self.logger.error(f"Exception while calling Twikit:\n{e}. Retrying...")
-                retries += 1
-                time.sleep(1)
-                continue
-
-            except Exception as e:
-                response_message = cast(
-                    SrrMessage,
-                    dialogue.reply(  # type: ignore
-                        performative=SrrMessage.Performative.RESPONSE,
-                        target_message=srr_message,
-                        payload=json.dumps(
-                            {"error": f"Exception while calling Twikit:\n{e}"}
-                        ),
-                        error=True,
-                    ),
-                )
-                return response_message
-
-        response_message = cast(
-            SrrMessage,
-            dialogue.reply(  # type: ignore
-                performative=SrrMessage.Performative.RESPONSE,
-                target_message=srr_message,
-                payload=json.dumps(
-                    {"error": "Error calling Twikit. Max amount of retries reached."}
+        try:
+            response = await method(**payload.get("kwargs", {}))
+            self.logger.info(f"Twikit response: {response}")
+            response_message = cast(
+                SrrMessage,
+                dialogue.reply(  # type: ignore
+                    performative=SrrMessage.Performative.RESPONSE,
+                    target_message=srr_message,
+                    payload=json.dumps({"response": response}),
+                    error=False,
                 ),
-                error=True,
-            ),
-        )
-        return response_message
+            )
+            return response_message
+
+        except Exception as e:
+            return self.prepare_error_message(
+                srr_message, dialogue, f"Exception while calling Twikit:\n{e}"
+            )
 
     async def twikit_login(self) -> None:
         """Login into Twitter"""
@@ -404,6 +362,7 @@ class TwikitConnection(Connection):
             except twikit.errors.TweetNotAvailable:
                 self.logger.error("Failed to verify the tweet. Retrying...")
                 retries += 1
+                time.sleep(3)
                 continue
 
         return None
@@ -420,6 +379,7 @@ class TwikitConnection(Connection):
             except Exception as e:
                 self.logger.error(f"Failed to delete the tweet: {e}. Retrying...")
                 retries += 1
+                time.sleep(3)
 
     async def get_user_tweets(
         self, twitter_handle: str, tweet_type: str = "Tweets", count: int = 1
@@ -427,6 +387,7 @@ class TwikitConnection(Connection):
         """Get user tweets"""
 
         user = await self.client.get_user_by_screen_name(twitter_handle)
+        time.sleep(1)
         tweets = await self.client.get_user_tweets(
             user_id=user.id, tweet_type=tweet_type, count=count
         )

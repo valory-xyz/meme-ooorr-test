@@ -8,20 +8,20 @@ fingerprint:
   __init__.py: bafybeid4555nbqrben3bbz62jsycrtssy5mqso4w23q7bjorln3qur7baq
 fingerprint_ignore_patterns: []
 connections:
-- valory/ipfs:0.1.0:bafybeiefkqvh5ylbk77xylcmshyuafmiecopt4gvardnubq52psvogis6a
-- valory/abci:0.1.0:bafybeie4eixvrdpc5ifoovj24a6res6g2e22dl6di6gzib7d3fczshzyti
+- valory/ipfs:0.1.0:bafybeias6633a2337nhq6nn5ikq4jaig47v63nxv2ixkjr6qqrqaywqara
+- valory/abci:0.1.0:bafybeie2bc44r2ddspeg4v7minuievvjykomcukuf5ryevom6fajno25gy
 - valory/http_client:0.23.0:bafybeihi772xgzpqeipp3fhmvpct4y6e6tpjp4sogwqrnf3wqspgeilg4u
-- valory/ledger:0.19.0:bafybeihynkdraqthjtv74qk3nc5r2xubniqx2hhzpxn7bd4qmlf7q4wruq
+- valory/ledger:0.19.0:bafybeigntoericenpzvwejqfuc3kqzo2pscs76qoygg5dbj6f4zxusru5e
 - valory/p2p_libp2p_client:0.1.0:bafybeid3xg5k2ol5adflqloy75ibgljmol6xsvzvezebsg7oudxeeolz7e
-- dvilela/twikit:0.1.0:bafybeifelwkeycvrqtgm5alln5n4ijqibi7cizgsu5oxndrei4exl77yjy
+- dvilela/twikit:0.1.0:bafybeig6iyv45lsks3fsghty35l56gyccdilf4wepl3upcuhmlzlrnpony
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 - dvilela/genai:0.1.0:bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq
 contracts:
-- valory/gnosis_safe:0.1.0:bafybeiho6sbfts3zk3mftrngw37d5qnlvkqtnttt3fzexmcwkeevhu4wwi
-- valory/gnosis_safe_proxy_factory:0.1.0:bafybeihi4cvrnf5ne7t5cxcwix3dbtfjucfjux6zn4wouebjx3ldmrmnpm
+- valory/gnosis_safe:0.1.0:bafybeihtqcpqthb37msgqabpzcc2xc3l3yzkp5pl2sodeghqyzzzyuevgi
+- valory/gnosis_safe_proxy_factory:0.1.0:bafybeifr4xpmzeb5hvpgd6h4nxlsu3ef2c3f6l5bgs34vym5ok6vllwhmy
 - valory/multisend:0.1.0:bafybeig5byt5urg2d2bsecufxe5ql7f4mezg3mekfleeh32nmuusx66p4y
-- dvilela/meme_factory:0.1.0:bafybeiecfhn33jiprqrz6kx565cexy6yq5pqsg2bltgzq6bbg3uusepj7i
+- dvilela/meme_factory:0.1.0:bafybeiawjmrohaarpx3fw5653if2tmwzirktihrqidmdnhmhw4nhu5nk6y
 - dvilela/service_registry:0.1.0:bafybeiareztundn6q5fsvuagzf4oqb4ulmnjdnk5mkjkw3qbqvnlf2nprq
 protocols:
 - open_aea/signing:1.0.0:bafybeihv62fim3wl2bayavfcg3u5e5cxu3b7brtu4cn5xoxd6lqwachasi
@@ -35,14 +35,14 @@ protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
 skills:
-- valory/abstract_abci:0.1.0:bafybeihu2bcgjk2tqjiq2zhk3uogtfszqn4osvdt7ho3fubdpdj4jgdfjm
-- valory/abstract_round_abci:0.1.0:bafybeibovsktd3uxur45nrcomq5shcn46cgxd5idmhxbmjhg32c5abyqim
-- valory/termination_abci:0.1.0:bafybeid54buqxipiuduw7b6nnliiwsxajnltseuroad53wukfonpxca2om
-- valory/transaction_settlement_abci:0.1.0:bafybeihq2yenstblmaadzcjousowj5kfn5l7ns5pxweq2gcrsczfyq5wzm
-- valory/registration_abci:0.1.0:bafybeicnth5q4httefsusywx3zrrq4al47owvge72dqf2fziruicq6hqta
-- valory/reset_pause_abci:0.1.0:bafybeievjciqdvxhqxfjd4whqs27h6qbxqzrae7wwj7fpvxlvmtw3x35im
-- dvilela/memeooorr_abci:0.1.0:bafybeiftj42tnqnpjvookch7woq3viid3wos72jxogha65qlxxba5ndp2y
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeign6of7arqd6p6mqwb7ilez3aj5hpfegmxk7tl3th72gvnlcgx3ta
+- valory/abstract_abci:0.1.0:bafybeif2naoydlrqkdpnig34uejedwgurjwyvmbpcz53tif7pyukfdophq
+- valory/abstract_round_abci:0.1.0:bafybeigjddhk7epta7xpnfvv426xedff5abh4xlkwi6cqgp4vkutgkvydm
+- valory/termination_abci:0.1.0:bafybeiea67epwwgngp7b3wavs6hpkaxv6etyaps6g6325bchfnf354mibq
+- valory/transaction_settlement_abci:0.1.0:bafybeifmgmwdkx4esemxjacjwzqkqymkuklb5nehkwqkx7v335fllgswcq
+- valory/registration_abci:0.1.0:bafybeiagi6e2h7kochmlemy5c5yk6hwn37tfxiqvk2en74jhowsdwlmrny
+- valory/reset_pause_abci:0.1.0:bafybeiezfedmmseox3ce5aucxsiszdmvskrwwbtpb2a3vw3sbmc5jt7nri
+- dvilela/memeooorr_abci:0.1.0:bafybeie6w54l3xsz66a2cqehgnxx3hduxerye7cionoz7hq6yqotrdpcka
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeigspkvxfa5ng5mdsbhnakdwu6uddbg5c7d65zjbxrs6j4g72i4uey
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -74,7 +74,7 @@ logging_config:
 skill_exception_policy: stop_and_exit
 dependencies:
   open-aea-ledger-ethereum:
-    version: ==1.55.0
+    version: ==1.60.0
 default_connection: null
 ---
 public_id: dvilela/kv_store:0.1.0

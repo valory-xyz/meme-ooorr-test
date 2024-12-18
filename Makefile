@@ -126,5 +126,13 @@ publish:
 deploy-contracts:
 	npx hardhat run scripts/deployment/deploy_01_meme_base.js --network base
 
+.PHONY: bump-packages
+bump-packages:
+	@AUTONOMY_VERSION=$$(poetry show open-autonomy | grep version | cut -d':' -f2 | xargs) && \
+	AEA_VERSION=$$(poetry show open-aea | grep version | cut -d':' -f2 | xargs) && \
+	echo "Bumping packages to open-autonomy $${AUTONOMY_VERSION}" && \
+	echo "Bumping packages to open-aea $${AEA_VERSION}" && \
+	autonomy packages sync --source valory-xyz/open-autonomy:v$${AUTONOMY_VERSION} --source valory-xyz/open-aea:v$${AEA_VERSION} --update-packages
+
 
 v := $(shell pip -V | grep virtualenvs)
