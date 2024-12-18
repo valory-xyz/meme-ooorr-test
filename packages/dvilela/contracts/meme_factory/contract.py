@@ -223,7 +223,9 @@ class MemeFactoryContract(Contract):
         contract_instance = cls.get_instance(ledger_api, contract_address)
 
         if from_block is None:
-            from_block = ledger_api.api.eth.get_block_number() - 15000  # approx 48h ago
+            from_block = (
+                ledger_api.api.eth.get_block_number() - 86400
+            )  # approx 48h ago (2s per block)
 
         # Avoid parsing too many blocks at a time. This might take too long and
         # the connection could time out.
@@ -236,7 +238,7 @@ class MemeFactoryContract(Contract):
         )
 
         _logger.info(
-            f"Getting {event_name} events from block {from_block} to {to_block}"
+            f"Getting {event_name} events from block {from_block} to {to_block} ({to_block - from_block} blocks)"
         )
 
         ranges: List[int] = list(range(from_block, cast(int, to_block), MAX_BLOCKS)) + [
@@ -249,6 +251,8 @@ class MemeFactoryContract(Contract):
             from_block = ranges[i]
             to_block = ranges[i + 1]
             new_events = []
+
+            _logger.info(f"Block batch {from_block} to {to_block}...")
 
             while True:
                 try:
