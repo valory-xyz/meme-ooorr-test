@@ -41,5 +41,7 @@ node_modules/
 artifacts/
 
 cache/
+logs/
 
 globals.json
+gitleaks_ignore.py

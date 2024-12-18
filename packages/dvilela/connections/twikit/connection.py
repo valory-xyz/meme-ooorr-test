@@ -225,7 +225,7 @@ class TwikitConnection(Connection):
         payload = json.loads(srr_message.payload)
 
         REQUIRED_PROPERTIES = ["method", "kwargs"]
-        AVAILABLE_METHODS = ["search", "post", "get_user_tweets"]
+        AVAILABLE_METHODS = ["search", "post", "get_user_tweets", "like_tweet"]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
             return self.prepare_error_message(
@@ -392,6 +392,10 @@ class TwikitConnection(Connection):
             user_id=user.id, tweet_type=tweet_type, count=count
         )
         return [tweet_to_json(t) for t in tweets]
+
+    async def like_tweet(self, tweet_id: str) -> None:
+        """Like a tweet"""
+        await self.client.favorite_tweet(tweet_id)
 
 
 def tweet_to_json(tweet: Any) -> Dict:
