@@ -181,12 +181,15 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
 
         return None
 
+    required_class_attributes = ()
+
 
 class PostTweetRound(CollectSameUntilThresholdRound):
     """PostTweetRound"""
 
     payload_class = PostTweetPayload
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -236,6 +239,7 @@ class CollectFeedbackRound(CollectSameUntilThresholdRound):
 
     payload_class = CollectFeedbackPayload
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -274,6 +278,7 @@ class AnalizeFeedbackRound(CollectSameUntilThresholdRound):
 
     payload_class = AnalizeFeedbackPayload
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -333,6 +338,7 @@ class EventRoundBase(CollectSameUntilThresholdRound):
 
     synchronized_data_class = SynchronizedData
     payload_class = BaseTxPayload  # will be overwritten
+    required_class_attributes = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -351,7 +357,7 @@ class CheckFundsRound(EventRoundBase):
     """CheckFundsRound"""
 
     payload_class = CheckFundsPayload  # type: ignore
-
+    required_class_attributes = ()
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.NO_FUNDS
 
@@ -361,6 +367,7 @@ class DeploymentRound(CollectSameUntilThresholdRound):
 
     payload_class = DeploymentPayload
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -416,6 +423,7 @@ class PostAnnouncementRound(CollectSameUntilThresholdRound):
 
     payload_class = PostTweetPayload
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -458,6 +466,7 @@ class PullMemesRound(CollectSameUntilThresholdRound):
 
     payload_class = PullMemesPayload
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -502,6 +511,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
 
     payload_class = ActionDecisionPayload
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -548,6 +558,7 @@ class ActionPreparationRound(CollectSameUntilThresholdRound):
 
     payload_class = ActionPreparationPayload
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -589,6 +600,7 @@ class ActionTweetRound(EventRoundBase):
 
     payload_class = ActionTweetPayload  # type: ignore
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR
@@ -599,6 +611,7 @@ class TransactionMultiplexerRound(EventRoundBase):
 
     payload_class = TransactionMultiplexerPayload  # type: ignore
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.TO_DEPLOY, Event.TO_ACTION_TWEET
@@ -609,6 +622,7 @@ class EngageRound(EventRoundBase):
 
     payload_class = EngagePayload  # type: ignore
     synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
