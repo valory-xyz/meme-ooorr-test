@@ -425,4 +425,6 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
     def like_tweet(self, tweet_id: str) -> Generator[None, None, None]:
         """Like a tweet"""
+        self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
         yield from self._call_twikit(method="like_tweet", tweet_id=tweet_id)
+        self.context.logger.info(f"Successfully liked tweet with ID: {tweet_id}")
