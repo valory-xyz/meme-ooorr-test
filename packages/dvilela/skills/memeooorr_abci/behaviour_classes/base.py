@@ -442,6 +442,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
     def get_meme_coins_from_chain(self) -> Generator[None, None, Optional[List]]:
         """Get a list of meme coins"""
+        self.context.logger.info("Getting meme tokens from the chain")
 
         # Use the contract api to interact with the factory contract
         response_msg = yield from self.get_contract_api_response(

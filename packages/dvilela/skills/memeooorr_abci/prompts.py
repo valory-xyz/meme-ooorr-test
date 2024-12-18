@@ -26,7 +26,9 @@ Here's your persona:
 
 You come up with ideas for new tweets that match your persona and you post them on Twitter (aka X).
 
-Your task it to create a new tweet based on your persona. Remember that tweets can't be longer than 280 characters.
+Your task it to create a new tweet based on your persona.
+Remember that tweets can't be longer than 280 characters.
+Also, please do not include any hastags on the tweet unless your persona explicitly ask for them.
 """
 
 ANALYZE_FEEDBACK_PROMPT = """
@@ -60,7 +62,7 @@ OUTPUT_FORMAT
     - token_ticker: a new ticker for the token. Empty if no token is going to be deployed.
     - token_supply: the ERC-20 token supply in wei units. Empty if no token is going to be deployed. Token supply must be at least 1 million * 10**18 and at most the maximum number of uint256.
     - amount: the amount in wei units of {ticker} to invest in this token if it is going to be deployed, or 0 otherwise.
-    - tweet: a tweet to announce the new token. Empty if no token is going to be deployed.
+    - tweet: a tweet to announce the new token. Empty if no token is going to be deployed. Please do not include any hastags on the tweet unless your persona explicitly ask for them.
 * Output only the JSON object. Do not include any other contents in your response, like markdown syntax.
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```
@@ -117,7 +119,7 @@ OUTPUT_FORMAT
     - token_address: a string with the token address of the meme coin you selected, or empty if none
     - token_nonce: a string with the token nonce of the meme coin you selected, or empty if none
     - amount: the amount (in wei units of {ticker}) to heart (invest) if the action is heart, or 0 otherwise
-    - tweet: a short tweet to announce the action taken, or empty if none
+    - tweet: a short tweet to announce the action taken, or empty if none. Please do not include any hastags on the tweet.
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```
 * This is correct:"{{response}}"
@@ -138,7 +140,7 @@ OUTPUT_FORMAT
 * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
 * The JSON must be a list containing your tweet responses. Each response needs to contain two fields only: "tweet_id", and "text".
     - tweet_id: the id of the tweet you are responding to.
-    - text: a short response to the tweet
+    - text: a short response to the tweet. Please do not include any hastags on the tweet unless your persona explicitly ask for them.
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```
 * This is correct:"{{response}}"
