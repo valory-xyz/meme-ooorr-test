@@ -44,7 +44,6 @@ PATH_TO_VAR = {
     "models/params/args/on_chain_service_id": "ON_CHAIN_SERVICE_ID",
     "models/params/args/minimum_gas_balance": "MINIMUM_GAS_BALANCE",
     "models/params/args/min_feedback_replies": "MIN_FEEDBACK_REPLIES",
-    "models/params/args/meme_factory_address": "MEME_FACTORY_ADDRESS",
     "models/params/args/setup/safe_contract_address": "SAFE_CONTRACT_ADDRESS",
     "models/params/args/feedback_period_min_hours": "FEEDBACK_PERIOD_MIN_HOURS",
     "models/params/args/feedback_period_max_hours": "FEEDBACK_PERIOD_MAX_HOURS",

@@ -373,6 +373,22 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             else self.params.service_registry_address_celo
         )
 
+    def get_olas_address(self) -> str:
+        """Get the olas address"""
+        return (
+            self.params.olas_token_address_base
+            if self.get_chain_id() == "base"
+            else self.params.olas_token_address_celo
+        )
+
+    def get_meme_factory_address(self) -> str:
+        """Get the meme factory address"""
+        return (
+            self.params.meme_factory_address_base
+            if self.get_chain_id() == "base"
+            else self.params.meme_factory_address_celo
+        )
+
     def get_memeooorr_handles_from_chain(self) -> Generator[None, None, List[str]]:
         """Get Memeooorr service handles"""
 
@@ -430,7 +446,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         # Use the contract api to interact with the factory contract
         response_msg = yield from self.get_contract_api_response(
             performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-            contract_address=self.params.meme_factory_address,
+            contract_address=self.get_meme_factory_address(),
             contract_id=str(MemeFactoryContract.contract_id),
             contract_callable="get_summon_data",
             chain_id=self.get_chain_id(),

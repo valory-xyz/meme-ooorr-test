@@ -259,7 +259,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
 
         # Prepare safe transaction
         safe_tx_hash = yield from self._build_safe_tx_hash(
-            to_address=self.params.meme_factory_address,
+            to_address=self.get_meme_factory_address(),
             data=bytes.fromhex(data_hex),
             value=value,
         )
@@ -279,7 +279,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         # Use the contract api to interact with the factory contract
         response_msg = yield from self.get_contract_api_response(
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
-            contract_address=self.params.meme_factory_address,
+            contract_address=self.get_meme_factory_address(),
             contract_id=str(MemeFactoryContract.contract_id),
             contract_callable="build_summon_tx",
             token_name=token_data["token_name"],
@@ -318,7 +318,7 @@ class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         # Use the contract api to interact with the factory contract
         response_msg = yield from self.get_contract_api_response(
             performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-            contract_address=self.params.meme_factory_address,
+            contract_address=self.get_meme_factory_address(),
             contract_id=str(MemeFactoryContract.contract_id),
             contract_callable="get_token_data",
             tx_hash=self.synchronized_data.final_tx_hash,
@@ -433,7 +433,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         # Use the contract api to interact with the factory contract
         response_msg = yield from self.get_contract_api_response(
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
-            contract_address=self.params.meme_factory_address,
+            contract_address=self.get_meme_factory_address(),
             contract_id=str(MemeFactoryContract.contract_id),
             contract_callable=contract_callable,
             chain_id=self.get_chain_id(),
@@ -470,7 +470,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             ZERO_VALUE if action != "heart" else int(token_action["amount"])
         )  # to wei
         safe_tx_hash = yield from self._build_safe_tx_hash(
-            to_address=self.params.meme_factory_address,
+            to_address=self.get_meme_factory_address(),
             data=bytes.fromhex(data_hex),
             value=value,
         )
