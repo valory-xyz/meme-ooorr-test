@@ -402,7 +402,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         """Respond to tweets"""
 
         self.context.logger.info("Preparing tweet responses...")
-        new_responded_tweet_ids = []
+        new_responded_tweet_ids: List[str] = []
         persona = self.get_persona()
         tweets = "\n\n".join(
             [
