@@ -349,7 +349,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         # Get their latest tweet
         tweet_id_to_response = {}
         for agent_handle in agent_handles:
-            # By defaul only 1 tweet is retrieved (the latest one)
+            # By default only 1 tweet is retrieved (the latest one)
             latest_tweets = yield from self._call_twikit(
                 method="get_user_tweets",
                 twitter_handle=agent_handle,
@@ -367,10 +367,14 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
             tweet_id_to_response[tweet_id] = latest_tweets[0]["text"]
 
+
         if not tweet_id_to_response:
             self.context.logger.info("There are no tweets from other agents yet")
             return Event.DONE.value
 
+
+        # Like the tweet right away
+        yield from self.like_tweet(tweet_id)
         # Build and post responses
         event = yield from self.respond_tweet(tweet_id_to_response)
 
@@ -416,3 +420,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             )
 
         return Event.DONE.value
+
+    def like_tweet(self, tweet_id: str) -> Generator[None, None, None]:
+        """Like a tweet"""
+        yield from self._call_twikit(method="like_tweet", tweet_id=tweet_id)
