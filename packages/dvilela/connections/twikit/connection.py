@@ -45,6 +45,7 @@ PUBLIC_ID = PublicId.from_str("dvilela/twikit:0.1.0")
 
 MAX_POST_RETRIES = 5
 MAX_GET_RETRIES = 10
+HTTP_OK = 200
 
 
 class SrrDialogues(BaseSrrDialogues):
@@ -395,7 +396,8 @@ class TwikitConnection(Connection):
 
     async def like_tweet(self, tweet_id: str) -> None:
         """Like a tweet"""
-        await self.client.favorite_tweet(tweet_id)
+        response = await self.client.favorite_tweet(tweet_id)
+        return {"success": response.status_code == HTTP_OK}
 
 
 def tweet_to_json(tweet: Any) -> Dict:
