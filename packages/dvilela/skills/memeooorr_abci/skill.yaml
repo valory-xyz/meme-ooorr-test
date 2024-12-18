@@ -30,8 +30,8 @@ connections:
 - dvilela/genai:0.1.0:bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
-- valory/gnosis_safe:0.1.0:bafybeiho6sbfts3zk3mftrngw37d5qnlvkqtnttt3fzexmcwkeevhu4wwi
-- dvilela/meme_factory:0.1.0:bafybeiecfhn33jiprqrz6kx565cexy6yq5pqsg2bltgzq6bbg3uusepj7i
+- valory/gnosis_safe:0.1.0:bafybeihtqcpqthb37msgqabpzcc2xc3l3yzkp5pl2sodeghqyzzzyuevgi
+- dvilela/meme_factory:0.1.0:bafybeiawjmrohaarpx3fw5653if2tmwzirktihrqidmdnhmhw4nhu5nk6y
 - dvilela/service_registry:0.1.0:bafybeiareztundn6q5fsvuagzf4oqb4ulmnjdnk5mkjkw3qbqvnlf2nprq
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
