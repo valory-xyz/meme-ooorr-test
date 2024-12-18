@@ -318,6 +318,7 @@ class ActionTweetBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ance
         return Event.DONE.value if latest_tweet else Event.ERROR.value
 
 
+
 class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     """EngageBehaviour"""
 
@@ -369,11 +370,9 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
             tweet_id_to_response[tweet_id] = latest_tweets[0]["text"]
 
-
         if not tweet_id_to_response:
             self.context.logger.info("There are no tweets from other agents yet")
             return Event.DONE.value
-
 
         # Like the tweet right away
         yield from self.like_tweet(tweet_id)
