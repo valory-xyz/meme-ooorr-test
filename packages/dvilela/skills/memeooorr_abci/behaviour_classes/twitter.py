@@ -21,8 +21,8 @@
 
 import json
 import re
-from datetime import datetime, timezone
-from typing import Dict, Generator, List, Optional, Type, Union
+from datetime import datetime
+from typing import Dict, Generator, List, Optional, Tuple, Type, Union
 
 from twitter_text import parse_tweet  # type: ignore
 
@@ -346,6 +346,15 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         # Get other memeooorr handles
         agent_handles = yield from self.get_memeooorr_handles_from_chain()
 
+        # Load previously responded tweets
+        db_data = yield from self._read_kv(keys=("responded_tweet_ids",))
+
+        if db_data is None:
+            self.context.logger.error("Error while loading the database")
+            responded_tweet_ids = []
+        else:
+            responded_tweet_ids = json.loads(db_data["responded_tweet_ids"] or "[]")
+
         # Get their latest tweet
         tweet_id_to_response = {}
         for agent_handle in agent_handles:
@@ -358,13 +367,10 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 self.context.logger.info("Couldn't get any tweets")
                 continue
             tweet_id = latest_tweets[0]["id"]
-            tweet_time = datetime.strptime(
-                latest_tweets[0]["created_at"], "%a %b %d %H:%M:%S %z %Y"
-            )
 
-            # Only respond to new tweets (last hour)
-            if (datetime.now(timezone.utc) - tweet_time).total_seconds() >= 3600:
-                self.context.logger.info("Tweet is not recent")
+            # Only respond to not previously responded tweets
+            if tweet_id in responded_tweet_ids:
+                self.context.logger.info("Tweet was already responded")
                 continue
 
             # Like the tweet right away
@@ -376,14 +382,27 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             return Event.DONE.value
 
         # Build and post responses
-        event = yield from self.respond_tweet(tweet_id_to_response)
+        event, new_responded_tweet_ids = yield from self.respond_tweet(
+            tweet_id_to_response
+        )
+
+        if event == Event.DONE.value:
+            responded_tweet_ids.extend(new_responded_tweet_ids)
+            # Write latest responded tweets to the database
+            yield from self._write_kv(
+                {"responded_tweet_ids": json.dumps(responded_tweet_ids, sort_keys=True)}
+            )
+            self.context.logger.info("Wrote latest tweet to db")
 
         return event
 
-    def respond_tweet(self, tweet_id_to_response: Dict) -> Generator[None, None, str]:
+    def respond_tweet(
+        self, tweet_id_to_response: Dict
+    ) -> Generator[None, None, Tuple[str, List]]:
         """Respond to tweets"""
 
         self.context.logger.info("Preparing tweet responses...")
+        new_responded_tweet_ids: List[str] = []
         persona = self.get_persona()
         tweets = "\n\n".join(
             [
@@ -399,12 +418,12 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
-            return Event.ERROR.value
+            return Event.ERROR.value, new_responded_tweet_ids
 
         json_response = parse_json_from_llm(llm_response)
 
         if not json_response:
-            return Event.ERROR.value
+            return Event.ERROR.value, new_responded_tweet_ids
 
         for response in json_response:
             self.context.logger.info(f"Processing response: {response}")
@@ -414,12 +433,14 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 continue
 
             # Post the tweet
-            yield from self._call_twikit(
+            tweet_ids = yield from self._call_twikit(
                 method="post",
                 tweets=[{"text": response["text"], "reply_to": response["tweet_id"]}],
             )
+            if tweet_ids:
+                new_responded_tweet_ids.append(response["tweet_id"])
 
-        return Event.DONE.value
+        return Event.DONE.value, new_responded_tweet_ids
 
     def like_tweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Like a tweet"""
