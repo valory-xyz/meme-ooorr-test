@@ -135,6 +135,7 @@ transition_func:
     (PullMemesRound, NO_MEMES): EngageRound
     (PullMemesRound, ROUND_TIMEOUT): PullMemesRound
     (RandomnessTransactionSubmissionRound, DONE): SelectKeeperTransactionSubmissionARound
+    (RandomnessTransactionSubmissionRound, NONE): RandomnessTransactionSubmissionRound
     (RandomnessTransactionSubmissionRound, NO_MAJORITY): RandomnessTransactionSubmissionRound
     (RandomnessTransactionSubmissionRound, ROUND_TIMEOUT): RandomnessTransactionSubmissionRound
     (RegistrationRound, DONE): LoadDatabaseRound

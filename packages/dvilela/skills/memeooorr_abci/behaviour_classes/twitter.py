@@ -318,7 +318,6 @@ class ActionTweetBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ance
         return Event.DONE.value if latest_tweet else Event.ERROR.value
 
 
-
 class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     """EngageBehaviour"""
 
