@@ -42,5 +42,6 @@ node_modules/
 artifacts/
 
 cache/
+logs/
 
 globals.json
