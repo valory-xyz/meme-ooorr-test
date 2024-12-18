@@ -8,7 +8,6 @@ htmlcov
 *.egg-info
 packages/open_aea
 packages/valory/contracts/*
-!packages/valory/contracts/erc20
 packages/valory/protocols/
 packages/valory/skills/
 packages/valory/connections/*

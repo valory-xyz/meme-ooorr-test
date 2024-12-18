@@ -344,7 +344,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         """Get the next event"""
 
         # Get other memeooorr handles
-        agent_handles = yield from self.get_memeooorr_handles()
+        agent_handles = yield from self.get_memeooorr_handles_from_chain()
 
         # Get their latest tweet
         tweet_id_to_response = {}
@@ -355,6 +355,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 twitter_handle=agent_handle,
             )
             if not latest_tweets:
+                self.context.logger.info("Couldn't get any tweets")
                 continue
             tweet_id = latest_tweets[0]["id"]
             tweet_time = datetime.strptime(
@@ -363,6 +364,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
             # Only respond to new tweets (last hour)
             if (datetime.now(timezone.utc) - tweet_time).total_seconds() >= 3600:
+                self.context.logger.info("Tweet is not recent")
                 continue
 
             tweet_id_to_response[tweet_id] = latest_tweets[0]["text"]
