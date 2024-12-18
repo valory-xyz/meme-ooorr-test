@@ -238,7 +238,7 @@ class MemeFactoryContract(Contract):
         )
 
         _logger.info(
-            f"Getting {event_name} events from block {from_block} to {to_block} ({to_block - from_block} blocks)"
+            f"Getting {event_name} events from block {from_block} to {to_block} ({int(to_block) - int(from_block)} blocks)"
         )
 
         ranges: List[int] = list(range(from_block, cast(int, to_block), MAX_BLOCKS)) + [
