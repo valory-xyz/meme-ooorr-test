@@ -44,3 +44,4 @@ cache/
 logs/
 
 globals.json
+gitleaks_ignore.py
