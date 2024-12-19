@@ -31,7 +31,6 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
     DEFAULT_TWEET_PROMPT,
-    ENGAGEMENT_TWEET_PROMPT,
     INTERACT_DECISION_PROMPT,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
@@ -402,9 +401,11 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
         return event
 
-    def interact_tweets(self, pending_tweets: dict) -> Generator[None, None, bool]:
+    def interact_tweets(  # pylint: disable=too-many-locals
+        self, pending_tweets: dict
+    ) -> Generator[None, None, Tuple[str, List]]:
         """Decide whether to like a tweet based on the persona."""
-        new_interacted_tweet_ids = []
+        new_interacted_tweet_ids: List[str] = []
         persona = self.get_persona()
 
         tweet_data = "\n\n".join(
@@ -421,7 +422,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
-            return False
+            return Event.ERROR.value, new_interacted_tweet_ids
 
         json_response = parse_json_from_llm(llm_response)
 
@@ -477,7 +478,11 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         return Event.DONE.value, new_interacted_tweet_ids
 
     def respond_tweet(
-        self, tweet_id: str, text: str, quote: bool = False, user_name: str = None
+        self,
+        tweet_id: str,
+        text: str,
+        quote: bool = False,
+        user_name: Optional[str] = None,
     ) -> Generator[None, None, bool]:
         """Like a tweet"""
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
@@ -490,7 +495,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             method="post",
             tweets=[tweet],
         )
-        return tweet_ids is not [] and tweet_ids is not None
+        return tweet_ids is not None and tweet_ids
 
     def like_tweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Like a tweet"""
