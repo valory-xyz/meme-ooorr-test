@@ -345,7 +345,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         """Get the next event"""
 
         # Get other memeooorr handles
-        agent_handles = yield from self.get_memeooorr_handles_from_subgraph()
+        agent_handles = yield from self.get_memeooorr_handles_from_chain()
 
         # Load previously responded tweets
         db_data = yield from self._read_kv(keys=("interacted_tweet_ids",))
