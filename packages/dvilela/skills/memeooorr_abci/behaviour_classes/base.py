@@ -312,7 +312,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         self.context.logger.info("Getting packages from Olas subgraph...")
 
-        SUBGRAPH_URL = "https://subgraph.autonolas.tech/subgraphs/name/autonolas"
+        SUBGRAPH_URL = "https://subgraph.autonolas.tech/subgraphs/name/autonolas-base"
 
         headers = {
             "Content-Type": "application/json",
