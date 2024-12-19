@@ -32,6 +32,7 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 from packages.dvilela.skills.memeooorr_abci.prompts import (
     DEFAULT_TWEET_PROMPT,
     ENGAGEMENT_TWEET_PROMPT,
+    INTERACT_DECISION_PROMPT,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionTweetPayload,
@@ -49,7 +50,7 @@ from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
 MAX_TWEET_CHARS = 280
-JSON_RESPONSE_REGEXES = [r"json({.*})", r"\`\`\`json(.*)\`\`\`"]
+JSON_RESPONSE_REGEXES = [r"json.?({.*})", r"json({.*})", r"\`\`\`json(.*)\`\`\`"]
 MAX_TWEET_PREPARATIONS_RETRIES = 3
 
 
@@ -347,16 +348,16 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         agent_handles = yield from self.get_memeooorr_handles_from_subgraph()
 
         # Load previously responded tweets
-        db_data = yield from self._read_kv(keys=("responded_tweet_ids",))
+        db_data = yield from self._read_kv(keys=("interacted_tweet_ids",))
 
         if db_data is None:
             self.context.logger.error("Error while loading the database")
-            responded_tweet_ids = []
+            interacted_tweet_ids = []
         else:
-            responded_tweet_ids = json.loads(db_data["responded_tweet_ids"] or "[]")
+            interacted_tweet_ids = json.loads(db_data["interacted_tweet_ids"] or "[]")
 
         # Get their latest tweet
-        tweet_id_to_response = {}
+        pending_tweets = {}
         for agent_handle in agent_handles:
             # By default only 1 tweet is retrieved (the latest one)
             latest_tweets = yield from self._call_twikit(
@@ -368,92 +369,52 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 continue
             tweet_id = latest_tweets[0]["id"]
 
-            # Only respond to not previously responded tweets
-            if tweet_id in responded_tweet_ids:
-                self.context.logger.info("Tweet was already responded")
+            # Only respond to not previously interacted tweets
+            if tweet_id in interacted_tweet_ids:
+                self.context.logger.info("Tweet was already interacted with")
                 continue
 
-            # Decide whether to like the tweet
-            like = yield from self.like_decision(latest_tweets[0]["text"])
-            if like:
-                yield from self.like_tweet(tweet_id)
-            tweet_id_to_response[tweet_id] = latest_tweets[0]["text"]
+            pending_tweets[tweet_id] = {
+                "text": latest_tweets[0]["text"],
+                "user_name": latest_tweets[0]["user_name"],
+            }
 
-        if not tweet_id_to_response:
+        if not pending_tweets:
             self.context.logger.info("There are no tweets from other agents yet")
             return Event.DONE.value
 
-        # Build and post responses
-        event, new_responded_tweet_ids = yield from self.respond_tweet(
-            tweet_id_to_response
+        # Build and post interactions
+        event, new_interacted_tweet_ids = yield from self.interact_tweets(
+            pending_tweets
         )
 
         if event == Event.DONE.value:
-            responded_tweet_ids.extend(new_responded_tweet_ids)
+            interacted_tweet_ids.extend(new_interacted_tweet_ids)
             # Write latest responded tweets to the database
             yield from self._write_kv(
-                {"responded_tweet_ids": json.dumps(responded_tweet_ids, sort_keys=True)}
+                {
+                    "interacted_tweet_ids": json.dumps(
+                        interacted_tweet_ids, sort_keys=True
+                    )
+                }
             )
             self.context.logger.info("Wrote latest tweet to db")
 
         return event
 
-    def respond_tweet(
-        self, tweet_id_to_response: Dict
-    ) -> Generator[None, None, Tuple[str, List]]:
-        """Respond to tweets"""
-
-        self.context.logger.info("Preparing tweet responses...")
-        new_responded_tweet_ids: List[str] = []
+    def interact_tweets(self, pending_tweets: dict) -> Generator[None, None, bool]:
+        """Decide whether to like a tweet based on the persona."""
+        new_interacted_tweet_ids = []
         persona = self.get_persona()
-        tweets = "\n\n".join(
+
+        tweet_data = "\n\n".join(
             [
-                f"tweet_id: {t_id}\ntweet: {t}"
-                for t_id, t in tweet_id_to_response.items()
+                f"tweet_id: {t_id}\ntweet_text: {t_data['text']}"
+                for t_id, t_data in pending_tweets.items()
             ]
         )
 
-        llm_response = yield from self._call_genai(
-            prompt=ENGAGEMENT_TWEET_PROMPT.format(persona=persona, tweets=tweets)
-        )
-        self.context.logger.info(f"LLM response: {llm_response}")
-
-        if llm_response is None:
-            self.context.logger.error("Error getting a response from the LLM.")
-            return Event.ERROR.value, new_responded_tweet_ids
-
-        json_response = parse_json_from_llm(llm_response)
-
-        if not json_response:
-            return Event.ERROR.value, new_responded_tweet_ids
-
-        for response in json_response:
-            self.context.logger.info(f"Processing response: {response}")
-
-            if not is_tweet_valid(llm_response):
-                self.context.logger.error("The tweet is too long.")
-                continue
-
-            # Post the tweet
-            tweet_ids = yield from self._call_twikit(
-                method="post",
-                tweets=[{"text": response["text"], "reply_to": response["tweet_id"]}],
-            )
-            if tweet_ids:
-                new_responded_tweet_ids.append(response["tweet_id"])
-
-        return Event.DONE.value, new_responded_tweet_ids
-
-    def like_tweet(self, tweet_id: str) -> Generator[None, None, bool]:
-        """Like a tweet"""
-        self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
-        response = yield from self._call_twikit(method="like_tweet", tweet_id=tweet_id)
-        return response["success"]
-
-    def like_decision(self, tweet: str) -> Generator[None, None, bool]:
-        """Decide whether to like a tweet based on the persona."""
-        persona = self.get_persona()
-        prompt = LIKE_DECISION_PROMPT.format(persona=persona, tweet=tweet)
+        prompt = INTERACT_DECISION_PROMPT.format(persona=persona, tweet_data=tweet_data)
 
         llm_response = yield from self._call_genai(prompt=prompt)
         self.context.logger.info(f"LLM response for like decision: {llm_response}")
@@ -462,9 +423,87 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             self.context.logger.error("Error getting a response from the LLM.")
             return False
 
-        try:
-            decision = json.loads(llm_response)
-            return decision.get("like", False)
-        except json.JSONDecodeError:
-            self.context.logger.error("Failed to decode LLM response.")
-            return False
+        json_response = parse_json_from_llm(llm_response)
+
+        if not json_response:
+            return Event.ERROR.value, new_interacted_tweet_ids
+
+        for interaction in json_response:
+            tweet_id = interaction.get("tweet_id", None)
+            action = interaction.get("action", None)
+            text = interaction.get("text", None)
+
+            self.context.logger.info(f"Trying to {action} tweet {tweet_id}")
+
+            if action is None or tweet_id not in pending_tweets:
+                continue
+
+            user_name = pending_tweets[tweet_id]["user_name"]
+
+            if action == "like":
+                liked = yield from self.like_tweet(tweet_id)
+                if liked:
+                    new_interacted_tweet_ids.append(tweet_id)
+                continue
+
+            if action == "follow":
+                followed = yield from self.follow_user(tweet_id)
+                if followed:
+                    new_interacted_tweet_ids.append(tweet_id)
+                continue
+
+            if action == "retweet":
+                retweeted = yield from self.retweet(tweet_id)
+                if retweeted:
+                    new_interacted_tweet_ids.append(tweet_id)
+                continue
+
+            if not is_tweet_valid(text):
+                self.context.logger.error("The tweet is too long.")
+                continue
+
+            if action == "reply":
+                responded = yield from self.respond_tweet(tweet_id, text)
+                if responded:
+                    new_interacted_tweet_ids.append(tweet_id)
+
+            if action == "quote":
+                quoted = yield from self.respond_tweet(
+                    tweet_id, text, quote=True, user_name=user_name
+                )
+                if quoted:
+                    new_interacted_tweet_ids.append(tweet_id)
+
+    def respond_tweet(
+        self, tweet_id: str, text: str, quote: bool = False, user_name: str = None
+    ) -> Generator[None, None, bool]:
+        """Like a tweet"""
+        self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
+        tweet = {"text": text}
+        if quote:
+            tweet["attachment_url"] = f"https://x.com/{user_name}/status/{tweet_id}"
+        else:
+            tweet["reply_to"] = tweet_id
+        tweet_ids = yield from self._call_twikit(
+            method="post",
+            tweets=[tweet],
+        )
+        return tweet_ids is not [] and tweet_ids is not None
+
+    def like_tweet(self, tweet_id: str) -> Generator[None, None, bool]:
+        """Like a tweet"""
+        self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
+        response = yield from self._call_twikit(method="like_tweet", tweet_id=tweet_id)
+        return response["success"]
+
+    def retweet(self, tweet_id: str) -> Generator[None, None, bool]:
+        """Reweet"""
+        self.context.logger.info(f"Retweeting tweet with ID: {tweet_id}")
+        response = yield from self._call_twikit(method="retweet", tweet_id=tweet_id)
+        return response["success"]
+
+    def follow_user(self, user_id: str) -> Generator[None, None, bool]:
+        """Follow user"""
+        self.context.logger.info(f"Following user with ID: {user_id}")
+        response = yield from self._call_twikit(method="follow_user", user_id=user_id)
+        return response["success"]
