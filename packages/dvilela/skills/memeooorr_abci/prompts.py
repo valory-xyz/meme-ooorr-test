@@ -145,3 +145,22 @@ OUTPUT_FORMAT
 * This is incorrect:```json"{{response}}"```
 * This is correct:"{{response}}"
 """
+LIKE_DECISION_PROMPT = """
+You are a user on Twitter with a specific persona. You analyze tweets and decide whether to like them based on your persona.
+
+Here's your persona:
+"{persona}"
+
+Here's the tweet:
+"{tweet}"
+
+Your task is to decide whether to like the tweet or not.
+
+OUTPUT_FORMAT
+* Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
+* The JSON must contain one field: "like".
+    - like: a boolean indicating whether to like the tweet (true) or not (false).
+* This is incorrect:"```json{{response}}```"
+* This is incorrect:```json"{{response}}"```
+* This is correct:"{{response}}"
+"""

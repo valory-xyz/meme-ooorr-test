@@ -373,8 +373,10 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 self.context.logger.info("Tweet was already responded")
                 continue
 
-            # Like the tweet right away
-            yield from self.like_tweet(tweet_id)
+            # Decide whether to like the tweet
+            like = yield from self.like_decision(latest_tweets[0]["text"])
+            if like:
+                yield from self.like_tweet(tweet_id)
             tweet_id_to_response[tweet_id] = latest_tweets[0]["text"]
 
         if not tweet_id_to_response:
@@ -447,3 +449,22 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
         response = yield from self._call_twikit(method="like_tweet", tweet_id=tweet_id)
         return response["success"]
+
+    def like_decision(self, tweet: str) -> Generator[None, None, bool]:
+        """Decide whether to like a tweet based on the persona."""
+        persona = self.get_persona()
+        prompt = LIKE_DECISION_PROMPT.format(persona=persona, tweet=tweet)
+
+        llm_response = yield from self._call_genai(prompt=prompt)
+        self.context.logger.info(f"LLM response for like decision: {llm_response}")
+
+        if llm_response is None:
+            self.context.logger.error("Error getting a response from the LLM.")
+            return False
+
+        try:
+            decision = json.loads(llm_response)
+            return decision.get("like", False)
+        except json.JSONDecodeError:
+            self.context.logger.error("Failed to decode LLM response.")
+            return False
