@@ -21,8 +21,12 @@
 """Test subgraph"""
 
 
+import re
+
 import requests
 
+
+MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr @(\w+)$"
 
 TOKENS_QUERY = """
 query Tokens {
@@ -39,6 +43,22 @@ query Tokens {
       timestamp
     }
   }
+}
+"""
+
+PACKAGE_QUERY = """
+query getPackages($package_type: String!) {
+    units(where: {packageType: $package_type}) {
+        id,
+        packageType,
+        publicId,
+        packageHash,
+        tokenId,
+        metadataHash,
+        description,
+        owner,
+        image
+    }
 }
 """
 
@@ -78,4 +98,47 @@ def get_meme_coins_from_subgraph():
     return meme_coins
 
 
-print(get_meme_coins_from_subgraph())
+def get_packages(package_type: str):
+    """Gets minted packages from the Olas subgraph"""
+
+    url = "https://subgraph.staging.autonolas.tech/subgraphs/name/autonolas-base/"
+
+    headers = {"Content-Type": "application/json"}
+
+    query = {
+        "query": PACKAGE_QUERY,
+        "variables": {
+            "package_type": package_type,
+        },
+    }
+
+    response = requests.post(url=url, json=query, headers=headers)
+
+    # Handle HTTP errors
+    if response.status_code != HTTP_OK:
+        print(f"Error while pulling the memes from subgraph: {response}")
+        return []
+
+    response_json = response.json()["data"]  # type: ignore
+    return response_json
+
+
+def get_memeooorr_handles_from_subgraph():
+    """Get Memeooorr service handles"""
+    handles = []
+    services = get_packages("service")
+    if not services:
+        return handles
+
+    for service in services["units"]:
+        match = re.match(MEMEOOORR_DESCRIPTION_PATTERN, service["description"])
+
+        if not match:
+            continue
+
+        handle = match.group(1)
+        handles.append(handle)
+    return handles
+
+
+print(get_memeooorr_handles_from_subgraph())
