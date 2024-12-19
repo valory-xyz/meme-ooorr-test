@@ -168,9 +168,9 @@ Your task is to decide which tweets to interact with and how. We encourgae you t
 OUTPUT_FORMAT
 * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
 * The JSON must contain a list with the same number of elements as the tweets you have received. Each entry in that list is a dict that needs to define:
-    - action: a string with one of the following values: null, like, retweet, reply, quote or follow. Use null when you don't want to interact with that tweet.
+    - action: a string with one of the following values: none, like, retweet, reply, quote or follow. Use none when you don't want to interact with that tweet.
     - tweet_id: the id of the tweet you are interacting with.
-    - tweet: a string. If the selected action is reply or quote, this field must contain the text of the reply or quote. If the action is like, retweet or follow, this field must be empty.
+    - text: a string. If the selected action is reply or quote, this field must contain the text of the reply or quote. If the action is like, retweet or follow, this field must be empty.
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```
 * This is correct:"{{response}}"

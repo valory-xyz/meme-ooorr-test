@@ -345,7 +345,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         """Get the next event"""
 
         # Get other memeooorr handles
-        agent_handles = yield from self.get_memeooorr_handles_from_chain()
+        agent_handles = yield from self.get_memeooorr_handles_from_subgraph()
 
         # Load previously responded tweets
         db_data = yield from self._read_kv(keys=("interacted_tweet_ids",))
@@ -433,12 +433,12 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             action = interaction.get("action", None)
             text = interaction.get("text", None)
 
-            self.context.logger.info(f"Trying to {action} tweet {tweet_id}")
-
-            if action is None or tweet_id not in pending_tweets:
+            if action == "none" or str(tweet_id) not in pending_tweets.keys():
                 continue
 
-            user_name = pending_tweets[tweet_id]["user_name"]
+            self.context.logger.info(f"Trying to {action} tweet {tweet_id}")
+
+            user_name = pending_tweets[str(tweet_id)]["user_name"]
 
             if action == "like":
                 liked = yield from self.like_tweet(tweet_id)
@@ -473,6 +473,8 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 )
                 if quoted:
                     new_interacted_tweet_ids.append(tweet_id)
+
+        return Event.DONE.value, new_interacted_tweet_ids
 
     def respond_tweet(
         self, tweet_id: str, text: str, quote: bool = False, user_name: str = None

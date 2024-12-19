@@ -312,7 +312,9 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         self.context.logger.info("Getting packages from Olas subgraph...")
 
-        SUBGRAPH_URL = "https://subgraph.autonolas.tech/subgraphs/name/autonolas-base"
+        SUBGRAPH_URL = (
+            "https://subgraph.staging.autonolas.tech/subgraphs/name/autonolas-base"
+        )
 
         headers = {
             "Content-Type": "application/json",
@@ -363,6 +365,8 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                 continue
 
             handles.append(handle)
+
+        self.context.logger.info(f"Got Twitter handles: {handles}")
         return handles
 
     def get_service_registry_address(self) -> str:
