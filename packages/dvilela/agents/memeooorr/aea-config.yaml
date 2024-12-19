@@ -41,8 +41,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeifmgmwdkx4esemxjacjwzqkqymkuklb5nehkwqkx7v335fllgswcq
 - valory/registration_abci:0.1.0:bafybeiagi6e2h7kochmlemy5c5yk6hwn37tfxiqvk2en74jhowsdwlmrny
 - valory/reset_pause_abci:0.1.0:bafybeiezfedmmseox3ce5aucxsiszdmvskrwwbtpb2a3vw3sbmc5jt7nri
-- dvilela/memeooorr_abci:0.1.0:bafybeicnsyshxyp3hgu6awtpqsbgh7mi6yycrn57jjv6kigsnstaa4g3ti
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeieahsjlcdsvd33krdb7nb36b6mhfr2jsnr7bkfjivstrlcxok3djy
+- dvilela/memeooorr_abci:0.1.0:bafybeieha6y2jfhek7m3hynsxvslnm7xasszrobkli76yeorxi56giu6ay
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeietomnrxtzi6skrhbk3vdfu5ksvh7nvfoejc2hgnn6sa6htqyxy7y
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -99,11 +99,26 @@ config:
       chain_id: ${int:8453}
       poa_chain: ${bool:false}
       default_gas_price_strategy: ${str:eip1559}
+      gas_price_strategies: &id001
+        gas_station:
+          gas_price_api_key: null
+          gas_price_strategy: fast
+        eip1559:
+          max_gas_fast: 1500
+          fee_history_blocks: 10
+          fee_history_percentile: 5
+          default_priority_fee: ${int:30000000}
+          fallback_estimate:
+            maxFeePerGas: ${int:20000000000}
+            maxPriorityFeePerGas: ${int:3000000000}
+            baseFee: null
+          priority_fee_increase_boundary: ${int:200}
     celo:
       address: ${str:http://localhost:8545}
       chain_id: ${int:42220}
       poa_chain: ${bool:true}
       default_gas_price_strategy: ${str:eip1559}
+      gas_price_strategies: *id001
 ---
 public_id: valory/p2p_libp2p_client:0.1.0
 type: connection

@@ -43,7 +43,7 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
-JSON_RESPONSE_REGEX = r"json({.*})"
+JSON_RESPONSE_REGEX = r"json.?({.*})"
 
 # fmt: off
 TOKEN_SUMMARY = (  # nosec
@@ -125,7 +125,12 @@ class AnalizeFeedbackBehaviour(
 
         # The response is not a valid jsoon
         try:
+            llm_response = llm_response.replace("\n", "").strip()
+            match = re.search(JSON_RESPONSE_REGEX, llm_response, re.DOTALL)
+            if match:
+                llm_response = match.groups()[0]
             response = json.loads(llm_response)
+
         except json.JSONDecodeError as e:
             self.context.logger.error(f"Error loading the LLM response: {e}")
             return None
@@ -145,12 +150,18 @@ class AnalizeFeedbackBehaviour(
             and "token_name" not in response
             or "token_ticker" not in response
             or "token_supply" not in response
-            or "amount" not in response
         ):
             self.context.logger.error(
                 f"Missing some token data from the response: {response}"
             )
             return None
+
+        # Ensure minimum amount
+        if response["deploy"]:
+            response["amount"] = max(
+                response.get("amount", 0),
+                self.get_min_deploy_value(),
+            )
 
         # Missing persona
         if not response["deploy"] and "persona" not in response:
@@ -248,7 +259,7 @@ class ActionDecisionBehaviour(
 
         try:
             llm_response = llm_response.replace("\n", "").strip()
-            match = re.search(JSON_RESPONSE_REGEX, llm_response)
+            match = re.search(JSON_RESPONSE_REGEX, llm_response, re.DOTALL)
             if match:
                 llm_response = match.groups()[0]
             response = json.loads(llm_response)

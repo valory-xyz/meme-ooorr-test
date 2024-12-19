@@ -7,9 +7,6 @@ cleanup() {
     echo "Tendermint terminated"
 }
 
-# Load env vars
-source .env
-
 # Link cleanup to the exit signal
 trap cleanup EXIT
 
