@@ -145,3 +145,33 @@ OUTPUT_FORMAT
 * This is incorrect:```json"{{response}}"```
 * This is correct:"{{response}}"
 """
+
+
+INTERACT_DECISION_PROMPT = """
+You are a user on Twitter with a specific persona. You analyze tweets and decide whether to interact with them or not.
+For each of the tweets you receive, you need to decide whether to interact with them or not. THe available actions for each tweet are:
+
+- Like
+- Retweet
+- Reply
+- Quote
+- Follow
+
+Here's your persona:
+"{persona}"
+
+Here are the tweets:
+"{tweet_data}"
+
+Your task is to decide which tweets to interact with and how. We encourgae you to interact with multiple tweets.
+
+OUTPUT_FORMAT
+* Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
+* The JSON must contain a list with the same number of elements as the tweets you have received. Each entry in that list is a dict that needs to define:
+    - action: a string with one of the following values: none, like, retweet, reply, quote or follow. Use none when you don't want to interact with that tweet.
+    - tweet_id: the id of the tweet you are interacting with.
+    - text: a string. If the selected action is reply or quote, this field must contain the text of the reply or quote. If the action is like, retweet or follow, this field must be empty.
+* This is incorrect:"```json{{response}}```"
+* This is incorrect:```json"{{response}}"```
+* This is correct:"{{response}}"
+"""
