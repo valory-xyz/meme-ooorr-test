@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeihqjabx6rkwt25r45wqdo2hmix2xovukln7nikje2cwi3s3fkr2l4
+agent: dvilela/memeooorr:0.1.0:bafybeiafbao6rc6jfrnupf7etknwdkezcosqb7erbaaqbmva7xeqwsbif4
 number_of_agents: 1
 deployment:
   agent:
@@ -113,7 +113,7 @@ config:
           max_gas_fast: 1500
           fee_history_blocks: 10
           fee_history_percentile: 5
-          default_priority_fee: ${DEFAULT_PRIORITY_FEE:int:null}
+          default_priority_fee: ${DEFAULT_PRIORITY_FEE:int:30000000}
           fallback_estimate:
             maxFeePerGas: ${MAX_FEE_PER_GAS:20000000000}
             maxPriorityFeePerGas: ${MAX_PRIORITY_FEE_PER_GAS:3000000000}
