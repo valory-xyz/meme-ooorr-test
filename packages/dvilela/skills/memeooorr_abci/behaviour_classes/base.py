@@ -266,7 +266,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         available_actions = copy(AVAILABLE_ACTIONS)
 
-        is_unleashed = meme_data["unleash_time"] != 0
+        is_unleashed = meme_data.get("unleash_time", 0) != 0
 
         # We can unleash if it has not been unleashed
         if is_unleashed:
@@ -284,7 +284,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             available_actions.remove("heart")
 
         # We should not heart if we have already hearted
-        if "heart" in available_actions and meme_data["token_address"] in hearted_memes:
+        if "heart" in available_actions and meme_data.get("token_address", None) in hearted_memes:
             available_actions.remove("heart")
 
         # We use 47.5 to be on the safe side
@@ -295,7 +295,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             available_actions.remove("burn")
 
             # We can collect if we have hearted this token
-            if meme_data["token_address"] not in hearted_memes:
+            if meme_data.get("token_address", None) not in hearted_memes:
                 available_actions.remove("collect")
 
         return available_actions
@@ -461,6 +461,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         """Get a list of meme coins"""
         self.context.logger.info("Getting meme tokens from the chain")
 
+        # Summons
         # Use the contract api to interact with the factory contract
         response_msg = yield from self.get_contract_api_response(
             performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
@@ -479,6 +480,33 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             return None
 
         tokens = cast(list, response_msg.state.body.get("tokens", None))
+
+        # Unleashes
+        # Use the contract api to interact with the factory contract
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.get_meme_factory_address(),
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_events",
+            event_name="Unleashed",
+            from_block=self.get_meme_factory_deployment_block(),
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the memecoin summon events: {response_msg}"
+            )
+            return None
+
+        unleash_events = cast(list, response_msg.state.body.get("events", None))
+
+        # Add token addresses
+        for event in unleash_events:
+            for token in tokens:
+                if token["token_nonce"] == event["token_nonce"]:
+                    token["token_address"] = event["token_address"]
 
         # Load previously hearted memes
         db_data = yield from self._read_kv(keys=("hearted_memes",))
@@ -560,7 +588,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         if meme_coins:
             return meme_coins
 
-        meme_coins = yield from self.get_meme_coins_from_subgraph()
+        meme_coins = yield from self.get_meme_coins_from_chain()
         return meme_coins
 
     def get_min_deploy_value(self) -> int:

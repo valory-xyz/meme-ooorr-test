@@ -271,6 +271,8 @@ class MemeFactoryContract(Contract):
 
             events += new_events
 
+        _logger.info(f"Got {len(events)} {event_name} events")
+
         if event_name == "Summoned":
             return dict(
                 events=[
