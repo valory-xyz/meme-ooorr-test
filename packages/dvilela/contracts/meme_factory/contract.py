@@ -220,29 +220,24 @@ class MemeFactoryContract(Contract):
     ) -> JSONLike:
         """Get events."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
+        current_block = ledger_api.api.eth.get_block_number()
 
         if from_block is None:
-            from_block = (
-                ledger_api.api.eth.get_block_number() - 86400 * 2
-            )  # approx 48h ago (2s per block)
+            from_block = current_block - 86400  # approx 48h ago (2s per block)
 
         # Avoid parsing too many blocks at a time. This might take too long and
         # the connection could time out.
-        MAX_BLOCKS = 5000
+        MAX_BATCH_BLOCKS = 5000
 
-        to_block = (
-            ledger_api.api.eth.get_block_number() - 1
-            if to_block == "latest"
-            else to_block
-        )
+        to_block = current_block - 1 if to_block == "latest" else to_block
 
         _logger.info(
             f"Getting {event_name} events from block {from_block} to {to_block} ({int(to_block) - int(from_block)} blocks)"
         )
 
-        ranges: List[int] = list(range(from_block, cast(int, to_block), MAX_BLOCKS)) + [
-            cast(int, to_block)
-        ]
+        ranges: List[int] = list(
+            range(from_block, cast(int, to_block), MAX_BATCH_BLOCKS)
+        ) + [cast(int, to_block)]
 
         event = getattr(contract_instance.events, event_name)
         events = []

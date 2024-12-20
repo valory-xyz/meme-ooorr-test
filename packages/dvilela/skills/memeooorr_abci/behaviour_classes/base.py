@@ -471,7 +471,6 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             contract_address=self.get_meme_factory_address(),
             contract_id=str(MemeFactoryContract.contract_id),
             contract_callable="get_summon_data",
-            from_block=self.get_meme_factory_deployment_block(),
             chain_id=self.get_chain_id(),
         )
 
@@ -492,7 +491,6 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             contract_id=str(MemeFactoryContract.contract_id),
             contract_callable="get_events",
             event_name="Unleashed",
-            from_block=self.get_meme_factory_deployment_block(),
             chain_id=self.get_chain_id(),
         )
 
