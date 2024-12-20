@@ -158,7 +158,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
     ) -> Generator[None, None, Optional[str]]:
         """Send a request message from the skill context."""
 
-        payload_data = {"prompt": prompt}
+        payload_data: Dict[str, Any] = {"prompt": prompt}
 
         if temperature is not None:
             payload_data["temperature"] = temperature
