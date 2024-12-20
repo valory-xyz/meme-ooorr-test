@@ -284,7 +284,10 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             available_actions.remove("heart")
 
         # We should not heart if we have already hearted
-        if "heart" in available_actions and meme_data.get("token_address", None) in hearted_memes:
+        if (
+            "heart" in available_actions
+            and meme_data.get("token_address", None) in hearted_memes
+        ):
             available_actions.remove("heart")
 
         # We use 47.5 to be on the safe side
