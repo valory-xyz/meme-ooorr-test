@@ -171,8 +171,8 @@ class HttpHandler(BaseHttpHandler):
         for source_info, target_round in fsm["transition_func"].items():
             source_round, event = source_info[1:-1].split(", ")
             source_round = camel_to_snake(source_round)
-            self.rounds_info[source_round]["transitions"] = {}
-            self.rounds_info[source_round]["transitions"][
+            self.rounds_info[source_round]["transitions"] = {}  # type: ignore
+            self.rounds_info[source_round]["transitions"][  # type: ignore
                 event.lower()
             ] = camel_to_snake(target_round)
 
