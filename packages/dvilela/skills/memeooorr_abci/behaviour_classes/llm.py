@@ -109,8 +109,9 @@ class AnalizeFeedbackBehaviour(
             "latest_tweet": self.synchronized_data.latest_tweet["text"],
             "tweet_responses": tweet_responses,
             "persona": self.get_persona(),
+            "n_meme_coins": len(self.synchronized_data.meme_coins),
             "balance": native_balance,
-            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
+            "ticker": self.get_native_ticker(),
         }
 
         llm_response = yield from self._call_genai(

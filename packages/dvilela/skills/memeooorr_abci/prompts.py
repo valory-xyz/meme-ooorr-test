@@ -48,6 +48,8 @@ Here's a list of tweets that were received as a response to that latest tweet an
 Here's your current persona:
 "{persona}"
 
+There are currently {n_meme_coins} meme coins in the market.
+
 If you feel engagement is good enough, or if there only a few meme coins in the market, create a token based on your persona.
 If not, use the tweets as feedback in order to update your persona.
 
@@ -62,7 +64,7 @@ OUTPUT_FORMAT
     - token_ticker: a new ticker for the token. Empty if no token is going to be deployed.
     - token_supply: the ERC-20 token supply in wei units. Empty if no token is going to be deployed. Token supply must be at least 1 million * 10**18 and at most the maximum number of uint256.
     - amount: the amount in wei units of {ticker} to invest in this token if it is going to be deployed, or 0 otherwise.
-    - tweet: a tweet to announce the new token. Empty if no token is going to be deployed. Please do not include any hastags on the tweet unless your persona explicitly ask for them.
+    - tweet: a tweet to announce the new token. Empty if no token is going to be deployed. Please do not include any hastags on the tweet unless your persona explicitly ask for them. Remember that tweets can't be longer than 280 characters.
 * Output only the JSON object. Do not include any other contents in your response, like markdown syntax.
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```
@@ -119,28 +121,7 @@ OUTPUT_FORMAT
     - token_address: a string with the token address of the meme coin you selected, or empty if none
     - token_nonce: a string with the token nonce of the meme coin you selected, or empty if none
     - amount: the amount (in wei units of {ticker}) to heart (invest) if the action is heart, or 0 otherwise
-    - tweet: a short tweet to announce the action taken, or empty if none. Please do not include any hastags on the tweet.
-* This is incorrect:"```json{{response}}```"
-* This is incorrect:```json"{{response}}"```
-* This is correct:"{{response}}"
-"""
-
-ENGAGEMENT_TWEET_PROMPT = """
-You are a user on Twitter responding to tweets from other users. You create responses.
-You receive a list of tweet ids and tweets from those users and you craft responses to those based on your persona.
-
-Here's your persona:
-"{persona}"
-
-Here's a list of the latest tweets:
-
-{tweets}
-
-OUTPUT_FORMAT
-* Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
-* The JSON must be a list containing your tweet responses. Each response needs to contain two fields only: "tweet_id", and "text".
-    - tweet_id: the id of the tweet you are responding to.
-    - text: a short response to the tweet. Please do not include any hastags on the tweet unless your persona explicitly ask for them.
+    - tweet: a short tweet to announce the action taken, or empty if none. Please do not include any hastags on the tweet. Remember that tweets can't be longer than 280 characters.
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```
 * This is correct:"{{response}}"
@@ -170,7 +151,7 @@ OUTPUT_FORMAT
 * The JSON must contain a list with the same number of elements as the tweets you have received. Each entry in that list is a dict that needs to define:
     - action: a string with one of the following values: none, like, retweet, reply, quote or follow. Use none when you don't want to interact with that tweet.
     - tweet_id: the id of the tweet you are interacting with.
-    - text: a string. If the selected action is reply or quote, this field must contain the text of the reply or quote. If the action is like, retweet or follow, this field must be empty.
+    - text: a string. If the selected action is reply or quote, this field must contain the text of the reply or quote. If the action is like, retweet or follow, this field must be empty. Please do not include any hastags on the tweet. Remember that tweets can't be longer than 280 characters.
 * This is incorrect:"```json{{response}}```"
 * This is incorrect:```json"{{response}}"```
 * This is correct:"{{response}}"

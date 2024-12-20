@@ -307,6 +307,11 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         )
         return chain_id
 
+    def get_native_ticker(self) -> str:
+        """Get native ticker"""
+        native_ticker = "ETH" if self.params.home_chain_id == "BASE" else "CELO"
+        return native_ticker
+
     def get_packages(self, package_type: str) -> Generator[None, None, Optional[Dict]]:
         """Gets minted packages from the Olas subgraph"""
 
@@ -393,6 +398,14 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             else self.params.meme_factory_address_celo
         )
 
+    def get_meme_factory_deployment_block(self) -> str:
+        """Get the meme factory deployment block"""
+        return (
+            self.params.meme_factory_deployment_block_base
+            if self.get_chain_id() == "base"
+            else self.params.meme_factory_deployment_block_celo
+        )
+
     def get_memeooorr_handles_from_chain(self) -> Generator[None, None, List[str]]:
         """Get Memeooorr service handles"""
 
@@ -454,6 +467,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             contract_address=self.get_meme_factory_address(),
             contract_id=str(MemeFactoryContract.contract_id),
             contract_callable="get_summon_data",
+            from_block=self.get_meme_factory_deployment_block(),
             chain_id=self.get_chain_id(),
         )
 

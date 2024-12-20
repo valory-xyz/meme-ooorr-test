@@ -82,4 +82,11 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.home_chain_id = self._ensure("home_chain_id", kwargs, str)
         self.twitter_username = self._ensure("twitter_username", kwargs, str)
 
+        self.meme_factory_deployment_block_base = self._ensure(
+            "meme_factory_deployment_block_base", kwargs, int
+        )
+        self.meme_factory_deployment_block_celo = self._ensure(
+            "meme_factory_deployment_block_celo", kwargs, int
+        )
+
         super().__init__(*args, **kwargs)

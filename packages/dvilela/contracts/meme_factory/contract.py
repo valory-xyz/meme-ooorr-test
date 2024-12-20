@@ -175,14 +175,13 @@ class MemeFactoryContract(Contract):
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
+        from_block: Optional[int] = None,
     ) -> Dict[str, List]:
         """Get the data from the Summoned event."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
 
         summon_events: Dict[str, List] = cls.get_events(  # type: ignore
-            ledger_api,
-            contract_address,
-            "Summoned",
+            ledger_api, contract_address, "Summoned", from_block
         )["events"]
         nonce_to_event: Dict[str, Dict] = {e["token_nonce"]: e for e in summon_events}  # type: ignore
 
@@ -224,7 +223,7 @@ class MemeFactoryContract(Contract):
 
         if from_block is None:
             from_block = (
-                ledger_api.api.eth.get_block_number() - 86400
+                ledger_api.api.eth.get_block_number() - 86400 * 2
             )  # approx 48h ago (2s per block)
 
         # Avoid parsing too many blocks at a time. This might take too long and
