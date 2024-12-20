@@ -41,8 +41,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeigh2vkt74jrad5gtsczrgqcuhcqe7jkgjy7jdw56yamlzwwnaymjy
 - valory/registration_abci:0.1.0:bafybeib3n6vqkfbrcubcbliebjnuwyywdinxkbzt76n6gbn2kg7ace47dq
 - valory/reset_pause_abci:0.1.0:bafybeihkj6lmaypspyxe5qqrjgnolyck62pyvqoylr24ab6ue4steqcw7e
-- dvilela/memeooorr_abci:0.1.0:bafybeieuzcquw3jrdbhc6ulsnijmulrhcgd7h4vk4vpoqrbyssyb3iozhi
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeifepvbpfw5or5uiw7mswwl3xo6wbatzcu3ywiziz3a5t4bxidjkia
+- dvilela/memeooorr_abci:0.1.0:bafybeidyyjc7qesjslym6t3cc2b3vmhuyzmbiu6qycaoq3iu6tyatihivi
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeiamvw6iq7cp5nazxrr55xf7luer3mid2kxx5zka3r6eiugrz4kpb4
 default_ledger: ethereum
 required_ledgers:
 - ethereum
