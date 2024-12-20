@@ -346,6 +346,13 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         # Get other memeooorr handles
         agent_handles = yield from self.get_memeooorr_handles_from_subgraph()
 
+        # Filter out suspended accounts
+        agent_handles = yield from self._call_twikit(
+            method="filter_suspended_users",
+            user_names=agent_handles,
+        )
+        self.context.logger.info(f"Not suspended users: {agent_handles}")
+
         # Load previously responded tweets
         db_data = yield from self._read_kv(keys=("interacted_tweet_ids",))
 
