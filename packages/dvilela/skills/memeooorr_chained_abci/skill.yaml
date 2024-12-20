@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeihkj6lmaypspyxe5qqrjgnolyck62pyvqoylr24ab6ue4steqcw7e
 - valory/transaction_settlement_abci:0.1.0:bafybeigh2vkt74jrad5gtsczrgqcuhcqe7jkgjy7jdw56yamlzwwnaymjy
 - valory/termination_abci:0.1.0:bafybeifi2uodnrjsrivj53g3sjutocmyusbx6mlsb6oanqdyt2mfbyvusy
-- dvilela/memeooorr_abci:0.1.0:bafybeia5g37rvcvk4rv7vi4xrr3krhgkdftx5zm6xfkys3jfnyqbd3j3vi
+- dvilela/memeooorr_abci:0.1.0:bafybeid5ns324gqhpiyatnfrc74ppe44xolotyen4xntmkpq5isd2lr22m
 behaviours:
   main:
     args: {}
@@ -149,7 +149,7 @@ models:
       olas_token_address_celo: '0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51'
       persona: a cat lover that is crazy about all-things cats.
       feedback_period_min_hours: 1
-      feedback_period_max_hours: 3
+      feedback_period_max_hours: 2
       home_chain_id: BASE
       twitter_username: dummy_twitter_name
       service_registry_address_base: '0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE'

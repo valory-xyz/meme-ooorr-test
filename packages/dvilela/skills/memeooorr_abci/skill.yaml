@@ -12,15 +12,15 @@ fingerprint:
   behaviour_classes/chain.py: bafybeigxfwko3rofqlzyjjhgeo6yabxseqngo2uz5muyfk3f2jjpgdrsli
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
   behaviour_classes/llm.py: bafybeigde25dr53m4i37bzfo7kb5l7sxw6442qdx4icyzdninsmgjoqpra
-  behaviour_classes/twitter.py: bafybeiaepletyjiqy6z7y2nmsuxtmpfs4fgfqswyihf4o27vhyodxcuvx4
+  behaviour_classes/twitter.py: bafybeighbocmxjrgdjltdrpvjxjac6pai756k3f3mponapcmofxunau7ha
   behaviours.py: bafybeibdbimezloiomvsv3zgfdug4tw276gt7tb5agnezl2nuqcfcplscu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeidqesafw5vtekw2dtffjznuchdjllo52najwmmkj2npfdyaouigfa
   handlers.py: bafybeigdxkm45w27sh7cpgiwuperjldql6oupbhxqtizhbwfv7abxe3dku
   models.py: bafybeia4mupvgav4eoipxz6t7m5gwygreqhlikz2cxpl4hcwaxvg6gt4um
-  payloads.py: bafybeibyukr3aewwlbx6c6xe43j6nhgdqwqdgbemswrsvnqp3ftqodvvmi
+  payloads.py: bafybeifxy5bsv3rovzhzasmrohfnlggpacluigxr6c5fdyux3dwihikpum
   prompts.py: bafybeicfojb2vt42peclkx4ccyjg65ck5y7eptlkof26sfjp572frrkgbq
-  rounds.py: bafybeidbk55zxmhrdvcfehneff7nr7rqajpcacd7h3kctshskmkxjxtixi
+  rounds.py: bafybeif5o3crhnh2hyuid6ineu2tq4zxcjdydtj5ea4cwps5gjoju7purm
   rounds_info.py: bafybeieqaemvqwiwku7nlxkdebsqzldpvvidijf6wcwy7e3xbyz335jr6i
 fingerprint_ignore_patterns: []
 connections:
@@ -157,7 +157,7 @@ models:
       olas_token_address_celo: '0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51'
       persona: a cat lover that is crazy about all-things cats.
       feedback_period_min_hours: 1
-      feedback_period_max_hours: 3
+      feedback_period_max_hours: 2
       home_chain_id: BASE
       twitter_username: dummy_twitter_name
       service_registry_address_base: '0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE'
