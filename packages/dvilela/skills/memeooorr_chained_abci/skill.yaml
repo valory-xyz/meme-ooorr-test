@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeihkj6lmaypspyxe5qqrjgnolyck62pyvqoylr24ab6ue4steqcw7e
 - valory/transaction_settlement_abci:0.1.0:bafybeigh2vkt74jrad5gtsczrgqcuhcqe7jkgjy7jdw56yamlzwwnaymjy
 - valory/termination_abci:0.1.0:bafybeifi2uodnrjsrivj53g3sjutocmyusbx6mlsb6oanqdyt2mfbyvusy
-- dvilela/memeooorr_abci:0.1.0:bafybeigegmsisv4p4pvswa4o4ee3jkzolhkq2zxjbzc5whmzlc4czcmm3a
+- dvilela/memeooorr_abci:0.1.0:bafybeic6iw6x7rcbnueptuols5notwwnojfnuoduwtqjq6j2r435ukct7m
 behaviours:
   main:
     args: {}
@@ -156,6 +156,7 @@ models:
       twitter_username: dummy_twitter_name
       service_registry_address_base: '0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE'
       service_registry_address_celo: '0xE3607b00E75f6405248323A9417ff6b39B244b50'
+      meme_subgraph_url: https://agentsfun-indexer-production.up.railway.app
     class_name: Params
   randomness_api:
     args:
