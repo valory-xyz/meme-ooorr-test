@@ -376,7 +376,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             tweet_id = latest_tweets[0]["id"]
 
             # Only respond to not previously interacted tweets
-            if tweet_id in interacted_tweet_ids:
+            if int(tweet_id) in interacted_tweet_ids:
                 self.context.logger.info("Tweet was already interacted with")
                 continue
 
