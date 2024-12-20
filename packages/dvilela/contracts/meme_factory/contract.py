@@ -181,10 +181,7 @@ class MemeFactoryContract(Contract):
         contract_instance = cls.get_instance(ledger_api, contract_address)
 
         summon_events: Dict[str, List] = cls.get_events(  # type: ignore
-            ledger_api,
-            contract_address,
-            "Summoned",
-            from_block
+            ledger_api, contract_address, "Summoned", from_block
         )["events"]
         nonce_to_event: Dict[str, Dict] = {e["token_nonce"]: e for e in summon_events}  # type: ignore
 

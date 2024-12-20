@@ -30,7 +30,7 @@ connections:
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiaw4yr7ubqlp63iz5wxqep3a5fokqs3kqva7sp2nsqg355zzucqgm
-- dvilela/meme_factory:0.1.0:bafybeihal5uteb2qfisb73vhlvsreb22ki5zizveb3ong5ne7dvstu3hym
+- dvilela/meme_factory:0.1.0:bafybeibkuiylm2qiivyrlue6opw3jxuyrh55f3r6lx5bqk7lnx6uc4yasu
 - dvilela/service_registry:0.1.0:bafybeie2rrgzcjehlp2feff6bhkuindxzrnuwxe2jcrsy2thcdtrsp2o24
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
