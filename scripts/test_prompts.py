@@ -25,27 +25,23 @@ import os
 import dotenv
 import google.generativeai as genai  # type: ignore
 
-from packages.dvilela.skills.memeooorr_abci.prompts import INTERACT_DECISION_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
 
 
 dotenv.load_dotenv(override=True)
 
-persona = "A cat lover"
-tweet_data = """
-
-tweet_id: 111112
-tweet_text: "It's never late to be a bot!"
-
-tweet_id: 111111
-tweet_text: "I love cats! 🐱"
-
-tweet_id: 111113
-tweet_text: "I love rats!"
+persona = """
+Johnny Silverhand from Cyberpunk2077
 """
 
 genai.configure(api_key=os.getenv("GENAI_API_KEY"))
-model = genai.GenerativeModel("gemini-1.5-flash")
+
+model = genai.GenerativeModel("gemini-2.0-flash-exp")
+
 response = model.generate_content(
-    INTERACT_DECISION_PROMPT.format(persona=persona, tweet_data=tweet_data)
+    DEFAULT_TWEET_PROMPT.format(persona=persona),
+    generation_config=genai.types.GenerationConfig(
+        temperature=2.0,
+    ),
 )
 print(response.text)

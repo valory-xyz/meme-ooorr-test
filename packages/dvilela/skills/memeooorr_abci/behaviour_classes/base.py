@@ -154,13 +154,20 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
     def _call_genai(
         self,
         prompt: str,
+        temperature: Optional[float] = None,
     ) -> Generator[None, None, Optional[str]]:
         """Send a request message from the skill context."""
+
+        payload_data = {"prompt": prompt}
+
+        if temperature is not None:
+            payload_data["temperature"] = temperature
+
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
         srr_message, srr_dialogue = srr_dialogues.create(
             counterparty=str(GENAI_CONNECTION_PUBLIC_ID),
             performative=SrrMessage.Performative.REQUEST,
-            payload=json.dumps({"prompt": prompt}),
+            payload=json.dumps(payload_data),
         )
         srr_message = cast(SrrMessage, srr_message)
         srr_dialogue = cast(SrrDialogue, srr_dialogue)

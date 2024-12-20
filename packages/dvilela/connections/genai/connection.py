@@ -39,7 +39,7 @@ from packages.valory.protocols.srr.message import SrrMessage
 
 PUBLIC_ID = PublicId.from_str("dvilela/genai:0.1.0")
 
-DEFAULT_TEMPERATURE = 1.5
+DEFAULT_TEMPERATURE = 2.0
 
 
 class SrrDialogues(BaseSrrDialogues):
@@ -170,7 +170,11 @@ class GenaiConnection(BaseSyncConnection):
     def _get_response(self, payload: dict) -> Tuple[Dict, bool]:
         """Get response from Genai."""
 
-        AVAILABLE_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro"]
+        AVAILABLE_MODELS = [
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-2.0-flash-exp",
+        ]
         REQUIRED_PROPERTIES = ["prompt"]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
