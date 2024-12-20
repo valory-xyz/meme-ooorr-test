@@ -164,6 +164,7 @@ models:
       twitter_username: dummy_twitter_name
       service_registry_address_base: '0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE'
       service_registry_address_celo: '0xE3607b00E75f6405248323A9417ff6b39B244b50'
+      meme_subgraph_url: https://agentsfun-indexer-production.up.railway.app
     class_name: Params
   requests:
     args: {}

@@ -88,5 +88,6 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.meme_factory_deployment_block_celo = self._ensure(
             "meme_factory_deployment_block_celo", kwargs, int
         )
+        self.meme_subgraph_url = self._ensure("meme_subgraph_url", kwargs, str)
 
         super().__init__(*args, **kwargs)

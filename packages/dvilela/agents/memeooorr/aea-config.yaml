@@ -220,6 +220,7 @@ models:
       twitter_username: ${str:null}
       service_registry_address_base: ${str:0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE}
       service_registry_address_celo: ${str:0xE3607b00E75f6405248323A9417ff6b39B244b50}
+      meme_subgraph_url: ${str:https://agentsfun-indexer-production.up.railway.app}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

@@ -496,6 +496,62 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         return tokens
 
+    def get_meme_coins_from_subgraph(self) -> Generator[None, None, Optional[List]]:
+        """Get a list of meme coins"""
+        self.context.logger.info("Getting meme tokens from the subgraph")
+
+        headers = {
+            "Content-Type": "application/json",
+        }
+
+        query = {"query": TOKENS_QUERY}
+
+        response = yield from self.get_http_response(  # type: ignore
+            method="POST",
+            url=self.params.meme_subgraph_url,
+            headers=headers,
+            content=json.dumps(query).encode(),
+        )
+
+        if response.status_code != HTTP_OK:  # type: ignore
+            self.context.logger.error(
+                f"Error getting agents from subgraph: {response}"  # type: ignore
+            )
+            return None
+
+        response_json = json.loads(response.body)
+        tokens = [
+            {
+                "block_number": int(t["blockNumber"]),
+                "chain": t["chain"],
+                "token_address": t["id"].split("-")[1],
+                "liquidity": int(t["liquidity"]),
+                "heart_count": int(t["heartCount"]),
+                "is_unleashed": t["isUnleashed"],
+                "lp_pair_address": t["lpPairAddress"],
+                "owner": t["owner"],
+                "timestamp": t["timestamp"],
+            }
+            for t in response_json["data"]["memeTokens"]["items"]
+            if t["chain"] == self.get_chain_id()
+        ]
+
+        # Load previously hearted memes
+        db_data = yield from self._read_kv(keys=("hearted_memes",))
+
+        if db_data is None:
+            self.context.logger.error("Error while loading the database")
+            hearted_memes: List[str] = []
+        else:
+            hearted_memes = db_data["hearted_memes"] or []
+
+        for token in tokens:
+            token["available_actions"] = self.get_meme_available_actions(
+                token, hearted_memes
+            )
+
+        return tokens
+
     def get_meme_coins(self) -> Generator[None, None, Optional[List]]:
         """Get a list of meme coins"""
 
@@ -504,7 +560,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         if meme_coins:
             return meme_coins
 
-        meme_coins = yield from self.get_meme_coins_from_chain()
+        meme_coins = yield from self.get_meme_coins_from_subgraph()
         return meme_coins
 
     def get_min_deploy_value(self) -> int:
