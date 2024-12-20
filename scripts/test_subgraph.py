@@ -68,7 +68,7 @@ HTTP_OK = 200
 def get_meme_coins_from_subgraph():
     """Get a list of meme coins"""
 
-    url = "https://agentsfun-indexer-production-6ab5.up.railway.app"
+    url = "https://agentsfun-indexer-production.up.railway.app"
 
     query = {"query": TOKENS_QUERY}
 
@@ -79,17 +79,21 @@ def get_meme_coins_from_subgraph():
 
     # Handle HTTP errors
     if response.status_code != HTTP_OK:
-        print(f"Error while pulling the memes from subgraph: {response.body!r}")
+        print(f"Error while pulling the memes from subgraph: {response}")
         return []
 
     # Load the response
     response_json = response.json()
     meme_coins = [
         {
-            "token_address": t["id"],
+            "block_number": int(t["blockNumber"]),
+            "chain": t["chain"],
+            "token_address": t["id"].split("-")[1],
             "liquidity": int(t["liquidity"]),
             "heart_count": int(t["heartCount"]),
             "is_unleashed": t["isUnleashed"],
+            "lp_pair_address": t["lpPairAddress"],
+            "owner": t["owner"],
             "timestamp": t["timestamp"],
         }
         for t in response_json["data"]["memeTokens"]["items"]
@@ -141,4 +145,4 @@ def get_memeooorr_handles_from_subgraph():
     return handles
 
 
-print(get_memeooorr_handles_from_subgraph())
+print(get_meme_coins_from_subgraph())
