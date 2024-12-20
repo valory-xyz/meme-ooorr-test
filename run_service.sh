@@ -29,17 +29,20 @@ cp $REPO_PATH/keys.json .
 
 autonomy deploy build -ltm --agent-cpu-limit 4.0 --agent-memory-limit 8192 --agent-memory-request 1024
 
+# Get the deployment directory
+deployment_dir=$(ls -d abci_build_* | grep '^abci_build_' | head -n 1)
+
 # Copy the database
 if test -e $MEMEOOORR_DB; then
   echo "Copying backup database"
-  cp $MEMEOOORR_DB abci_build/persistent_data/logs
+  cp $MEMEOOORR_DB $deployment_dir/persistent_data/logs
 fi
 
 # Copy the cookies
 if test -e $TWITTER_COOKIES; then
   echo "Copying Twitter cookies"
-  cp $TWITTER_COOKIES abci_build/persistent_data/logs
+  cp $TWITTER_COOKIES $deployment_dir/persistent_data/logs
 fi
 
 # Run the deployment
-autonomy deploy run --build-dir abci_build/ --detach
+autonomy deploy run --build-dir $deployment_dir --detach

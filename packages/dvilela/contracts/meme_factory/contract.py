@@ -175,14 +175,13 @@ class MemeFactoryContract(Contract):
         cls,
         ledger_api: EthereumApi,
         contract_address: str,
+        from_block: Optional[int] = None,
     ) -> Dict[str, List]:
         """Get the data from the Summoned event."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
 
         summon_events: Dict[str, List] = cls.get_events(  # type: ignore
-            ledger_api,
-            contract_address,
-            "Summoned",
+            ledger_api, contract_address, "Summoned", from_block
         )["events"]
         nonce_to_event: Dict[str, Dict] = {e["token_nonce"]: e for e in summon_events}  # type: ignore
 
@@ -221,29 +220,24 @@ class MemeFactoryContract(Contract):
     ) -> JSONLike:
         """Get events."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
+        current_block = ledger_api.api.eth.get_block_number()
 
         if from_block is None:
-            from_block = (
-                ledger_api.api.eth.get_block_number() - 86400
-            )  # approx 48h ago (2s per block)
+            from_block = current_block - 86400  # approx 48h ago (2s per block)
 
         # Avoid parsing too many blocks at a time. This might take too long and
         # the connection could time out.
-        MAX_BLOCKS = 5000
+        MAX_BATCH_BLOCKS = 5000
 
-        to_block = (
-            ledger_api.api.eth.get_block_number() - 1
-            if to_block == "latest"
-            else to_block
-        )
+        to_block = current_block - 1 if to_block == "latest" else to_block
 
         _logger.info(
             f"Getting {event_name} events from block {from_block} to {to_block} ({int(to_block) - int(from_block)} blocks)"
         )
 
-        ranges: List[int] = list(range(from_block, cast(int, to_block), MAX_BLOCKS)) + [
-            cast(int, to_block)
-        ]
+        ranges: List[int] = list(
+            range(from_block, cast(int, to_block), MAX_BATCH_BLOCKS)
+        ) + [cast(int, to_block)]
 
         event = getattr(contract_instance.events, event_name)
         events = []
@@ -271,6 +265,8 @@ class MemeFactoryContract(Contract):
                     _logger.error(e)
 
             events += new_events
+
+        _logger.info(f"Got {len(events)} {event_name} events")
 
         if event_name == "Summoned":
             return dict(

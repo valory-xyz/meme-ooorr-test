@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeic5pzigqmy5e7lmoz6bqtt6ndjm36qssdjo6y3zsb2bvlzjhtibvi
+agent: dvilela/memeooorr:0.1.0:bafybeifz54dwy4ytfgbyeckco3e2twi4yws7gfi3zqtlhatz2h3ypz7cby
 number_of_agents: 1
 deployment:
   agent:
@@ -86,6 +86,8 @@ extra:
         min_feedback_replies: ${MIN_FEEDBACK_REPLIES:int:10}
         meme_factory_address_base: ${MEME_FACTORY_ADDRESS_BASE:str:0x82a9c823332518c32a0c0edc050ef00934cf04d4}
         meme_factory_address_celo: ${MEME_FACTORY_ADDRESS_CELO:str:0xeea5f1e202dc43607273d54101ff8b58fb008a99}
+        meme_factory_deployment_block_base: ${MEME_FACTORY_DEPLOYMENT_BLOCK_BASE:int:23540622}
+        meme_factory_deployment_block_celo: ${MEME_FACTORY_DEPLOYMENT_BLOCK_CELO:int:29323752}
         olas_token_address_base: ${OLAS_TOKEN_ADDRESS_BASE:str:0x54330d28ca3357F294334BDC454a032e7f353416}
         olas_token_address_celo: ${OLAS_TOKEN_ADDRESS_CELO:str:0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51}
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
@@ -95,6 +97,7 @@ extra:
         twitter_username: ${TWIKIT_USERNAME:str:null}
         service_registry_address_base: ${SERVICE_REGISTRY_ADDRESS_BASE:str:0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE}
         service_registry_address_celo: ${SERVICE_REGISTRY_ADDRESS_CELO:str:0xE3607b00E75f6405248323A9417ff6b39B244b50}
+        meme_subgraph_url: ${MEME_SUBGRAPH_URL:str:https://agentsfun-indexer-production.up.railway.app}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

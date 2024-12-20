@@ -21,139 +21,112 @@
 
 
 ROUNDS_INFO = {
-    "ActionDecisionRound": {
-        "name": "Taking a decision on what to do with the token",
-        "description": "Takes a decision about whether to interact with other tokens",
-        "transitions": {},
+    "action_decision_round": {
+        "name": "Deciding Next Action",
+        "description": "Evaluates current meme tokens and chooses a strategic move—investing, unleashing, collecting, or doing nothing—to optimise returns",
     },
-    "ActionPreparationRound": {
-        "name": "Preparing the token action transaction",
-        "description": "Prepares a transaction to unleash, hearth, collect or burn a token",
-        "transitions": {},
+    "action_preparation_round": {
+        "name": "Preparing Action Transaction",
+        "description": "Constructs the exact on-chain command for the chosen token action, ensuring all parameters are set for successful execution",
     },
-    "ActionTweetRound": {
-        "name": "Tweeting about the token action",
-        "description": "Publishes a tweet announcing the performed token action",
-        "transitions": {},
+    "action_tweet_round": {
+        "name": "Posting Action Tweet",
+        "description": "Notifies followers about the executed token action, reinforcing engagement and transparency in the ongoing narrative",
     },
-    "AnalizeFeedbackRound": {
-        "name": "Analyzing Twitter feedback",
-        "description": "Analyzes responses to agent tweets and extracts feedback from them",
-        "transitions": {},
+    "analize_feedback_round": {
+        "name": "Analyzing Feedback",
+        "description": "Examines audience reactions and engagement metrics to decide whether to refine the persona or proceed with token creation",
     },
-    "CheckFundsRound": {
-        "name": "Checking funds",
-        "description": "Checks the agetn has enough funds to send a transaction",
-        "transitions": {},
+    "check_funds_round": {
+        "name": "Checking Funds",
+        "description": "Verifies available currency to ensure the feasibility of deploying tokens or conducting further actions",
     },
-    "CheckLateTxHashesRound": {
+    "check_late_tx_hashes_round": {
         "name": "Checking late transaction hashes",
         "description": "Checks late transaction hashes",
-        "transitions": {},
     },
-    "CheckTransactionHistoryRound": {
+    "check_transaction_history_round": {
         "name": "Checking the transaction history",
         "description": "Checks the transaction history",
-        "transitions": {},
     },
-    "CollectFeedbackRound": {
-        "name": "Collecting feedback from Twitter",
-        "description": "Collects responses to agent tweets",
-        "transitions": {},
+    "collect_feedback_round": {
+        "name": "Collecting Feedback",
+        "description": "Compiles replies from the latest tweet, extracting conditions and sentiments that guide future persona or strategy adjustments",
     },
-    "CollectSignatureRound": {
+    "collect_signature_round": {
         "name": "Collecting agent signatures",
         "description": "Collects agent signatures for a transaction",
-        "transitions": {},
     },
-    "DeploymentRound": {
-        "name": "Preparing a token deployment",
-        "description": "Prepares a token deployment transaction",
-        "transitions": {},
+    "deployment_round": {
+        "name": "Deploying Meme Token",
+        "description": "Initiates the on-chain setup of a new meme token based on the assessed demand, preparing it for liquidity and community interaction",
     },
-    "EngageRound": {
+    "engage_round": {
         "name": "Engaging with other agents",
         "description": "Responds to tweets from other agents",
-        "transitions": {},
     },
-    "FinalizationRound": {
+    "finalization_round": {
         "name": "Sending a transaction",
         "description": "Sends a transaction for mining",
-        "transitions": {},
     },
-    "LoadDatabaseRound": {
-        "name": "Loading the database",
-        "description": "Loads the database",
-        "transitions": {},
+    "load_database_round": {
+        "name": "Loading Database",
+        "description": "Retrieves saved persona and latest tweet data from storage, ensuring the activity restarts with consistent context",
     },
-    "PostAnnouncementRound": {
-        "name": "Twitting about the token deployment",
-        "description": "Publishes a tweet about the token deployment",
-        "transitions": {},
+    "post_announcement_round": {
+        "name": "Posting Announcement",
+        "description": "Publishes a follow-up tweet to inform followers about newly launched tokens, highlighting their significance and availability",
     },
-    "PostTweetRound": {
-        "name": "Publishing a tweet",
-        "description": "Publishes a tweet",
-        "transitions": {},
+    "post_tweet_round": {
+        "name": "Posting New Tweet",
+        "description": "Generates and shares a fresh tweet aligned with the persona, initiating engagement and gathering audience responses",
     },
-    "PullMemesRound": {
-        "name": "Pulling other tokens from the subgraph",
-        "description": "Pulls other tokens from the subgraph",
-        "transitions": {},
+    "pull_memes_round": {
+        "name": "Pulling Meme Data",
+        "description": "Fetches updated information on existing meme tokens, determining which may benefit from actions like hearting or unleashing",
     },
-    "RandomnessTransactionSubmissionRound": {
+    "randomness_transaction_submission_round": {
         "name": "Getting some randomness",
         "description": "Gets randomness from a decentralized randomness source",
-        "transitions": {},
     },
-    "RegistrationRound": {
+    "registration_round": {
         "name": "Registering agents ",
         "description": "Initializes the agent registration process",
-        "transitions": {},
     },
-    "RegistrationStartupRound": {
+    "registration_startup_round": {
         "name": "Registering agents at startup",
         "description": "Initializes the agent registration process",
-        "transitions": {},
     },
-    "ResetAndPauseRound": {
+    "reset_and_pause_round": {
         "name": "Cleaning up and sleeping for some time",
         "description": "Cleans up and sleeps for some time before running again",
-        "transitions": {},
     },
-    "ResetRound": {
+    "reset_round": {
         "name": "Cleaning up and resetting",
         "description": "Cleans up and resets the agent",
-        "transitions": {},
     },
-    "SelectKeeperTransactionSubmissionARound": {
+    "select_keeper_transaction_submission_a_round": {
         "name": "Selecting an agent to send the transaction",
         "description": "Selects an agent to send the transaction",
-        "transitions": {},
     },
-    "SelectKeeperTransactionSubmissionBAfterTimeoutRound": {
+    "select_keeper_transaction_submission_b_after_timeout_round": {
         "name": "Selecting an agent to send the transaction",
         "description": "Selects an agent to send the transaction",
-        "transitions": {},
     },
-    "SelectKeeperTransactionSubmissionBRound": {
+    "select_keeper_transaction_submission_b_round": {
         "name": "Selecting an agent to send the transaction",
         "description": "Selects an agent to send the transaction",
-        "transitions": {},
     },
-    "SynchronizeLateMessagesRound": {
+    "synchronize_late_messages_round": {
         "name": "Synchronizing late messages",
         "description": "Synchronizes late messages",
-        "transitions": {},
     },
-    "TransactionMultiplexerRound": {
-        "name": "Selecting next round",
-        "description": "Decides where to transition next based on the state previous to the transaction",
-        "transitions": {},
+    "transaction_multiplexer_round": {
+        "name": "Orchestrating Transactions",
+        "description": "Coordinates multiple blockchain operations into a coherent sequence, ensuring efficient and timely execution of strategic steps",
     },
-    "ValidateTransactionRound": {
+    "validate_transaction_round": {
         "name": "Validating the transaction",
-        "description": "Checks that the transaction was succesful",
-        "transitions": {},
+        "description": "Checks that the transaction was successful",
     },
 }

@@ -101,4 +101,14 @@ async def like_tweet() -> None:
     await client.favorite_tweet("1868952161427882053")
 
 
-asyncio.run(like_tweet())
+async def is_suspended() -> None:
+    """Is suspended"""
+    client = await cookie_login()
+    try:
+        await client.get_user_by_screen_name("autonolas")
+        return False
+    except twikit.errors.UserUnavailable:
+        return True
+
+
+print(asyncio.run(is_suspended()))

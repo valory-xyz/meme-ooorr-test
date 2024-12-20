@@ -495,17 +495,11 @@ class PullMemesRound(CollectSameUntilThresholdRound):
         # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
         if self.threshold_reached:
-            # Error pulling memes
             if self.most_voted_payload is None:
-                return self.synchronized_data, Event.ERROR
+                meme_coins = []
+            else:
+                meme_coins = json.loads(self.most_voted_payload)
 
-            meme_coins = json.loads(self.most_voted_payload)
-
-            # No memes pulled
-            if not meme_coins:
-                return self.synchronized_data, Event.NO_MEMES
-
-            # Pulled some memes
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
@@ -667,27 +661,32 @@ class MemeooorrAbciApp(AbciApp[Event]):
     }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
-            Event.DONE: PostTweetRound,
+            Event.DONE: PullMemesRound,
             Event.NO_MAJORITY: LoadDatabaseRound,
             Event.ROUND_TIMEOUT: LoadDatabaseRound,
+        },
+        PullMemesRound: {
+            Event.DONE: PostTweetRound,
+            Event.NO_MAJORITY: PullMemesRound,
+            Event.ROUND_TIMEOUT: PullMemesRound,
         },
         PostTweetRound: {
             Event.DONE: CollectFeedbackRound,
             Event.ERROR: PostTweetRound,
-            Event.WAIT: PullMemesRound,
+            Event.WAIT: ActionDecisionRound,
             Event.NO_MAJORITY: PostTweetRound,
             Event.ROUND_TIMEOUT: PostTweetRound,
         },
         CollectFeedbackRound: {
             Event.DONE: AnalizeFeedbackRound,
             Event.ERROR: CollectFeedbackRound,
-            Event.NOT_ENOUGH_FEEDBACK: PullMemesRound,
+            Event.NOT_ENOUGH_FEEDBACK: ActionDecisionRound,
             Event.NO_MAJORITY: CollectFeedbackRound,
             Event.ROUND_TIMEOUT: CollectFeedbackRound,
         },
         AnalizeFeedbackRound: {
             Event.DONE: DeploymentRound,
-            Event.REFINE: PullMemesRound,
+            Event.REFINE: ActionDecisionRound,
             Event.ERROR: AnalizeFeedbackRound,
             Event.NO_MAJORITY: AnalizeFeedbackRound,
             Event.ROUND_TIMEOUT: AnalizeFeedbackRound,
@@ -700,18 +699,11 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: DeploymentRound,
         },
         PostAnnouncementRound: {
-            Event.DONE: PullMemesRound,
+            Event.DONE: ActionDecisionRound,
             Event.ERROR: PostAnnouncementRound,
             Event.NO_MAJORITY: PostAnnouncementRound,
             Event.ROUND_TIMEOUT: PostAnnouncementRound,
             Event.WAIT: PostAnnouncementRound,  # This will never happen. Just for static analysys.
-        },
-        PullMemesRound: {
-            Event.DONE: ActionDecisionRound,
-            Event.ERROR: PullMemesRound,
-            Event.NO_MEMES: EngageRound,
-            Event.NO_MAJORITY: PullMemesRound,
-            Event.ROUND_TIMEOUT: PullMemesRound,
         },
         ActionDecisionRound: {
             Event.DONE: ActionPreparationRound,

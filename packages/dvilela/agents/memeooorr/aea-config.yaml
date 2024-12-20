@@ -13,15 +13,15 @@ connections:
 - valory/http_client:0.23.0:bafybeihi772xgzpqeipp3fhmvpct4y6e6tpjp4sogwqrnf3wqspgeilg4u
 - valory/ledger:0.19.0:bafybeigntoericenpzvwejqfuc3kqzo2pscs76qoygg5dbj6f4zxusru5e
 - valory/p2p_libp2p_client:0.1.0:bafybeid3xg5k2ol5adflqloy75ibgljmol6xsvzvezebsg7oudxeeolz7e
-- dvilela/twikit:0.1.0:bafybeibglc42u6krxzzhdsnixhdwblefcolhulzckyfmek4hg4chvgpwza
+- dvilela/twikit:0.1.0:bafybeig2rrxb4v56r7oo3vb5ahgryb7aw6n2i6wreackeamlhndwoldawm
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
-- dvilela/genai:0.1.0:bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq
+- dvilela/genai:0.1.0:bafybeidkxxlonrxirznivkmzc34wmby4e4s57rfg2b7k6xyos23g3y6cdy
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiaw4yr7ubqlp63iz5wxqep3a5fokqs3kqva7sp2nsqg355zzucqgm
 - valory/gnosis_safe_proxy_factory:0.1.0:bafybeidkqhw7smq4kbqryodom6maj7gubc5nbxwm4vi343xbkqxx3brjtm
 - valory/multisend:0.1.0:bafybeig5byt5urg2d2bsecufxe5ql7f4mezg3mekfleeh32nmuusx66p4y
-- dvilela/meme_factory:0.1.0:bafybeihlkjzpzfqnxht4h6kag7hrows5a6bxdgjcy23slphzswhyfha3h4
+- dvilela/meme_factory:0.1.0:bafybeifwx7zcrj7fi4nkfdcucomn3ph7jlr3ac364ilayzcnh4sqjma3vu
 - dvilela/service_registry:0.1.0:bafybeie2rrgzcjehlp2feff6bhkuindxzrnuwxe2jcrsy2thcdtrsp2o24
 protocols:
 - open_aea/signing:1.0.0:bafybeihv62fim3wl2bayavfcg3u5e5cxu3b7brtu4cn5xoxd6lqwachasi
@@ -41,8 +41,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeigh2vkt74jrad5gtsczrgqcuhcqe7jkgjy7jdw56yamlzwwnaymjy
 - valory/registration_abci:0.1.0:bafybeib3n6vqkfbrcubcbliebjnuwyywdinxkbzt76n6gbn2kg7ace47dq
 - valory/reset_pause_abci:0.1.0:bafybeihkj6lmaypspyxe5qqrjgnolyck62pyvqoylr24ab6ue4steqcw7e
-- dvilela/memeooorr_abci:0.1.0:bafybeid5ns324gqhpiyatnfrc74ppe44xolotyen4xntmkpq5isd2lr22m
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeiaw4a6lkkzglhlbgxdt3cun4t3sxyaiyqj5d3kaj2wu5gppgmwg4u
+- dvilela/memeooorr_abci:0.1.0:bafybeibaq7h2tdysuicjsonyxwoigungfzewiizrznuemctyfx34ja3you
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeia6jc3rd3sbernw25kbkhtad6vogavimxdyb22xr4fnim4odoumyu
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -209,6 +209,8 @@ models:
       min_feedback_replies: ${int:10}
       meme_factory_address_base: ${str:0x82a9c823332518c32a0c0edc050ef00934cf04d4}
       meme_factory_address_celo: ${str:0xeea5f1e202dc43607273d54101ff8b58fb008a99}
+      meme_factory_deployment_block_base: ${int:23540622}
+      meme_factory_deployment_block_celo: ${int:29323752}
       olas_token_address_base: ${str:0x54330d28ca3357F294334BDC454a032e7f353416}
       olas_token_address_celo: ${str:0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51}
       persona: ${str:a cat lover that is crazy about all-things cats.}
@@ -218,6 +220,7 @@ models:
       twitter_username: ${str:null}
       service_registry_address_base: ${str:0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE}
       service_registry_address_celo: ${str:0xE3607b00E75f6405248323A9417ff6b39B244b50}
+      meme_subgraph_url: ${str:https://agentsfun-indexer-production.up.railway.app}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

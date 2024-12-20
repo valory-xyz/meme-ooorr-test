@@ -8,29 +8,29 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeifjxjnwlkn64tnkiz3lw6efsd6hdjqw7pnfpasg7aff2b3qw7ydvm
+  behaviour_classes/base.py: bafybeicwvdmdyfjvwv7htgfwda5n6rbypdp3vev5lftclvhqyeq2nutf6m
   behaviour_classes/chain.py: bafybeigxfwko3rofqlzyjjhgeo6yabxseqngo2uz5muyfk3f2jjpgdrsli
   behaviour_classes/db.py: bafybeieuhjes2gsiidepjxcojgnn3swx2znem5uwvz7rwkxpwls3dmlxf4
-  behaviour_classes/llm.py: bafybeigde25dr53m4i37bzfo7kb5l7sxw6442qdx4icyzdninsmgjoqpra
-  behaviour_classes/twitter.py: bafybeighbocmxjrgdjltdrpvjxjac6pai756k3f3mponapcmofxunau7ha
+  behaviour_classes/llm.py: bafybeifdhipccrdtfx5vay2sfd7vss4iovwtyeefuz5vrjewjbyatk35c4
+  behaviour_classes/twitter.py: bafybeihka7bscxyre2dabp6p5qkb43zvj7l3kdyhujsn55uvt4znnp6uom
   behaviours.py: bafybeibdbimezloiomvsv3zgfdug4tw276gt7tb5agnezl2nuqcfcplscu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
-  fsm_specification.yaml: bafybeidqesafw5vtekw2dtffjznuchdjllo52najwmmkj2npfdyaouigfa
-  handlers.py: bafybeigdxkm45w27sh7cpgiwuperjldql6oupbhxqtizhbwfv7abxe3dku
-  models.py: bafybeia4mupvgav4eoipxz6t7m5gwygreqhlikz2cxpl4hcwaxvg6gt4um
-  payloads.py: bafybeifxy5bsv3rovzhzasmrohfnlggpacluigxr6c5fdyux3dwihikpum
-  prompts.py: bafybeicfojb2vt42peclkx4ccyjg65ck5y7eptlkof26sfjp572frrkgbq
-  rounds.py: bafybeif5o3crhnh2hyuid6ineu2tq4zxcjdydtj5ea4cwps5gjoju7purm
-  rounds_info.py: bafybeieqaemvqwiwku7nlxkdebsqzldpvvidijf6wcwy7e3xbyz335jr6i
+  fsm_specification.yaml: bafybeif4kr2lnj4ppaaxveej2a3gq2gul6gicu2rar2yeyhg4mspqsikxy
+  handlers.py: bafybeibnnxjczbaeqzxvg4s5mmrogzhgpswwwwpmw6gds6mltgrq27r67y
+  models.py: bafybeidwapsmqst3jw3ahsl4o2lfsapcyn4ojsqn3gz5nvivpsykc4sefy
+  payloads.py: bafybeibyukr3aewwlbx6c6xe43j6nhgdqwqdgbemswrsvnqp3ftqodvvmi
+  prompts.py: bafybeiguzllaoupwzyiob6iufx77czkj6a7xe3mdporjtrfnm5m4grzhbe
+  rounds.py: bafybeiezr7wrjl7k3ojvjqdbpp6vs7u2lmgwdjuhi62sy4hedpe4euwswq
+  rounds_info.py: bafybeieepy67c2g7dtkeuueuldhvcpbeavvtkg36gmoempftiic2tqxb4y
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
-- dvilela/twikit:0.1.0:bafybeibglc42u6krxzzhdsnixhdwblefcolhulzckyfmek4hg4chvgpwza
-- dvilela/genai:0.1.0:bafybeifcrrfz6jwp437zutmrhtjjkruflauoa4go627c47haiv2r2ej2uq
+- dvilela/twikit:0.1.0:bafybeig2rrxb4v56r7oo3vb5ahgryb7aw6n2i6wreackeamlhndwoldawm
+- dvilela/genai:0.1.0:bafybeidkxxlonrxirznivkmzc34wmby4e4s57rfg2b7k6xyos23g3y6cdy
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiaw4yr7ubqlp63iz5wxqep3a5fokqs3kqva7sp2nsqg355zzucqgm
-- dvilela/meme_factory:0.1.0:bafybeihlkjzpzfqnxht4h6kag7hrows5a6bxdgjcy23slphzswhyfha3h4
+- dvilela/meme_factory:0.1.0:bafybeifwx7zcrj7fi4nkfdcucomn3ph7jlr3ac364ilayzcnh4sqjma3vu
 - dvilela/service_registry:0.1.0:bafybeie2rrgzcjehlp2feff6bhkuindxzrnuwxe2jcrsy2thcdtrsp2o24
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
@@ -153,6 +153,8 @@ models:
       min_feedback_replies: 10
       meme_factory_address_base: '0x82a9c823332518c32a0c0edc050ef00934cf04d4'
       meme_factory_address_celo: '0xeea5f1e202dc43607273d54101ff8b58fb008a99'
+      meme_factory_deployment_block_base: 23540622
+      meme_factory_deployment_block_celo: 29323752
       olas_token_address_base: '0x54330d28ca3357F294334BDC454a032e7f353416'
       olas_token_address_celo: '0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51'
       persona: a cat lover that is crazy about all-things cats.
@@ -162,6 +164,7 @@ models:
       twitter_username: dummy_twitter_name
       service_registry_address_base: '0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE'
       service_registry_address_celo: '0xE3607b00E75f6405248323A9417ff6b39B244b50'
+      meme_subgraph_url: https://agentsfun-indexer-production.up.railway.app
     class_name: Params
   requests:
     args: {}

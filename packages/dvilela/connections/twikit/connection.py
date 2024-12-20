@@ -233,6 +233,7 @@ class TwikitConnection(Connection):
             "like_tweet",
             "retweet",
             "follow_user",
+            "filter_suspended_users",
         ]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
@@ -415,6 +416,17 @@ class TwikitConnection(Connection):
         """Retweet"""
         response = await self.client.retweet(tweet_id)
         return {"success": response.status_code == HTTP_OK}
+
+    async def filter_suspended_users(self, user_names: List[str]) -> List[str]:
+        """Retweet"""
+        not_suspendend_users = []
+        for user_name in user_names:
+            try:
+                await self.client.get_user_by_screen_name(user_name)
+                not_suspendend_users.append(user_name)
+            except twikit.errors.TwitterException:
+                continue
+        return not_suspendend_users
 
 
 def tweet_to_json(tweet: Any) -> Dict:
