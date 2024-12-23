@@ -21,7 +21,6 @@
 
 import json
 import re
-import secrets
 from datetime import datetime
 from typing import Dict, Generator, List, Optional, Tuple, Type, Union
 
@@ -83,18 +82,11 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            (
-                latest_tweet,
-                feedback_period_max_hours_delta,
-            ) = yield from self.decide_post_tweet()
-            self.context.logger.info(
-                f"feedback_period_max_hours_delta sent to payload: {feedback_period_max_hours_delta}"
-            )
+            latest_tweet = yield from self.decide_post_tweet()
 
             payload = PostTweetPayload(
                 sender=self.context.agent_address,
                 latest_tweet=json.dumps(latest_tweet, sort_keys=True),
-                feedback_period_max_hours_delta=feedback_period_max_hours_delta,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -105,7 +97,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
     def decide_post_tweet(  # pylint: disable=too-many-locals
         self,
-    ) -> Generator[None, None, Tuple[Optional[Dict], int]]:
+    ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
 
         pending_tweet = self.synchronized_data.pending_tweet
@@ -147,8 +139,8 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         # If there is a pending tweet, we send it
         if pending_tweet:
             self.context.logger.info("Sending a pending tweet...")
-            latest_tweet = self.synchronized_data.latest_tweet or {}
-            return latest_tweet, feedback_period_max_hours_delta
+            latest_tweet = yield from self.post_tweet(tweet=[pending_tweet])
+            return latest_tweet
 
         # If we have not posted before, we prepare and send a new tweet
         if self.synchronized_data.latest_tweet == {}:
@@ -164,7 +156,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         hours_since_last_tweet = (now - latest_tweet_time).total_seconds() / 3600
 
         # Too much time has passed since last tweet without feedback, tweet again
-        if hours_since_last_tweet >= adjusted_feedback_period_max_hours:
+        if hours_since_last_tweet >= self.params.feedback_period_max_hours:
             self.context.logger.info(
                 "Too much time has passed since last tweet. Creating a new tweet..."
             )
@@ -176,14 +168,14 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             self.context.logger.info(
                 f"{hours_since_last_tweet:.1f} hours have passed since last tweet. Awaiting for the feedback period..."
             )
-            return {"wait": True}, feedback_period_max_hours_delta
+            return {"wait": True}
 
         # Enough time has passed, collect feedback
         if self.synchronized_data.feedback is None:
             self.context.logger.info(
                 "Feedback period has finished. Collecting feedback..."
             )
-            return {}, feedback_period_max_hours_delta
+            return {}
 
         # Not enough feedback, prepare and send a new tweet
         self.context.logger.info("Feedback was not enough. Creating a new tweet...")
