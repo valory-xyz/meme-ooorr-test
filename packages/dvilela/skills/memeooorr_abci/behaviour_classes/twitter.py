@@ -23,7 +23,6 @@ import json
 import re
 import secrets
 from datetime import datetime
-import secrets
 from typing import Dict, Generator, List, Optional, Tuple, Type, Union
 
 from twitter_text import parse_tweet  # type: ignore
@@ -478,7 +477,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
         if not json_response:
             return Event.ERROR.value, new_interacted_tweet_ids
-
+        
         for interaction in json_response:
             tweet_id = interaction.get("tweet_id", None)
             action = interaction.get("action", None)
@@ -537,11 +536,11 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         user_name: Optional[str] = None,
     ) -> Generator[None, None, bool]:
         """Like a tweet"""
-        #adding random delay to avoid rate limiting
+        # adding random delay to avoid rate limiting
         delay = secrets.randbelow(5)
         self.context.logger.info(f"Sleeping for {delay} seconds")
         self.context.sleep(delay)
-        
+
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
         tweet = {"text": text}
         if quote:
@@ -557,7 +556,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     def like_tweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Like a tweet"""
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
-        #adding random delay to avoid rate limiting
+        # adding random delay to avoid rate limiting
         delay = secrets.randbelow(5)
         self.context.logger.info(f"Sleeping for {delay} seconds")
         self.context.sleep(delay)
@@ -567,7 +566,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     def retweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Reweet"""
         self.context.logger.info(f"Retweeting tweet with ID: {tweet_id}")
-        #adding random delay to avoid rate limiting
+        # adding random delay to avoid rate limiting
         delay = secrets.randbelow(5)
         self.context.logger.info(f"Sleeping for {delay} seconds")
         self.context.sleep(delay)
@@ -577,7 +576,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     def follow_user(self, user_id: str) -> Generator[None, None, bool]:
         """Follow user"""
         self.context.logger.info(f"Following user with ID: {user_id}")
-        #adding random delay to avoid rate limiting
+        # adding random delay to avoid rate limiting
         delay = secrets.randbelow(5)
         self.context.logger.info(f"Sleeping for {delay} seconds")
         self.context.sleep(delay)
