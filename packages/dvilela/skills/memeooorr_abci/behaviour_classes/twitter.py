@@ -566,10 +566,12 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     def retweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Reweet"""
         self.context.logger.info(f"Retweeting tweet with ID: {tweet_id}")
+        
         # adding random delay to avoid rate limiting
         delay = secrets.randbelow(5)
         self.context.logger.info(f"Sleeping for {delay} seconds")
         self.context.sleep(delay)
+
         response = yield from self._call_twikit(method="retweet", tweet_id=tweet_id)
         return response["success"]
 
