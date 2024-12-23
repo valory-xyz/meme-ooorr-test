@@ -143,6 +143,11 @@ class SynchronizedData(BaseSynchronizedData):
         """Get the token action."""
         return cast(dict, json.loads(cast(str, self.db.get("token_action", "{}"))))
 
+    @property
+    def feedback_period_max_hours_delta(self) -> int:
+        """Get the feedback_period_max_hours_delta."""
+        return cast(int, self.db.get("feedback_period_max_hours_delta", 0))
+
 
 class LoadDatabaseRound(CollectSameUntilThresholdRound):
     """LoadDatabaseRound"""
@@ -184,7 +189,9 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
     required_class_attributes = ()
 
 
-class PostTweetRound(CollectSameUntilThresholdRound):
+class PostTweetRound(
+    CollectSameUntilThresholdRound
+):  # pylint: disable=too-many-return-statements
     """PostTweetRound"""
 
     payload_class = PostTweetPayload
@@ -193,12 +200,21 @@ class PostTweetRound(CollectSameUntilThresholdRound):
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
-
+        # pylint: disable=too-many-return-statements
         # This needs to be mentioned for static checkers
         # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
         if self.threshold_reached:
-            latest_tweet = json.loads(self.most_voted_payload)
+            payload = PostTweetPayload(
+                *(("dummy_sender",) + self.most_voted_payload_values)
+            )
+            latest_tweet_str = payload.latest_tweet
+            self.context.logger.info(
+                f"recieved feedback_period_max_hours_delta: {payload.feedback_period_max_hours_delta}"
+            )
+            if latest_tweet_str is None:
+                return self.synchronized_data, Event.ERROR
+            latest_tweet = json.loads(latest_tweet_str)
 
             # API errors
             if latest_tweet is None:
@@ -208,10 +224,34 @@ class PostTweetRound(CollectSameUntilThresholdRound):
 
             # Wait
             if latest_tweet.get("wait", False):
+                self.context.logger.info(
+                    f"Waiting for feedback saved feedback_period_max_hours_delta: {payload.feedback_period_max_hours_delta}"
+                )
+                # update only feedback_period_max_hours_delta in the db
+                synchronized_data = self.synchronized_data.update(
+                    synchronized_data_class=SynchronizedData,
+                    **{
+                        get_name(
+                            SynchronizedData.feedback_period_max_hours_delta
+                        ): payload.feedback_period_max_hours_delta
+                    },
+                )
                 return self.synchronized_data, Event.WAIT
 
             # Collect feedback
             if latest_tweet == {} and not feedback:
+                # update feedback_period_max_hours_delta in the db
+                self.context.logger.info(
+                    f"Collecting feedbacksaved feedback_period_max_hours_delta: {payload.feedback_period_max_hours_delta}"
+                )
+                synchronized_data = self.synchronized_data.update(
+                    synchronized_data_class=SynchronizedData,
+                    **{
+                        get_name(
+                            SynchronizedData.feedback_period_max_hours_delta
+                        ): payload.feedback_period_max_hours_delta
+                    },
+                )
                 return self.synchronized_data, Event.DONE
 
             # Remove posted tweets from pending and into latest, then reset
@@ -222,6 +262,9 @@ class PostTweetRound(CollectSameUntilThresholdRound):
                     get_name(SynchronizedData.latest_tweet): json.dumps(
                         latest_tweet, sort_keys=True
                     ),
+                    get_name(
+                        SynchronizedData.feedback_period_max_hours_delta
+                    ): payload.feedback_period_max_hours_delta,
                 },
             )
             return synchronized_data, Event.WAIT
@@ -729,7 +772,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
     final_states: Set[AppState] = {FinishedToResetRound, FinishedToSettlementRound}
     event_to_timeout: EventToTimeout = {}
     cross_period_persisted_keys: FrozenSet[str] = frozenset(
-        ["persona", "latest_tweet", "feedback"]
+        ["persona", "latest_tweet", "feedback", "feedback_period_max_hours_delta"]
     )
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
