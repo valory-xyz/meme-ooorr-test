@@ -22,6 +22,7 @@
 import json
 import re
 from datetime import datetime
+import secrets
 from typing import Dict, Generator, List, Optional, Tuple, Type, Union
 
 from twitter_text import parse_tweet  # type: ignore
