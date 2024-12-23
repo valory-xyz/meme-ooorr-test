@@ -118,9 +118,6 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         )
 
         # Adjust feedback_period_max_hours with delta
-        adjusted_feedback_period_max_hours = self.params.feedback_period_max_hours + (
-            feedback_period_max_hours_delta / 60
-        )
 
         if feedback_period_max_hours_delta == 0:
             while True:
@@ -138,26 +135,15 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
                 )
 
                 if adjusted_feedback_period_max_hours >= 0:
-                    self.context.logger.info(
-                        f"adjusted_feedback_period_max_hours: {adjusted_feedback_period_max_hours}"
-                    )
-
-                    latest_tweet = self.synchronized_data.latest_tweet
-
-                    payload = PostTweetPayload(
-                        sender=self.context.agent_address,
-                        latest_tweet=json.dumps(latest_tweet, sort_keys=True),
-                        feedback_period_max_hours_delta=feedback_period_max_hours_delta,
-                    )
-
-                    with self.context.benchmark_tool.measure(
-                        self.behaviour_id
-                    ).consensus():
-                        yield from self.send_a2a_transaction(payload)
-                        yield from self.wait_until_round_end()
-
                     break
 
+        adjusted_feedback_period_max_hours = self.params.feedback_period_max_hours + (
+            feedback_period_max_hours_delta / 60
+        )
+
+        self.context.logger.info(
+            f"adjusted_feedback_period_max_hours: {adjusted_feedback_period_max_hours}"
+        )
         # If there is a pending tweet, we send it
         if pending_tweet:
             self.context.logger.info("Sending a pending tweet...")
@@ -168,7 +154,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         if self.synchronized_data.latest_tweet == {}:
             self.context.logger.info("Creating a new tweet for the first time...")
             latest_tweet = yield from self.post_tweet(tweet=[pending_tweet]) or {}
-            return latest_tweet, feedback_period_max_hours_delta
+            return latest_tweet, 0  # Reset delta to 0
 
         # Calculate time since the latest tweet
         latest_tweet_time = datetime.fromtimestamp(
@@ -183,11 +169,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
                 "Too much time has passed since last tweet. Creating a new tweet..."
             )
             latest_tweet = yield from self.post_tweet(tweet=None) or {}
-            self.context.logger.info(
-                f"new tweet made setting feedback_period_max_hours_delta to {feedback_period_max_hours_delta}"
-            )
-            feedback_period_max_hours_delta = 0
-            return latest_tweet, feedback_period_max_hours_delta
+            return latest_tweet, 0  # Reset delta to 0
 
         # If we have posted befored, but not enough time has passed to collect feedback, we wait
         if hours_since_last_tweet < self.params.feedback_period_min_hours:
@@ -206,7 +188,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         # Not enough feedback, prepare and send a new tweet
         self.context.logger.info("Feedback was not enough. Creating a new tweet...")
         latest_tweet = yield from self.post_tweet(tweet=None) or {}
-        return latest_tweet, feedback_period_max_hours_delta
+        return latest_tweet, 0  # Reset delta to 0
 
     def prepare_tweet(self) -> Generator[None, None, Optional[str]]:
         """Prepare a tweet"""
@@ -503,6 +485,8 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
             if action == "none" or str(tweet_id) not in pending_tweets.keys():
                 continue
+
+            # use yield from self.sleep(1) to simulate a delay use secrests to randomize the delay
 
             self.context.logger.info(f"Trying to {action} tweet {tweet_id}")
 

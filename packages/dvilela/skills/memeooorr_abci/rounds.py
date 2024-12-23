@@ -209,6 +209,9 @@ class PostTweetRound(
                 *(("dummy_sender",) + self.most_voted_payload_values)
             )
             latest_tweet_str = payload.latest_tweet
+            self.context.logger.info(
+                f"recieved feedback_period_max_hours_delta: {payload.feedback_period_max_hours_delta}"
+            )
             if latest_tweet_str is None:
                 return self.synchronized_data, Event.ERROR
             latest_tweet = json.loads(latest_tweet_str)
@@ -221,15 +224,35 @@ class PostTweetRound(
 
             # Wait
             if latest_tweet.get("wait", False):
+                self.context.logger.info(
+                    f"Waiting for feedback saved feedback_period_max_hours_delta: {payload.feedback_period_max_hours_delta}"
+                )
+                # update only feedback_period_max_hours_delta in the db
+                synchronized_data = self.synchronized_data.update(
+                    synchronized_data_class=SynchronizedData,
+                    **{
+                        get_name(
+                            SynchronizedData.feedback_period_max_hours_delta
+                        ): payload.feedback_period_max_hours_delta
+                    },
+                )
                 return self.synchronized_data, Event.WAIT
 
             # Collect feedback
             if latest_tweet == {} and not feedback:
+                # update feedback_period_max_hours_delta in the db
+                self.context.logger.info(
+                    f"Collecting feedbacksaved feedback_period_max_hours_delta: {payload.feedback_period_max_hours_delta}"
+                )
+                synchronized_data = self.synchronized_data.update(
+                    synchronized_data_class=SynchronizedData,
+                    **{
+                        get_name(
+                            SynchronizedData.feedback_period_max_hours_delta
+                        ): payload.feedback_period_max_hours_delta
+                    },
+                )
                 return self.synchronized_data, Event.DONE
-
-            self.context.logger.info(
-                f"recieved feedback_period_max_hours_delta: {payload.feedback_period_max_hours_delta}"
-            )
 
             # Remove posted tweets from pending and into latest, then reset
             synchronized_data = self.synchronized_data.update(
