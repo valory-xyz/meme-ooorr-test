@@ -200,7 +200,7 @@ class PostTweetRound(
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
-
+        # pylint: disable=too-many-return-statements
         # This needs to be mentioned for static checkers
         # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
