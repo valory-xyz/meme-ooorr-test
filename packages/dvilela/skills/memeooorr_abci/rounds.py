@@ -143,6 +143,11 @@ class SynchronizedData(BaseSynchronizedData):
         """Get the token action."""
         return cast(dict, json.loads(cast(str, self.db.get("token_action", "{}"))))
 
+    @property
+    def feedback_period_max_hours_delta(self) -> int:
+        """Get the feedback_period_max_hours_delta."""
+        return cast(int, self.db.get("feedback_period_max_hours_delta", 0))
+
 
 class LoadDatabaseRound(CollectSameUntilThresholdRound):
     """LoadDatabaseRound"""
@@ -184,7 +189,9 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
     required_class_attributes = ()
 
 
-class PostTweetRound(CollectSameUntilThresholdRound):
+class PostTweetRound(
+    CollectSameUntilThresholdRound
+):  # pylint: disable=too-many-return-statements
     """PostTweetRound"""
 
     payload_class = PostTweetPayload
@@ -255,6 +262,9 @@ class PostTweetRound(CollectSameUntilThresholdRound):
                     get_name(SynchronizedData.latest_tweet): json.dumps(
                         latest_tweet, sort_keys=True
                     ),
+                    get_name(
+                        SynchronizedData.feedback_period_max_hours_delta
+                    ): payload.feedback_period_max_hours_delta,
                 },
             )
             return synchronized_data, Event.WAIT
@@ -762,7 +772,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
     final_states: Set[AppState] = {FinishedToResetRound, FinishedToSettlementRound}
     event_to_timeout: EventToTimeout = {}
     cross_period_persisted_keys: FrozenSet[str] = frozenset(
-        ["persona", "latest_tweet", "feedback"]
+        ["persona", "latest_tweet", "feedback", "feedback_period_max_hours_delta"]
     )
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
