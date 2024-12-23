@@ -22,6 +22,7 @@
 import json
 import re
 from datetime import datetime
+import secrets
 from typing import Dict, Generator, List, Optional, Tuple, Type, Union
 
 from twitter_text import parse_tweet  # type: ignore
@@ -492,6 +493,11 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         user_name: Optional[str] = None,
     ) -> Generator[None, None, bool]:
         """Like a tweet"""
+        #adding random delay to avoid rate limiting
+        delay = secrets.randbelow(5)
+        self.context.logger.info(f"Sleeping for {delay} seconds")
+        self.context.sleep(delay)
+        
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
         tweet = {"text": text}
         if quote:
@@ -507,17 +513,29 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     def like_tweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Like a tweet"""
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
+        #adding random delay to avoid rate limiting
+        delay = secrets.randbelow(5)
+        self.context.logger.info(f"Sleeping for {delay} seconds")
+        self.context.sleep(delay)
         response = yield from self._call_twikit(method="like_tweet", tweet_id=tweet_id)
         return response["success"]
 
     def retweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Reweet"""
         self.context.logger.info(f"Retweeting tweet with ID: {tweet_id}")
+        #adding random delay to avoid rate limiting
+        delay = secrets.randbelow(5)
+        self.context.logger.info(f"Sleeping for {delay} seconds")
+        self.context.sleep(delay)
         response = yield from self._call_twikit(method="retweet", tweet_id=tweet_id)
         return response["success"]
 
     def follow_user(self, user_id: str) -> Generator[None, None, bool]:
         """Follow user"""
         self.context.logger.info(f"Following user with ID: {user_id}")
+        #adding random delay to avoid rate limiting
+        delay = secrets.randbelow(5)
+        self.context.logger.info(f"Sleeping for {delay} seconds")
+        self.context.sleep(delay)
         response = yield from self._call_twikit(method="follow_user", user_id=user_id)
         return response["success"]
