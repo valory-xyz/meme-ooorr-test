@@ -143,11 +143,6 @@ class SynchronizedData(BaseSynchronizedData):
         """Get the token action."""
         return cast(dict, json.loads(cast(str, self.db.get("token_action", "{}"))))
 
-    @property
-    def feedback_period_max_hours_delta(self) -> int:
-        """Get the feedback_period_max_hours_delta."""
-        return cast(int, self.db.get("feedback_period_max_hours_delta", 0))
-
 
 class LoadDatabaseRound(CollectSameUntilThresholdRound):
     """LoadDatabaseRound"""
@@ -189,9 +184,7 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
     required_class_attributes = ()
 
 
-class PostTweetRound(
-    CollectSameUntilThresholdRound
-):  # pylint: disable=too-many-return-statements
+class PostTweetRound(CollectSameUntilThresholdRound):
     """PostTweetRound"""
 
     payload_class = PostTweetPayload
@@ -205,13 +198,7 @@ class PostTweetRound(
         # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
         if self.threshold_reached:
-            payload = PostTweetPayload(
-                *(("dummy_sender",) + self.most_voted_payload_values)
-            )
-            latest_tweet_str = payload.latest_tweet
-            if latest_tweet_str is None:
-                return self.synchronized_data, Event.ERROR
-            latest_tweet = json.loads(latest_tweet_str)
+            latest_tweet = json.loads(self.most_voted_payload)
 
             # API errors
             if latest_tweet is None:
@@ -227,10 +214,6 @@ class PostTweetRound(
             if latest_tweet == {} and not feedback:
                 return self.synchronized_data, Event.DONE
 
-            self.context.logger.info(
-                f"recieved feedback_period_max_hours_delta: {payload.feedback_period_max_hours_delta}"
-            )
-
             # Remove posted tweets from pending and into latest, then reset
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
@@ -239,9 +222,6 @@ class PostTweetRound(
                     get_name(SynchronizedData.latest_tweet): json.dumps(
                         latest_tweet, sort_keys=True
                     ),
-                    get_name(
-                        SynchronizedData.feedback_period_max_hours_delta
-                    ): payload.feedback_period_max_hours_delta,
                 },
             )
             return synchronized_data, Event.WAIT
@@ -749,7 +729,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
     final_states: Set[AppState] = {FinishedToResetRound, FinishedToSettlementRound}
     event_to_timeout: EventToTimeout = {}
     cross_period_persisted_keys: FrozenSet[str] = frozenset(
-        ["persona", "latest_tweet", "feedback", "feedback_period_max_hours_delta"]
+        ["persona", "latest_tweet", "feedback"]
     )
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
