@@ -490,7 +490,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             # adding random delay to avoid rate limiting
             delay = secrets.randbelow(5)
             self.context.logger.info(f"Sleeping for {delay} seconds")
-            self.context.sleep(delay)
+            yield from self.context.sleep(delay)
 
             self.context.logger.info(f"Trying to {action} tweet {tweet_id}")
 
