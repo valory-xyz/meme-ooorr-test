@@ -477,7 +477,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
         if not json_response:
             return Event.ERROR.value, new_interacted_tweet_ids
-        
+
         for interaction in json_response:
             tweet_id = interaction.get("tweet_id", None)
             action = interaction.get("action", None)
@@ -540,7 +540,6 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         user_name: Optional[str] = None,
     ) -> Generator[None, None, bool]:
         """Like a tweet"""
-    
 
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
         tweet = {"text": text}
@@ -557,14 +556,13 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     def like_tweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Like a tweet"""
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
-    
+
         response = yield from self._call_twikit(method="like_tweet", tweet_id=tweet_id)
         return response["success"]
 
     def retweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Reweet"""
         self.context.logger.info(f"Retweeting tweet with ID: {tweet_id}")
-        
 
         response = yield from self._call_twikit(method="retweet", tweet_id=tweet_id)
         return response["success"]
@@ -572,6 +570,6 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     def follow_user(self, user_id: str) -> Generator[None, None, bool]:
         """Follow user"""
         self.context.logger.info(f"Following user with ID: {user_id}")
-    
+
         response = yield from self._call_twikit(method="follow_user", user_id=user_id)
         return response["success"]
