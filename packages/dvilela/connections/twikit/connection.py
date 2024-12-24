@@ -426,6 +426,9 @@ class TwikitConnection(Connection):
                 not_suspendend_users.append(user_name)
             except twikit.errors.TwitterException:
                 continue
+            except Exception as e:
+                self.logger.error(f"Error while checking user {user_name}: {e}")
+                continue
         return not_suspendend_users
 
 

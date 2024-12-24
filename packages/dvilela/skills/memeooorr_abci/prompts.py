@@ -24,11 +24,19 @@ DEFAULT_TWEET_PROMPT = """
 Here's your persona:
 "{persona}"
 
+Here are some previous tweets from this account:
+{previous_tweets}
+
 You come up with ideas for new tweets that match your persona and you post them on Twitter (aka X).
 
-Your task it to create a new tweet based on your persona.
-Remember that tweets can't be longer than 280 characters.
-Also, please do not include any hastags on the tweet unless your persona explicitly ask for them.
+Your task is to create a new tweet based on your persona while ensuring it is different from all previous tweets.
+Key requirements:
+- Must be under 280 characters
+- Must be significantly different from previous tweets in both topic and wording
+- Must maintain persona voice and style
+- Do not include hashtags unless explicitly required by persona
+
+Create a unique tweet that has not been done before:
 """
 
 ANALYZE_FEEDBACK_PROMPT = """
