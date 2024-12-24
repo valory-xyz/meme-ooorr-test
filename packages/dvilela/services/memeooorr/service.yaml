@@ -7,11 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-<<<<<<< HEAD
-agent: dvilela/memeooorr:0.1.0:bafybeifgvzzmj6hexz3crhzgwm4ottevin7ev34zojxgrkefsieul62dga
-=======
-agent: dvilela/memeooorr:0.1.0:bafybeidjx2rhmy54xhovwe5i7xiighn5oni22ykplznrmogom6kovkp3dq
->>>>>>> feat/content-radomisation-via-tweet-history
+agent: dvilela/memeooorr:0.1.0:bafybeicfqenq6mc5jo4k7i6fwcjppyk7w6pkyik4kmuw4ghhrvki7daabm
 number_of_agents: 1
 deployment:
   agent:
