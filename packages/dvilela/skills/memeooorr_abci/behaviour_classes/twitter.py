@@ -195,12 +195,24 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
         self.context.logger.info("Preparing tweet...")
         persona = self.get_persona()
+        twitter_handle = self.params.twitter_username
 
         retries = 0
 
+        self.context.logger.info(f"Persona: {persona}")
+        self.context.logger.info(
+            f"calling get_previous_tweets with twitter_handle: {twitter_handle}"
+        )
+
+        previous_tweets = yield from self.get_previous_tweets(twitter_handle, limit=20)
+
+        self.context.logger.info(f"Previous tweets: {previous_tweets}")
+
         while retries < MAX_TWEET_PREPARATIONS_RETRIES:
             llm_response = yield from self._call_genai(
-                prompt=DEFAULT_TWEET_PROMPT.format(persona=persona)
+                prompt=DEFAULT_TWEET_PROMPT.format(
+                    persona=persona, previous_tweets=previous_tweets
+                )
             )
             self.context.logger.info(f"LLM response: {llm_response}")
 
@@ -225,8 +237,13 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         self, tweet: Optional[List] = None, store: bool = True
     ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
+
         # Prepare a tweet if needed
-        if tweet is None:
+        if (
+            tweet is None
+            or not tweet
+            or (isinstance(tweet, list) and (not tweet[0] if tweet else True))
+        ):
             new_tweet = yield from self.prepare_tweet()
 
             # We fail to prepare the tweet
@@ -235,6 +252,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
             tweet = [new_tweet]
 
+        self.context.logger.info(f"Posting tweet: {tweet} without preparing it")
         # Post the tweet
         tweet_ids = yield from self._call_twikit(
             method="post",
@@ -259,6 +277,38 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             self.context.logger.info("Wrote latest tweet to db")
 
         return latest_tweet
+
+    def get_previous_tweets(
+        self, twitter_handle: str, limit: int = 20
+    ) -> Generator[None, None, Optional[str]]:
+        """Get the latest tweets formatted as numbered list
+
+        Args:
+            twitter_handle (str): The Twitter handle to fetch tweets from
+            limit (int, optional): Maximum number of tweets to return. Defaults to 20.
+
+        Returns:
+            Generator yielding Optional[str]: Numbered list of tweets or empty string
+        """
+
+        delay = secrets.randbelow(5)
+        self.context.logger.info(f"Sleeping for {delay} seconds")
+        yield from self.sleep(delay)
+
+        self.context.logger.info(f"Getting latest {limit} tweets from {twitter_handle}")
+        previous_tweets = yield from self._call_twikit(
+            method="get_user_tweets",
+            twitter_handle=twitter_handle,
+        )
+
+        if previous_tweets:
+            numbered_tweets = [
+                f"{i+1}. {tweet['text']}"
+                for i, tweet in enumerate(previous_tweets[:limit])
+            ]
+            return "\n".join(numbered_tweets)
+
+        return ""
 
 
 class PostAnnouncementBehaviour(
@@ -487,6 +537,10 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 continue
 
             # use yield from self.sleep(1) to simulate a delay use secrests to randomize the delay
+            # adding random delay to avoid rate limiting
+            delay = secrets.randbelow(5)
+            self.context.logger.info(f"Sleeping for {delay} seconds")
+            yield from self.context.sleep(delay)
 
             self.context.logger.info(f"Trying to {action} tweet {tweet_id}")
 
@@ -536,6 +590,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
         user_name: Optional[str] = None,
     ) -> Generator[None, None, bool]:
         """Like a tweet"""
+
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
         tweet = {"text": text}
         if quote:
@@ -551,17 +606,20 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     def like_tweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Like a tweet"""
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
+
         response = yield from self._call_twikit(method="like_tweet", tweet_id=tweet_id)
         return response["success"]
 
     def retweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Reweet"""
         self.context.logger.info(f"Retweeting tweet with ID: {tweet_id}")
+
         response = yield from self._call_twikit(method="retweet", tweet_id=tweet_id)
         return response["success"]
 
     def follow_user(self, user_id: str) -> Generator[None, None, bool]:
         """Follow user"""
         self.context.logger.info(f"Following user with ID: {user_id}")
+
         response = yield from self._call_twikit(method="follow_user", user_id=user_id)
         return response["success"]
