@@ -49,9 +49,11 @@ abstract contract BuyBackBurner {
     // Version number
     string public constant VERSION = "0.2.0";
     // Code position in storage is keccak256("BUY_BACK_BURNER_PROXY") = "c6d7bd4bd971fa336816fe30b665cc6caccce8b123cc8ea692d132f342c4fc19"
-    bytes32 public constant BUY_BACK_BURNER_PROXY = 0xc6d7bd4bd971fa336816fe30b665cc6caccce8b123cc8ea692d132f342c4fc19;
+    bytes32 public constant BUY_BACK_BURNER_PROXY =
+        0xc6d7bd4bd971fa336816fe30b665cc6caccce8b123cc8ea692d132f342c4fc19;
     // L1 OLAS Burner address
-    address public constant OLAS_BURNER = 0x51eb65012ca5cEB07320c497F4151aC207FEa4E0;
+    address public constant OLAS_BURNER =
+        0x51eb65012ca5cEB07320c497F4151aC207FEa4E0;
     // Max allowed price deviation for TWAP pool values (10%) in 1e18 format
     uint256 public constant MAX_ALLOWED_DEVIATION = 1e17;
     // Seconds ago to look back for TWAP pool values
@@ -77,9 +79,14 @@ abstract contract BuyBackBurner {
     /// @dev Buys OLAS on DEX.
     /// @param nativeTokenAmount Suggested native token amount.
     /// @return olasAmount Obtained OLAS amount.
-    function _buyOLAS(uint256 nativeTokenAmount) internal virtual returns (uint256 olasAmount) {
+    function _buyOLAS(
+        uint256 nativeTokenAmount
+    ) internal virtual returns (uint256 olasAmount) {
         // Apply slippage protection
-        require(IOracle(oracle).validatePrice(maxSlippage), "Before swap slippage limit is breached");
+        require(
+            IOracle(oracle).validatePrice(maxSlippage),
+            "Before swap slippage limit is breached"
+        );
 
         // Get current pool price
         uint256 previousPrice = IOracle(oracle).getPrice();
@@ -93,31 +100,44 @@ abstract contract BuyBackBurner {
         uint256 lowerBound = (previousPrice * (100 - maxSlippage)) / 100;
         uint256 upperBound = (previousPrice * (100 + maxSlippage)) / 100;
 
-        require(tradePrice >= lowerBound && tradePrice <= upperBound, "After swap slippage limit is breached");
+        require(
+            tradePrice >= lowerBound && tradePrice <= upperBound,
+            "After swap slippage limit is breached"
+        );
     }
 
     /// @dev Gets TWAP price via the built-in Uniswap V3 oracle.
     /// @param pool Pool address.
     /// @return price Calculated price.
-    function _getTwapFromOracle(address pool) internal view returns (uint256 price) {
+    function _getTwapFromOracle(
+        address pool
+    ) internal view returns (uint256 price) {
         // Query the pool for the current and historical tick
         uint32[] memory secondsAgos = new uint32[](2);
         // Start of the period
         secondsAgos[0] = SECONDS_AGO;
 
         // Fetch the tick cumulative values from the pool
-        (int56[] memory tickCumulatives, ) = IUniswapV3(pool).observe(secondsAgos);
+        (int56[] memory tickCumulatives, ) = IUniswapV3(pool).observe(
+            secondsAgos
+        );
 
         // Calculate the average tick over the time period
         int56 tickCumulativeDelta = tickCumulatives[1] - tickCumulatives[0];
-        int24 averageTick = int24(tickCumulativeDelta / int56(int32(SECONDS_AGO)));
+        int24 averageTick = int24(
+            tickCumulativeDelta / int56(int32(SECONDS_AGO))
+        );
 
         // Convert the average tick to sqrtPriceX96
         uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(averageTick);
 
         // Calculate the price using the sqrtPriceX96
         // Max result is uint160 * uint160 == uint320, not to overflow: 320 - 256 = 64 (2^64)
-        price = FixedPointMathLib.mulDivDown(uint256(sqrtPriceX96), uint256(sqrtPriceX96), (1 << 64));
+        price = FixedPointMathLib.mulDivDown(
+            uint256(sqrtPriceX96),
+            uint256(sqrtPriceX96),
+            (1 << 64)
+        );
     }
 
     /// @dev BuyBackBurner initializer.
@@ -127,7 +147,9 @@ abstract contract BuyBackBurner {
     /// @dev Performs swap for OLAS on DEX.
     /// @param nativeTokenAmount Native token amount.
     /// @return olasAmount Obtained OLAS amount.
-    function _performSwap(uint256 nativeTokenAmount) internal virtual returns (uint256 olasAmount);
+    function _performSwap(
+        uint256 nativeTokenAmount
+    ) internal virtual returns (uint256 olasAmount);
 
     /// @dev BuyBackBurner initializer.
     /// @param payload Initializer payload.
@@ -216,10 +238,14 @@ abstract contract BuyBackBurner {
         require(pool != address(0), "Pool does not exist");
 
         // Get current pool reserves and observation index
-        (uint160 sqrtPriceX96, , uint16 observationIndex, , , , ) = IUniswapV3(pool).slot0();
+        (uint160 sqrtPriceX96, , uint16 observationIndex, , , , ) = IUniswapV3(
+            pool
+        ).slot0();
 
         // Check if the pool has sufficient observation history
-        (uint32 oldestTimestamp, , , ) = IUniswapV3(pool).observations(observationIndex);
+        (uint32 oldestTimestamp, , , ) = IUniswapV3(pool).observations(
+            observationIndex
+        );
         if (oldestTimestamp + SECONDS_AGO < block.timestamp) {
             return;
         }
@@ -228,13 +254,25 @@ abstract contract BuyBackBurner {
         uint256 twapPrice = _getTwapFromOracle(pool);
         // Get instant price
         // Max result is uint160 * uint160 == uint320, not to overflow: 320 - 256 = 64 (2^64)
-        uint256 instantPrice = FixedPointMathLib.mulDivDown(uint256(sqrtPriceX96), uint256(sqrtPriceX96), (1 << 64));
+        uint256 instantPrice = FixedPointMathLib.mulDivDown(
+            uint256(sqrtPriceX96),
+            uint256(sqrtPriceX96),
+            (1 << 64)
+        );
 
         uint256 deviation;
         if (twapPrice > 0) {
-            deviation = (instantPrice > twapPrice) ?
-                FixedPointMathLib.mulDivDown((instantPrice - twapPrice), 1e18, twapPrice) :
-                FixedPointMathLib.mulDivDown((twapPrice - instantPrice), 1e18, twapPrice);
+            deviation = (instantPrice > twapPrice)
+                ? FixedPointMathLib.mulDivDown(
+                    (instantPrice - twapPrice),
+                    1e18,
+                    twapPrice
+                )
+                : FixedPointMathLib.mulDivDown(
+                    (twapPrice - instantPrice),
+                    1e18,
+                    twapPrice
+                );
         }
 
         require(deviation <= MAX_ALLOWED_DEVIATION, "Price deviation too high");

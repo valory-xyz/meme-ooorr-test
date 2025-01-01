@@ -75,6 +75,10 @@ query Tokens {
       lpPairAddress
       owner
       timestamp
+      memeNonce
+      summonTime
+      memeToken
+      name
     }
   }
 }
@@ -560,17 +564,24 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             {
                 "block_number": int(t["blockNumber"]),
                 "chain": t["chain"],
-                "token_address": t["id"].split("-")[1],
+                "token_address": t["memeToken"],
                 "liquidity": int(t["liquidity"]),
                 "heart_count": int(t["heartCount"]),
                 "is_unleashed": t["isUnleashed"],
                 "lp_pair_address": t["lpPairAddress"],
                 "owner": t["owner"],
                 "timestamp": t["timestamp"],
+                "meme_nonce": int(t["memeNonce"]),
+                "summon_time": int(t["summonTime"]),
+                "token_nonce": int(t["memeNonce"]),
             }
             for t in response_json["data"]["memeTokens"]["items"]
-            if t["chain"] == self.get_chain_id()
+            if t["chain"] == self.get_chain_id() and int(t["memeNonce"]) > 0 and t["memeToken"] != ""
         ]
+        
+        
+
+        self.context.logger.info(f"Got meme tokens: {tokens}")
 
         # Load previously hearted memes
         db_data = yield from self._read_kv(keys=("hearted_memes",))
@@ -596,7 +607,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         if meme_coins:
             return meme_coins
 
-        meme_coins = yield from self.get_meme_coins_from_chain()
+        meme_coins = yield from self.get_meme_coins_from_subgraph()
         return meme_coins
 
     def get_min_deploy_value(self) -> int:
