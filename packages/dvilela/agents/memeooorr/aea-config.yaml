@@ -21,7 +21,7 @@ contracts:
 - valory/gnosis_safe:0.1.0:bafybeiaw4yr7ubqlp63iz5wxqep3a5fokqs3kqva7sp2nsqg355zzucqgm
 - valory/gnosis_safe_proxy_factory:0.1.0:bafybeidkqhw7smq4kbqryodom6maj7gubc5nbxwm4vi343xbkqxx3brjtm
 - valory/multisend:0.1.0:bafybeig5byt5urg2d2bsecufxe5ql7f4mezg3mekfleeh32nmuusx66p4y
-- dvilela/meme_factory:0.1.0:bafybeifwx7zcrj7fi4nkfdcucomn3ph7jlr3ac364ilayzcnh4sqjma3vu
+- dvilela/meme_factory:0.1.0:bafybeibbwsrbmtbhcs4lq4ikx7ty45l7l7izvtswdamrnr4hh6wjhegr7e
 - dvilela/service_registry:0.1.0:bafybeie2rrgzcjehlp2feff6bhkuindxzrnuwxe2jcrsy2thcdtrsp2o24
 protocols:
 - open_aea/signing:1.0.0:bafybeihv62fim3wl2bayavfcg3u5e5cxu3b7brtu4cn5xoxd6lqwachasi
@@ -41,8 +41,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeigh2vkt74jrad5gtsczrgqcuhcqe7jkgjy7jdw56yamlzwwnaymjy
 - valory/registration_abci:0.1.0:bafybeib3n6vqkfbrcubcbliebjnuwyywdinxkbzt76n6gbn2kg7ace47dq
 - valory/reset_pause_abci:0.1.0:bafybeihkj6lmaypspyxe5qqrjgnolyck62pyvqoylr24ab6ue4steqcw7e
-- dvilela/memeooorr_abci:0.1.0:bafybeig6a342t6xci6jipjin5ciwt3ruesalrphalrnjphr2twexszz7jm
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeihphm5uoxwmjnvnhwat752trembj4pglbwsrb5jtifxvhyonq52i4
+- dvilela/memeooorr_abci:0.1.0:bafybeifdtikm6pn5qp2jvfz7bkegi6uiuojaaj6jjo4efahqu37jpfg5ta
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeicvte6fpdjdcfpucuqbwa5k6ohv4u4bcluh6eugmfuj62lwffdi54
 default_ledger: ethereum
 required_ledgers:
 - ethereum

@@ -576,12 +576,42 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                 "token_nonce": int(t["memeNonce"]),
             }
             for t in response_json["data"]["memeTokens"]["items"]
-            if t["chain"] == self.get_chain_id() and int(t["memeNonce"]) > 0 and t["memeToken"] != ""
+            if t["chain"] == self.get_chain_id()
+            # to only include the updated factory contract address's token data
+            and int(t["memeNonce"]) > 0
+            # don't include data where memeToken address is empty
+            and t["memeToken"] != ""
         ]
-        
-        
 
-        self.context.logger.info(f"Got meme tokens: {tokens}")
+        for token in tokens:
+            response_msg = yield from self.get_contract_api_response(
+                performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+                contract_address=self.get_meme_factory_address(),
+                contract_id=str(MemeFactoryContract.contract_id),
+                contract_callable="get_meme_summons_info",
+                chain_id=self.get_chain_id(),
+                token_address=token.get("token_address", None),
+            )
+
+            # Check that the response is what we expect
+            if response_msg.performative != ContractApiMessage.Performative.STATE:
+                self.context.logger.error(
+                    f"Could not get the memecoin summon data: {response_msg}"
+                )
+                return None
+
+            summon_data = cast(list, response_msg.state.body.get("token_data", None))
+
+            token["token_name"] = summon_data[0]
+            token["token_ticker"] = summon_data[1]
+            token["token_supply"] = summon_data[2]
+            token["eth_contributed"] = summon_data[3]
+            token["summon_time"] = summon_data[4]
+            token["unleash_time"] = summon_data[5]
+            token["heart_count"] = summon_data[6]
+            token["position_id"] = summon_data[7]
+            token["is_native_first"] = summon_data[8]
+            token["decimals"] = 18
 
         # Load previously hearted memes
         db_data = yield from self._read_kv(keys=("hearted_memes",))
