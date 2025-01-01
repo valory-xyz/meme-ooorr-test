@@ -174,9 +174,10 @@ class MemeFactoryContract(Contract):
     def get_meme_summons_info(
         cls, ledger_api: EthereumApi, contract_address: str, token_address: str
     ) -> Dict[str, Any]:
+        """Get the data from the memeTokenNonces."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
 
-        meme_token_nonce = getattr(
+        meme_token_nonce = getattr(  # noqa
             contract_instance.functions, "memeTokenNonces"
         )  # noqa
         token_nonce = meme_token_nonce(token_address).call()
