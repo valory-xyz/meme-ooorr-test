@@ -20,7 +20,7 @@
 """This module contains the class to connect to an MemeFactory contract."""
 
 import logging
-from typing import Dict, List, Optional, Union, cast, Any
+from typing import Any, Dict, List, Optional, Union, cast
 
 import web3
 from aea.common import JSONLike
