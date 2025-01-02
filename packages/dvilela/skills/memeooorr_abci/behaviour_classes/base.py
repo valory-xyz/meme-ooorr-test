@@ -273,7 +273,9 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         # Get the times
         now = datetime.fromtimestamp(self.get_sync_timestamp())
         summon_time = datetime.fromtimestamp(meme_data["summon_time"])
+        unleash_time = datetime.fromtimestamp(meme_data["unleash_time"])
         seconds_since_summon = (now - summon_time).total_seconds()
+        seconds_since_unleash = (now - unleash_time).total_seconds()
 
         available_actions = copy(AVAILABLE_ACTIONS)
 
@@ -311,6 +313,10 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             # We can collect if we have hearted this token
             if meme_data.get("token_address", None) not in hearted_memes:
                 available_actions.remove("collect")
+
+        # can only collect until 24hrs of
+        if seconds_since_unleash > 24 * 3600:
+            available_actions.remove("collect")
 
         return available_actions
 
