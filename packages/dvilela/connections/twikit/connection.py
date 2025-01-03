@@ -327,6 +327,10 @@ class TwikitConnection(Connection):
                 tweet_kwargs["reply_to"] = tweet_ids[-1]
 
             tweet_id = await self.post_tweet(**tweet_kwargs)
+            if not tweet_id:
+                self.logger.error("Failed to post tweet , retrying once more")
+                tweet_id = await self.post_tweet(**tweet_kwargs)
+
             tweet_ids.append(tweet_id)
             is_first_tweet = False
 
