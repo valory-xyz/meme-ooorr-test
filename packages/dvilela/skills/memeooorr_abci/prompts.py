@@ -114,7 +114,7 @@ Take into account the token's popularity as well.
 
 You have two options:
 * Do nothing
-* Execute one actions from the available actions for one token of your choice
+* Execute one action from the available actions for one token of your choice
 
 Here's the list of memecoins:
 {meme_coins}
@@ -152,7 +152,7 @@ Here's your persona:
 Here are the tweets:
 "{tweet_data}"
 
-Your task is to decide which tweets to interact with and how. We encourgae you to interact with multiple tweets.
+Your task is to decide which tweets to interact with and how. We encourage you to interact with multiple tweets.
 
 OUTPUT_FORMAT
 * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
