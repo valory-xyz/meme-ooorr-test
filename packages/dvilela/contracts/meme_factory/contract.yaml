@@ -8,13 +8,13 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   README.md: bafybeies3iafkjwo4xvqtqpdxvood7pf2wgto4t76dqswy55rya7vl5zgu
   __init__.py: bafybeiddslgyschgiuwsfiovqgxqqbkazdy6h3d4swwnq3tvpqaxzy37si
-  build/MemeBase.json: bafybeibr3pkkofhukwqjuqxuxsb52g2xlquzhu5uv6xqo527s2zzmp3cq4
+  build/MemeFactory.json: bafybeiholsk2gmpvayfftai7envnllozw3rjdsxrmpplht2fw5g6qiht3e
   contract.py: bafybeidmzrtgt343oti4ghjpmlhrlebyn6f7lqefpbutflvghh6pjbc6by
 fingerprint_ignore_patterns: []
 contracts: []
 class_name: MemeFactoryContract
 contract_interface_paths:
-  ethereum: build/MemeBase.json
+  ethereum: build/MemeFactory.json
 dependencies:
   ecdsa:
     version: '>=0.15'
