@@ -311,11 +311,14 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             available_actions.remove("burn")
 
             # We can collect if we have hearted this token
-            if meme_data.get("token_address", None) not in hearted_memes:
+            if (
+                meme_data.get("token_address", None) not in hearted_memes
+                and "collect" in available_actions
+            ):
                 available_actions.remove("collect")
 
         # can only collect until 24hrs of
-        if seconds_since_unleash > 24 * 3600:
+        if seconds_since_unleash > 24 * 3600 and "collect" in available_actions:
             available_actions.remove("collect")
 
         return available_actions
