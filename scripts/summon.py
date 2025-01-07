@@ -41,10 +41,10 @@ abi_file = Path(
 
 BASE_CHAIN_ID = 8453
 
-with open(abi_file, "r") as file:
+with open(abi_file, "r", encoding="utf-8") as file:
     abi = json.load(file)["abi"]
 
-with open("keys.json", "r") as file:
+with open("keys.json", "r", encoding="utf-8") as file:
     keys = json.load(file)
     PUBLIC_KEY = keys[0]["address"]
     PRIVATE_KEY = keys[0]["private_key"]
