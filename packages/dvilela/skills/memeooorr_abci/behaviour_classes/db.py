@@ -62,7 +62,7 @@ class LoadDatabaseBehaviour(
 
         if db_data is None:
             self.context.logger.error("Error while loading the database")
-            persona = self.get_persona()
+            persona = yield from self.get_persona()
             latest_tweet = "{}"
             return persona, latest_tweet
 
@@ -70,7 +70,7 @@ class LoadDatabaseBehaviour(
         latest_tweet = db_data["latest_tweet"]
 
         if not persona:
-            persona = self.get_persona()
+            persona = yield from self.get_persona()
 
         if not latest_tweet:
             latest_tweet = "{}"
