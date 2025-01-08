@@ -235,9 +235,22 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         return now
 
-    def get_persona(self) -> str:
+    def get_persona(self) -> Generator[None, None, str]:
         """Get the agent persona"""
-        return self.synchronized_data.persona or self.params.persona
+
+        # If the persona is already in the synchronized data, return it
+        if self.synchronized_data.persona:
+            return self.synchronized_data.persona
+
+        # Try getting the persona from the db
+        db_data = yield from self._read_kv(keys=("persona",))
+        if db_data and "persona" in db_data and db_data["persona"] is not None:
+            return db_data["persona"]
+
+        # Use the default persona from the configuration and store on the db
+        persona = self.params.persona
+        yield from self._write_kv({"persona": persona})
+        return persona
 
     def get_native_balance(self) -> Generator[None, None, Optional[float]]:
         """Get the native balance"""
@@ -261,7 +274,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         balance = cast(float, ledger_api_response.state.body["get_balance_result"])
         balance = balance / 10**18  # from wei
 
-        self.context.logger.error(f"Got native balance: {balance}")
+        self.context.logger.info(f"Got native balance: {balance}")
 
         return balance
 
