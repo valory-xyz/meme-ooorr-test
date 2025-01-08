@@ -45,7 +45,7 @@ class SrrDialogues(BaseSrrDialogues):
         )
 
 class MirrorDBConnection(Connection):
-    """Proxy to the functionality of the backend service."""
+    """Proxy to the functionality of the mirror DB backend service."""
 
     connection_id = PUBLIC_ID
 
