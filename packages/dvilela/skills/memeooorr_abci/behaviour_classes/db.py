@@ -58,19 +58,17 @@ class LoadDatabaseBehaviour(
 
     def load_db(self) -> Generator[None, None, Tuple[str, str]]:
         """Load the data"""
-        db_data = yield from self._read_kv(keys=("persona", "latest_tweet"))
+        persona = yield from self.get_persona()
+        db_data = yield from self._read_kv(keys=("latest_tweet",))
 
         if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            persona = yield from self.get_persona()
             latest_tweet = "{}"
+            self.context.logger.error(
+                f"Error while loading the database:\npersona={persona}\nlatest_tweet={latest_tweet}"
+            )
             return persona, latest_tweet
 
-        persona = db_data["persona"]
         latest_tweet = db_data["latest_tweet"]
-
-        if not persona:
-            persona = yield from self.get_persona()
 
         if not latest_tweet:
             latest_tweet = "{}"

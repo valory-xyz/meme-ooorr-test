@@ -244,7 +244,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         # Try getting the persona from the db
         db_data = yield from self._read_kv(keys=("persona",))
-        if db_data and "persona" in db_data:
+        if db_data and "persona" in db_data and db_data["persona"] is not None:
             return db_data["persona"]
 
         # Use the default persona from the configuration and store on the db
