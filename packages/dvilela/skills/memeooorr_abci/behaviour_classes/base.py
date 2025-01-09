@@ -235,6 +235,14 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         return now
 
+    def get_sync_datetime(self) -> datetime:
+        """Get the synchronized time from Tendermint's last block."""
+        return datetime.fromtimestamp(self.get_sync_timestamp())
+
+    def get_sync_time_str(self) -> str:
+        """Get the synchronized time from Tendermint's last block."""
+        return self.get_sync_datetime().strftime("%Y-%m-%d %H:%M:%S")
+
     def get_persona(self) -> Generator[None, None, str]:
         """Get the agent persona"""
 
