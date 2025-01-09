@@ -37,6 +37,7 @@ from packages.dvilela.connections.kv_store.connection import (
 from packages.dvilela.connections.twikit.connection import (
     PUBLIC_ID as TWIKIT_CONNECTION_PUBLIC_ID,
 )
+from packages.dvilela.connections.mirror_db.connection import PUBLIC_ID as MIRRORDB_CONNECTION_PUBLIC_ID
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.contracts.service_registry.contract import ServiceRegistryContract
 from packages.dvilela.protocols.kv_store.dialogues import (
@@ -136,10 +137,52 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         return response
 
     def _call_twikit(self, method: str, **kwargs: Any) -> Generator[None, None, Any]:
-        """Send a request message from the skill context."""
+        """Send a request message to the Twikit connection and handle MirrorDB interactions."""
+        # Define the mapping of Twikit methods to MirrorDB methods
+        twikit_to_mirrordb = {
+            "like_tweet": "create_interaction",
+            "retweet": "create_interaction",
+            "follow_user": "create_interaction",
+            "post": "create_tweet",
+        }
+
+        # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
         srr_message, srr_dialogue = srr_dialogues.create(
             counterparty=str(TWIKIT_CONNECTION_PUBLIC_ID),
+            performative=SrrMessage.Performative.REQUEST,
+            payload=json.dumps({"method": method, "kwargs": kwargs}),
+        )
+        srr_message = cast(SrrMessage, srr_message)
+        srr_dialogue = cast(SrrDialogue, srr_dialogue)
+        response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+
+        response_json = json.loads(response.payload)  # type: ignore
+
+        if "error" in response_json:
+            self.context.logger.error(response_json["error"])
+            return None
+
+        # Handle MirrorDB interaction if applicable
+        if method in twikit_to_mirrordb:
+            mirrordb_method = twikit_to_mirrordb[method]
+            mirrordb_kwargs = kwargs.copy()
+            if method == "post":
+                mirrordb_kwargs["tweet_data"] = mirrordb_kwargs.pop("tweets")
+            else:
+                mirrordb_kwargs["interaction_data"] = {"type": method}
+
+            mirrordb_response = yield from self._call_mirrordb(mirrordb_method, **mirrordb_kwargs)
+            if mirrordb_response is None:
+                self.context.logger.error(f"MirrorDB interaction for method {method} failed.")
+
+        return response_json["response"]  # type: ignore
+
+    def _call_mirrordb(self, method: str, **kwargs: Any) -> Generator[None, None, Any]:
+        """Send a request message to the MirrorDB connection."""
+        srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
+        srr_message, srr_dialogue = srr_dialogues.create(
+            counterparty=str(MIRRORDB_CONNECTION_PUBLIC_ID),
             performative=SrrMessage.Performative.REQUEST,
             payload=json.dumps({"method": method, "kwargs": kwargs}),
         )

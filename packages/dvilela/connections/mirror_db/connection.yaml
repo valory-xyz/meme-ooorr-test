@@ -1,5 +1,5 @@
 name: mirror_db
-author: axatbhardwaj
+author: dvilela
 version: 0.1.0
 type: connection
 description: A connection that provides a wrapper around the backend service for Twitter mirror database.
