@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeidvqrbyihdio25fim7v3kw2vmudzr5tc3werzbolf3qn3clks5g4a
+agent: dvilela/memeooorr:0.1.0:bafybeifnrsomd6epxa22t3iz7rb3xq65k65czyajapfws7l2ppak24scoq
 number_of_agents: 1
 deployment:
   agent:
@@ -98,6 +98,7 @@ extra:
         service_registry_address_base: ${SERVICE_REGISTRY_ADDRESS_BASE:str:0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE}
         service_registry_address_celo: ${SERVICE_REGISTRY_ADDRESS_CELO:str:0xE3607b00E75f6405248323A9417ff6b39B244b50}
         meme_subgraph_url: ${MEME_SUBGRAPH_URL:str:https://agentsfun-indexer-production.up.railway.app}
+        mirror_db_base_url: ${MIRROR_DB_BASE_URL:str:http://localhost:8000}
 ---
 public_id: valory/ledger:0.19.0
 type: connection
