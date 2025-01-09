@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeifnrsomd6epxa22t3iz7rb3xq65k65czyajapfws7l2ppak24scoq
+agent: dvilela/memeooorr:0.1.0:bafybeifw7m5ma2hnbtyxiduphdsyago7uukag26vhubhla5kpa3xnm5mde
 number_of_agents: 1
 deployment:
   agent:
@@ -170,3 +170,8 @@ config:
   host: ${HTTP_SERVER_HOST:str:0.0.0.0}
   port: ${HTTP_SERVER_PORT:int:8716}
   target_skill_id: dvilela/memeooorr_chained_abci:0.1.0
+---
+public_id: dvilela/mirror_db:0.1.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
+type: connection
+config:
+  mirror_db_base_url: ${MIRROR_DB_BASE_URL:str:http://localhost:8000}

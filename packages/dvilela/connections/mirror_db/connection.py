@@ -53,8 +53,8 @@ class MirrorDBConnection(Connection):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the connection."""
         super().__init__(*args, **kwargs)
-        # self.base_url = self.configuration.config.get("mirror_db_base_url")
-        self.base_url = "http://localhost:8000"
+        self.base_url = self.configuration.config.get("mirror_db_base_url")
+        # self.base_url = "http://localhost:8000"
         self.config_file_path = Path("/tmp/mirrorDB.json")
         self.api_key = None
         self.agent_id = None
@@ -63,14 +63,6 @@ class MirrorDBConnection(Connection):
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
         self._response_envelopes: Optional[asyncio.Queue] = None
         self.task_to_request: Dict[asyncio.Future, Envelope] = {}
-
-        # # Load configuration from mirrorDB.json if it exists
-        # if self.config_file_path.exists():
-        #     with open(self.config_file_path, "r") as f:
-        #         config_data = json.load(f)
-        #         self.api_key = config_data["api_key"]
-        #         self.agent_id = config_data["agent_id"]
-        #         self.twitter_user_id = config_data["twitter_user_id"]
 
     async def update_api_key(self, api_key: str) -> None:
         """Update the API key."""
