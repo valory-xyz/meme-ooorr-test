@@ -30,7 +30,7 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     is_tweet_valid,
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
-    ACTION_DECISION_PROMPT,
+    TOKEN_DECISION_PROMPT,
     ANALYZE_FEEDBACK_PROMPT,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
@@ -251,7 +251,7 @@ class ActionDecisionBehaviour(
         }
 
         llm_response = yield from self._call_genai(
-            prompt=ACTION_DECISION_PROMPT.format(**prompt_data)
+            prompt=TOKEN_DECISION_PROMPT.format(**prompt_data)
         )
         self.context.logger.info(f"LLM response: {llm_response}")
 

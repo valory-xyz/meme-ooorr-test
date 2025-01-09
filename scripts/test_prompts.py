@@ -25,7 +25,7 @@ import os
 import dotenv
 import google.generativeai as genai  # type: ignore
 
-from packages.dvilela.skills.memeooorr_abci.prompts import DEFAULT_TWEET_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import TWITTER_ENGAGE_PROMPT
 
 
 dotenv.load_dotenv(override=True)
@@ -39,7 +39,7 @@ genai.configure(api_key=os.getenv("GENAI_API_KEY"))
 model = genai.GenerativeModel("gemini-2.0-flash-exp")
 
 response = model.generate_content(
-    DEFAULT_TWEET_PROMPT.format(persona=persona),
+    TWITTER_ENGAGE_PROMPT.format(persona=persona),
     generation_config=genai.types.GenerationConfig(
         temperature=2.0,
     ),

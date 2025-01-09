@@ -31,8 +31,8 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
-    DEFAULT_TWEET_PROMPT,
-    INTERACT_DECISION_PROMPT,
+    TWITTER_ENGAGE_PROMPT,
+    TWITTER_DECISION_PROMPT,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionTweetPayload,
@@ -210,7 +210,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
         while retries < MAX_TWEET_PREPARATIONS_RETRIES:
             llm_response = yield from self._call_genai(
-                prompt=DEFAULT_TWEET_PROMPT.format(
+                prompt=TWITTER_ENGAGE_PROMPT.format(
                     persona=persona, previous_tweets=previous_tweets
                 )
             )
@@ -310,15 +310,6 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
         return ""
 
-
-class PostAnnouncementBehaviour(
-    PostTweetBehaviour
-):  # pylint: disable=too-many-ancestors
-    """PostAnnouncementBehaviour"""
-
-    matching_round: Type[AbstractRound] = PostAnnouncementRound
-
-
 class CollectFeedbackBehaviour(
     MemeooorrBaseBehaviour
 ):  # pylint: disable=too-many-ancestors
@@ -378,37 +369,6 @@ class CollectFeedbackBehaviour(
         feedback = feedback[:10]
 
         return feedback
-
-
-class ActionTweetBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
-    """ActionTweetBehaviour"""
-
-    matching_round: Type[AbstractRound] = ActionTweetRound
-
-    def async_act(self) -> Generator:
-        """Do the act, supporting asynchronous execution."""
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            event = yield from self.get_event()
-
-            payload = ActionTweetPayload(
-                sender=self.context.agent_address,
-                event=event,
-            )
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
-            yield from self.send_a2a_transaction(payload)
-            yield from self.wait_until_round_end()
-
-        self.set_done()
-
-    def get_event(self) -> Generator[None, None, str]:
-        """Get the next event"""
-        pending_tweet = self.synchronized_data.token_action["tweet"]
-        self.context.logger.info("Sending the action tweet...")
-        latest_tweet = yield from self.post_tweet(tweet=[pending_tweet], store=False)
-        return Event.DONE.value if latest_tweet else Event.ERROR.value
-
 
 class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     """EngageBehaviour"""
@@ -514,7 +474,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
             ]
         )
 
-        prompt = INTERACT_DECISION_PROMPT.format(persona=persona, tweet_data=tweet_data)
+        prompt = TWITTER_DECISION_PROMPT.format(persona=persona, tweet_data=tweet_data)
 
         llm_response = yield from self._call_genai(prompt=prompt)
         self.context.logger.info(f"LLM response for like decision: {llm_response}")
@@ -623,3 +583,33 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
 
         response = yield from self._call_twikit(method="follow_user", user_id=user_id)
         return response["success"]
+
+
+class ActionTweetBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
+    """ActionTweetBehaviour"""
+
+    matching_round: Type[AbstractRound] = ActionTweetRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            event = yield from self.get_event()
+
+            payload = ActionTweetPayload(
+                sender=self.context.agent_address,
+                event=event,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+    def get_event(self) -> Generator[None, None, str]:
+        """Get the next event"""
+        pending_tweet = self.synchronized_data.token_action["tweet"]
+        self.context.logger.info("Sending the action tweet...")
+        latest_tweet = yield from self.post_tweet(tweet=[pending_tweet], store=False)
+        return Event.DONE.value if latest_tweet else Event.ERROR.value
