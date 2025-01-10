@@ -32,13 +32,9 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionPreparationRound,
     CheckFundsPayload,
     CheckFundsRound,
-    DeploymentPayload,
-    DeploymentRound,
     Event,
     PullMemesPayload,
     PullMemesRound,
-    TransactionMultiplexerPayload,
-    TransactionMultiplexerRound,
 )
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.protocols.contract_api import ContractApiMessage

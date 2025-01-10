@@ -36,8 +36,8 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionTweetRound,
     CollectFeedbackPayload,
     CollectFeedbackRound,
-    EngageRound,
     EngageTwitterPayload,
+    EngageTwitterRound,
     Event,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
@@ -70,6 +70,8 @@ def is_tweet_valid(tweet: str) -> bool:
 
 class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-ancestors
     """BaseTweetBehaviour"""
+
+    matching_round: Type[AbstractRound] = None
 
     def store_tweet(self, tweet) -> Generator[None, None, bool]:
         """Store tweet"""
@@ -210,7 +212,8 @@ class CollectFeedbackBehaviour(
         """Get the responses"""
 
         # Search new replies
-        latest_tweet = yield from self.get_tweets_from_db()[-1]
+        tweets = yield from self.get_tweets_from_db()
+        latest_tweet = tweets[-1]
         query = f"conversation_id:{latest_tweet['tweet_id']}"
         feedback = yield from self._call_twikit(method="search", query=query, count=100)
 
@@ -243,10 +246,10 @@ class CollectFeedbackBehaviour(
         return feedback
 
 
-class EngageBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-ancestors
-    """EngageBehaviour"""
+class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-ancestors
+    """EngageTwitterBehaviour"""
 
-    matching_round: Type[AbstractRound] = EngageRound
+    matching_round: Type[AbstractRound] = EngageTwitterRound
 
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""

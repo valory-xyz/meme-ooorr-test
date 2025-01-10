@@ -387,6 +387,8 @@ class MemeooorrAbciApp(AbciApp[Event]):
     initial_round_cls: AppState = LoadDatabaseRound
     initial_states: Set[AppState] = {
         LoadDatabaseRound,
+        PullMemesRound,
+        ActionPreparationRound,
     }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
@@ -406,7 +408,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: CollectFeedbackRound,
         },
         EngageTwitterRound: {
-            Event.DONE: FinishedToResetRound,
+            Event.DONE: ActionDecisionRound,
             Event.ERROR: EngageTwitterRound,
             Event.NO_MAJORITY: EngageTwitterRound,
             Event.ROUND_TIMEOUT: EngageTwitterRound,
@@ -444,6 +446,8 @@ class MemeooorrAbciApp(AbciApp[Event]):
     cross_period_persisted_keys: FrozenSet[str] = frozenset(["persona"])
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
+        PullMemesRound: set(),
+        ActionPreparationRound: {"final_tx_hash"},
     }
     db_post_conditions: Dict[AppState, Set[str]] = {
         FinishedToResetRound: set(),

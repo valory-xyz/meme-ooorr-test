@@ -26,18 +26,10 @@ from typing import Dict, Generator, Optional, Tuple, Type
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
-    is_tweet_valid,
-)
-from packages.dvilela.skills.memeooorr_abci.prompts import (
-    ANALYZE_FEEDBACK_PROMPT,
-    TOKEN_DECISION_PROMPT,
-)
+from packages.dvilela.skills.memeooorr_abci.prompts import TOKEN_DECISION_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionDecisionPayload,
     ActionDecisionRound,
-    AnalizeFeedbackPayload,
-    AnalizeFeedbackRound,
     Event,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
