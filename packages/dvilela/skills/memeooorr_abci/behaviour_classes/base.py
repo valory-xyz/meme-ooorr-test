@@ -149,9 +149,6 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             "follow_user": "create_interaction",
             "post": "create_tweet",
         }
-
-        self.context.logger.info(f"call_twikit got :: method {method} with kwargs {kwargs}")
-
         # Check for the presence of the mirrorDB.json file
         config_file_path = Path("/tmp/mirrorDB.json")
         if not config_file_path.exists():
@@ -175,7 +172,6 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
 
         response_json = json.loads(response.payload)  # type: ignore
-        self.context.logger.info(f"call_twikit response_json: {response_json}")
 
         if "error" in response_json:
             self.context.logger.error(response_json["error"])

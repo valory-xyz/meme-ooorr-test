@@ -263,8 +263,6 @@ class MirrorDBConnection(Connection):
 
     async def create_interaction(self, agent_id: str, twitter_user_id: str, tweet_id: str, interaction_data: Dict) -> Dict:
         """Create an interaction."""
-        print("Creating interaction")
-        print (f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/{tweet_id}/interactions/")
         async with self.session.post(
             f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/{tweet_id}/interactions/",
             json=interaction_data,
