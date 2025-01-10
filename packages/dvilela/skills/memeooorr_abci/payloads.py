@@ -34,11 +34,10 @@ class LoadDatabasePayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
-class PostTweetPayload(BaseTxPayload):
-    """Represent a transaction payload for the PostTweetRound."""
+class PullMemesPayload(BaseTxPayload):
+    """Represent a transaction payload for the PullMemesRound."""
 
-    latest_tweet: Optional[str]
-    feedback_period_max_hours_delta: int = 0
+    meme_coins: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -49,33 +48,10 @@ class CollectFeedbackPayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
-class AnalizeFeedbackPayload(BaseTxPayload):
-    """Represent a transaction payload for the AnalizeFeedbackRound."""
-
-    analysis: Optional[str]
-
-
-@dataclass(frozen=True)
-class CheckFundsPayload(BaseTxPayload):
-    """Represent a transaction payload for the CheckFundsRound."""
+class EngageTwitterPayload(BaseTxPayload):
+    """Represent a transaction payload for the EngageTwitterRound."""
 
     event: str
-
-
-@dataclass(frozen=True)
-class DeploymentPayload(BaseTxPayload):
-    """Represent a transaction payload for the DeploymentRound."""
-
-    tx_hash: Optional[str]
-    tx_flag: Optional[str]
-    token_nonce: Optional[int] = None
-
-
-@dataclass(frozen=True)
-class PullMemesPayload(BaseTxPayload):
-    """Represent a transaction payload for the PullMemesRound."""
-
-    meme_coins: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -95,7 +71,6 @@ class ActionPreparationPayload(BaseTxPayload):
     """Represent a transaction payload for the ActionPreparationRound."""
 
     tx_hash: Optional[str]
-    tx_flag: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -106,14 +81,7 @@ class ActionTweetPayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
-class TransactionMultiplexerPayload(BaseTxPayload):
-    """Represent a transaction payload for the TransactionMultiplexerRound."""
-
-    event: str
-
-
-@dataclass(frozen=True)
-class EngagePayload(BaseTxPayload):
-    """Represent a transaction payload for the EngageRound."""
+class CheckFundsPayload(BaseTxPayload):
+    """Represent a transaction payload for the CheckFundsRound."""
 
     event: str

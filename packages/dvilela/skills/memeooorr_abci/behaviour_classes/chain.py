@@ -175,166 +175,6 @@ class CheckFundsBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
         return Event.DONE.value
 
 
-class DeploymentBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
-    """DeploymentBehaviour"""
-
-    matching_round: Type[AbstractRound] = DeploymentRound
-
-    def async_act(self) -> Generator:
-        """Do the act, supporting asynchronous execution."""
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            tx_hash, tx_flag, token_nonce = yield from self.get_tx_hash()
-
-            payload = DeploymentPayload(
-                sender=self.context.agent_address,
-                tx_hash=tx_hash,
-                tx_flag=tx_flag,
-                token_nonce=token_nonce,
-            )
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
-            yield from self.send_a2a_transaction(payload)
-            yield from self.wait_until_round_end()
-
-        self.set_done()
-
-    def get_tx_hash(  # pylint: disable=too-many-locals
-        self,
-    ) -> Generator[None, None, Tuple[Optional[str], Optional[str], Optional[int]]]:
-        """Prepare the next transaction"""
-
-        tx_flag: Optional[str] = self.synchronized_data.tx_flag
-        tx_hash: Optional[str] = None
-
-        # Deploy
-        if not tx_flag:
-            tx_hash = yield from self.get_deployment_tx()
-            tx_flag = "deploy"
-            token_nonce = None
-            return tx_hash, tx_flag, token_nonce
-
-        # Finished
-        self.context.logger.info("The deployment has finished")
-        tx_hash = None
-        tx_flag = "done"
-        token_nonce = yield from self.get_token_nonce()
-        if not token_nonce:
-            return None, None, None
-
-        if not token_nonce:
-            return None, None, None
-
-        # Read previous tokens from db
-        db_data = yield from self._read_kv(keys=("tokens",))
-
-        if db_data is None:
-            self.context.logger.error("Error while loading tokens from the database")
-            tokens = []
-        else:
-            tokens = json.loads(db_data["tokens"]) if db_data["tokens"] else []
-
-        # Write token to db
-        token_data = self.synchronized_data.token_data
-        token_data["token_nonce"] = token_nonce
-        tokens.append(token_data)
-        yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
-        self.context.logger.info("Wrote latest token to db")
-        self.store_heart(token_nonce)
-
-        return tx_hash, tx_flag, token_nonce
-
-    def get_deployment_tx(self) -> Generator[None, None, Optional[str]]:
-        """Prepare a deployment tx"""
-
-        # Transaction data
-        data_hex = yield from self.get_deployment_data()
-
-        # Check for errors
-        if data_hex is None:
-            return None
-
-        value = self.synchronized_data.token_data["amount"]
-        self.context.logger.info(f"Deployment value is {value}")
-
-        # Prepare safe transaction
-        safe_tx_hash = yield from self._build_safe_tx_hash(
-            to_address=self.get_meme_factory_address(),
-            data=bytes.fromhex(data_hex),
-            value=value,
-        )
-
-        self.context.logger.info(f"Deployment hash is {safe_tx_hash}")
-
-        return safe_tx_hash
-
-    def get_deployment_data(self) -> Generator[None, None, Optional[str]]:
-        """Get the deployment transaction data"""
-
-        token_data = self.synchronized_data.token_data
-        self.context.logger.info(
-            f"Preparing deployment transaction. token_data={token_data}"
-        )
-
-        # Use the contract api to interact with the factory contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
-            contract_address=self.get_meme_factory_address(),
-            contract_id=str(MemeFactoryContract.contract_id),
-            contract_callable="build_summon_tx",
-            token_name=token_data["token_name"],
-            token_ticker=token_data["token_ticker"],
-            total_supply=int(token_data["token_supply"]),
-            chain_id=self.get_chain_id(),
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.RAW_TRANSACTION:
-            self.context.logger.error(
-                f"Error while building the deployment tx: {response_msg}"
-            )
-            return None
-
-        data_bytes: Optional[bytes] = cast(
-            bytes, response_msg.raw_transaction.body.get("data", None)
-        )
-
-        # Ensure that the data is not None
-        if data_bytes is None:
-            self.context.logger.error(
-                f"Error while preparing the transaction: {response_msg}"
-            )
-            return None
-
-        data_hex = data_bytes.hex()
-        self.context.logger.info(f"Deployment data is {data_hex}")
-        return data_hex
-
-    def get_token_nonce(
-        self,
-    ) -> Generator[None, None, Optional[int]]:
-        """Get the data from the deployment event"""
-
-        # Use the contract api to interact with the factory contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-            contract_address=self.get_meme_factory_address(),
-            contract_id=str(MemeFactoryContract.contract_id),
-            contract_callable="get_token_data",
-            tx_hash=self.synchronized_data.final_tx_hash,
-            chain_id=self.get_chain_id(),
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.STATE:
-            self.context.logger.error(f"Could not get the token data: {response_msg}")
-            return None
-
-        token_nonce = cast(int, response_msg.state.body.get("token_nonce", None))
-        self.context.logger.info(f"Token nonce is {token_nonce}")
-        return token_nonce
-
-
 class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
     """PullMemesBehaviour"""
 
@@ -394,12 +234,11 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            tx_hash, tx_flag = yield from self.get_tx_hash()
+            tx_hash = yield from self.get_tx_hash()
 
             payload = ActionPreparationPayload(
                 sender=self.context.agent_address,
                 tx_hash=tx_hash,
-                tx_flag=tx_flag,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -408,10 +247,16 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
 
         self.set_done()
 
-    def get_tx_hash(self) -> Generator[None, None, Tuple[Optional[str], Optional[str]]]:
+    def get_tx_hash(self) -> Generator[None, None, Optional[str]]:
         """Get the action transaction hash"""
 
         token_action = self.synchronized_data.token_action
+
+        # Action finished if we already have a final_tx_hash at this point
+        if self.synchronized_data.final_tx_hash is not None:
+            if token_action == "summon":
+                yield from self.post_summon()
+            return ""
 
         if not token_action:
             return None, None
@@ -421,6 +266,11 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         contract_callable = f"build_{action}_tx"
 
         kwargs = {}
+
+        if action in ["summon"]:
+            kwargs["token_name"] = token_action["token_name"]
+            kwargs["token_ticker"] = token_action["token_ticker"]
+            kwargs["total_supply"] = int(token_action["total_supply"])
 
         if action in ["heart", "unleash"]:
             kwargs["meme_nonce"] = token_action["token_nonce"]
@@ -445,7 +295,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             self.context.logger.error(
                 f"Error while building the {action} tx: {response_msg}"
             )
-            return None, None
+            return None
 
         data_bytes: Optional[bytes] = cast(
             bytes, response_msg.raw_transaction.body.get("data", None)
@@ -456,18 +306,18 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             self.context.logger.error(
                 f"Error while preparing the transaction: {response_msg}"
             )
-            return None, None
+            return None
 
         data_hex = data_bytes.hex()
         self.context.logger.info(f"Tx data is {data_hex}")
 
         # Check for errors
         if data_hex is None:
-            return None, None
+            return None
 
         # Prepare safe transaction
         value = (
-            ZERO_VALUE if action != "heart" else int(token_action["amount"])
+            ZERO_VALUE if action not in ["summon", "heart"] else int(token_action["amount"])
         )  # to wei
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.get_meme_factory_address(),
@@ -480,43 +330,58 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         if action == "heart":
             self.store_heart(token_action["token_nonce"])
 
-        tx_flag = "action"
-        return safe_tx_hash, tx_flag
+        return safe_tx_hash
 
+    def post_summon(  # pylint: disable=too-many-locals
+        self,
+    ) -> Generator[None, None, None]:
+        """Post summon"""
 
-class TransactionMultiplexerBehaviour(
-    ChainBehaviour
-):  # pylint: disable=too-many-ancestors
-    """TransactionMultiplexerBehaviour"""
+        self.context.logger.info("The deployment has finished")
+        token_nonce = yield from self.get_token_nonce()
+        if not token_nonce:
+            return None
 
-    matching_round: Type[AbstractRound] = TransactionMultiplexerRound
+        if not token_nonce:
+            return None
 
-    def async_act(self) -> Generator:
-        """Do the act, supporting asynchronous execution."""
+        # Read previous tokens from db
+        db_data = yield from self._read_kv(keys=("tokens",))
 
-        with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            event = self.get_event()
+        if db_data is None:
+            self.context.logger.error("Error while loading tokens from the database")
+            tokens = []
+        else:
+            tokens = json.loads(db_data["tokens"]) if db_data["tokens"] else []
 
-            payload = TransactionMultiplexerPayload(
-                sender=self.context.agent_address,
-                event=event,
-            )
+        # Write token to db
+        token_data = self.synchronized_data.token_data
+        token_data["token_nonce"] = token_nonce
+        tokens.append(token_data)
+        yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
+        self.context.logger.info("Wrote latest token to db")
+        self.store_heart(token_nonce)
 
-        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
-            yield from self.send_a2a_transaction(payload)
-            yield from self.wait_until_round_end()
+    def get_token_nonce(
+        self,
+    ) -> Generator[None, None, Optional[int]]:
+        """Get the data from the deployment event"""
 
-        self.set_done()
+        # Use the contract api to interact with the factory contract
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.get_meme_factory_address(),
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_token_data",
+            tx_hash=self.synchronized_data.final_tx_hash,
+            chain_id=self.get_chain_id(),
+        )
 
-    def get_event(self) -> str:
-        """Get the event"""
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(f"Could not get the token data: {response_msg}")
+            return None
 
-        tx_flag = self.synchronized_data.tx_flag
-
-        if tx_flag == "deploy":
-            return Event.TO_DEPLOY.value
-
-        if tx_flag == "action":
-            return Event.TO_ACTION_TWEET.value
-
-        return Event.DONE.value
+        token_nonce = cast(int, response_msg.state.body.get("token_nonce", None))
+        self.context.logger.info(f"Token nonce is {token_nonce}")
+        return token_nonce

@@ -31,7 +31,6 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
-    TWITTER_ENGAGE_PROMPT,
     TWITTER_DECISION_PROMPT,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
@@ -39,13 +38,9 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionTweetRound,
     CollectFeedbackPayload,
     CollectFeedbackRound,
-    EngagePayload,
+    EngageTwitterPayload,
     EngageRound,
     Event,
-    PostAnnouncementRound,
-    PostTweetPayload,
-    PostTweetRound,
-)
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
@@ -271,7 +266,7 @@ class EngageBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-ancestors
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             event = yield from self.get_event()
 
-            payload = EngagePayload(
+            payload = EngageTwitterPayload(
                 sender=self.context.agent_address,
                 event=event,
             )
@@ -360,13 +355,8 @@ class EngageBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-ancestors
             ]
         )
 
-        # Load previously published tweets
-        db_data = yield from self._read_kv(keys=("tweets",))
-
-        if db_data is None:
-            tweets = []
-        else:
-            tweets = json.loads(db_data["tweets"] or "[]")
+        # Get at most your 5 latest tweets
+        tweets = yield from self.get_tweets_from_db()[-5:]
 
         previous_tweets = "\n\n".join(
             [
