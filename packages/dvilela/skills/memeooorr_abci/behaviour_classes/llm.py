@@ -30,8 +30,8 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     is_tweet_valid,
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
-    TOKEN_DECISION_PROMPT,
     ANALYZE_FEEDBACK_PROMPT,
+    TOKEN_DECISION_PROMPT,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionDecisionPayload,
@@ -59,124 +59,6 @@ TOKEN_SUMMARY = (  # nosec
     """
 )
 # fmt: on
-
-
-class AnalizeFeedbackBehaviour(
-    MemeooorrBaseBehaviour
-):  # pylint: disable=too-many-ancestors
-    """AnalizeFeedbackBehaviour"""
-
-    matching_round: Type[AbstractRound] = AnalizeFeedbackRound
-
-    def async_act(self) -> Generator:
-        """Do the act, supporting asynchronous execution."""
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            analysis = yield from self.get_analysis()
-            self.context.logger.info(f"Analysis: {analysis}")
-
-            payload = AnalizeFeedbackPayload(
-                sender=self.context.agent_address,
-                analysis=json.dumps(analysis, sort_keys=True),
-            )
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
-            yield from self.send_a2a_transaction(payload)
-            yield from self.wait_until_round_end()
-
-        self.set_done()
-
-    def get_analysis(  # pylint: disable=too-many-locals,too-many-return-statements
-        self,
-    ) -> Generator[None, None, Optional[Dict]]:
-        """Post a tweet"""
-
-        if self.synchronized_data.feedback is None:
-            return None
-
-        tweet_responses = "\n\n".join(
-            [
-                f"tweet: {t['text']}\nviews: {t['view_count']}\nquotes: {t['quote_count']}\nretweets{t['retweet_count']}"
-                for t in self.synchronized_data.feedback
-            ]
-        )
-
-        native_balance = yield from self.get_native_balance()
-        if not native_balance:
-            native_balance = 0
-
-        persona = yield from self.get_persona()
-
-        prompt_data = {
-            "latest_tweet": self.synchronized_data.latest_tweet["text"],
-            "tweet_responses": tweet_responses,
-            "persona": persona,
-            "n_meme_coins": len(self.synchronized_data.meme_coins),
-            "balance": native_balance,
-            "ticker": self.get_native_ticker(),
-        }
-
-        llm_response = yield from self._call_genai(
-            prompt=ANALYZE_FEEDBACK_PROMPT.format(**prompt_data)
-        )
-        self.context.logger.info(f"LLM response: {llm_response}")
-
-        # We didnt get a response
-        if llm_response is None:
-            self.context.logger.error("Error getting a response from the LLM.")
-            return None
-
-        # The response is not a valid jsoon
-        try:
-            llm_response = llm_response.replace("\n", "").strip()
-            match = re.search(JSON_RESPONSE_REGEX, llm_response, re.DOTALL)
-            if match:
-                llm_response = match.groups()[0]
-            response = json.loads(llm_response)
-
-        except json.JSONDecodeError as e:
-            self.context.logger.error(f"Error loading the LLM response: {e}")
-            return None
-
-        # Tweet too long
-        if (
-            response["deploy"]
-            and "tweet" not in response
-            and not is_tweet_valid(response["tweet"])
-        ):
-            self.context.logger.error("Announcement tweet is too long.")
-            return None
-
-        # Missing token data
-        if (
-            response["deploy"]
-            and "token_name" not in response
-            or "token_ticker" not in response
-            or "token_supply" not in response
-        ):
-            self.context.logger.error(
-                f"Missing some token data from the response: {response}"
-            )
-            return None
-
-        # Ensure minimum amount
-        if response["deploy"]:
-            response["amount"] = max(
-                response.get("amount", 0),
-                self.get_min_deploy_value(),
-            )
-
-        # Missing persona
-        if not response["deploy"] and "persona" not in response:
-            self.context.logger.error("Missing the new persona from the response.")
-            return None
-
-        # Write new persona to the database
-        if not response["deploy"]:
-            yield from self._write_kv({"persona": response["persona"]})
-            self.context.logger.info("Wrote persona to db")
-
-        return response
 
 
 class ActionDecisionBehaviour(

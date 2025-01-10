@@ -88,26 +88,26 @@ class SynchronizedData(BaseSynchronizedData):
         return cast(str, self.db.get("persona", None))
 
     @property
+    def meme_coins(self) -> List[Dict]:
+        """Get the meme_coins."""
+        return cast(list, json.loads(cast(str, self.db.get("meme_coins", "[]"))))
+
+    @property
     def pending_tweet(self) -> Optional[List]:
         """Get the pending tweet."""
         pending_tweet_str = self.db.get("pending_tweet", None)
         return json.loads(pending_tweet_str) if pending_tweet_str else []
 
     @property
-    def latest_tweet(self) -> Dict:
-        """Get the latest_tweet."""
-        return cast(dict, json.loads(cast(str, self.db.get("latest_tweet", "{}"))))
-
-    @property
-    def token_data(self) -> Dict:
-        """Get the token data."""
-        return cast(dict, json.loads(cast(str, self.db.get_strict("token_data"))))
-
-    @property
     def feedback(self) -> Optional[List]:
         """Get the feedback."""
         feedback = self.db.get("feedback", None)
         return json.loads(feedback) if feedback else None
+
+    @property
+    def token_action(self) -> Dict:
+        """Get the token action."""
+        return cast(dict, json.loads(cast(str, self.db.get("token_action", "{}"))))
 
     @property
     def most_voted_tx_hash(self) -> Optional[str]:
@@ -118,21 +118,6 @@ class SynchronizedData(BaseSynchronizedData):
     def final_tx_hash(self) -> str:
         """Get the verified tx hash."""
         return cast(str, self.db.get_strict("final_tx_hash"))
-
-    @property
-    def participants_to_memes(self) -> DeserializedCollection:
-        """Get the participants_to_memes."""
-        return self._get_deserialized("participants_to_memes")
-
-    @property
-    def meme_coins(self) -> List[Dict]:
-        """Get the meme_coins."""
-        return cast(list, json.loads(cast(str, self.db.get("meme_coins", "[]"))))
-
-    @property
-    def token_action(self) -> Dict:
-        """Get the token action."""
-        return cast(dict, json.loads(cast(str, self.db.get("token_action", "{}"))))
 
 
 class EventRoundBase(CollectSameUntilThresholdRound):
@@ -161,10 +146,7 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
     payload_class = LoadDatabasePayload
     synchronized_data_class = SynchronizedData
     collection_key = get_name(SynchronizedData.participants_to_db)
-    selection_key = (
-        get_name(SynchronizedData.persona),
-        get_name(SynchronizedData.latest_tweet),
-    )
+    selection_key = (get_name(SynchronizedData.persona),)
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -179,7 +161,6 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
                 synchronized_data_class=SynchronizedData,
                 **{
                     get_name(SynchronizedData.persona): payload["persona"],
-                    get_name(SynchronizedData.latest_tweet): payload["latest_tweet"],
                 },
             )
 
@@ -460,9 +441,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
     }
     final_states: Set[AppState] = {FinishedToResetRound, FinishedToSettlementRound}
     event_to_timeout: EventToTimeout = {}
-    cross_period_persisted_keys: FrozenSet[str] = frozenset(
-        ["persona", "latest_tweet", "feedback", "feedback_period_max_hours_delta"]
-    )
+    cross_period_persisted_keys: FrozenSet[str] = frozenset(["persona"])
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
     }

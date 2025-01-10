@@ -30,17 +30,16 @@ from twitter_text import parse_tweet  # type: ignore
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.prompts import (
-    TWITTER_DECISION_PROMPT,
-)
+from packages.dvilela.skills.memeooorr_abci.prompts import TWITTER_DECISION_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionTweetPayload,
     ActionTweetRound,
     CollectFeedbackPayload,
     CollectFeedbackRound,
-    EngageTwitterPayload,
     EngageRound,
+    EngageTwitterPayload,
     Event,
+)
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
@@ -71,17 +70,6 @@ def is_tweet_valid(tweet: str) -> bool:
 
 class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-ancestors
     """BaseTweetBehaviour"""
-
-    def get_tweets_from_db(self) -> Generator[None, None, List[Dict]]:
-        """Get tweets"""
-        db_data = yield from self._read_kv(keys=("tweets",))
-
-        if db_data is None:
-            tweets = []
-        else:
-            tweets = json.loads(db_data["tweets"] or "[]")
-
-        return tweets
 
     def store_tweet(self, tweet) -> Generator[None, None, bool]:
         """Store tweet"""
@@ -222,7 +210,7 @@ class CollectFeedbackBehaviour(
         """Get the responses"""
 
         # Search new replies
-        latest_tweet = self.synchronized_data.latest_tweet
+        latest_tweet = yield from self.get_tweets_from_db()[-1]
         query = f"conversation_id:{latest_tweet['tweet_id']}"
         feedback = yield from self._call_twikit(method="search", query=query, count=100)
 

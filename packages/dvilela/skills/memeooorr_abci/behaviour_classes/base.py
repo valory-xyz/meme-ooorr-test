@@ -680,3 +680,14 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         # Should not happen
         return 0
+
+    def get_tweets_from_db(self) -> Generator[None, None, List[Dict]]:
+        """Get tweets"""
+        db_data = yield from self._read_kv(keys=("tweets",))
+
+        if db_data is None:
+            tweets = []
+        else:
+            tweets = json.loads(db_data["tweets"] or "[]")
+
+        return tweets

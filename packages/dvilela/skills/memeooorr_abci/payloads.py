@@ -30,7 +30,6 @@ class LoadDatabasePayload(BaseTxPayload):
     """Represent a transaction payload for the LoadDatabaseRound."""
 
     persona: str
-    latest_tweet: Optional[str]
 
 
 @dataclass(frozen=True)

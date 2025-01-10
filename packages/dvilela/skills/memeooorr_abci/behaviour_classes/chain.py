@@ -317,7 +317,9 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
 
         # Prepare safe transaction
         value = (
-            ZERO_VALUE if action not in ["summon", "heart"] else int(token_action["amount"])
+            ZERO_VALUE
+            if action not in ["summon", "heart"]
+            else int(token_action["amount"])
         )  # to wei
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.get_meme_factory_address(),
@@ -355,8 +357,13 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             tokens = json.loads(db_data["tokens"]) if db_data["tokens"] else []
 
         # Write token to db
-        token_data = self.synchronized_data.token_data
-        token_data["token_nonce"] = token_nonce
+        token_action = self.synchronized_data.token_action
+        token_data = {
+            "token_name": token_action["token_name"],
+            "token_ticker": token_action["token_ticker"],
+            "total_supply": int(token_action["total_supply"]),
+            "token_nonce": token_nonce,
+        }
         tokens.append(token_data)
         yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
         self.context.logger.info("Wrote latest token to db")
