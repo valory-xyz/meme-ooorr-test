@@ -139,7 +139,9 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         response = yield from self.wait_for_message(timeout=timeout)
         return response
 
-    def _call_twikit(self, method: str, **kwargs: Any) -> Generator[None, None, Any]:
+    def _call_twikit(  # pylint: disable=too-many-locals
+        self, method: str, **kwargs: Any
+    ) -> Generator[None, None, Any]:
         """Send a request message to the Twikit connection and handle MirrorDB interactions."""
         # Define the mapping of Twikit methods to MirrorDB methods
         twikit_to_mirrordb = {
@@ -154,7 +156,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             yield from self._register_with_mirror_db()
 
         # Load the configuration from mirrorDB.json
-        with open(config_file_path, "r") as f:
+        with open(config_file_path, "r", encoding="utf-8") as f:
             config_data = json.load(f)
         agent_id = config_data["agent_id"]
         twitter_user_id = config_data["twitter_user_id"]
@@ -189,6 +191,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                     "user_name": self.params.twitter_username,
                     "text": tweet_text,
                     "created_at": datetime.utcnow().isoformat() + "Z",
+                    "tweet_id": response_json["response"][0],
                 }
                 mirrordb_kwargs["tweet_data"] = tweet_data
                 mirrordb_kwargs["agent_id"] = agent_id  # Ensure agent_id is passed
@@ -211,9 +214,9 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                     "interaction_type": interaction_type,
                 }
                 if interaction_type == "follow":
-                    interaction_data["user_id"] = kwargs.get("user_id")
+                    interaction_data["user_id"] = str(kwargs.get("user_id"))
                 else:
-                    interaction_data["tweet_id"] = kwargs.get("tweet_id")
+                    interaction_data["tweet_id"] = str(kwargs.get("tweet_id"))
 
                 mirrordb_kwargs = {
                     "interaction_data": interaction_data,
@@ -313,7 +316,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             "twitter_user_id": twitter_user_id,
             "api_key": agent_response["api_key"],
         }
-        with open("/tmp/mirrorDB.json", "w") as f:  # nosec
+        with open("/tmp/mirrorDB.json", "w", encoding="utf-8") as f:  # nosec
             json.dump(config_data, f)
 
     def _get_twitter_user_data(self) -> Generator[None, None, Dict[str, str]]:

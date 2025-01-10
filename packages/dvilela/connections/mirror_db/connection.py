@@ -80,9 +80,9 @@ class MirrorDBConnection(Connection):
         super().__init__(*args, **kwargs)
         self.base_url = self.configuration.config.get("mirror_db_base_url")
         self.config_file_path = Path("/tmp/mirrorDB.json")  # nosec
-        self.api_key = None
-        self.agent_id = None
-        self.twitter_user_id = None
+        self.api_key: Optional[str] = None
+        self.agent_id: Optional[str] = None
+        self.twitter_user_id: Optional[str] = None
         self.session: Optional[aiohttp.ClientSession] = None
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
         self._response_envelopes: Optional[asyncio.Queue] = None
@@ -158,7 +158,7 @@ class MirrorDBConnection(Connection):
         """Prepare error message"""
         response_message = cast(
             SrrMessage,
-            dialogue.reply(
+            dialogue.reply(  # type: ignore
                 performative=SrrMessage.Performative.RESPONSE,
                 target_message=srr_message,
                 payload=json.dumps({"error": error}),
@@ -209,7 +209,7 @@ class MirrorDBConnection(Connection):
             response = await method(**payload.get("kwargs", {}))
             response_message = cast(
                 SrrMessage,
-                dialogue.reply(
+                dialogue.reply(  # type: ignore
                     performative=SrrMessage.Performative.RESPONSE,
                     target_message=srr_message,
                     payload=json.dumps({"response": response}),
@@ -225,7 +225,7 @@ class MirrorDBConnection(Connection):
 
     async def create_agent(self, agent_data: Dict) -> Dict:
         """Create an agent and a Twitter account."""
-        async with self.session.post(
+        async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/",
             json=agent_data,
             headers={"access_token": f"{self.api_key}"},
@@ -240,7 +240,7 @@ class MirrorDBConnection(Connection):
 
     async def read_agent(self, agent_id: str) -> Dict:
         """Read an agent."""
-        async with self.session.get(
+        async with self.session.get(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}",
             headers={"access_token": f"{self.api_key}"},
         ) as response:
@@ -249,7 +249,7 @@ class MirrorDBConnection(Connection):
     async def create_twitter_account(self, agent_id: str, account_data: Dict) -> Dict:
         """Create a Twitter account."""
         api_key = account_data.get("api_key", self.api_key)
-        async with self.session.post(
+        async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/twitter_accounts/",
             json=account_data,
             headers={"access_token": f"{api_key}"},
@@ -258,7 +258,7 @@ class MirrorDBConnection(Connection):
 
     async def get_twitter_account(self, twitter_user_id: str) -> Dict:
         """Get a Twitter account."""
-        async with self.session.get(
+        async with self.session.get(  # type: ignore
             f"{self.base_url}/api/twitter_accounts/{twitter_user_id}",
             headers={"access_token": f"{self.api_key}"},
         ) as response:
@@ -268,7 +268,7 @@ class MirrorDBConnection(Connection):
         self, agent_id: int, twitter_user_id: str, tweet_data: Dict
     ) -> Dict:
         """Create a tweet."""
-        async with self.session.post(
+        async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/",
             json=tweet_data,
             headers={"access_token": f"{self.api_key}"},
@@ -277,28 +277,17 @@ class MirrorDBConnection(Connection):
 
     async def read_tweet(self, tweet_id: str) -> Dict:
         """Read a tweet."""
-        async with self.session.get(
+        async with self.session.get(  # type: ignore
             f"{self.base_url}/api/tweets/{tweet_id}",
             headers={"access_token": f"{self.api_key}"},
         ) as response:
             return await response.json()
 
-    # async def create_interaction(
-    #     self, agent_id: str, twitter_user_id: str, tweet_id: str, interaction_data: Dict
-    # ) -> Dict:
-    #     """Create an interaction."""
-    #     async with self.session.post(
-    #         f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/{tweet_id}/interactions/",
-    #         json=interaction_data,
-    #         headers={"access_token": f"{self.api_key}"},
-    #     ) as response:
-    #         return await response.json()
-
     async def create_interaction(
         self, agent_id: int, twitter_user_id: str, interaction_data: Dict
     ) -> Dict:
         """Create an interaction."""
-        async with self.session.post(
+        async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/interactions/",
             json=interaction_data,
             headers={"access_token": f"{self.api_key}"},

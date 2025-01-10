@@ -453,7 +453,7 @@ def tweet_to_json(tweet: Any) -> Dict:
 
 
 def user_to_json(user: Any) -> Dict:
-    """"User to Json"""
+    """User to Json"""
     return {
         "id": user.id,
         "name": user.name,

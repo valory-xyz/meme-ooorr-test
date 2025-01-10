@@ -426,7 +426,6 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
                 event=event,
             )
 
-
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
             yield from self.send_a2a_transaction(payload)
             yield from self.wait_until_round_end()
