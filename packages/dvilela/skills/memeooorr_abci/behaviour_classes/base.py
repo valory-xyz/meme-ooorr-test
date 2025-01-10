@@ -24,10 +24,8 @@ import re
 from abc import ABC
 from copy import copy
 from datetime import datetime
-from typing import Any, Dict, Generator, List, Optional, Tuple, cast
 from pathlib import Path
-from dotenv import load_dotenv
-
+from typing import Any, Dict, Generator, List, Optional, Tuple, cast
 
 from aea.protocols.base import Message
 
@@ -37,10 +35,12 @@ from packages.dvilela.connections.genai.connection import (
 from packages.dvilela.connections.kv_store.connection import (
     PUBLIC_ID as KV_STORE_CONNECTION_PUBLIC_ID,
 )
+from packages.dvilela.connections.mirror_db.connection import (
+    PUBLIC_ID as MIRRORDB_CONNECTION_PUBLIC_ID,
+)
 from packages.dvilela.connections.twikit.connection import (
     PUBLIC_ID as TWIKIT_CONNECTION_PUBLIC_ID,
 )
-from packages.dvilela.connections.mirror_db.connection import PUBLIC_ID as MIRRORDB_CONNECTION_PUBLIC_ID
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.contracts.service_registry.contract import ServiceRegistryContract
 from packages.dvilela.protocols.kv_store.dialogues import (
@@ -56,7 +56,6 @@ from packages.valory.protocols.srr.dialogues import SrrDialogue, SrrDialogues
 from packages.valory.protocols.srr.message import SrrMessage
 from packages.valory.skills.abstract_round_abci.behaviours import BaseBehaviour
 from packages.valory.skills.abstract_round_abci.models import Requests
-import os
 
 
 BASE_CHAIN_ID = "base"
@@ -150,7 +149,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             "post": "create_tweet",
         }
         # Check for the presence of the mirrorDB.json file
-        config_file_path = Path("/tmp/mirrorDB.json")
+        config_file_path = Path("/tmp/mirrorDB.json")  # nosec
         if not config_file_path.exists():
             yield from self._register_with_mirror_db()
 
@@ -182,21 +181,31 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             mirrordb_method = twikit_to_mirrordb[method]
             mirrordb_kwargs = kwargs.copy()
             if method == "post":
-                tweet_text = mirrordb_kwargs.pop("tweets")[0]["text"]  # Remove 'tweets' key
+                tweet_text = mirrordb_kwargs.pop("tweets")[0][
+                    "text"
+                ]  # Remove 'tweets' key
                 self.context.logger.info(f"Tweet text: {tweet_text}")
                 tweet_data = {
                     "user_name": self.params.twitter_username,
                     "text": tweet_text,
-                    "created_at": datetime.utcnow().isoformat() + "Z"
+                    "created_at": datetime.utcnow().isoformat() + "Z",
                 }
                 mirrordb_kwargs["tweet_data"] = tweet_data
                 mirrordb_kwargs["agent_id"] = agent_id  # Ensure agent_id is passed
-                mirrordb_kwargs["twitter_user_id"] = twitter_user_id  # Ensure twitter_user_id is passed
+                mirrordb_kwargs[
+                    "twitter_user_id"
+                ] = twitter_user_id  # Ensure twitter_user_id is passed
                 # Use the tweet ID returned by Twikit
                 tweet_id = response_json["response"][0]
                 mirrordb_kwargs["tweet_data"]["tweet_id"] = tweet_id
                 self.context.logger.info(f"mirrorDb kwargs: {mirrordb_kwargs}")
-            elif method in ["like_tweet", "retweet", "reply", "quote_tweet", "follow_user"]:
+            elif method in [
+                "like_tweet",
+                "retweet",
+                "reply",
+                "quote_tweet",
+                "follow_user",
+            ]:
                 interaction_type = method.replace("_tweet", "").replace("_user", "")
                 interaction_data = {
                     "interaction_type": interaction_type,
@@ -209,16 +218,24 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                 mirrordb_kwargs = {
                     "interaction_data": interaction_data,
                     "agent_id": agent_id,
-                    "twitter_user_id": twitter_user_id
+                    "twitter_user_id": twitter_user_id,
                 }
                 self.context.logger.info(f"mirrorDb kwargs: {mirrordb_kwargs}")
-                mirrordb_response = yield from self._call_mirrordb("create_interaction", **mirrordb_kwargs)
+                mirrordb_response = yield from self._call_mirrordb(
+                    "create_interaction", **mirrordb_kwargs
+                )
                 if mirrordb_response is None:
-                    self.context.logger.error(f"MirrorDB interaction for method {method} failed.")
+                    self.context.logger.error(
+                        f"MirrorDB interaction for method {method} failed."
+                    )
 
-            mirrordb_response = yield from self._call_mirrordb(mirrordb_method, **mirrordb_kwargs)
+            mirrordb_response = yield from self._call_mirrordb(
+                mirrordb_method, **mirrordb_kwargs
+            )
             if mirrordb_response is None:
-                self.context.logger.error(f"MirrorDB interaction for method {method} failed.")
+                self.context.logger.error(
+                    f"MirrorDB interaction for method {method} failed."
+                )
 
         return response_json["response"]  # type: ignore
 
@@ -252,13 +269,17 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         twitter_name = twitter_user_data["name"]
 
         # Create the agent
-        agent_data = {"agent_name": self.synchronized_data.safe_contract_address,}
+        agent_data = {
+            "agent_name": self.synchronized_data.safe_contract_address,
+        }
         twitter_account_data = {
             "username": twitter_username,
             "name": twitter_name,
-            "twitter_user_id": twitter_user_id
+            "twitter_user_id": twitter_user_id,
         }
-        agent_response = yield from self._call_mirrordb("create_agent", agent_data=agent_data)
+        agent_response = yield from self._call_mirrordb(
+            "create_agent", agent_data=agent_data
+        )
         self.context.logger.info(f"Agent created: {agent_response}")
 
         agent_id = agent_response["agent_id"]
@@ -267,29 +288,37 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         twitter_account_data["api_key"] = api_key
         twitter_account_data["name"] = twitter_name
         twitter_account_data["twitter_user_id"] = twitter_user_id
-        twitter_account_data["username"]= twitter_username
+        twitter_account_data["username"] = twitter_username
 
-        #create the twitter account
-        twitter_account_response = yield from self._call_mirrordb("create_twitter_account", agent_id=agent_id ,account_data=twitter_account_data)
-        self.context.logger.info(f"Twitter account created in MirrorDB: {twitter_account_response}")
+        # create the twitter account
+        twitter_account_response = yield from self._call_mirrordb(
+            "create_twitter_account",
+            agent_id=agent_id,
+            account_data=twitter_account_data,
+        )
+        self.context.logger.info(
+            f"Twitter account created in MirrorDB: {twitter_account_response}"
+        )
 
-        #updating class vars
-        agent_id_update = yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
-        user_id_update = yield from self._call_mirrordb("update_twitter_user_id", twitter_user_id=twitter_user_id)
-        api_key_update = yield from self._call_mirrordb("update_api_key", api_key=api_key)
+        # updating class vars
+        yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
+        yield from self._call_mirrordb(
+            "update_twitter_user_id", twitter_user_id=twitter_user_id
+        )
+        yield from self._call_mirrordb("update_api_key", api_key=api_key)
 
         # Save the configuration to mirrorDB.json
         config_data = {
             "agent_id": agent_response["agent_id"],
             "twitter_user_id": twitter_user_id,
-            "api_key": agent_response["api_key"]
+            "api_key": agent_response["api_key"],
         }
-        with open("/tmp/mirrorDB.json", "w") as f:
+        with open("/tmp/mirrorDB.json", "w") as f:  # nosec
             json.dump(config_data, f)
 
     def _get_twitter_user_data(self) -> Generator[None, None, Dict[str, str]]:
         """Get the twitter user data using Twikit."""
-       
+
         TWIKIT_USERNAME = self.params.twitter_username
         if not TWIKIT_USERNAME:
             raise ValueError("TWIKIT_USERNAME environment variable not set")
@@ -298,7 +327,12 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         srr_message, srr_dialogue = srr_dialogues.create(
             counterparty=str(TWIKIT_CONNECTION_PUBLIC_ID),
             performative=SrrMessage.Performative.REQUEST,
-            payload=json.dumps({"method": "get_user_by_screen_name", "kwargs": {"screen_name": TWIKIT_USERNAME}}),
+            payload=json.dumps(
+                {
+                    "method": "get_user_by_screen_name",
+                    "kwargs": {"screen_name": TWIKIT_USERNAME},
+                }
+            ),
         )
         srr_message = cast(SrrMessage, srr_message)
         srr_dialogue = cast(SrrDialogue, srr_dialogue)

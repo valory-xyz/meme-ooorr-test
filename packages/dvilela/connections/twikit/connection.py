@@ -431,11 +431,12 @@ class TwikitConnection(Connection):
                 self.logger.error(f"Error while checking user {user_name}: {e}")
                 continue
         return not_suspendend_users
-    
+
     async def get_user_by_screen_name(self, screen_name: str) -> Dict:
         """Get user by screen name"""
         user = await self.client.get_user_by_screen_name(screen_name=screen_name)
         return user_to_json(user)
+
 
 def tweet_to_json(tweet: Any) -> Dict:
     """Tweet to json"""
@@ -450,8 +451,9 @@ def tweet_to_json(tweet: Any) -> Dict:
         "view_count_state": tweet.view_count_state,
     }
 
-def user_to_json(user:Any) -> Dict:
-    "USer to Json"
+
+def user_to_json(user: Any) -> Dict:
+    """"User to Json"""
     return {
         "id": user.id,
         "name": user.name,

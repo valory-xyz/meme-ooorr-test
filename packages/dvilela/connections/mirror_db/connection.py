@@ -1,7 +1,31 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# ------------------------------------------------------------------------------
+#
+#   Copyright 2021-2024 David Vilela Freire
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+# ------------------------------------------------------------------------------
+
+"""MirrorDB connection."""
+
 import asyncio
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, cast
+
+import aiohttp
 from aea.configurations.base import PublicId
 from aea.connections.base import Connection, ConnectionStates
 from aea.mail.base import Envelope
@@ -13,9 +37,9 @@ from packages.valory.protocols.srr.dialogues import SrrDialogue
 from packages.valory.protocols.srr.dialogues import SrrDialogues as BaseSrrDialogues
 from packages.valory.protocols.srr.message import SrrMessage
 
-import aiohttp
 
 PUBLIC_ID = PublicId.from_str("dvilela/mirror_db:0.1.0")
+
 
 class SrrDialogues(BaseSrrDialogues):
     """A class to keep track of SRR dialogues."""
@@ -45,6 +69,7 @@ class SrrDialogues(BaseSrrDialogues):
             **kwargs,
         )
 
+
 class MirrorDBConnection(Connection):
     """Proxy to the functionality of the mirror DB backend service."""
 
@@ -54,8 +79,7 @@ class MirrorDBConnection(Connection):
         """Initialize the connection."""
         super().__init__(*args, **kwargs)
         self.base_url = self.configuration.config.get("mirror_db_base_url")
-        # self.base_url = "http://localhost:8000"
-        self.config_file_path = Path("/tmp/mirrorDB.json")
+        self.config_file_path = Path("/tmp/mirrorDB.json")  # nosec
         self.api_key = None
         self.agent_id = None
         self.twitter_user_id = None
@@ -90,10 +114,6 @@ class MirrorDBConnection(Connection):
         self._response_envelopes = asyncio.Queue()
         self.session = aiohttp.ClientSession()
         self.state = ConnectionStates.connected
-
-        # # If configuration is not loaded, raise an error
-        # if not self.api_key or not self.agent_id or not self.twitter_user_id:
-        #     raise ValueError("Configuration not loaded. Please register with MirrorDB first.")
 
     async def disconnect(self) -> None:
         """Disconnect from the backend service."""
@@ -203,7 +223,7 @@ class MirrorDBConnection(Connection):
                 srr_message, dialogue, f"Exception while calling backend service:\n{e}"
             )
 
-    async def create_agent(self, agent_data: Dict ) -> Dict:
+    async def create_agent(self, agent_data: Dict) -> Dict:
         """Create an agent and a Twitter account."""
         async with self.session.post(
             f"{self.base_url}/api/agents/",
@@ -244,7 +264,9 @@ class MirrorDBConnection(Connection):
         ) as response:
             return await response.json()
 
-    async def create_tweet(self, agent_id: int, twitter_user_id: str, tweet_data: Dict) -> Dict:
+    async def create_tweet(
+        self, agent_id: int, twitter_user_id: str, tweet_data: Dict
+    ) -> Dict:
         """Create a tweet."""
         async with self.session.post(
             f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/",
@@ -261,16 +283,20 @@ class MirrorDBConnection(Connection):
         ) as response:
             return await response.json()
 
-    async def create_interaction(self, agent_id: str, twitter_user_id: str, tweet_id: str, interaction_data: Dict) -> Dict:
-        """Create an interaction."""
-        async with self.session.post(
-            f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/{tweet_id}/interactions/",
-            json=interaction_data,
-            headers={"access_token": f"{self.api_key}"},
-        ) as response:
-            return await response.json()
+    # async def create_interaction(
+    #     self, agent_id: str, twitter_user_id: str, tweet_id: str, interaction_data: Dict
+    # ) -> Dict:
+    #     """Create an interaction."""
+    #     async with self.session.post(
+    #         f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/{tweet_id}/interactions/",
+    #         json=interaction_data,
+    #         headers={"access_token": f"{self.api_key}"},
+    #     ) as response:
+    #         return await response.json()
 
-    async def create_interaction(self, agent_id: int, twitter_user_id: str, interaction_data: Dict) -> Dict:
+    async def create_interaction(
+        self, agent_id: int, twitter_user_id: str, interaction_data: Dict
+    ) -> Dict:
         """Create an interaction."""
         async with self.session.post(
             f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/interactions/",
