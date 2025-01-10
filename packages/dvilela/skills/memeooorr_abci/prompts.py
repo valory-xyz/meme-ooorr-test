@@ -116,8 +116,6 @@ You have two options:
 * Do nothing
 * Execute one action from the available actions for one token of your choice
 
-DO NOTHING FOR NOW !
-
 Here's the list of memecoins:
 {meme_coins}
 

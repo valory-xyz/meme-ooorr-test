@@ -418,12 +418,6 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""
 
-        # #like a tweet
-        # yield from self.like_tweet("1868952161427882053")
-
-        # #follow a user
-        # yield from self.follow_user("44196397")
-
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             event = yield from self.get_event()
 
