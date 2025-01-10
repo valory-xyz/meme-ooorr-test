@@ -200,14 +200,25 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                 tweet_id = response_json["response"][0]
                 mirrordb_kwargs["tweet_data"]["tweet_id"] = tweet_id
                 self.context.logger.info(f"mirrorDb kwargs: {mirrordb_kwargs}")
-            elif method in ["like_tweet", "retweet", "follow_user"]:
-                mirrordb_kwargs["interaction_data"] = {"type": method , "tweet_id": kwargs.get("tweet_id"), "user_id": kwargs.get("user_id")}
-                mirrordb_kwargs["agent_id"] = agent_id  # Ensure agent_id is passed
-                mirrordb_kwargs["twitter_user_id"] = twitter_user_id  # Ensure twitter_user_id is passed
-                if method != "follow_user":
-                    mirrordb_kwargs["tweet_id"] = kwargs.get("tweet_id")  # Ensure tweet_id is passed
+            elif method in ["like_tweet", "retweet", "reply", "quote_tweet", "follow_user"]:
+                interaction_type = method.replace("_tweet", "").replace("_user", "")
+                interaction_data = {
+                    "interaction_type": interaction_type,
+                }
+                if interaction_type == "follow":
+                    interaction_data["user_id"] = kwargs.get("user_id")
                 else:
-                    mirrordb_kwargs["user_id"] = kwargs.get("user_id")  # Ensure user_id is passed
+                    interaction_data["tweet_id"] = kwargs.get("tweet_id")
+
+                mirrordb_kwargs = {
+                    "interaction_data": interaction_data,
+                    "agent_id": agent_id,
+                    "twitter_user_id": twitter_user_id
+                }
+                self.context.logger.info(f"mirrorDb kwargs: {mirrordb_kwargs}")
+                mirrordb_response = yield from self._call_mirrordb("create_interaction", **mirrordb_kwargs)
+                if mirrordb_response is None:
+                    self.context.logger.error(f"MirrorDB interaction for method {method} failed.")
 
             mirrordb_response = yield from self._call_mirrordb(mirrordb_method, **mirrordb_kwargs)
             if mirrordb_response is None:
