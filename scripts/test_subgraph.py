@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2021-2024 Valory AG
+#   Copyright 2021-2025 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -41,6 +41,10 @@ query Tokens {
       lpPairAddress
       owner
       timestamp
+      memeNonce
+      summonTime
+      memeToken
+      name
     }
   }
 }
@@ -88,13 +92,16 @@ def get_meme_coins_from_subgraph():
         {
             "block_number": int(t["blockNumber"]),
             "chain": t["chain"],
-            "token_address": t["id"].split("-")[1],
+            "token_address": t["memeToken"],
             "liquidity": int(t["liquidity"]),
             "heart_count": int(t["heartCount"]),
             "is_unleashed": t["isUnleashed"],
             "lp_pair_address": t["lpPairAddress"],
             "owner": t["owner"],
             "timestamp": t["timestamp"],
+            "meme_nonce": int(t["memeNonce"]),
+            "summon_time": int(t["summonTime"]),
+            "token_nonce": int(t["memeNonce"]),
         }
         for t in response_json["data"]["memeTokens"]["items"]
         if t["chain"] == "base"  # TODO: adapt to Celo

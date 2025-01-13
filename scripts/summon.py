@@ -36,7 +36,7 @@ meme_factory_address_base = w3.to_checksum_address(
     "0x82a9c823332518c32a0c0edc050ef00934cf04d4"
 )
 abi_file = Path(
-    "packages", "dvilela", "contracts", "meme_factory", "build", "MemeBase.json"
+    "packages", "dvilela", "contracts", "meme_factory", "build", "MemeFactory.json"
 )
 
 BASE_CHAIN_ID = 8453
