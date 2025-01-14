@@ -118,8 +118,20 @@ class ActionDecisionBehaviour(
         if not native_balance:
             native_balance = 0
 
+        tweets = yield from self.get_tweets_from_db()
+        latest_tweet = tweets[-1]["text"] if tweets else "No previous tweet"
+
+        tweet_responses = "\n\n".join(
+            [
+                f"tweet: {t['text']}\nviews: {t['view_count']}\nquotes: {t['quote_count']}\nretweets{t['retweet_count']}"
+                for t in self.synchronized_data.feedback
+            ]
+        )
+
         prompt_data = {
             "meme_coins": meme_coins,
+            "latest_tweet": latest_tweet,
+            "tweet_responses": tweet_responses,
             "balance": native_balance,
             "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
         }

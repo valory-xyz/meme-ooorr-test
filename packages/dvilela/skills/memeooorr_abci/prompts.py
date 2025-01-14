@@ -37,7 +37,7 @@ Here are some of your previous tweets:
 {previous_tweets}
 
 Here are some tweets from other users:
-"{other_tweets}"
+{other_tweets}
 
 Your task is to decide what actions to do, if any. Some reccomenadations:
 - If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.
@@ -46,7 +46,7 @@ Your task is to decide what actions to do, if any. Some reccomenadations:
 - Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
 
 OUTPUT_FORMAT
-* Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
+* Your output response must be only a single JSON list to be parsed by Python's "json.loads()".
 * The JSON must contain a list with the actions you want to take. Each entry in that list is a dict that needs to define:
     - action: a string with one of the following values: none, tweet, like, retweet, reply, quote or follow. Use none when you don't want to do anything.
     - tweet_id: the id of the tweet you are interacting with, if any.

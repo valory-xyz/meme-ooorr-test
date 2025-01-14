@@ -76,7 +76,10 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
     def store_tweet(self, tweet) -> Generator[None, None, bool]:
         """Store tweet"""
         tweets = yield from self.get_tweets_from_db()
-        tweets.append(tweet)
+        if isinstance(tweet, list):
+            tweets.extend(tweet)
+        else:
+            tweets.append(tweet)
         yield from self._write_kv({"tweets": json.dumps(tweets)})
         return True
 
@@ -213,6 +216,9 @@ class CollectFeedbackBehaviour(
 
         # Search new replies
         tweets = yield from self.get_tweets_from_db()
+        if not tweets:
+            self.context.logger.error("No tweets yet")
+            return []
         latest_tweet = tweets[-1]
         query = f"conversation_id:{latest_tweet['tweet_id']}"
         feedback = yield from self._call_twikit(method="search", query=query, count=100)
@@ -347,14 +353,18 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         )
 
         # Get at most your 5 latest tweets
-        tweets = yield from self.get_tweets_from_db()[-5:]
+        tweets = yield from self.get_tweets_from_db()
+        tweets = tweets[-5:]
 
-        previous_tweets = "\n\n".join(
-            [
-                f"tweet_id: {t_id}\ntweet_text: {t_data['text']}\ntimestamp: {t_data['timestamp']}"
-                for t_id, t_data in tweets.items()
-            ]
-        )
+        if tweets:
+            previous_tweets = "\n\n".join(
+                [
+                    f"tweet_id: {tweet['tweet_id']}\ntweet_text: {tweet['text']}\ntimestamp: {tweet['timestamp']}"
+                    for tweet in tweets
+                ]
+            )
+        else:
+            previous_tweets = "No previous tweets"
 
         prompt = TWITTER_DECISION_PROMPT.format(
             persona=persona,

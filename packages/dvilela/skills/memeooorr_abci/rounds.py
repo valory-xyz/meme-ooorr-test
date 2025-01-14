@@ -233,10 +233,6 @@ class CollectFeedbackRound(CollectSameUntilThresholdRound):
             if feedback is None:
                 return self.synchronized_data, Event.ERROR
 
-            # Not enough replies
-            if len(feedback) < self.context.params.min_feedback_replies:
-                return self.synchronized_data, Event.NOT_ENOUGH_FEEDBACK
-
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
