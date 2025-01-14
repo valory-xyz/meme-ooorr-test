@@ -305,7 +305,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         # We should not heart if we have summoned this token
         if (
             "heart" in available_actions
-            and meme_data["summoner"] == self.synchronized_data.safe_contract_address
+            and meme_data["owner"] == self.synchronized_data.safe_contract_address
         ):
             available_actions.remove("heart")
 
