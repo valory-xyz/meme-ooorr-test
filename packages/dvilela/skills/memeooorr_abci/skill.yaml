@@ -8,12 +8,12 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeibyyrmg55pzvtkoy4rafg7nbxal5mt5pni5h4ql6mohye4u5eqvpm
-  behaviour_classes/chain.py: bafybeiarveujwghmhokf63zgxhz7hms7zn7iiizr3bpnxhqu4743lk5i4e
-  behaviour_classes/db.py: bafybeietsdqc34ankubzuuzpzhdetauath2l6gbwx2tzc3kk7fbors4efu
-  behaviour_classes/llm.py: bafybeifvddxeqhgow5hupwu2qni7puoiopyululyhqgn7yctesdqpzovka
-  behaviour_classes/twitter.py: bafybeigq3vvq4xfsn3tuicesa6erpenxqhwvuq4nnuq466ny7mqhbrzma4
-  behaviours.py: bafybeicpq6utktukthmol2y63tdcqzdrrj7qgbi3vw42uad56eyny2bkii
+  behaviour_classes/base.py: bafybeiakkthklggcltg2u3b2gh4cawsj4xtmdpf32hes5lzbb2yh4av6fa
+  behaviour_classes/chain.py: bafybeigxfwko3rofqlzyjjhgeo6yabxseqngo2uz5muyfk3f2jjpgdrsli
+  behaviour_classes/db.py: bafybeib3zasv4k6ybtlckbdgrpnsxkacssnftjbjwahwnlmj3k7wetrppe
+  behaviour_classes/llm.py: bafybeifcetfxrcrgzzh7ob7mkaoyolss76xq3qdfprldtprenhjxnjlxyu
+  behaviour_classes/twitter.py: bafybeifshcdkpqratlgw3ykw6plsdfpx424hh27q4wh7frikfgk537zjjy
+  behaviours.py: bafybeibdbimezloiomvsv3zgfdug4tw276gt7tb5agnezl2nuqcfcplscu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeid5mr6fllsguewlan6c2fkxh4rmjl5j4ftn2jzhfofy2muhatksqm
   handlers.py: bafybeibnnxjczbaeqzxvg4s5mmrogzhgpswwwwpmw6gds6mltgrq27r67y
@@ -30,7 +30,7 @@ connections:
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiaw4yr7ubqlp63iz5wxqep3a5fokqs3kqva7sp2nsqg355zzucqgm
-- dvilela/meme_factory:0.1.0:bafybeiavxhmfuioccrt6v5qoj5hrae6nhvxsstl7ozcr37d5fymvpwjppa
+- dvilela/meme_factory:0.1.0:bafybeia4fnmj6j3ebpda54lqilctxcq35xp53irgzyozh6fadzi5pk22ii
 - dvilela/service_registry:0.1.0:bafybeie2rrgzcjehlp2feff6bhkuindxzrnuwxe2jcrsy2thcdtrsp2o24
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
