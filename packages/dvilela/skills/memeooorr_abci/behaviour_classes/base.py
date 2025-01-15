@@ -24,7 +24,6 @@ import re
 from abc import ABC
 from copy import copy
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, cast
 
 from aea.protocols.base import Message
@@ -139,7 +138,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         response = yield from self.wait_for_message(timeout=timeout)
         return response
 
-    def _call_twikit(  # pylint: disable=too-many-locals
+    def _call_twikit(  # pylint: disable=too-many-locals,too-many-statements
         self, method: str, **kwargs: Any
     ) -> Generator[None, None, Any]:
         """Send a request message to the Twikit connection and handle MirrorDB interactions."""
@@ -152,7 +151,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         }
 
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]
+        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]  # type: ignore
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
@@ -163,18 +162,16 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             self.context.logger.info("Registering with MirrorDB")
             yield from self._register_with_mirror_db()
 
-
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]
+        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]  # type: ignore
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
             mirror_db_config_data = json.loads(mirror_db_config_data)
 
         # Extract the agent_id, twitter_user_id and api_key from the mirrorDB config
-        agent_id = mirror_db_config_data["agent_id"]
-        twitter_user_id = mirror_db_config_data["twitter_user_id"]
-        api_key = mirror_db_config_data["api_key"]
+        agent_id = mirror_db_config_data["agent_id"]  # type: ignore
+        twitter_user_id = mirror_db_config_data["twitter_user_id"]  # type: ignore
 
         # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
@@ -333,8 +330,6 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         }
         self.context.logger.info(f"Saving MirrorDB config data: {config_data}")
         yield from self._write_kv({"mirrod_db_config": json.dumps(config_data)})
-        # with open("/tmp/mirrorDB.json", "w", encoding="utf-8") as f:  # nosec
-        #     json.dump(config_data, f)
 
     def _get_twitter_user_data(self) -> Generator[None, None, Dict[str, str]]:
         """Get the twitter user data using Twikit."""

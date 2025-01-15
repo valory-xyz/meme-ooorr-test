@@ -8,7 +8,7 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeieq3emgjztd4jk7tmiiw4iq7pmcxxncvqbg52cmoubnpmmsuosste
+  behaviour_classes/base.py: bafybeigqciazpgtmbfj5wlnuekr7qqtjmqc5dpx63hnkv4j72ip7w3caua
   behaviour_classes/chain.py: bafybeigxfwko3rofqlzyjjhgeo6yabxseqngo2uz5muyfk3f2jjpgdrsli
   behaviour_classes/db.py: bafybeib3zasv4k6ybtlckbdgrpnsxkacssnftjbjwahwnlmj3k7wetrppe
   behaviour_classes/llm.py: bafybeie2qtikkjiyxqfn7q2czb4amxombl4zdo3zyc776sdv33wr6vxiku
@@ -25,8 +25,8 @@ fingerprint:
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
-- dvilela/twikit:0.1.0:bafybeihdnkbuulxe3fh6zr76qvhize2zo3tv3dkumrwnskzwtnfarru76m
-- dvilela/mirror_db:0.1.0:bafybeifwe5do74uge5decjhrr3kbynvwqcajs6khpfa6bidoxbcic6nirq
+- dvilela/twikit:0.1.0:bafybeidhswexx3x2r3isnr4346i2q5sesdjzaapcajboxlp64fjz5gq4dm
+- dvilela/mirror_db:0.1.0:bafybeibyx5oqhuoeizkq4oi24az2hbqqi2isni3pjzdjd3eua6btwgfro4
 - dvilela/genai:0.1.0:bafybeidkxxlonrxirznivkmzc34wmby4e4s57rfg2b7k6xyos23g3y6cdy
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
