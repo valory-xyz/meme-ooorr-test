@@ -41,8 +41,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeigh2vkt74jrad5gtsczrgqcuhcqe7jkgjy7jdw56yamlzwwnaymjy
 - valory/registration_abci:0.1.0:bafybeib3n6vqkfbrcubcbliebjnuwyywdinxkbzt76n6gbn2kg7ace47dq
 - valory/reset_pause_abci:0.1.0:bafybeihkj6lmaypspyxe5qqrjgnolyck62pyvqoylr24ab6ue4steqcw7e
-- dvilela/memeooorr_abci:0.1.0:bafybeih6n5kyi7y5qvct2k65nqbnszrrcmdfw42vdjz7shysmtmiwczbty
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeibewi74bmziwc6bjkveh2ne665xugyqijinhtqgvlbxe6adk7n6j4
+- dvilela/memeooorr_abci:0.1.0:bafybeiamthrqltah74u4zwxzxoe6j5rntvwbrntnuo6a6sxwj3talbjbem
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeieunhccvxhrlksrni535ejofdc444y5ws6gchjwrkajaaalosussa
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -205,7 +205,7 @@ models:
       ipfs_address: ${str:https://gateway.autonolas.tech/ipfs/}
       default_chain_id: ${str:base}
       termination_from_block: ${int:0}
-      minimum_gas_balance: ${float:0.001}
+      minimum_gas_balance: ${float:0.00005}
       min_feedback_replies: ${int:10}
       meme_factory_address_base: ${str:0x82a9c823332518c32a0c0edc050ef00934cf04d4}
       meme_factory_address_celo: ${str:0xeea5f1e202dc43607273d54101ff8b58fb008a99}

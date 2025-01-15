@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeif3hn5vflos7vuyqye66a2bfqztumqewjouoldhkz4di3wym74h6q
+agent: dvilela/memeooorr:0.1.0:bafybeiekklrhjcp2oibwtixjazzjvwr4aj47lkj3x3tvjgchvbh4ojhll4
 number_of_agents: 1
 deployment:
   agent:
@@ -82,7 +82,7 @@ extra:
         ipfs_address: ${IPFS_ADDRESS:str:https://gateway.autonolas.tech/ipfs/}
         default_chain_id: ${DEFAULT_CHAIN_ID:str:base}
         termination_from_block: ${TERMINATION_FROM_BLOCK:int:21629820}
-        minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.001}
+        minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.00005}
         min_feedback_replies: ${MIN_FEEDBACK_REPLIES:int:10}
         meme_factory_address_base: ${MEME_FACTORY_ADDRESS_BASE:str:0x82a9c823332518c32a0c0edc050ef00934cf04d4}
         meme_factory_address_celo: ${MEME_FACTORY_ADDRESS_CELO:str:0xeea5f1e202dc43607273d54101ff8b58fb008a99}
