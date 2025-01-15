@@ -361,7 +361,8 @@ class TwikitConnection(Connection):
                 self.logger.info(f"Posting: {kwargs}")
                 result = await self.client.create_tweet(**kwargs)
                 tweet_id = result.id
-                if tweet_id:
+                if tweet_id is not None:
+                    self.logger.info(f"Tweet created with tweet ID: {tweet_id}")
                     break
             except Exception as e:
                 self.logger.error(f"Failed to create the tweet: {e}. Retrying...")
