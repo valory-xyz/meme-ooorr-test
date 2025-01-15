@@ -105,10 +105,12 @@ class AnalizeFeedbackBehaviour(
         if not native_balance:
             native_balance = 0
 
+        persona = yield from self.get_persona()
+
         prompt_data = {
             "latest_tweet": self.synchronized_data.latest_tweet["text"],
             "tweet_responses": tweet_responses,
-            "persona": self.get_persona(),
+            "persona": persona,
             "n_meme_coins": len(self.synchronized_data.meme_coins),
             "balance": native_balance,
             "ticker": self.get_native_ticker(),
@@ -303,7 +305,7 @@ class ActionDecisionBehaviour(
             if action == "heart":
                 amount = max(
                     amount,
-                    self.get_min_deploy_value(),
+                    1,  # 1 wei
                 )
 
             self.context.logger.info("The LLM returned a valid response")

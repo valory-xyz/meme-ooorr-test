@@ -194,7 +194,7 @@ class PostTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         """Prepare a tweet"""
 
         self.context.logger.info("Preparing tweet...")
-        persona = self.get_persona()
+        persona = yield from self.get_persona()
         twitter_handle = self.params.twitter_username
 
         retries = 0
@@ -505,7 +505,7 @@ class EngageBehaviour(PostTweetBehaviour):  # pylint: disable=too-many-ancestors
     ) -> Generator[None, None, Tuple[str, List]]:
         """Decide whether to like a tweet based on the persona."""
         new_interacted_tweet_ids: List[str] = []
-        persona = self.get_persona()
+        persona = yield from self.get_persona()
 
         tweet_data = "\n\n".join(
             [
