@@ -56,6 +56,7 @@ PATH_TO_VAR = {
     "config/twikit_cookies": "TWIKIT_COOKIES",
     "config/twikit_cookies_path": "TWIKIT_COOKIES_PATH",
     "config/twikit_disable_tweets": "DISABLE_TWEETS",
+    "config/skip_engagement": "SKIP_ENGAGEMENT",
     # Genai connection
     "config/genai_api_key": "GENAI_API_KEY",
     # DB

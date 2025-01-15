@@ -277,6 +277,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
     def get_event(self) -> Generator[None, None, str]:
         """Get the next event"""
 
+        if self.params.skip_engagement:
+            return Event.DONE.value
+
         # Get other memeooorr handles
         agent_handles = yield from self.get_memeooorr_handles_from_subgraph()
 
