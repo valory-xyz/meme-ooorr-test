@@ -22,7 +22,7 @@ contracts:
 - valory/gnosis_safe:0.1.0:bafybeiaw4yr7ubqlp63iz5wxqep3a5fokqs3kqva7sp2nsqg355zzucqgm
 - valory/gnosis_safe_proxy_factory:0.1.0:bafybeidkqhw7smq4kbqryodom6maj7gubc5nbxwm4vi343xbkqxx3brjtm
 - valory/multisend:0.1.0:bafybeig5byt5urg2d2bsecufxe5ql7f4mezg3mekfleeh32nmuusx66p4y
-- dvilela/meme_factory:0.1.0:bafybeiavxhmfuioccrt6v5qoj5hrae6nhvxsstl7ozcr37d5fymvpwjppa
+- dvilela/meme_factory:0.1.0:bafybeia4fnmj6j3ebpda54lqilctxcq35xp53irgzyozh6fadzi5pk22ii
 - dvilela/service_registry:0.1.0:bafybeie2rrgzcjehlp2feff6bhkuindxzrnuwxe2jcrsy2thcdtrsp2o24
 protocols:
 - open_aea/signing:1.0.0:bafybeihv62fim3wl2bayavfcg3u5e5cxu3b7brtu4cn5xoxd6lqwachasi

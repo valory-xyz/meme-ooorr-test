@@ -11,7 +11,7 @@ fingerprint:
   behaviour_classes/base.py: bafybeieeczzdd526yvzodhhz64zytlxbrfky45yppuemc4qitblxcxxuvy
   behaviour_classes/chain.py: bafybeigxfwko3rofqlzyjjhgeo6yabxseqngo2uz5muyfk3f2jjpgdrsli
   behaviour_classes/db.py: bafybeib3zasv4k6ybtlckbdgrpnsxkacssnftjbjwahwnlmj3k7wetrppe
-  behaviour_classes/llm.py: bafybeifcetfxrcrgzzh7ob7mkaoyolss76xq3qdfprldtprenhjxnjlxyu
+  behaviour_classes/llm.py: bafybeie2qtikkjiyxqfn7q2czb4amxombl4zdo3zyc776sdv33wr6vxiku
   behaviour_classes/twitter.py: bafybeifshcdkpqratlgw3ykw6plsdfpx424hh27q4wh7frikfgk537zjjy
   behaviours.py: bafybeibdbimezloiomvsv3zgfdug4tw276gt7tb5agnezl2nuqcfcplscu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
@@ -31,7 +31,7 @@ connections:
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiaw4yr7ubqlp63iz5wxqep3a5fokqs3kqva7sp2nsqg355zzucqgm
-- dvilela/meme_factory:0.1.0:bafybeiavxhmfuioccrt6v5qoj5hrae6nhvxsstl7ozcr37d5fymvpwjppa
+- dvilela/meme_factory:0.1.0:bafybeia4fnmj6j3ebpda54lqilctxcq35xp53irgzyozh6fadzi5pk22ii
 - dvilela/service_registry:0.1.0:bafybeie2rrgzcjehlp2feff6bhkuindxzrnuwxe2jcrsy2thcdtrsp2o24
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4

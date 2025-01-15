@@ -498,7 +498,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         # We should not heart if we have summoned this token
         if (
             "heart" in available_actions
-            and meme_data["summoner"] == self.synchronized_data.safe_contract_address
+            and meme_data["owner"] == self.synchronized_data.safe_contract_address
         ):
             available_actions.remove("heart")
 
@@ -794,18 +794,20 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             if t["chain"] == self.get_chain_id()
             # to only include the updated factory contract address's token data
             and int(t["memeNonce"]) > 0
-            # don't include data where memeToken address is empty
-            and t["memeToken"] != ""
         ]
 
         for token in tokens:
+            token_nonce = token.get("meme_nonce", None)
+            token_address = token.get("token_address", None)
+
             response_msg = yield from self.get_contract_api_response(
                 performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
                 contract_address=self.get_meme_factory_address(),
                 contract_id=str(MemeFactoryContract.contract_id),
                 contract_callable="get_meme_summons_info",
+                token_nonce=token_nonce,
+                token_address=token_address,
                 chain_id=self.get_chain_id(),
-                token_address=token.get("token_address", None),
             )
 
             # Check that the response is what we expect
@@ -813,7 +815,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                 self.context.logger.error(
                     f"Could not get the memecoin summon data: {response_msg}"
                 )
-                return None
+                continue
 
             summon_data = cast(list, response_msg.state.body.get("token_data", None))
 
