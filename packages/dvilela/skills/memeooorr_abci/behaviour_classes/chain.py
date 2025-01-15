@@ -65,7 +65,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
         """Prepares and returns the safe tx hash for a tx."""
 
         self.context.logger.info(
-            f"Preparing Safe transaction [{self.synchronized_data.safe_contract_address}]"
+            f"Preparing Safe transaction [{self.synchronized_data.safe_contract_address}] value={value}"
         )
 
         # Prepare the safe transaction

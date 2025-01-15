@@ -239,9 +239,9 @@ class CollectFeedbackBehaviour(
         feedback = list(
             sorted(
                 feedback,
-                key=lambda t: int(t["view_count"])
-                + 3 * int(t["retweet_count"])
-                + 5 * int(t["quote_count"]),
+                key=lambda t: int(t.get("view_count", 0) or 0)
+                + 3 * int(t.get("retweet_count", 0) or 0)
+                + 5 * int(t.get("quote_count", 0) or 0),
                 reverse=True,
             )
         )
