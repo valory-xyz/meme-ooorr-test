@@ -114,9 +114,10 @@ class ActionDecisionBehaviour(
 
         valid_nonces = [c["token_nonce"] for c in self.synchronized_data.meme_coins]
 
-        native_balance = yield from self.get_native_balance()
-        if not native_balance:
-            native_balance = 0
+        native_balances = yield from self.get_native_balance()
+        safe_native_balance = native_balances["safe"]
+        if not safe_native_balance:
+            safe_native_balance = 0
 
         tweets = yield from self.get_tweets_from_db()
         latest_tweet = tweets[-1]["text"] if tweets else "No previous tweet"
@@ -132,7 +133,7 @@ class ActionDecisionBehaviour(
             "meme_coins": meme_coins,
             "latest_tweet": latest_tweet,
             "tweet_responses": tweet_responses,
-            "balance": native_balance,
+            "balance": safe_native_balance,
             "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
         }
 

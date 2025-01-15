@@ -262,8 +262,10 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
     def get_native_balance(self) -> Generator[None, None, Optional[float]]:
         """Get the native balance"""
+
+        # Safe
         self.context.logger.info(
-            f"Getting native balance for Safe {self.synchronized_data.safe_contract_address}"
+            f"Getting native balance for the Safe {self.synchronized_data.safe_contract_address}"
         )
 
         ledger_api_response = yield from self.get_ledger_api_response(
@@ -277,14 +279,41 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             self.context.logger.error(
                 f"Error while retrieving the native balance: {ledger_api_response}"
             )
-            return None
+            safe_balance = None
+        else:
+            safe_balance = cast(
+                float, ledger_api_response.state.body["get_balance_result"]
+            )
+            safe_balance = safe_balance / 10**18  # from wei
 
-        balance = cast(float, ledger_api_response.state.body["get_balance_result"])
-        balance = balance / 10**18  # from wei
+        self.context.logger.info(f"Got Safe's native balance: {safe_balance}")
 
-        self.context.logger.info(f"Got native balance: {balance}")
+        # Agent
+        self.context.logger.info(
+            f"Getting native balance for the agent {self.context.agent_address}"
+        )
 
-        return balance
+        ledger_api_response = yield from self.get_ledger_api_response(
+            performative=LedgerApiMessage.Performative.GET_STATE,
+            ledger_callable="get_balance",
+            account=self.context.agent_address,
+            chain_id=self.get_chain_id(),
+        )
+
+        if ledger_api_response.performative != LedgerApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Error while retrieving the native balance: {ledger_api_response}"
+            )
+            agent_balance = None
+        else:
+            agent_balance = cast(
+                float, ledger_api_response.state.body["get_balance_result"]
+            )
+            agent_balance = agent_balance / 10**18  # from wei
+
+        self.context.logger.info(f"Got agent's native balance: {agent_balance}")
+
+        return {"safe": safe_balance, "agent": agent_balance}
 
     def get_meme_available_actions(
         self, meme_data: Dict, hearted_memes: List[str]

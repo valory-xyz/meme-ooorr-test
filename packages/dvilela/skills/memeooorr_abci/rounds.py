@@ -115,9 +115,9 @@ class SynchronizedData(BaseSynchronizedData):
         return cast(str, self.db.get_strict("most_voted_tx_hash"))
 
     @property
-    def final_tx_hash(self) -> str:
+    def final_tx_hash(self) -> Optional[str]:
         """Get the verified tx hash."""
-        return cast(str, self.db.get_strict("final_tx_hash"))
+        return self.db.get("final_tx_hash", None)
 
 
 class EventRoundBase(CollectSameUntilThresholdRound):
@@ -443,7 +443,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
         PullMemesRound: set(),
-        ActionPreparationRound: {"final_tx_hash"},
+        ActionPreparationRound: set(),
     }
     db_post_conditions: Dict[AppState, Set[str]] = {
         FinishedToResetRound: set(),
