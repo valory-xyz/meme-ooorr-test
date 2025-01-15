@@ -305,7 +305,7 @@ class ActionDecisionBehaviour(
             if action == "heart":
                 amount = max(
                     amount,
-                    self.get_min_deploy_value(),
+                    1,  # 1 wei
                 )
 
             self.context.logger.info("The LLM returned a valid response")
