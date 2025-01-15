@@ -150,16 +150,31 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             "follow_user": "create_interaction",
             "post": "create_tweet",
         }
-        # Check for the presence of the mirrorDB.json file
-        config_file_path = Path("/tmp/mirrorDB.json")  # nosec
-        if not config_file_path.exists():
+
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        self.context.logger.info(f"MirrorDB config data: {mirror_db_config_data}")
+        if mirror_db_config_data is None:
+            self.context.logger.info("Registering with MirrorDB")
             yield from self._register_with_mirror_db()
 
-        # Load the configuration from mirrorDB.json
-        with open(config_file_path, "r", encoding="utf-8") as f:
-            config_data = json.load(f)
-        agent_id = config_data["agent_id"]
-        twitter_user_id = config_data["twitter_user_id"]
+        
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        # Extract the agent_id, twitter_user_id and api_key from the mirrorDB config
+        agent_id = mirror_db_config_data["agent_id"]
+        twitter_user_id = mirror_db_config_data["twitter_user_id"]
+        api_key = mirror_db_config_data["api_key"]
 
         # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
@@ -316,8 +331,10 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             "twitter_user_id": twitter_user_id,
             "api_key": agent_response["api_key"],
         }
-        with open("/tmp/mirrorDB.json", "w", encoding="utf-8") as f:  # nosec
-            json.dump(config_data, f)
+        self.context.logger.info(f"Saving MirrorDB config data: {config_data}")
+        yield from self._write_kv({"mirrod_db_config": json.dumps(config_data)})
+        # with open("/tmp/mirrorDB.json", "w", encoding="utf-8") as f:  # nosec
+        #     json.dump(config_data, f)
 
     def _get_twitter_user_data(self) -> Generator[None, None, Dict[str, str]]:
         """Get the twitter user data using Twikit."""
