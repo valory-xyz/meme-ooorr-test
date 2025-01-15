@@ -163,7 +163,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             self.context.logger.info("Registering with MirrorDB")
             yield from self._register_with_mirror_db()
 
-        
+
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
         mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]
 
@@ -288,7 +288,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         # Create the agent
         agent_data = {
-            "agent_name": self.synchronized_data.safe_contract_address,
+            "agent_name": f"{self.synchronized_data.safe_contract_address}_{datetime.utcnow().isoformat()}",
         }
         twitter_account_data = {
             "username": twitter_username,

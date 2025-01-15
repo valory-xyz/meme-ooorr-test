@@ -79,7 +79,6 @@ class MirrorDBConnection(Connection):
         """Initialize the connection."""
         super().__init__(*args, **kwargs)
         self.base_url = self.configuration.config.get("mirror_db_base_url")
-        self.config_file_path = Path("/tmp/mirrorDB.json")  # nosec
         self.api_key: Optional[str] = None
         self.agent_id: Optional[str] = None
         self.twitter_user_id: Optional[str] = None
