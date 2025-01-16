@@ -243,3 +243,4 @@ config:
   twikit_cookies: ${str:null}
   twikit_cookies_path: ${str:/tmp/twikit_cookies.json}
   twikit_disable_tweets: ${bool:false}
+  twikit_skip_connection: ${bool:false}

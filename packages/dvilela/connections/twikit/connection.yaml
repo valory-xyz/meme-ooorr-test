@@ -21,6 +21,7 @@ config:
   twikit_cookies: null
   twikit_cookies_path: /tmp/twikit_cookies.json
   twikit_disable_tweets: false
+  twikit_skip_connection: false
 excluded_protocols: []
 restricted_to_protocols: []
 dependencies:

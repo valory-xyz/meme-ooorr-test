@@ -114,7 +114,12 @@ class TwikitConnection(Connection):
         )
         self.cookies = json.loads(cookies_str) if cookies_str else None
         self.disable_tweets = self.configuration.config.get("twikit_disable_tweets")
-        self.client = twikit.Client(language="en-US")
+        self.skip_connection = self.configuration.config.get("twikit_skip_connection")
+        if not self.skip_connection:
+            self.client = twikit.Client(language="en-US")
+        else:
+            self.logger.info("Twikit connecion is disabled.")
+            self.client = None
         self.last_call = datetime.now(timezone.utc)
 
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
@@ -133,7 +138,8 @@ class TwikitConnection(Connection):
     async def connect(self) -> None:
         """Connect to a HTTP server."""
         self._response_envelopes = asyncio.Queue()
-        await self.twikit_login()
+        if not self.skip_connection:
+            await self.twikit_login()
         self.state = ConnectionStates.connected
 
     async def disconnect(self) -> None:
@@ -221,6 +227,13 @@ class TwikitConnection(Connection):
                 srr_message,
                 dialogue,
                 f"Performative `{srr_message.performative.value}` is not supported.",
+            )
+
+        if self.skip_connection:
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                "Connection is disabled. Set TWIKIT_SKIP_CONNECTION=false to enable it.",
             )
 
         payload = json.loads(srr_message.payload)

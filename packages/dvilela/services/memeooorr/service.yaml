@@ -157,6 +157,8 @@ config:
   twikit_password: ${TWIKIT_PASSWORD:str:null}
   twikit_cookies: ${TWIKIT_COOKIES:str:null}
   twikit_cookies_path: ${TWIKIT_COOKIES_PATH:str:/tmp/twikit_cookies.json}
+  twikit_disable_tweets: ${TWIKIT_DISABLE_TWEETS:bool:false}
+  twikit_skip_connection: ${TWIKIT_SKIP_CONNECTION:bool:false}
 ---
 public_id: dvilela/kv_store:0.1.0
 type: connection
