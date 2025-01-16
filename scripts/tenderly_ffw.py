@@ -18,30 +18,33 @@
 #
 # ------------------------------------------------------------------------------
 
-"""Test prompts"""
+"""Tenderly time fast forward"""
 
 import os
 
-import dotenv
-import google.generativeai as genai  # type: ignore
-
-from packages.dvilela.skills.memeooorr_abci.prompts import TWITTER_DECISION_PROMPT
+import requests
 
 
-dotenv.load_dotenv(override=True)
+admin_rpc = os.getenv("TENDERLY_ADMIN_RPC")
 
-persona = """
-Johnny Silverhand from Cyberpunk2077
-"""
+seconds = hex(1 * 60 * 60)
 
-genai.configure(api_key=os.getenv("GENAI_API_KEY"))
+json_data = {
+    "jsonrpc": "2.0",
+    "method": "evm_increaseTime",
+    "params": [str(seconds)],
+}
 
-model = genai.GenerativeModel("gemini-2.0-flash-exp")
-
-response = model.generate_content(
-    TWITTER_DECISION_PROMPT.format(persona=persona),
-    generation_config=genai.types.GenerationConfig(
-        temperature=2.0,
-    ),
+response = requests.post(
+    url=admin_rpc,
+    timeout=300,
+    headers={"Content-Type": "application/json"},
+    json=json_data,
 )
-print(response.text)
+
+if response.status_code != 200:
+    print(response.status_code)
+    try:
+        print(response.json())
+    except requests.exceptions.JSONDecodeError:
+        pass

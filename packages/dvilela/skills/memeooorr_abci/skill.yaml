@@ -8,20 +8,20 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeigqciazpgtmbfj5wlnuekr7qqtjmqc5dpx63hnkv4j72ip7w3caua
-  behaviour_classes/chain.py: bafybeigxfwko3rofqlzyjjhgeo6yabxseqngo2uz5muyfk3f2jjpgdrsli
-  behaviour_classes/db.py: bafybeib3zasv4k6ybtlckbdgrpnsxkacssnftjbjwahwnlmj3k7wetrppe
-  behaviour_classes/llm.py: bafybeie2qtikkjiyxqfn7q2czb4amxombl4zdo3zyc776sdv33wr6vxiku
-  behaviour_classes/twitter.py: bafybeifshcdkpqratlgw3ykw6plsdfpx424hh27q4wh7frikfgk537zjjy
-  behaviours.py: bafybeibdbimezloiomvsv3zgfdug4tw276gt7tb5agnezl2nuqcfcplscu
+  behaviour_classes/base.py: bafybeifraqg6f5hv7numh5mclse6qmvke4mb4wdma7aftk7kiezuoml6se
+  behaviour_classes/chain.py: bafybeieuf6l7bd4dqw3jgt5cjxflxbb5lcysgymef2wjcj3uzpojn3msv4
+  behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
+  behaviour_classes/llm.py: bafybeiaet5g7lo2bdz2snypctn6vn4chqdw52ytjudx7st35eywa2difhq
+  behaviour_classes/twitter.py: bafybeiehvvau3kplf4rwzgbfcrb7n27gott664i3ptd72q525xb5nzuun4
+  behaviours.py: bafybeicpq6utktukthmol2y63tdcqzdrrj7qgbi3vw42uad56eyny2bkii
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
-  fsm_specification.yaml: bafybeif4kr2lnj4ppaaxveej2a3gq2gul6gicu2rar2yeyhg4mspqsikxy
+  fsm_specification.yaml: bafybeid5mr6fllsguewlan6c2fkxh4rmjl5j4ftn2jzhfofy2muhatksqm
   handlers.py: bafybeibnnxjczbaeqzxvg4s5mmrogzhgpswwwwpmw6gds6mltgrq27r67y
-  models.py: bafybeidwapsmqst3jw3ahsl4o2lfsapcyn4ojsqn3gz5nvivpsykc4sefy
-  payloads.py: bafybeifxy5bsv3rovzhzasmrohfnlggpacluigxr6c5fdyux3dwihikpum
-  prompts.py: bafybeibtsh7msuzuubmbhrnezftnckelcqkicmljssuy5ufkjz6evagliy
-  rounds.py: bafybeicjqi4qchvja4n4kyyvhwlblrwr3lfxriiyu3gq6nyt7rpxpvdn3u
-  rounds_info.py: bafybeieepy67c2g7dtkeuueuldhvcpbeavvtkg36gmoempftiic2tqxb4y
+  models.py: bafybeibvehinchtdmzwiunjtlwljhwipz2axkvyq6w5g352yfjj3jeqtym
+  payloads.py: bafybeicm4cvsihp2gxxbiwrhqzjixsatkpm2zhd3pvlem2v36alw52n6bu
+  prompts.py: bafybeiffpb6g6oxqy7qz2ffvextkzmg5mryvbcs5srslyjvu7tr27hqsym
+  rounds.py: bafybeiaqpdohvexyenalnyzngx37ce4tbgfh3fhtlzz4lbyty7akr4jffq
+  rounds_info.py: bafybeibtcdxu46hfoqhtscyn2gdc6zuah5yw6l5anqrs4u6rozvza42j4m
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
@@ -31,7 +31,7 @@ connections:
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiaw4yr7ubqlp63iz5wxqep3a5fokqs3kqva7sp2nsqg355zzucqgm
-- dvilela/meme_factory:0.1.0:bafybeia4fnmj6j3ebpda54lqilctxcq35xp53irgzyozh6fadzi5pk22ii
+- dvilela/meme_factory:0.1.0:bafybeiawl5cqtlbm7vrh7ah3iubzjh7ycjhem27xz24ssyhnwnmqaunwee
 - dvilela/service_registry:0.1.0:bafybeie2rrgzcjehlp2feff6bhkuindxzrnuwxe2jcrsy2thcdtrsp2o24
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
@@ -150,7 +150,7 @@ models:
       validate_timeout: 1205
       default_chain_id: ethereum
       service_endpoint: memeooorr.dummy.com/
-      minimum_gas_balance: 0.001
+      minimum_gas_balance: 5.0e-05
       min_feedback_replies: 10
       meme_factory_address_base: '0x82a9c823332518c32a0c0edc050ef00934cf04d4'
       meme_factory_address_celo: '0xeea5f1e202dc43607273d54101ff8b58fb008a99'
@@ -166,6 +166,7 @@ models:
       service_registry_address_base: '0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE'
       service_registry_address_celo: '0xE3607b00E75f6405248323A9417ff6b39B244b50'
       meme_subgraph_url: https://agentsfun-indexer-production.up.railway.app
+      skip_engagement: false
     class_name: Params
   requests:
     args: {}
