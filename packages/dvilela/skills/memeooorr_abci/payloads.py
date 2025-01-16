@@ -58,11 +58,15 @@ class ActionDecisionPayload(BaseTxPayload):
     """Represent a transaction payload for the ActionDecisionRound."""
 
     event: str
-    token_nonce: Optional[int]
-    token_address: Optional[str]
     action: Optional[str]
+    token_address: Optional[str]
+    token_nonce: Optional[int]
+    token_name: Optional[str]
+    token_ticker: Optional[str]
+    token_supply: Optional[int]
     amount: Optional[float]
     tweet: Optional[str]
+    new_persona: Optional[str]
 
 
 @dataclass(frozen=True)

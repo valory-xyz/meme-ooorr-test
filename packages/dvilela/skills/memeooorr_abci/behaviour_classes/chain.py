@@ -267,7 +267,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         if action in ["summon"]:
             kwargs["token_name"] = token_action["token_name"]
             kwargs["token_ticker"] = token_action["token_ticker"]
-            kwargs["total_supply"] = int(token_action["total_supply"])
+            kwargs["token_supply"] = int(token_action["token_supply"])
 
         if action in ["heart", "unleash"]:
             kwargs["meme_nonce"] = token_action["token_nonce"]

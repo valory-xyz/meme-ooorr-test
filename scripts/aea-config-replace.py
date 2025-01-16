@@ -49,6 +49,7 @@ PATH_TO_VAR = {
     "models/params/args/feedback_period_max_hours": "FEEDBACK_PERIOD_MAX_HOURS",
     "models/params/args/twitter_username": "TWIKIT_USERNAME",
     "models/params/args/persona": "PERSONA",
+    "models/params/args/skip_engagement": "SKIP_ENGAGEMENT",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",
@@ -56,7 +57,6 @@ PATH_TO_VAR = {
     "config/twikit_cookies": "TWIKIT_COOKIES",
     "config/twikit_cookies_path": "TWIKIT_COOKIES_PATH",
     "config/twikit_disable_tweets": "DISABLE_TWEETS",
-    "config/skip_engagement": "SKIP_ENGAGEMENT",
     # Genai connection
     "config/genai_api_key": "GENAI_API_KEY",
     # DB

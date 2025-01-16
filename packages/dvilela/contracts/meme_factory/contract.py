@@ -48,7 +48,7 @@ class MemeFactoryContract(Contract):
         contract_address: str,
         token_name: str,
         token_ticker: str,
-        total_supply: int = 1000000000000000000000000,  # 1 million tokens for default 18 decimals
+        token_supply: int = 1000000000000000000000000,  # 1 million tokens for default 18 decimals
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
 
@@ -58,7 +58,7 @@ class MemeFactoryContract(Contract):
             args=[
                 token_name,
                 token_ticker,
-                total_supply,
+                token_supply,
             ],
         )
         return {"data": bytes.fromhex(data[2:])}

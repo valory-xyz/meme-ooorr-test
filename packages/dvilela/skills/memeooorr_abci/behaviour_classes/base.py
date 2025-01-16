@@ -57,7 +57,6 @@ from packages.valory.skills.abstract_round_abci.models import Requests
 BASE_CHAIN_ID = "base"
 CELO_CHAIN_ID = "celo"
 HTTP_OK = 200
-AVAILABLE_ACTIONS = ["heart", "unleash", "collect", "purge", "burn"]
 MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr @(\w+)$"
 IPFS_ENDPOINT = "https://gateway.autonolas.tech/ipfs/{ipfs_hash}"
 
@@ -326,50 +325,31 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         unleash_time = datetime.fromtimestamp(meme_data["unleash_time"])
         seconds_since_summon = (now - summon_time).total_seconds()
         seconds_since_unleash = (now - unleash_time).total_seconds()
-
-        available_actions = copy(AVAILABLE_ACTIONS)
-
         is_unleashed = meme_data.get("unleash_time", 0) != 0
+        is_purged =
+        is_burned =
 
-        # We can unleash if it has not been unleashed
-        if is_unleashed:
-            available_actions.remove("unleash")
+        available_actions = []
 
-        # We can heart during the first 48h
-        if is_unleashed or seconds_since_summon > 48 * 3600:
-            available_actions.remove("heart")
+        # Heart
+        if not is_unleashed and meme_data.get("token_nonce", None) in hearted_memes:
+            available_actions.append("heart")
 
-        # We should not heart if we have summoned this token
-        if (
-            "heart" in available_actions
-            and meme_data["owner"] == self.synchronized_data.safe_contract_address
-        ):
-            available_actions.remove("heart")
+        # Unleash
+        if not is_unleashed and seconds_since_summon > 24 * 3600:
+            available_actions.append("unleash")
 
-        # We should not heart if we have already hearted
-        if (
-            "heart" in available_actions
-            and meme_data.get("token_address", None) in hearted_memes
-        ):
-            available_actions.remove("heart")
+        # Collect
+        if is_unleashed and not is_purged and meme_data.get("token_nonce", None) in hearted_memes:
+            available_actions.append("collect")
 
-        # We use 47.5 to be on the safe side
-        if seconds_since_summon < 47.5 * 3600:
-            if "unleash" in available_actions:
-                available_actions.remove("unleash")
-            available_actions.remove("purge")
-            available_actions.remove("burn")
+        # Purge
+        if not is_purged and seconds_since_unleash > 24 * 3600:
+            available_actions.append("purge")
 
-            # We can collect if we have hearted this token
-            if (
-                meme_data.get("token_address", None) not in hearted_memes
-                and "collect" in available_actions
-            ):
-                available_actions.remove("collect")
-
-        # can only collect until 24hrs of
-        if seconds_since_unleash > 24 * 3600 and "collect" in available_actions:
-            available_actions.remove("collect")
+        # Burn
+        if not is_burned:
+            available_actions.append("burn")
 
         return available_actions
 

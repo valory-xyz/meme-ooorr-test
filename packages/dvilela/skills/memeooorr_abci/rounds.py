@@ -282,9 +282,12 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
 
             if event == Event.DONE:
                 token_action = {
-                    "token_nonce": payload.token_nonce,
-                    "token_address": payload.token_address,
                     "action": payload.action,
+                    "token_address": payload.token_address,
+                    "token_nonce": payload.token_nonce,
+                    "token_name": payload.token_name,
+                    "token_ticker": payload.token_ticker,
+                    "token_supply": payload.token_supply,
                     "amount": payload.amount,
                     "tweet": payload.tweet,
                 }
@@ -297,6 +300,14 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
                         ),
                     },
                 )
+
+                if payload.new_persona:
+                    synchronized_data = synchronized_data.update(
+                        synchronized_data_class=SynchronizedData,
+                        **{
+                            get_name(SynchronizedData.persona): payload.new_persona,
+                        },
+                    )
 
             return synchronized_data, event
 

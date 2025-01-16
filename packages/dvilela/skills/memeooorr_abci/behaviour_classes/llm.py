@@ -46,7 +46,7 @@ TOKEN_SUMMARY = (  # nosec
     token symbol: {token_ticker}
     total supply (wei): {token_supply}
     decimals: {decimals}
-    heath count: {heart_count}
+    heart count: {heart_count}
     available actions: {available_actions}
     """
 )
@@ -66,21 +66,29 @@ class ActionDecisionBehaviour(
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             (
                 event,
-                token_nonce,
-                token_address,
                 action,
+                token_address,
+                token_nonce,
+                token_name,
+                token_ticker,
+                token_supply,
                 amount,
                 tweet,
+                new_persona,
             ) = yield from self.get_event()
 
             payload = ActionDecisionPayload(
                 sender=self.context.agent_address,
                 event=event,
-                token_nonce=token_nonce,
-                token_address=token_address,
                 action=action,
+                token_address=token_address,
+                token_nonce=token_nonce,
+                token_name=token_name,
+                token_ticker=token_ticker,
+                token_supply=token_supply,
                 amount=amount,
                 tweet=tweet,
+                new_persona=new_persona
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -96,10 +104,14 @@ class ActionDecisionBehaviour(
         None,
         Tuple[
             str,
+            Optional[str],
+            Optional[str],
             Optional[int],
             Optional[str],
             Optional[str],
+            Optional[str],
             Optional[float],
+            Optional[str],
             Optional[str],
         ],
     ]:
@@ -145,7 +157,7 @@ class ActionDecisionBehaviour(
         # We didnt get a response
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
-            return Event.WAIT.value, None, None, None, None, None
+            return Event.WAIT.value, None, None, None, None, None, None, None, None, None
 
         try:
             llm_response = llm_response.replace("\n", "").strip()
@@ -156,21 +168,23 @@ class ActionDecisionBehaviour(
 
             action = response.get("action", "none")
             token_address = response.get("token_address", None)
-            token_nonce = (
-                int(response["token_nonce"]) if "token_nonce" in response else None
-            )
+
+            token_nonce = response.get("token_nonce", None)
+            if isinstance(token_nonce, str) and token_nonce.isdigit():
+                token_nonce = int(token_nonce)
+
             amount = float(response.get("amount", 0))
             tweet = response.get("tweet", None)
 
             if action == "none":
                 self.context.logger.info("Action is none")
-                return Event.WAIT.value, None, None, None, None, None
+                return Event.WAIT.value, None, None, None, None, None, None, None, None, None
 
-            if token_nonce not in valid_nonces:
+            if action in ["heart", "unleash"] and token_nonce not in valid_nonces:
                 self.context.logger.info(
                     f"Token nonce {token_nonce} is not in valid_nonces={valid_nonces}"
                 )
-                return Event.WAIT.value, None, None, None, None, None
+                return Event.WAIT.value, None, None, None, None, None, None, None, None, None
 
             available_actions = []
             for t in self.synchronized_data.meme_coins:
@@ -178,15 +192,28 @@ class ActionDecisionBehaviour(
                     available_actions = t["available_actions"]
                     break
 
-            if action not in available_actions:
+            if action != "summon" and action not in available_actions:
                 self.context.logger.info(
                     f"Action [{action}] is not in available_actions={available_actions}"
                 )
-                return Event.WAIT.value, None, None, None, None, None
+                return Event.WAIT.value, None, None, None, None, None, None, None, None, None
+
+            if action == "summon":
+                token_name = response.get("token_name", None)
+                token_ticker = response.get("token_ticker", None)
+                token_supply = response.get("token_supply", None)
+                if isinstance(token_supply, str) and token_supply.isdigit():
+                    token_supply = int(token_supply)
+            else:
+                token_name = None
+                token_ticker = None
+                token_supply = None
+
+            new_persona = response.get("new_persona", None)
 
             if not tweet:
                 self.context.logger.info("Tweet is none")
-                return Event.WAIT.value, None, None, None, None, None
+                return Event.WAIT.value, None, None, None, None, None, None, None, None, None
 
             # Fix amount if it is lower than the min required amount
             if action == "heart":
@@ -196,9 +223,11 @@ class ActionDecisionBehaviour(
                 )
 
             self.context.logger.info("The LLM returned a valid response")
-            return Event.DONE.value, token_nonce, token_address, action, amount, tweet
+            if new_persona:
+                yield from self._write_kv({"persona": new_persona})
+            return Event.DONE.value, action, token_address, token_nonce, token_name, token_ticker, token_supply, amount, tweet, new_persona
 
         # The response is not a valid json
         except (json.JSONDecodeError, ValueError) as e:
             self.context.logger.error(f"Error loading the LLM response: {e}")
-            return Event.WAIT.value, None, None, None, None, None
+            return Event.WAIT.value, None, None, None, None, None, None, None, None, None

@@ -278,6 +278,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         """Get the next event"""
 
         if self.params.skip_engagement:
+            self.context.logger.info("Skipping engagement on Twitter")
             return Event.DONE.value
 
         # Get other memeooorr handles
