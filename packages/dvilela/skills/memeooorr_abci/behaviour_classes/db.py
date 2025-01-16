@@ -55,7 +55,7 @@ class LoadDatabaseBehaviour(
 
         self.set_done()
 
-    def load_db(self) -> Generator[None, None, Tuple[str, str]]:
+    def load_db(self) -> Generator[None, None, str]:
         """Load the data"""
         persona = yield from self.get_persona()
 

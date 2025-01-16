@@ -22,7 +22,6 @@
 import json
 import re
 import secrets
-from datetime import datetime
 from typing import Dict, Generator, List, Optional, Tuple, Type, Union
 
 from twitter_text import parse_tweet  # type: ignore
@@ -71,9 +70,11 @@ def is_tweet_valid(tweet: str) -> bool:
 class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-ancestors
     """BaseTweetBehaviour"""
 
-    matching_round: Type[AbstractRound] = None
+    matching_round: Type[AbstractRound] = None  # type: ignore
 
-    def store_tweet(self, tweet) -> Generator[None, None, bool]:
+    def store_tweet(
+        self, tweet: Union[dict, List[dict]]
+    ) -> Generator[None, None, bool]:
         """Store tweet"""
         tweets = yield from self.get_tweets_from_db()
         if isinstance(tweet, list):
@@ -84,7 +85,7 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         return True
 
     def post_tweet(
-        self, tweet: Optional[List] = None, store: bool = True
+        self, tweet: List[str], store: bool = True
     ) -> Generator[None, None, Optional[Dict]]:
         """Post a tweet"""
         self.context.logger.info(f"Posting tweet: {tweet}")
@@ -342,7 +343,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         return event
 
-    def interact_twitter(  # pylint: disable=too-many-locals
+    def interact_twitter(  # pylint: disable=too-many-locals,too-many-statements
         self, pending_tweets: dict
     ) -> Generator[None, None, Tuple[str, List]]:
         """Decide whether to like a tweet based on the persona."""

@@ -22,7 +22,6 @@
 import json
 import re
 from abc import ABC
-from copy import copy
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Tuple, cast
 
@@ -100,7 +99,9 @@ query getPackages($package_type: String!) {
 """
 
 
-class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-ancestors
+class MemeooorrBaseBehaviour(
+    BaseBehaviour, ABC
+):  # pylint: disable=too-many-ancestors,too-many-public-methods
     """Base behaviour for the memeooorr_abci skill."""
 
     @property
@@ -259,7 +260,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         yield from self._write_kv({"persona": persona})
         return persona
 
-    def get_native_balance(self) -> Generator[None, None, Optional[float]]:
+    def get_native_balance(self) -> Generator[None, None, dict]:
         """Get the native balance"""
 
         # Safe
@@ -317,12 +318,13 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
     def get_heart_burn_and_purge_data(
         self,
     ) -> Generator[None, None, Tuple[List[str], List[str], int]]:
+        """Get heart, burn and purge data"""
         # Load previously hearted memes
         db_data = yield from self._read_kv(keys=("hearted_memes",))
 
         if db_data is None:
             self.context.logger.error("Error while loading the database")
-            hearted_memes_str: List[str] = "[]"
+            hearted_memes_str = "[]"
         else:
             hearted_memes_str = db_data["hearted_memes"] or "[]"
 
@@ -336,7 +338,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         return hearted_memes, purged_memes, burnable_amount
 
-    def get_meme_available_actions(
+    def get_meme_available_actions(  # pylint: disable=too-many-arguments
         self,
         meme_data: Dict,
         hearted_memes: List[str],
@@ -601,7 +603,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                 maga_launched = True
 
         for token in tokens:
-            token["available_actions"] = yield from self.get_meme_available_actions(
+            token["available_actions"] = self.get_meme_available_actions(
                 token, hearted_memes, purged_memes, burnable_amount, maga_launched
             )
 

@@ -353,8 +353,5 @@ class MemeFactoryContract(Contract):
     ) -> Dict[str, Any]:
         """Get the burnable amount."""
         contract_instance = cls.get_instance(ledger_api, contract_address)
-        scheduledForAscendance = getattr(
-            contract_instance.functions, "scheduledForAscendance"
-        )  # noqa
-        burnable_amount = scheduledForAscendance().call()
+        burnable_amount = contract_instance.functions.scheduledForAscendance().call()
         return {"burnable_amount": burnable_amount}

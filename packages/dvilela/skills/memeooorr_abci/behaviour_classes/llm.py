@@ -21,7 +21,7 @@
 
 import json
 import re
-from typing import Dict, Generator, Optional, Tuple, Type
+from typing import Generator, Optional, Tuple, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
@@ -97,7 +97,7 @@ class ActionDecisionBehaviour(
 
         self.set_done()
 
-    def get_event(  # pylint: disable=too-many-locals,too-many-return-statements
+    def get_event(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-statements
         self,
     ) -> Generator[
         None,
@@ -109,7 +109,7 @@ class ActionDecisionBehaviour(
             Optional[int],
             Optional[str],
             Optional[str],
-            Optional[str],
+            Optional[int],
             Optional[float],
             Optional[str],
             Optional[str],

@@ -99,10 +99,10 @@ class SynchronizedData(BaseSynchronizedData):
         return json.loads(pending_tweet_str) if pending_tweet_str else []
 
     @property
-    def feedback(self) -> Optional[List]:
+    def feedback(self) -> List:
         """Get the feedback."""
         feedback = self.db.get("feedback", None)
-        return json.loads(feedback) if feedback else None
+        return json.loads(feedback) if feedback else []
 
     @property
     def token_action(self) -> Dict:

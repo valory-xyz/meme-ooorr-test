@@ -54,7 +54,9 @@ class EngageTwitterPayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
-class ActionDecisionPayload(BaseTxPayload):
+class ActionDecisionPayload(
+    BaseTxPayload
+):  # pylint: disable=too-many-instance-attributes
     """Represent a transaction payload for the ActionDecisionRound."""
 
     event: str

@@ -21,7 +21,7 @@
 
 import json
 from abc import ABC
-from typing import Generator, Optional, Tuple, Type, cast
+from typing import Generator, Optional, Type, cast
 
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
@@ -258,7 +258,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             return ""
 
         if not token_action:
-            return None, None
+            return None
 
         action = token_action["action"]
 
@@ -344,9 +344,9 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
 
         if not token_nonce:
             self.context.logger.error("Token nonce is none")
-            return None
+            return
 
-        if token_action == "summon":
+        if token_action == "summon":  # nosec
             # Read previous tokens from db
             db_data = yield from self._read_kv(keys=("tokens",))
 
