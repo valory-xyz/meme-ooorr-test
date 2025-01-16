@@ -30,45 +30,6 @@ class LoadDatabasePayload(BaseTxPayload):
     """Represent a transaction payload for the LoadDatabaseRound."""
 
     persona: str
-    latest_tweet: Optional[str]
-
-
-@dataclass(frozen=True)
-class PostTweetPayload(BaseTxPayload):
-    """Represent a transaction payload for the PostTweetRound."""
-
-    latest_tweet: Optional[str]
-    feedback_period_max_hours_delta: int = 0
-
-
-@dataclass(frozen=True)
-class CollectFeedbackPayload(BaseTxPayload):
-    """Represent a transaction payload for the CollectFeedbackRound."""
-
-    feedback: Optional[str]
-
-
-@dataclass(frozen=True)
-class AnalizeFeedbackPayload(BaseTxPayload):
-    """Represent a transaction payload for the AnalizeFeedbackRound."""
-
-    analysis: Optional[str]
-
-
-@dataclass(frozen=True)
-class CheckFundsPayload(BaseTxPayload):
-    """Represent a transaction payload for the CheckFundsRound."""
-
-    event: str
-
-
-@dataclass(frozen=True)
-class DeploymentPayload(BaseTxPayload):
-    """Represent a transaction payload for the DeploymentRound."""
-
-    tx_hash: Optional[str]
-    tx_flag: Optional[str]
-    token_nonce: Optional[int] = None
 
 
 @dataclass(frozen=True)
@@ -79,15 +40,35 @@ class PullMemesPayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
-class ActionDecisionPayload(BaseTxPayload):
+class CollectFeedbackPayload(BaseTxPayload):
+    """Represent a transaction payload for the CollectFeedbackRound."""
+
+    feedback: Optional[str]
+
+
+@dataclass(frozen=True)
+class EngageTwitterPayload(BaseTxPayload):
+    """Represent a transaction payload for the EngageTwitterRound."""
+
+    event: str
+
+
+@dataclass(frozen=True)
+class ActionDecisionPayload(
+    BaseTxPayload
+):  # pylint: disable=too-many-instance-attributes
     """Represent a transaction payload for the ActionDecisionRound."""
 
     event: str
-    token_nonce: Optional[int]
-    token_address: Optional[str]
     action: Optional[str]
+    token_address: Optional[str]
+    token_nonce: Optional[int]
+    token_name: Optional[str]
+    token_ticker: Optional[str]
+    token_supply: Optional[int]
     amount: Optional[float]
     tweet: Optional[str]
+    new_persona: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -95,7 +76,6 @@ class ActionPreparationPayload(BaseTxPayload):
     """Represent a transaction payload for the ActionPreparationRound."""
 
     tx_hash: Optional[str]
-    tx_flag: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -106,14 +86,7 @@ class ActionTweetPayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
-class TransactionMultiplexerPayload(BaseTxPayload):
-    """Represent a transaction payload for the TransactionMultiplexerRound."""
-
-    event: str
-
-
-@dataclass(frozen=True)
-class EngagePayload(BaseTxPayload):
-    """Represent a transaction payload for the EngageRound."""
+class CheckFundsPayload(BaseTxPayload):
+    """Represent a transaction payload for the CheckFundsRound."""
 
     event: str

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2021-2024 Valory AG
+#   Copyright 2021-2025 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ PATH_TO_VAR = {
     "models/params/args/feedback_period_max_hours": "FEEDBACK_PERIOD_MAX_HOURS",
     "models/params/args/twitter_username": "TWIKIT_USERNAME",
     "models/params/args/persona": "PERSONA",
+    "models/params/args/skip_engagement": "SKIP_ENGAGEMENT",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",

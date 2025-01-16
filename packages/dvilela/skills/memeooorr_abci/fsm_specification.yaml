@@ -1,14 +1,10 @@
 alphabet_in:
 - DONE
 - ERROR
-- NOT_ENOUGH_FEEDBACK
 - NO_FUNDS
 - NO_MAJORITY
-- REFINE
 - ROUND_TIMEOUT
 - SETTLE
-- TO_ACTION_TWEET
-- TO_DEPLOY
 - WAIT
 default_start_state: LoadDatabaseRound
 final_states:
@@ -16,80 +12,49 @@ final_states:
 - FinishedToSettlementRound
 label: MemeooorrAbciApp
 start_states:
+- ActionPreparationRound
 - LoadDatabaseRound
-- PostTweetRound
-- TransactionMultiplexerRound
+- PullMemesRound
 states:
 - ActionDecisionRound
 - ActionPreparationRound
 - ActionTweetRound
-- AnalizeFeedbackRound
 - CheckFundsRound
 - CollectFeedbackRound
-- DeploymentRound
-- EngageRound
+- EngageTwitterRound
 - FinishedToResetRound
 - FinishedToSettlementRound
 - LoadDatabaseRound
-- PostAnnouncementRound
-- PostTweetRound
 - PullMemesRound
-- TransactionMultiplexerRound
 transition_func:
     (ActionDecisionRound, DONE): ActionPreparationRound
     (ActionDecisionRound, NO_MAJORITY): ActionDecisionRound
     (ActionDecisionRound, ROUND_TIMEOUT): ActionDecisionRound
-    (ActionDecisionRound, WAIT): EngageRound
+    (ActionDecisionRound, WAIT): FinishedToResetRound
     (ActionPreparationRound, DONE): ActionTweetRound
-    (ActionPreparationRound, ERROR): EngageRound
+    (ActionPreparationRound, ERROR): FinishedToResetRound
     (ActionPreparationRound, NO_MAJORITY): ActionPreparationRound
     (ActionPreparationRound, ROUND_TIMEOUT): ActionPreparationRound
     (ActionPreparationRound, SETTLE): CheckFundsRound
-    (ActionTweetRound, DONE): EngageRound
+    (ActionTweetRound, DONE): FinishedToResetRound
     (ActionTweetRound, ERROR): ActionTweetRound
     (ActionTweetRound, NO_MAJORITY): ActionTweetRound
     (ActionTweetRound, ROUND_TIMEOUT): ActionTweetRound
-    (AnalizeFeedbackRound, DONE): DeploymentRound
-    (AnalizeFeedbackRound, ERROR): AnalizeFeedbackRound
-    (AnalizeFeedbackRound, NO_MAJORITY): AnalizeFeedbackRound
-    (AnalizeFeedbackRound, REFINE): ActionDecisionRound
-    (AnalizeFeedbackRound, ROUND_TIMEOUT): AnalizeFeedbackRound
     (CheckFundsRound, DONE): FinishedToSettlementRound
     (CheckFundsRound, NO_FUNDS): CheckFundsRound
     (CheckFundsRound, NO_MAJORITY): CheckFundsRound
     (CheckFundsRound, ROUND_TIMEOUT): CheckFundsRound
-    (CollectFeedbackRound, DONE): AnalizeFeedbackRound
+    (CollectFeedbackRound, DONE): EngageTwitterRound
     (CollectFeedbackRound, ERROR): CollectFeedbackRound
-    (CollectFeedbackRound, NOT_ENOUGH_FEEDBACK): ActionDecisionRound
     (CollectFeedbackRound, NO_MAJORITY): CollectFeedbackRound
     (CollectFeedbackRound, ROUND_TIMEOUT): CollectFeedbackRound
-    (DeploymentRound, DONE): PostAnnouncementRound
-    (DeploymentRound, ERROR): DeploymentRound
-    (DeploymentRound, NO_MAJORITY): DeploymentRound
-    (DeploymentRound, ROUND_TIMEOUT): DeploymentRound
-    (DeploymentRound, SETTLE): CheckFundsRound
-    (EngageRound, DONE): FinishedToResetRound
-    (EngageRound, ERROR): EngageRound
-    (EngageRound, NO_MAJORITY): EngageRound
-    (EngageRound, ROUND_TIMEOUT): EngageRound
+    (EngageTwitterRound, DONE): ActionDecisionRound
+    (EngageTwitterRound, ERROR): EngageTwitterRound
+    (EngageTwitterRound, NO_MAJORITY): EngageTwitterRound
+    (EngageTwitterRound, ROUND_TIMEOUT): EngageTwitterRound
     (LoadDatabaseRound, DONE): PullMemesRound
     (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
     (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound
-    (PostAnnouncementRound, DONE): ActionDecisionRound
-    (PostAnnouncementRound, ERROR): PostAnnouncementRound
-    (PostAnnouncementRound, NO_MAJORITY): PostAnnouncementRound
-    (PostAnnouncementRound, ROUND_TIMEOUT): PostAnnouncementRound
-    (PostAnnouncementRound, WAIT): PostAnnouncementRound
-    (PostTweetRound, DONE): CollectFeedbackRound
-    (PostTweetRound, ERROR): PostTweetRound
-    (PostTweetRound, NO_MAJORITY): PostTweetRound
-    (PostTweetRound, ROUND_TIMEOUT): PostTweetRound
-    (PostTweetRound, WAIT): ActionDecisionRound
-    (PullMemesRound, DONE): PostTweetRound
+    (PullMemesRound, DONE): CollectFeedbackRound
     (PullMemesRound, NO_MAJORITY): PullMemesRound
     (PullMemesRound, ROUND_TIMEOUT): PullMemesRound
-    (TransactionMultiplexerRound, DONE): TransactionMultiplexerRound
-    (TransactionMultiplexerRound, NO_MAJORITY): TransactionMultiplexerRound
-    (TransactionMultiplexerRound, ROUND_TIMEOUT): TransactionMultiplexerRound
-    (TransactionMultiplexerRound, TO_ACTION_TWEET): ActionTweetRound
-    (TransactionMultiplexerRound, TO_DEPLOY): DeploymentRound

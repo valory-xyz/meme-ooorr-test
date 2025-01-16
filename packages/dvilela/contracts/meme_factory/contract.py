@@ -48,7 +48,7 @@ class MemeFactoryContract(Contract):
         contract_address: str,
         token_name: str,
         token_ticker: str,
-        total_supply: int = 1000000000000000000000000,  # 1 million tokens for default 18 decimals
+        token_supply: int = 1000000000000000000000000,  # 1 million tokens for default 18 decimals
     ) -> Dict[str, bytes]:
         """Build a deposit transaction."""
 
@@ -58,7 +58,7 @@ class MemeFactoryContract(Contract):
             args=[
                 token_name,
                 token_ticker,
-                total_supply,
+                token_supply,
             ],
         )
         return {"data": bytes.fromhex(data[2:])}
@@ -232,6 +232,20 @@ class MemeFactoryContract(Contract):
         return {"tokens": tokens}
 
     @classmethod
+    def get_purge_data(
+        cls,
+        ledger_api: EthereumApi,
+        contract_address: str,
+        from_block: Optional[int] = None,
+    ) -> Dict[str, List]:
+        """Get the data from the Purged event."""
+        purged_events: Dict[str, List] = cls.get_events(  # type: ignore
+            ledger_api, contract_address, "Purged", from_block
+        )["events"]
+        purged_addresses = [e["token_address"] for e in purged_events]  # type: ignore
+        return {"purged_addresses": purged_addresses}
+
+    @classmethod
     def get_events(  # pylint: disable=too-many-arguments
         cls,
         ledger_api: EthereumApi,
@@ -318,4 +332,26 @@ class MemeFactoryContract(Contract):
                 latest_block=int(to_block),
             )
 
+        if event_name == "Purged":
+            return dict(
+                events=[
+                    {
+                        "token_address": e.args["memeToken"],
+                    }
+                    for e in events
+                ],
+                latest_block=int(to_block),
+            )
+
         return {}
+
+    @classmethod
+    def get_burnable_amount(
+        cls,
+        ledger_api: EthereumApi,
+        contract_address: str,
+    ) -> Dict[str, Any]:
+        """Get the burnable amount."""
+        contract_instance = cls.get_instance(ledger_api, contract_address)
+        burnable_amount = contract_instance.functions.scheduledForAscendance().call()
+        return {"burnable_amount": burnable_amount}

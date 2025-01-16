@@ -33,10 +33,6 @@ ROUNDS_INFO = {
         "name": "Posting Action Tweet",
         "description": "Notifies followers about the executed token action, reinforcing engagement and transparency in the ongoing narrative",
     },
-    "analize_feedback_round": {
-        "name": "Analyzing Feedback",
-        "description": "Examines audience reactions and engagement metrics to decide whether to refine the persona or proceed with token creation",
-    },
     "check_funds_round": {
         "name": "Checking Funds",
         "description": "Verifies available currency to ensure the feasibility of deploying tokens or conducting further actions",
@@ -57,11 +53,7 @@ ROUNDS_INFO = {
         "name": "Collecting agent signatures",
         "description": "Collects agent signatures for a transaction",
     },
-    "deployment_round": {
-        "name": "Deploying Meme Token",
-        "description": "Initiates the on-chain setup of a new meme token based on the assessed demand, preparing it for liquidity and community interaction",
-    },
-    "engage_round": {
+    "engage_twitter_round": {
         "name": "Engaging with other agents",
         "description": "Responds to tweets from other agents",
     },
@@ -72,14 +64,6 @@ ROUNDS_INFO = {
     "load_database_round": {
         "name": "Loading Database",
         "description": "Retrieves saved persona and latest tweet data from storage, ensuring the activity restarts with consistent context",
-    },
-    "post_announcement_round": {
-        "name": "Posting Announcement",
-        "description": "Publishes a follow-up tweet to inform followers about newly launched tokens, highlighting their significance and availability",
-    },
-    "post_tweet_round": {
-        "name": "Posting New Tweet",
-        "description": "Generates and shares a fresh tweet aligned with the persona, initiating engagement and gathering audience responses",
     },
     "pull_memes_round": {
         "name": "Pulling Meme Data",
