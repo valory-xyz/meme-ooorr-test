@@ -9,7 +9,7 @@ fingerprint:
   README.md: bafybeies3iafkjwo4xvqtqpdxvood7pf2wgto4t76dqswy55rya7vl5zgu
   __init__.py: bafybeiddslgyschgiuwsfiovqgxqqbkazdy6h3d4swwnq3tvpqaxzy37si
   build/MemeFactory.json: bafybeiholsk2gmpvayfftai7envnllozw3rjdsxrmpplht2fw5g6qiht3e
-  contract.py: bafybeiayew6yb2ggkr2k3gxpmjyxoleqli6uhmnpq4dponio5iusyyibgy
+  contract.py: bafybeifgeya3dhoymn67jlij7cbnwpahzf4gndx7ly7nkzcorommhkjuta
 fingerprint_ignore_patterns: []
 contracts: []
 class_name: MemeFactoryContract

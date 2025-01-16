@@ -8,10 +8,10 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeif2o2hubecmwwgszxuovir5zilpyjrrfbecei23bxiqmlpj3bed6q
-  behaviour_classes/chain.py: bafybeidxriokpti3e53hsltwv75boa5aijusvz3a3rwosmn2c4wyvdhyvu
+  behaviour_classes/base.py: bafybeidfs7hu47znnkxx3tbgxsemrtp4k4gz5b2wlympedipqmd2ptqxam
+  behaviour_classes/chain.py: bafybeigvip5ngcgen6urbk2x33g2sybjf4ou7at5qq6u3vym4f3lx42wfm
   behaviour_classes/db.py: bafybeietsdqc34ankubzuuzpzhdetauath2l6gbwx2tzc3kk7fbors4efu
-  behaviour_classes/llm.py: bafybeiemxdwwpk34vfshmtuxpxz23ijndgocrbfeuv4eqjiduhvvh6uhti
+  behaviour_classes/llm.py: bafybeia77luje4wcfztid3hlceckqfjw36iwrtmrcxrn46iexajuj2p3l4
   behaviour_classes/twitter.py: bafybeibumsp6cecbsanjb2ly74ikzrvi6rkuso3lcew3leglxmvfe435tm
   behaviours.py: bafybeicpq6utktukthmol2y63tdcqzdrrj7qgbi3vw42uad56eyny2bkii
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
@@ -19,7 +19,7 @@ fingerprint:
   handlers.py: bafybeibnnxjczbaeqzxvg4s5mmrogzhgpswwwwpmw6gds6mltgrq27r67y
   models.py: bafybeibvehinchtdmzwiunjtlwljhwipz2axkvyq6w5g352yfjj3jeqtym
   payloads.py: bafybeigs723u7j43jkciruodma37jihafbsrbncveljjb52doesgvno2sq
-  prompts.py: bafybeih2f4jqdbggakpmggor2mzkvqywelxymq6aau5f7yzjgz7khzt4um
+  prompts.py: bafybeieccgsn46hofb36n43edt2vzzuql26waydhbglxfzndgimvezsx6e
   rounds.py: bafybeicqphct23fex6wymyqkggl72zdlou47hpdarpt6sek6x6tn5qx3ry
   rounds_info.py: bafybeibtcdxu46hfoqhtscyn2gdc6zuah5yw6l5anqrs4u6rozvza42j4m
 fingerprint_ignore_patterns: []
@@ -30,7 +30,7 @@ connections:
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeiaw4yr7ubqlp63iz5wxqep3a5fokqs3kqva7sp2nsqg355zzucqgm
-- dvilela/meme_factory:0.1.0:bafybeihn2eyijk7crn4nrjnecs2ztebhxq4szrjdqzjs27jzwtmja75cte
+- dvilela/meme_factory:0.1.0:bafybeiaz2kxacde2fwoqwrb66u7xkwjftwk5j4x76g2ju547xmdmoegyx4
 - dvilela/service_registry:0.1.0:bafybeie2rrgzcjehlp2feff6bhkuindxzrnuwxe2jcrsy2thcdtrsp2o24
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
