@@ -19,7 +19,7 @@
 
 """This package contains round behaviours of MemeooorrAbciApp."""
 
-from typing import Generator, Tuple, Type
+from typing import Generator, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
@@ -42,12 +42,11 @@ class LoadDatabaseBehaviour(
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            persona, latest_tweet = yield from self.load_db()
+            persona = yield from self.load_db()
 
             payload = LoadDatabasePayload(
                 sender=self.context.agent_address,
                 persona=persona,
-                latest_tweet=latest_tweet,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -56,24 +55,9 @@ class LoadDatabaseBehaviour(
 
         self.set_done()
 
-    def load_db(self) -> Generator[None, None, Tuple[str, str]]:
+    def load_db(self) -> Generator[None, None, str]:
         """Load the data"""
         persona = yield from self.get_persona()
-        db_data = yield from self._read_kv(keys=("latest_tweet",))
 
-        if db_data is None:
-            latest_tweet = "{}"
-            self.context.logger.error(
-                f"Error while loading the database:\npersona={persona}\nlatest_tweet={latest_tweet}"
-            )
-            return persona, latest_tweet
-
-        latest_tweet = db_data["latest_tweet"]
-
-        if not latest_tweet:
-            latest_tweet = "{}"
-
-        self.context.logger.info(
-            f"Loaded from the db\npersona={persona}\nlatest_tweet={latest_tweet}"
-        )
-        return persona, latest_tweet
+        self.context.logger.info(f"Loaded from the db\npersona={persona}")
+        return persona

@@ -24,23 +24,18 @@ from typing import Set, Type
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
     ActionPreparationBehaviour,
     CheckFundsBehaviour,
-    DeploymentBehaviour,
     PullMemesBehaviour,
-    TransactionMultiplexerBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.db import (
     LoadDatabaseBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.llm import (
     ActionDecisionBehaviour,
-    AnalizeFeedbackBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     ActionTweetBehaviour,
     CollectFeedbackBehaviour,
-    EngageBehaviour,
-    PostAnnouncementBehaviour,
-    PostTweetBehaviour,
+    EngageTwitterBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.behaviours import (
@@ -56,16 +51,11 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
     abci_app_cls = MemeooorrAbciApp  # type: ignore
     behaviours: Set[Type[BaseBehaviour]] = [  # type: ignore
         LoadDatabaseBehaviour,
-        PostTweetBehaviour,
         CollectFeedbackBehaviour,
-        AnalizeFeedbackBehaviour,
         CheckFundsBehaviour,
-        DeploymentBehaviour,
-        PostAnnouncementBehaviour,
         PullMemesBehaviour,
         ActionDecisionBehaviour,
         ActionPreparationBehaviour,
         ActionTweetBehaviour,
-        TransactionMultiplexerBehaviour,
-        EngageBehaviour,
+        EngageTwitterBehaviour,
     ]

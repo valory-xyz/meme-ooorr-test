@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeifs7hsuaxfwlnjjnvxxf4uwfqu2gqhyqf5ass4bzgps5n6getcvoi
+agent: dvilela/memeooorr:0.1.0:bafybeidw56ahdzp47whwyqdvcbyxbjyx5jzpnopkvc3ko3gwgrp3jvbniu
 number_of_agents: 1
 deployment:
   agent:
@@ -82,7 +82,7 @@ extra:
         ipfs_address: ${IPFS_ADDRESS:str:https://gateway.autonolas.tech/ipfs/}
         default_chain_id: ${DEFAULT_CHAIN_ID:str:base}
         termination_from_block: ${TERMINATION_FROM_BLOCK:int:21629820}
-        minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.001}
+        minimum_gas_balance: ${MINIMUM_GAS_BALANCE:float:0.00005}
         min_feedback_replies: ${MIN_FEEDBACK_REPLIES:int:10}
         meme_factory_address_base: ${MEME_FACTORY_ADDRESS_BASE:str:0x82a9c823332518c32a0c0edc050ef00934cf04d4}
         meme_factory_address_celo: ${MEME_FACTORY_ADDRESS_CELO:str:0xeea5f1e202dc43607273d54101ff8b58fb008a99}
@@ -98,6 +98,7 @@ extra:
         service_registry_address_base: ${SERVICE_REGISTRY_ADDRESS_BASE:str:0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE}
         service_registry_address_celo: ${SERVICE_REGISTRY_ADDRESS_CELO:str:0xE3607b00E75f6405248323A9417ff6b39B244b50}
         meme_subgraph_url: ${MEME_SUBGRAPH_URL:str:https://agentsfun-indexer-production.up.railway.app}
+        skip_engagement: ${SKIP_ENGAGEMENT:bool:false}
 ---
 public_id: valory/ledger:0.19.0
 type: connection
