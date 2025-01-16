@@ -628,7 +628,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             self.context.logger.error(
                 f"Error getting agents from subgraph: {response}"  # type: ignore
             )
-            return None
+            return []
 
         response_json = json.loads(response.body)
         tokens = [
@@ -690,7 +690,6 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             hearted_memes,
             purged_memes,
             burnable_amount,
-            maga_launched,
         ) = yield from self.get_heart_burn_and_purge_data()
 
         # We can only burn when the AG3NT token (nonce=1) has been unleashed
