@@ -90,7 +90,6 @@ The complete list of token actions is:
 
 Your task is to make a decision on what should be the next action to be executed to maximize your portfolio value.
 Take into account the engagement you're getting on twitter and also the existing token's popularity.
-ALWAYS UNLEASH A TOKEN IF YOU CAN.
 
 You have three options:
 * Do nothing
