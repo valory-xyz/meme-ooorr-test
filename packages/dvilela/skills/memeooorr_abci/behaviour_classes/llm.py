@@ -88,7 +88,7 @@ class ActionDecisionBehaviour(
                 token_supply=token_supply,
                 amount=amount,
                 tweet=tweet,
-                new_persona=new_persona
+                new_persona=new_persona,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -157,7 +157,18 @@ class ActionDecisionBehaviour(
         # We didnt get a response
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
-            return Event.WAIT.value, None, None, None, None, None, None, None, None, None
+            return (
+                Event.WAIT.value,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
 
         try:
             llm_response = llm_response.replace("\n", "").strip()
@@ -178,13 +189,35 @@ class ActionDecisionBehaviour(
 
             if action == "none":
                 self.context.logger.info("Action is none")
-                return Event.WAIT.value, None, None, None, None, None, None, None, None, None
+                return (
+                    Event.WAIT.value,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
 
             if action in ["heart", "unleash"] and token_nonce not in valid_nonces:
                 self.context.logger.info(
                     f"Token nonce {token_nonce} is not in valid_nonces={valid_nonces}"
                 )
-                return Event.WAIT.value, None, None, None, None, None, None, None, None, None
+                return (
+                    Event.WAIT.value,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
 
             available_actions = []
             for t in self.synchronized_data.meme_coins:
@@ -196,7 +229,18 @@ class ActionDecisionBehaviour(
                 self.context.logger.info(
                     f"Action [{action}] is not in available_actions={available_actions}"
                 )
-                return Event.WAIT.value, None, None, None, None, None, None, None, None, None
+                return (
+                    Event.WAIT.value,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
 
             if action == "summon":
                 token_name = response.get("token_name", None)
@@ -213,7 +257,18 @@ class ActionDecisionBehaviour(
 
             if not tweet:
                 self.context.logger.info("Tweet is none")
-                return Event.WAIT.value, None, None, None, None, None, None, None, None, None
+                return (
+                    Event.WAIT.value,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
 
             # Fix amount if it is lower than the min required amount
             if action == "heart":
@@ -225,9 +280,31 @@ class ActionDecisionBehaviour(
             self.context.logger.info("The LLM returned a valid response")
             if new_persona:
                 yield from self._write_kv({"persona": new_persona})
-            return Event.DONE.value, action, token_address, token_nonce, token_name, token_ticker, token_supply, amount, tweet, new_persona
+            return (
+                Event.DONE.value,
+                action,
+                token_address,
+                token_nonce,
+                token_name,
+                token_ticker,
+                token_supply,
+                amount,
+                tweet,
+                new_persona,
+            )
 
         # The response is not a valid json
         except (json.JSONDecodeError, ValueError) as e:
             self.context.logger.error(f"Error loading the LLM response: {e}")
-            return Event.WAIT.value, None, None, None, None, None, None, None, None, None
+            return (
+                Event.WAIT.value,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )

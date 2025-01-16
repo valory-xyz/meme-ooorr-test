@@ -167,6 +167,9 @@ class CheckFundsBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             return Event.NO_FUNDS.value
 
         if agent_native_balance < self.params.minimum_gas_balance:
+            self.context.logger.info(
+                f"Agent has insufficient funds for gas: {agent_native_balance} < {self.params.minimum_gas_balance}"
+            )
             return Event.NO_FUNDS.value
 
         return Event.DONE.value
@@ -251,8 +254,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
 
         # Action finished if we already have a final_tx_hash at this point
         if self.synchronized_data.final_tx_hash is not None:
-            if token_action == "summon":
-                yield from self.post_summon()
+            yield from self.post_action()
             return ""
 
         if not token_action:
@@ -331,40 +333,48 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
 
         return safe_tx_hash
 
-    def post_summon(  # pylint: disable=too-many-locals
+    def post_action(  # pylint: disable=too-many-locals
         self,
     ) -> Generator[None, None, None]:
-        """Post summon"""
-
-        self.context.logger.info("The deployment has finished")
-        token_nonce = yield from self.get_token_nonce()
-        if not token_nonce:
-            return None
-
-        if not token_nonce:
-            return None
-
-        # Read previous tokens from db
-        db_data = yield from self._read_kv(keys=("tokens",))
-
-        if db_data is None:
-            self.context.logger.error("Error while loading tokens from the database")
-            tokens = []
-        else:
-            tokens = json.loads(db_data["tokens"]) if db_data["tokens"] else []
-
-        # Write token to db
+        """Post action"""
         token_action = self.synchronized_data.token_action
-        token_data = {
-            "token_name": token_action["token_name"],
-            "token_ticker": token_action["token_ticker"],
-            "total_supply": int(token_action["total_supply"]),
-            "token_nonce": token_nonce,
-        }
-        tokens.append(token_data)
-        yield from self._write_kv({"tokens": json.dumps(tokens, sort_keys=True)})
-        self.context.logger.info("Wrote latest token to db")
-        self.store_heart(token_nonce)
+        token_nonce = yield from self.get_token_nonce()
+
+        self.context.logger.info(f"The {token_action['action']} has finished")
+
+        if not token_nonce:
+            self.context.logger.error("Token nonce is none")
+            return None
+
+        if token_action == "summon":
+            # Read previous tokens from db
+            db_data = yield from self._read_kv(keys=("tokens",))
+
+            if db_data is None:
+                self.context.logger.error(
+                    "Error while loading tokens from the database"
+                )
+                tokens = []
+            else:
+                tokens = json.loads(db_data["tokens"]) if db_data["tokens"] else []
+
+            # Write token to db
+            token_action = self.synchronized_data.token_action
+            token_data = {
+                "token_name": token_action["token_name"],
+                "token_ticker": token_action["token_ticker"],
+                "total_supply": int(token_action["total_supply"]),
+                "token_nonce": token_nonce,
+            }
+            tokens.append(token_data)
+            yield from self._write_kv(
+                {"summoned_tokens": json.dumps(tokens, sort_keys=True)}
+            )
+            self.context.logger.info("Wrote latest token to db")
+
+        if token_action in ["summon", "heart"]:
+            self.store_heart(token_nonce)
+            self.context.logger.info("Stored hearted token")
 
     def get_token_nonce(
         self,

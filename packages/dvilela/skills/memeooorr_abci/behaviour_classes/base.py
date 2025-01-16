@@ -314,9 +314,36 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         return {"safe": safe_balance, "agent": agent_balance}
 
+    def get_heart_burn_and_purge_data(
+        self,
+    ) -> Generator[None, None, Tuple[List[str], List[str], int]]:
+        # Load previously hearted memes
+        db_data = yield from self._read_kv(keys=("hearted_memes",))
+
+        if db_data is None:
+            self.context.logger.error("Error while loading the database")
+            hearted_memes_str: List[str] = "[]"
+        else:
+            hearted_memes_str = db_data["hearted_memes"] or "[]"
+
+        hearted_memes = json.loads(hearted_memes_str)
+
+        # Load purged memes
+        purged_memes = yield from self.get_purged_memes_from_chain()
+
+        # Get
+        burnable_amount = yield from self.get_burnable_amount()
+
+        return hearted_memes, purged_memes, burnable_amount
+
     def get_meme_available_actions(
-        self, meme_data: Dict, hearted_memes: List[str]
-    ) -> List:
+        self,
+        meme_data: Dict,
+        hearted_memes: List[str],
+        purged_memes: List[str],
+        burnable_amount: int,
+        maga_launched: bool,
+    ) -> List[str]:
         """Get the available actions"""
 
         # Get the times
@@ -326,10 +353,9 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         seconds_since_summon = (now - summon_time).total_seconds()
         seconds_since_unleash = (now - unleash_time).total_seconds()
         is_unleashed = meme_data.get("unleash_time", 0) != 0
-        is_purged =
-        is_burned =
+        is_purged = meme_data.get("token_address", None) in purged_memes
 
-        available_actions = []
+        available_actions: List[str] = []
 
         # Heart
         if not is_unleashed and meme_data.get("token_nonce", None) in hearted_memes:
@@ -340,15 +366,19 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             available_actions.append("unleash")
 
         # Collect
-        if is_unleashed and not is_purged and meme_data.get("token_nonce", None) in hearted_memes:
+        if (
+            is_unleashed
+            and seconds_since_unleash < 24 * 3600
+            and meme_data.get("token_nonce", None) in hearted_memes
+        ):
             available_actions.append("collect")
 
         # Purge
-        if not is_purged and seconds_since_unleash > 24 * 3600:
+        if is_unleashed and seconds_since_unleash > 24 * 3600 and not is_purged:
             available_actions.append("purge")
 
         # Burn
-        if not is_burned:
+        if maga_launched and burnable_amount > 0:
             available_actions.append("burn")
 
         return available_actions
@@ -559,18 +589,20 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                 if token["token_nonce"] == event["token_nonce"]:
                     token["token_address"] = event["token_address"]
 
-        # Load previously hearted memes
-        db_data = yield from self._read_kv(keys=("hearted_memes",))
+        (
+            hearted_memes,
+            purged_memes,
+            burnable_amount,
+        ) = yield from self.get_heart_burn_and_purge_data()
 
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            hearted_memes: List[str] = []
-        else:
-            hearted_memes = db_data["hearted_memes"] or []
+        maga_launched = False
+        for token in tokens:
+            if token["token_nonce"] == 1 and token.get("unleash_time", 0) != 0:
+                maga_launched = True
 
         for token in tokens:
-            token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes
+            token["available_actions"] = yield from self.get_meme_available_actions(
+                token, hearted_memes, purged_memes, burnable_amount, maga_launched
             )
 
         return tokens
@@ -654,18 +686,22 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             token["is_native_first"] = summon_data[8]
             token["decimals"] = 18
 
-        # Load previously hearted memes
-        db_data = yield from self._read_kv(keys=("hearted_memes",))
+        (
+            hearted_memes,
+            purged_memes,
+            burnable_amount,
+            maga_launched,
+        ) = yield from self.get_heart_burn_and_purge_data()
 
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            hearted_memes: List[str] = []
-        else:
-            hearted_memes = db_data["hearted_memes"] or []
+        # We can only burn when the AG3NT token (nonce=1) has been unleashed
+        maga_launched = False
+        for token in tokens:
+            if token["token_nonce"] == 1 and token.get("unleash_time", 0) != 0:
+                maga_launched = True
 
         for token in tokens:
             token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes
+                token, hearted_memes, purged_memes, burnable_amount, maga_launched
             )
 
         return tokens
@@ -702,3 +738,45 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             tweets = json.loads(db_data["tweets"] or "[]")
 
         return tweets
+
+    def get_burnable_amount(self) -> Generator[None, None, int]:
+        """Get burnable amount"""
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.get_meme_factory_address(),
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_burnable_amount",
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the burnable amount: {response_msg}"
+            )
+            return 0
+
+        burnable_amount = cast(int, response_msg.state.body.get("burnable_amount", 0))
+        return burnable_amount
+
+    def get_purged_memes_from_chain(self) -> Generator[None, None, List]:
+        """Get purged memes"""
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.get_meme_factory_address(),
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_purge_data",
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the purged tokens: {response_msg}"
+            )
+            return []
+
+        purged_addresses = cast(
+            list, response_msg.state.body.get("purged_addresses", [])
+        )
+        return purged_addresses
