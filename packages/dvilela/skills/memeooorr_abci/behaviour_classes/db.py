@@ -19,7 +19,7 @@
 
 """This package contains round behaviours of MemeooorrAbciApp."""
 
-from typing import Generator, Tuple, Type
+from typing import Generator, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
