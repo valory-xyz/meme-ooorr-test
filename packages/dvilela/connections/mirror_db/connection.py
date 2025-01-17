@@ -226,7 +226,7 @@ class MirrorDBConnection(Connection):
         async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/",
             json=agent_data,
-            headers={"access_token": f"{self.api_key}"},
+            headers={"access-token": f"{self.api_key}"},
         ) as response:
             agent_response = await response.json()
 
@@ -240,7 +240,7 @@ class MirrorDBConnection(Connection):
         """Read an agent."""
         async with self.session.get(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}",
-            headers={"access_token": f"{self.api_key}"},
+            headers={"access-token": f"{self.api_key}"},
         ) as response:
             return await response.json()
 
@@ -250,7 +250,7 @@ class MirrorDBConnection(Connection):
         async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/twitter_accounts/",
             json=account_data,
-            headers={"access_token": f"{api_key}"},
+            headers={"access-token": f"{api_key}"},
         ) as response:
             return await response.json()
 
@@ -258,7 +258,7 @@ class MirrorDBConnection(Connection):
         """Get a Twitter account."""
         async with self.session.get(  # type: ignore
             f"{self.base_url}/api/twitter_accounts/{twitter_user_id}",
-            headers={"access_token": f"{self.api_key}"},
+            headers={"access-token": f"{self.api_key}"},
         ) as response:
             return await response.json()
 
@@ -269,7 +269,7 @@ class MirrorDBConnection(Connection):
         async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/",
             json=tweet_data,
-            headers={"access_token": f"{self.api_key}"},
+            headers={"access-token": f"{self.api_key}"},
         ) as response:
             return await response.json()
 
@@ -277,7 +277,7 @@ class MirrorDBConnection(Connection):
         """Read a tweet."""
         async with self.session.get(  # type: ignore
             f"{self.base_url}/api/tweets/{tweet_id}",
-            headers={"access_token": f"{self.api_key}"},
+            headers={"access-token": f"{self.api_key}"},
         ) as response:
             return await response.json()
 
@@ -288,6 +288,6 @@ class MirrorDBConnection(Connection):
         async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/interactions/",
             json=interaction_data,
-            headers={"access_token": f"{self.api_key}"},
+            headers={"access-token": f"{self.api_key}"},
         ) as response:
             return await response.json()
