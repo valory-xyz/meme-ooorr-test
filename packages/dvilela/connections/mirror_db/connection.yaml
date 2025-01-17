@@ -1,0 +1,26 @@
+name: mirror_db
+author: dvilela
+version: 0.1.0
+type: connection
+description: A connection that provides a wrapper around the backend service for Twitter
+  mirror database.
+license: Apache-2.0
+aea_version: '>=1.0.0, <2.0.0'
+fingerprint:
+  __init__.py: bafybeiglyqy5epuu3plwuf4vbvm4kmg2dtohrpmarhbxdr5a27kg32mxku
+  connection.py: bafybeierdlumlmecix6cgk3td5boar5r74mfjnjvvywcxz4rbwummltxba
+  readme.md: bafybeies7w2qbwrzed4mh72se5n4hbzlucvngb2eseu4giieiiyjjfjdka
+fingerprint_ignore_patterns: []
+connections: []
+protocols:
+- valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
+class_name: MirrorDBConnection
+config:
+  mirror_db_base_url: ${MIRROR_DB_BASE_URL}
+excluded_protocols: []
+restricted_to_protocols: []
+dependencies:
+  aiohttp:
+    version: '>=3.7.4'
+is_abstract: false
+cert_requests: []

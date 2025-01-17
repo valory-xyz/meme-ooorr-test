@@ -21,23 +21,15 @@
 
 import json
 import re
-from typing import Dict, Generator, Optional, Tuple, Type
+from typing import Generator, Optional, Tuple, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
-    is_tweet_valid,
-)
-from packages.dvilela.skills.memeooorr_abci.prompts import (
-    ACTION_DECISION_PROMPT,
-    ANALYZE_FEEDBACK_PROMPT,
-)
+from packages.dvilela.skills.memeooorr_abci.prompts import TOKEN_DECISION_PROMPT
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionDecisionPayload,
     ActionDecisionRound,
-    AnalizeFeedbackPayload,
-    AnalizeFeedbackRound,
     Event,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
@@ -54,129 +46,11 @@ TOKEN_SUMMARY = (  # nosec
     token symbol: {token_ticker}
     total supply (wei): {token_supply}
     decimals: {decimals}
-    heath count: {heart_count}
+    heart count: {heart_count}
     available actions: {available_actions}
     """
 )
 # fmt: on
-
-
-class AnalizeFeedbackBehaviour(
-    MemeooorrBaseBehaviour
-):  # pylint: disable=too-many-ancestors
-    """AnalizeFeedbackBehaviour"""
-
-    matching_round: Type[AbstractRound] = AnalizeFeedbackRound
-
-    def async_act(self) -> Generator:
-        """Do the act, supporting asynchronous execution."""
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            analysis = yield from self.get_analysis()
-            self.context.logger.info(f"Analysis: {analysis}")
-
-            payload = AnalizeFeedbackPayload(
-                sender=self.context.agent_address,
-                analysis=json.dumps(analysis, sort_keys=True),
-            )
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
-            yield from self.send_a2a_transaction(payload)
-            yield from self.wait_until_round_end()
-
-        self.set_done()
-
-    def get_analysis(  # pylint: disable=too-many-locals,too-many-return-statements
-        self,
-    ) -> Generator[None, None, Optional[Dict]]:
-        """Post a tweet"""
-
-        if self.synchronized_data.feedback is None:
-            return None
-
-        tweet_responses = "\n\n".join(
-            [
-                f"tweet: {t['text']}\nviews: {t['view_count']}\nquotes: {t['quote_count']}\nretweets{t['retweet_count']}"
-                for t in self.synchronized_data.feedback
-            ]
-        )
-
-        native_balance = yield from self.get_native_balance()
-        if not native_balance:
-            native_balance = 0
-
-        persona = yield from self.get_persona()
-
-        prompt_data = {
-            "latest_tweet": self.synchronized_data.latest_tweet["text"],
-            "tweet_responses": tweet_responses,
-            "persona": persona,
-            "n_meme_coins": len(self.synchronized_data.meme_coins),
-            "balance": native_balance,
-            "ticker": self.get_native_ticker(),
-        }
-
-        llm_response = yield from self._call_genai(
-            prompt=ANALYZE_FEEDBACK_PROMPT.format(**prompt_data)
-        )
-        self.context.logger.info(f"LLM response: {llm_response}")
-
-        # We didnt get a response
-        if llm_response is None:
-            self.context.logger.error("Error getting a response from the LLM.")
-            return None
-
-        # The response is not a valid jsoon
-        try:
-            llm_response = llm_response.replace("\n", "").strip()
-            match = re.search(JSON_RESPONSE_REGEX, llm_response, re.DOTALL)
-            if match:
-                llm_response = match.groups()[0]
-            response = json.loads(llm_response)
-
-        except json.JSONDecodeError as e:
-            self.context.logger.error(f"Error loading the LLM response: {e}")
-            return None
-
-        # Tweet too long
-        if (
-            response["deploy"]
-            and "tweet" not in response
-            and not is_tweet_valid(response["tweet"])
-        ):
-            self.context.logger.error("Announcement tweet is too long.")
-            return None
-
-        # Missing token data
-        if (
-            response["deploy"]
-            and "token_name" not in response
-            or "token_ticker" not in response
-            or "token_supply" not in response
-        ):
-            self.context.logger.error(
-                f"Missing some token data from the response: {response}"
-            )
-            return None
-
-        # Ensure minimum amount
-        if response["deploy"]:
-            response["amount"] = max(
-                response.get("amount", 0),
-                self.get_min_deploy_value(),
-            )
-
-        # Missing persona
-        if not response["deploy"] and "persona" not in response:
-            self.context.logger.error("Missing the new persona from the response.")
-            return None
-
-        # Write new persona to the database
-        if not response["deploy"]:
-            yield from self._write_kv({"persona": response["persona"]})
-            self.context.logger.info("Wrote persona to db")
-
-        return response
 
 
 class ActionDecisionBehaviour(
@@ -192,21 +66,29 @@ class ActionDecisionBehaviour(
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             (
                 event,
-                token_nonce,
-                token_address,
                 action,
+                token_address,
+                token_nonce,
+                token_name,
+                token_ticker,
+                token_supply,
                 amount,
                 tweet,
+                new_persona,
             ) = yield from self.get_event()
 
             payload = ActionDecisionPayload(
                 sender=self.context.agent_address,
                 event=event,
-                token_nonce=token_nonce,
-                token_address=token_address,
                 action=action,
+                token_address=token_address,
+                token_nonce=token_nonce,
+                token_name=token_name,
+                token_ticker=token_ticker,
+                token_supply=token_supply,
                 amount=amount,
                 tweet=tweet,
+                new_persona=new_persona,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -215,17 +97,21 @@ class ActionDecisionBehaviour(
 
         self.set_done()
 
-    def get_event(  # pylint: disable=too-many-locals,too-many-return-statements
+    def get_event(  # pylint: disable=too-many-locals,too-many-return-statements,too-many-statements
         self,
     ) -> Generator[
         None,
         None,
         Tuple[
             str,
+            Optional[str],
+            Optional[str],
             Optional[int],
             Optional[str],
             Optional[str],
+            Optional[int],
             Optional[float],
+            Optional[str],
             Optional[str],
         ],
     ]:
@@ -240,25 +126,49 @@ class ActionDecisionBehaviour(
 
         valid_nonces = [c["token_nonce"] for c in self.synchronized_data.meme_coins]
 
-        native_balance = yield from self.get_native_balance()
-        if not native_balance:
-            native_balance = 0
+        native_balances = yield from self.get_native_balance()
+        safe_native_balance = native_balances["safe"]
+        if not safe_native_balance:
+            safe_native_balance = 0
+
+        tweets = yield from self.get_tweets_from_db()
+        latest_tweet = tweets[-1]["text"] if tweets else "No previous tweet"
+
+        tweet_responses = "\n\n".join(
+            [
+                f"tweet: {t['text']}\nviews: {t['view_count']}\nquotes: {t['quote_count']}\nretweets{t['retweet_count']}"
+                for t in self.synchronized_data.feedback
+            ]
+        )
 
         prompt_data = {
             "meme_coins": meme_coins,
-            "balance": native_balance,
+            "latest_tweet": latest_tweet,
+            "tweet_responses": tweet_responses,
+            "balance": safe_native_balance,
             "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
         }
 
         llm_response = yield from self._call_genai(
-            prompt=ACTION_DECISION_PROMPT.format(**prompt_data)
+            prompt=TOKEN_DECISION_PROMPT.format(**prompt_data)
         )
         self.context.logger.info(f"LLM response: {llm_response}")
 
         # We didnt get a response
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
-            return Event.WAIT.value, None, None, None, None, None
+            return (
+                Event.WAIT.value,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
 
         try:
             llm_response = llm_response.replace("\n", "").strip()
@@ -269,21 +179,45 @@ class ActionDecisionBehaviour(
 
             action = response.get("action", "none")
             token_address = response.get("token_address", None)
-            token_nonce = (
-                int(response["token_nonce"]) if "token_nonce" in response else None
-            )
+
+            token_nonce = response.get("token_nonce", None)
+            if isinstance(token_nonce, str) and token_nonce.isdigit():
+                token_nonce = int(token_nonce)
+
             amount = float(response.get("amount", 0))
             tweet = response.get("tweet", None)
 
             if action == "none":
                 self.context.logger.info("Action is none")
-                return Event.WAIT.value, None, None, None, None, None
+                return (
+                    Event.WAIT.value,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
 
-            if token_nonce not in valid_nonces:
+            if action in ["heart", "unleash"] and token_nonce not in valid_nonces:
                 self.context.logger.info(
                     f"Token nonce {token_nonce} is not in valid_nonces={valid_nonces}"
                 )
-                return Event.WAIT.value, None, None, None, None, None
+                return (
+                    Event.WAIT.value,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
 
             available_actions = []
             for t in self.synchronized_data.meme_coins:
@@ -291,15 +225,50 @@ class ActionDecisionBehaviour(
                     available_actions = t["available_actions"]
                     break
 
-            if action not in available_actions:
+            if action != "summon" and action not in available_actions:
                 self.context.logger.info(
                     f"Action [{action}] is not in available_actions={available_actions}"
                 )
-                return Event.WAIT.value, None, None, None, None, None
+                return (
+                    Event.WAIT.value,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+
+            if action == "summon":
+                token_name = response.get("token_name", None)
+                token_ticker = response.get("token_ticker", None)
+                token_supply = response.get("token_supply", None)
+                if isinstance(token_supply, str) and token_supply.isdigit():
+                    token_supply = int(token_supply)
+            else:
+                token_name = None
+                token_ticker = None
+                token_supply = None
+
+            new_persona = response.get("new_persona", None)
 
             if not tweet:
                 self.context.logger.info("Tweet is none")
-                return Event.WAIT.value, None, None, None, None, None
+                return (
+                    Event.WAIT.value,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
 
             # Fix amount if it is lower than the min required amount
             if action == "heart":
@@ -309,9 +278,33 @@ class ActionDecisionBehaviour(
                 )
 
             self.context.logger.info("The LLM returned a valid response")
-            return Event.DONE.value, token_nonce, token_address, action, amount, tweet
+            if new_persona:
+                yield from self._write_kv({"persona": new_persona})
+            return (
+                Event.DONE.value,
+                action,
+                token_address,
+                token_nonce,
+                token_name,
+                token_ticker,
+                token_supply,
+                amount,
+                tweet,
+                new_persona,
+            )
 
         # The response is not a valid json
         except (json.JSONDecodeError, ValueError) as e:
             self.context.logger.error(f"Error loading the LLM response: {e}")
-            return Event.WAIT.value, None, None, None, None, None
+            return (
+                Event.WAIT.value,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )

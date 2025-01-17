@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2021-2025 Valory AG
+#   Copyright 2021-2024 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,30 +18,4 @@
 #
 # ------------------------------------------------------------------------------
 
-"""Test prompts"""
-
-import os
-
-import dotenv
-import google.generativeai as genai  # type: ignore
-
-from packages.dvilela.skills.memeooorr_abci.prompts import TWITTER_DECISION_PROMPT
-
-
-dotenv.load_dotenv(override=True)
-
-persona = """
-Johnny Silverhand from Cyberpunk2077
-"""
-
-genai.configure(api_key=os.getenv("GENAI_API_KEY"))
-
-model = genai.GenerativeModel("gemini-2.0-flash-exp")
-
-response = model.generate_content(
-    TWITTER_DECISION_PROMPT.format(persona=persona),
-    generation_config=genai.types.GenerationConfig(
-        temperature=2.0,
-    ),
-)
-print(response.text)
+"""MirrorDB connection."""

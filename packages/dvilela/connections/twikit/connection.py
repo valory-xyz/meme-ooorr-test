@@ -114,7 +114,12 @@ class TwikitConnection(Connection):
         )
         self.cookies = json.loads(cookies_str) if cookies_str else None
         self.disable_tweets = self.configuration.config.get("twikit_disable_tweets")
-        self.client = twikit.Client(language="en-US")
+        self.skip_connection = self.configuration.config.get("twikit_skip_connection")
+        if not self.skip_connection:
+            self.client = twikit.Client(language="en-US")
+        else:
+            self.logger.info("Twikit connecion is disabled.")
+            self.client = None
         self.last_call = datetime.now(timezone.utc)
 
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
@@ -133,7 +138,8 @@ class TwikitConnection(Connection):
     async def connect(self) -> None:
         """Connect to a HTTP server."""
         self._response_envelopes = asyncio.Queue()
-        await self.twikit_login()
+        if not self.skip_connection:
+            await self.twikit_login()
         self.state = ConnectionStates.connected
 
     async def disconnect(self) -> None:
@@ -223,6 +229,13 @@ class TwikitConnection(Connection):
                 f"Performative `{srr_message.performative.value}` is not supported.",
             )
 
+        if self.skip_connection:
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                "Connection is disabled. Set TWIKIT_SKIP_CONNECTION=false to enable it.",
+            )
+
         payload = json.loads(srr_message.payload)
 
         REQUIRED_PROPERTIES = ["method", "kwargs"]
@@ -234,6 +247,7 @@ class TwikitConnection(Connection):
             "retweet",
             "follow_user",
             "filter_suspended_users",
+            "get_user_by_screen_name",
         ]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
@@ -437,6 +451,11 @@ class TwikitConnection(Connection):
                 continue
         return not_suspendend_users
 
+    async def get_user_by_screen_name(self, screen_name: str) -> Dict:
+        """Get user by screen name"""
+        user = await self.client.get_user_by_screen_name(screen_name=screen_name)
+        return user_to_json(user)
+
 
 def tweet_to_json(tweet: Any) -> Dict:
     """Tweet to json"""
@@ -449,4 +468,13 @@ def tweet_to_json(tweet: Any) -> Dict:
         "retweet_count": tweet.retweet_count,
         "quote_count": tweet.quote_count,
         "view_count_state": tweet.view_count_state,
+    }
+
+
+def user_to_json(user: Any) -> Dict:
+    """User to Json"""
+    return {
+        "id": user.id,
+        "name": user.name,
+        "screen_name": user.screen_name,
     }

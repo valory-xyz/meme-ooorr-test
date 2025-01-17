@@ -13,7 +13,8 @@ connections:
 - valory/http_client:0.23.0:bafybeihi772xgzpqeipp3fhmvpct4y6e6tpjp4sogwqrnf3wqspgeilg4u
 - valory/ledger:0.19.0:bafybeigntoericenpzvwejqfuc3kqzo2pscs76qoygg5dbj6f4zxusru5e
 - valory/p2p_libp2p_client:0.1.0:bafybeid3xg5k2ol5adflqloy75ibgljmol6xsvzvezebsg7oudxeeolz7e
-- dvilela/twikit:0.1.0:bafybeicqzji5ketwpnsxw6geu4egnxaoatozswtksfhruzzhlqgistdlga
+- dvilela/twikit:0.1.0:bafybeidct6ct7jodxpdyhndb3ruxxcqurrh7742v5qjwf6w46g63znakna
+- dvilela/mirror_db:0.1.0:bafybeiapsp6k5l2qxzvyosie4dpnfywrwdcwzqxtoi6x6g3xfmdviov2he
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 - dvilela/genai:0.1.0:bafybeidkxxlonrxirznivkmzc34wmby4e4s57rfg2b7k6xyos23g3y6cdy
@@ -21,7 +22,7 @@ contracts:
 - valory/gnosis_safe:0.1.0:bafybeiaw4yr7ubqlp63iz5wxqep3a5fokqs3kqva7sp2nsqg355zzucqgm
 - valory/gnosis_safe_proxy_factory:0.1.0:bafybeidkqhw7smq4kbqryodom6maj7gubc5nbxwm4vi343xbkqxx3brjtm
 - valory/multisend:0.1.0:bafybeig5byt5urg2d2bsecufxe5ql7f4mezg3mekfleeh32nmuusx66p4y
-- dvilela/meme_factory:0.1.0:bafybeia4fnmj6j3ebpda54lqilctxcq35xp53irgzyozh6fadzi5pk22ii
+- dvilela/meme_factory:0.1.0:bafybeiawl5cqtlbm7vrh7ah3iubzjh7ycjhem27xz24ssyhnwnmqaunwee
 - dvilela/service_registry:0.1.0:bafybeie2rrgzcjehlp2feff6bhkuindxzrnuwxe2jcrsy2thcdtrsp2o24
 protocols:
 - open_aea/signing:1.0.0:bafybeihv62fim3wl2bayavfcg3u5e5cxu3b7brtu4cn5xoxd6lqwachasi
@@ -41,8 +42,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeigh2vkt74jrad5gtsczrgqcuhcqe7jkgjy7jdw56yamlzwwnaymjy
 - valory/registration_abci:0.1.0:bafybeib3n6vqkfbrcubcbliebjnuwyywdinxkbzt76n6gbn2kg7ace47dq
 - valory/reset_pause_abci:0.1.0:bafybeihkj6lmaypspyxe5qqrjgnolyck62pyvqoylr24ab6ue4steqcw7e
-- dvilela/memeooorr_abci:0.1.0:bafybeiei2gxoqk6ncyzn2bddecq6vp5u5yldbndvlryaq665okql5v22o4
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeifofb5dbfh4yh2jszrl2inhsky2iax7fgbmhzrp6lsrllgjvaja4u
+- dvilela/memeooorr_abci:0.1.0:bafybeie57n6k6rh6xclojtgbkes7urfjfvp4ti36apkemgubeuknxt4esy
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeihcyzelyljdntelerodosdyeup7tp76mungfnzj5fknnumt2s2pni
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -205,7 +206,7 @@ models:
       ipfs_address: ${str:https://gateway.autonolas.tech/ipfs/}
       default_chain_id: ${str:base}
       termination_from_block: ${int:0}
-      minimum_gas_balance: ${float:0.001}
+      minimum_gas_balance: ${float:0.00005}
       min_feedback_replies: ${int:10}
       meme_factory_address_base: ${str:0x82a9c823332518c32a0c0edc050ef00934cf04d4}
       meme_factory_address_celo: ${str:0xeea5f1e202dc43607273d54101ff8b58fb008a99}
@@ -221,6 +222,7 @@ models:
       service_registry_address_base: ${str:0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE}
       service_registry_address_celo: ${str:0xE3607b00E75f6405248323A9417ff6b39B244b50}
       meme_subgraph_url: ${str:https://agentsfun-indexer-production.up.railway.app}
+      skip_engagement: ${bool:false}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection
@@ -243,3 +245,8 @@ config:
   twikit_cookies: ${str:null}
   twikit_cookies_path: ${str:/tmp/twikit_cookies.json}
   twikit_disable_tweets: ${bool:false}
+---
+public_id: dvilela/mirror_db:0.1.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
+type: connection
+config:
+  mirror_db_base_url: ${str:https://afmdb.autonolas.tech}

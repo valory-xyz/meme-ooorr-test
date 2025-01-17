@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2021-2024 Valory AG
+#   Copyright 2021-2025 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -49,17 +49,21 @@ PATH_TO_VAR = {
     "models/params/args/feedback_period_max_hours": "FEEDBACK_PERIOD_MAX_HOURS",
     "models/params/args/twitter_username": "TWIKIT_USERNAME",
     "models/params/args/persona": "PERSONA",
+    "models/params/args/skip_engagement": "SKIP_ENGAGEMENT",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",
     "config/twikit_password": "TWIKIT_PASSWORD",
     "config/twikit_cookies": "TWIKIT_COOKIES",
     "config/twikit_cookies_path": "TWIKIT_COOKIES_PATH",
-    "config/twikit_disable_tweets": "DISABLE_TWEETS",
+    "config/twikit_disable_tweets": "TWIKIT_DISABLE_TWEETS",
+    "config/twikit_skip_connection": "TWIKIT_SKIP_CONNECTION",
     # Genai connection
     "config/genai_api_key": "GENAI_API_KEY",
     # DB
     "config/db_path": "DB_PATH",
+    # Mirror DB
+    "config/mirror_db_base_url": "MIRROR_DB_BASE_URL",
 }
 
 CONFIG_REGEX = r"\${.*?:(.*)}"

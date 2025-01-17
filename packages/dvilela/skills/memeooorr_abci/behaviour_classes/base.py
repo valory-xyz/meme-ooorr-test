@@ -22,7 +22,6 @@
 import json
 import re
 from abc import ABC
-from copy import copy
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Tuple, cast
 
@@ -33,6 +32,9 @@ from packages.dvilela.connections.genai.connection import (
 )
 from packages.dvilela.connections.kv_store.connection import (
     PUBLIC_ID as KV_STORE_CONNECTION_PUBLIC_ID,
+)
+from packages.dvilela.connections.mirror_db.connection import (
+    PUBLIC_ID as MIRRORDB_CONNECTION_PUBLIC_ID,
 )
 from packages.dvilela.connections.twikit.connection import (
     PUBLIC_ID as TWIKIT_CONNECTION_PUBLIC_ID,
@@ -57,7 +59,6 @@ from packages.valory.skills.abstract_round_abci.models import Requests
 BASE_CHAIN_ID = "base"
 CELO_CHAIN_ID = "celo"
 HTTP_OK = 200
-AVAILABLE_ACTIONS = ["heart", "unleash", "collect", "purge", "burn"]
 MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr @(\w+)$"
 IPFS_ENDPOINT = "https://gateway.autonolas.tech/ipfs/{ipfs_hash}"
 
@@ -101,7 +102,9 @@ query getPackages($package_type: String!) {
 """
 
 
-class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-ancestors
+class MemeooorrBaseBehaviour(
+    BaseBehaviour, ABC
+):  # pylint: disable=too-many-ancestors,too-many-public-methods
     """Base behaviour for the memeooorr_abci skill."""
 
     @property
@@ -135,8 +138,42 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         response = yield from self.wait_for_message(timeout=timeout)
         return response
 
-    def _call_twikit(self, method: str, **kwargs: Any) -> Generator[None, None, Any]:
-        """Send a request message from the skill context."""
+    def _call_twikit(  # pylint: disable=too-many-locals,too-many-statements
+        self, method: str, **kwargs: Any
+    ) -> Generator[None, None, Any]:
+        """Send a request message to the Twikit connection and handle MirrorDB interactions."""
+        # Define the mapping of Twikit methods to MirrorDB methods
+        twikit_to_mirrordb = {
+            "like_tweet": "create_interaction",
+            "retweet": "create_interaction",
+            "follow_user": "create_interaction",
+            "post": "create_tweet",
+        }
+
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        self.context.logger.info(f"MirrorDB config data: {mirror_db_config_data}")
+        if mirror_db_config_data is None:
+            self.context.logger.info("Registering with MirrorDB")
+            yield from self._register_with_mirror_db()
+
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        # Extract the agent_id, twitter_user_id and api_key from the mirrorDB config
+        agent_id = mirror_db_config_data["agent_id"]  # type: ignore
+        twitter_user_id = mirror_db_config_data["twitter_user_id"]  # type: ignore
+
+        # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
         srr_message, srr_dialogue = srr_dialogues.create(
             counterparty=str(TWIKIT_CONNECTION_PUBLIC_ID),
@@ -153,7 +190,175 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             self.context.logger.error(response_json["error"])
             return None
 
+        # Handle MirrorDB interaction if applicable
+        if method in twikit_to_mirrordb:
+            mirrordb_method = twikit_to_mirrordb[method]
+            mirrordb_kwargs = kwargs.copy()
+            if method == "post":
+                tweet_text = mirrordb_kwargs.pop("tweets")[0][
+                    "text"
+                ]  # Remove 'tweets' key
+                self.context.logger.info(f"Tweet text: {tweet_text}")
+                tweet_data = {
+                    "user_name": self.params.twitter_username,
+                    "text": tweet_text,
+                    "created_at": datetime.utcnow().isoformat() + "Z",
+                    "tweet_id": response_json["response"][0],
+                }
+                mirrordb_kwargs["tweet_data"] = tweet_data
+                mirrordb_kwargs["agent_id"] = agent_id  # Ensure agent_id is passed
+                mirrordb_kwargs[
+                    "twitter_user_id"
+                ] = twitter_user_id  # Ensure twitter_user_id is passed
+                # Use the tweet ID returned by Twikit
+                tweet_id = response_json["response"][0]
+                mirrordb_kwargs["tweet_data"]["tweet_id"] = tweet_id
+                self.context.logger.info(f"mirrorDb kwargs: {mirrordb_kwargs}")
+            elif method in [
+                "like_tweet",
+                "retweet",
+                "reply",
+                "quote_tweet",
+                "follow_user",
+            ]:
+                interaction_type = method.replace("_tweet", "").replace("_user", "")
+                interaction_data = {
+                    "interaction_type": interaction_type,
+                }
+                if interaction_type == "follow":
+                    interaction_data["user_id"] = str(kwargs.get("user_id"))
+                else:
+                    interaction_data["tweet_id"] = str(kwargs.get("tweet_id"))
+
+                mirrordb_kwargs = {
+                    "interaction_data": interaction_data,
+                    "agent_id": agent_id,
+                    "twitter_user_id": twitter_user_id,
+                }
+                self.context.logger.info(f"mirrorDb kwargs: {mirrordb_kwargs}")
+                mirrordb_response = yield from self._call_mirrordb(
+                    "create_interaction", **mirrordb_kwargs
+                )
+                if mirrordb_response is None:
+                    self.context.logger.error(
+                        f"MirrorDB interaction for method {method} failed."
+                    )
+
+            mirrordb_response = yield from self._call_mirrordb(
+                mirrordb_method, **mirrordb_kwargs
+            )
+            if mirrordb_response is None:
+                self.context.logger.error(
+                    f"MirrorDB interaction for method {method} failed."
+                )
+
         return response_json["response"]  # type: ignore
+
+    def _call_mirrordb(self, method: str, **kwargs: Any) -> Generator[None, None, Any]:
+        """Send a request message to the MirrorDB connection."""
+        srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
+        srr_message, srr_dialogue = srr_dialogues.create(
+            counterparty=str(MIRRORDB_CONNECTION_PUBLIC_ID),
+            performative=SrrMessage.Performative.REQUEST,
+            payload=json.dumps({"method": method, "kwargs": kwargs}),
+        )
+        srr_message = cast(SrrMessage, srr_message)
+        srr_dialogue = cast(SrrDialogue, srr_dialogue)
+        response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+
+        response_json = json.loads(response.payload)  # type: ignore
+
+        if "error" in response_json:
+            self.context.logger.error(response_json["error"])
+            return None
+
+        return response_json["response"]  # type: ignore
+
+    def _register_with_mirror_db(self) -> Generator[None, None, None]:
+        """Register with the MirrorDB service and save the configuration."""
+        # Pull the twitter_user_id using Twikit
+        twitter_user_data = yield from self._get_twitter_user_data()
+
+        twitter_user_id = twitter_user_data["id"]
+        twitter_username = twitter_user_data["screen_name"]
+        twitter_name = twitter_user_data["name"]
+
+        # Create the agent
+        agent_data = {
+            "agent_name": f"{self.synchronized_data.safe_contract_address}_{datetime.utcnow().isoformat()}",
+        }
+        twitter_account_data = {
+            "username": twitter_username,
+            "name": twitter_name,
+            "twitter_user_id": twitter_user_id,
+        }
+        agent_response = yield from self._call_mirrordb(
+            "create_agent", agent_data=agent_data
+        )
+        self.context.logger.info(f"Agent created: {agent_response}")
+
+        agent_id = agent_response["agent_id"]
+        api_key = agent_response["api_key"]
+
+        twitter_account_data["api_key"] = api_key
+        twitter_account_data["name"] = twitter_name
+        twitter_account_data["twitter_user_id"] = twitter_user_id
+        twitter_account_data["username"] = twitter_username
+
+        # create the twitter account
+        twitter_account_response = yield from self._call_mirrordb(
+            "create_twitter_account",
+            agent_id=agent_id,
+            account_data=twitter_account_data,
+        )
+        self.context.logger.info(
+            f"Twitter account created in MirrorDB: {twitter_account_response}"
+        )
+
+        # updating class vars
+        yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
+        yield from self._call_mirrordb(
+            "update_twitter_user_id", twitter_user_id=twitter_user_id
+        )
+        yield from self._call_mirrordb("update_api_key", api_key=api_key)
+
+        # Save the configuration to mirrorDB.json
+        config_data = {
+            "agent_id": agent_response["agent_id"],
+            "twitter_user_id": twitter_user_id,
+            "api_key": agent_response["api_key"],
+        }
+        self.context.logger.info(f"Saving MirrorDB config data: {config_data}")
+        yield from self._write_kv({"mirrod_db_config": json.dumps(config_data)})
+
+    def _get_twitter_user_data(self) -> Generator[None, None, Dict[str, str]]:
+        """Get the twitter user data using Twikit."""
+
+        TWIKIT_USERNAME = self.params.twitter_username
+        if not TWIKIT_USERNAME:
+            raise ValueError("TWIKIT_USERNAME environment variable not set")
+
+        srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
+        srr_message, srr_dialogue = srr_dialogues.create(
+            counterparty=str(TWIKIT_CONNECTION_PUBLIC_ID),
+            performative=SrrMessage.Performative.REQUEST,
+            payload=json.dumps(
+                {
+                    "method": "get_user_by_screen_name",
+                    "kwargs": {"screen_name": TWIKIT_USERNAME},
+                }
+            ),
+        )
+        srr_message = cast(SrrMessage, srr_message)
+        srr_dialogue = cast(SrrDialogue, srr_dialogue)
+        response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+
+        response_json = json.loads(response.payload)  # type: ignore
+        if "error" in response_json:
+            raise ValueError(response_json["error"])
+
+        self.context.logger.info(f"Got twitter_user_data: {response_json['response']}")
+        return response_json["response"]
 
     def _call_genai(
         self,
@@ -235,6 +440,14 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         return now
 
+    def get_sync_datetime(self) -> datetime:
+        """Get the synchronized time from Tendermint's last block."""
+        return datetime.fromtimestamp(self.get_sync_timestamp())
+
+    def get_sync_time_str(self) -> str:
+        """Get the synchronized time from Tendermint's last block."""
+        return self.get_sync_datetime().strftime("%Y-%m-%d %H:%M:%S")
+
     def get_persona(self) -> Generator[None, None, str]:
         """Get the agent persona"""
 
@@ -252,10 +465,12 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         yield from self._write_kv({"persona": persona})
         return persona
 
-    def get_native_balance(self) -> Generator[None, None, Optional[float]]:
+    def get_native_balance(self) -> Generator[None, None, dict]:
         """Get the native balance"""
+
+        # Safe
         self.context.logger.info(
-            f"Getting native balance for Safe {self.synchronized_data.safe_contract_address}"
+            f"Getting native balance for the Safe {self.synchronized_data.safe_contract_address}"
         )
 
         ledger_api_response = yield from self.get_ledger_api_response(
@@ -269,18 +484,73 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             self.context.logger.error(
                 f"Error while retrieving the native balance: {ledger_api_response}"
             )
-            return None
+            safe_balance = None
+        else:
+            safe_balance = cast(
+                float, ledger_api_response.state.body["get_balance_result"]
+            )
+            safe_balance = safe_balance / 10**18  # from wei
 
-        balance = cast(float, ledger_api_response.state.body["get_balance_result"])
-        balance = balance / 10**18  # from wei
+        self.context.logger.info(f"Got Safe's native balance: {safe_balance}")
 
-        self.context.logger.info(f"Got native balance: {balance}")
+        # Agent
+        self.context.logger.info(
+            f"Getting native balance for the agent {self.context.agent_address}"
+        )
 
-        return balance
+        ledger_api_response = yield from self.get_ledger_api_response(
+            performative=LedgerApiMessage.Performative.GET_STATE,
+            ledger_callable="get_balance",
+            account=self.context.agent_address,
+            chain_id=self.get_chain_id(),
+        )
 
-    def get_meme_available_actions(
-        self, meme_data: Dict, hearted_memes: List[str]
-    ) -> List:
+        if ledger_api_response.performative != LedgerApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Error while retrieving the native balance: {ledger_api_response}"
+            )
+            agent_balance = None
+        else:
+            agent_balance = cast(
+                float, ledger_api_response.state.body["get_balance_result"]
+            )
+            agent_balance = agent_balance / 10**18  # from wei
+
+        self.context.logger.info(f"Got agent's native balance: {agent_balance}")
+
+        return {"safe": safe_balance, "agent": agent_balance}
+
+    def get_heart_burn_and_purge_data(
+        self,
+    ) -> Generator[None, None, Tuple[List[str], List[str], int]]:
+        """Get heart, burn and purge data"""
+        # Load previously hearted memes
+        db_data = yield from self._read_kv(keys=("hearted_memes",))
+
+        if db_data is None:
+            self.context.logger.error("Error while loading the database")
+            hearted_memes_str = "[]"
+        else:
+            hearted_memes_str = db_data["hearted_memes"] or "[]"
+
+        hearted_memes = json.loads(hearted_memes_str)
+
+        # Load purged memes
+        purged_memes = yield from self.get_purged_memes_from_chain()
+
+        # Get
+        burnable_amount = yield from self.get_burnable_amount()
+
+        return hearted_memes, purged_memes, burnable_amount
+
+    def get_meme_available_actions(  # pylint: disable=too-many-arguments
+        self,
+        meme_data: Dict,
+        hearted_memes: List[str],
+        purged_memes: List[str],
+        burnable_amount: int,
+        maga_launched: bool,
+    ) -> List[str]:
         """Get the available actions"""
 
         # Get the times
@@ -289,50 +559,34 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
         unleash_time = datetime.fromtimestamp(meme_data["unleash_time"])
         seconds_since_summon = (now - summon_time).total_seconds()
         seconds_since_unleash = (now - unleash_time).total_seconds()
-
-        available_actions = copy(AVAILABLE_ACTIONS)
-
         is_unleashed = meme_data.get("unleash_time", 0) != 0
+        is_purged = meme_data.get("token_address", None) in purged_memes
 
-        # We can unleash if it has not been unleashed
-        if is_unleashed:
-            available_actions.remove("unleash")
+        available_actions: List[str] = []
 
-        # We can heart during the first 48h
-        if is_unleashed or seconds_since_summon > 48 * 3600:
-            available_actions.remove("heart")
+        # Heart
+        if not is_unleashed and meme_data.get("token_nonce", None) in hearted_memes:
+            available_actions.append("heart")
 
-        # We should not heart if we have summoned this token
+        # Unleash
+        if not is_unleashed and seconds_since_summon > 24 * 3600:
+            available_actions.append("unleash")
+
+        # Collect
         if (
-            "heart" in available_actions
-            and meme_data["owner"] == self.synchronized_data.safe_contract_address
+            is_unleashed
+            and seconds_since_unleash < 24 * 3600
+            and meme_data.get("token_nonce", None) in hearted_memes
         ):
-            available_actions.remove("heart")
+            available_actions.append("collect")
 
-        # We should not heart if we have already hearted
-        if (
-            "heart" in available_actions
-            and meme_data.get("token_address", None) in hearted_memes
-        ):
-            available_actions.remove("heart")
+        # Purge
+        if is_unleashed and seconds_since_unleash > 24 * 3600 and not is_purged:
+            available_actions.append("purge")
 
-        # We use 47.5 to be on the safe side
-        if seconds_since_summon < 47.5 * 3600:
-            if "unleash" in available_actions:
-                available_actions.remove("unleash")
-            available_actions.remove("purge")
-            available_actions.remove("burn")
-
-            # We can collect if we have hearted this token
-            if (
-                meme_data.get("token_address", None) not in hearted_memes
-                and "collect" in available_actions
-            ):
-                available_actions.remove("collect")
-
-        # can only collect until 24hrs of
-        if seconds_since_unleash > 24 * 3600 and "collect" in available_actions:
-            available_actions.remove("collect")
+        # Burn
+        if maga_launched and burnable_amount > 0:
+            available_actions.append("burn")
 
         return available_actions
 
@@ -542,18 +796,20 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
                 if token["token_nonce"] == event["token_nonce"]:
                     token["token_address"] = event["token_address"]
 
-        # Load previously hearted memes
-        db_data = yield from self._read_kv(keys=("hearted_memes",))
+        (
+            hearted_memes,
+            purged_memes,
+            burnable_amount,
+        ) = yield from self.get_heart_burn_and_purge_data()
 
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            hearted_memes: List[str] = []
-        else:
-            hearted_memes = db_data["hearted_memes"] or []
+        maga_launched = False
+        for token in tokens:
+            if token["token_nonce"] == 1 and token.get("unleash_time", 0) != 0:
+                maga_launched = True
 
         for token in tokens:
             token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes
+                token, hearted_memes, purged_memes, burnable_amount, maga_launched
             )
 
         return tokens
@@ -579,7 +835,7 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             self.context.logger.error(
                 f"Error getting agents from subgraph: {response}"  # type: ignore
             )
-            return None
+            return []
 
         response_json = json.loads(response.body)
         tokens = [
@@ -637,18 +893,21 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
             token["is_native_first"] = summon_data[8]
             token["decimals"] = 18
 
-        # Load previously hearted memes
-        db_data = yield from self._read_kv(keys=("hearted_memes",))
+        (
+            hearted_memes,
+            purged_memes,
+            burnable_amount,
+        ) = yield from self.get_heart_burn_and_purge_data()
 
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            hearted_memes: List[str] = []
-        else:
-            hearted_memes = db_data["hearted_memes"] or []
+        # We can only burn when the AG3NT token (nonce=1) has been unleashed
+        maga_launched = False
+        for token in tokens:
+            if token["token_nonce"] == 1 and token.get("unleash_time", 0) != 0:
+                maga_launched = True
 
         for token in tokens:
             token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes
+                token, hearted_memes, purged_memes, burnable_amount, maga_launched
             )
 
         return tokens
@@ -674,3 +933,56 @@ class MemeooorrBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-an
 
         # Should not happen
         return 0
+
+    def get_tweets_from_db(self) -> Generator[None, None, List[Dict]]:
+        """Get tweets"""
+        db_data = yield from self._read_kv(keys=("tweets",))
+
+        if db_data is None:
+            tweets = []
+        else:
+            tweets = json.loads(db_data["tweets"] or "[]")
+
+        return tweets
+
+    def get_burnable_amount(self) -> Generator[None, None, int]:
+        """Get burnable amount"""
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.get_meme_factory_address(),
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_burnable_amount",
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the burnable amount: {response_msg}"
+            )
+            return 0
+
+        burnable_amount = cast(int, response_msg.state.body.get("burnable_amount", 0))
+        return burnable_amount
+
+    def get_purged_memes_from_chain(self) -> Generator[None, None, List]:
+        """Get purged memes"""
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.get_meme_factory_address(),
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_purge_data",
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the purged tokens: {response_msg}"
+            )
+            return []
+
+        purged_addresses = cast(
+            list, response_msg.state.body.get("purged_addresses", [])
+        )
+        return purged_addresses
