@@ -33,6 +33,9 @@ from packages.dvilela.connections.genai.connection import (
 from packages.dvilela.connections.kv_store.connection import (
     PUBLIC_ID as KV_STORE_CONNECTION_PUBLIC_ID,
 )
+from packages.dvilela.connections.mirror_db.connection import (
+    PUBLIC_ID as MIRRORDB_CONNECTION_PUBLIC_ID,
+)
 from packages.dvilela.connections.twikit.connection import (
     PUBLIC_ID as TWIKIT_CONNECTION_PUBLIC_ID,
 )
@@ -135,8 +138,42 @@ class MemeooorrBaseBehaviour(
         response = yield from self.wait_for_message(timeout=timeout)
         return response
 
-    def _call_twikit(self, method: str, **kwargs: Any) -> Generator[None, None, Any]:
-        """Send a request message from the skill context."""
+    def _call_twikit(  # pylint: disable=too-many-locals,too-many-statements
+        self, method: str, **kwargs: Any
+    ) -> Generator[None, None, Any]:
+        """Send a request message to the Twikit connection and handle MirrorDB interactions."""
+        # Define the mapping of Twikit methods to MirrorDB methods
+        twikit_to_mirrordb = {
+            "like_tweet": "create_interaction",
+            "retweet": "create_interaction",
+            "follow_user": "create_interaction",
+            "post": "create_tweet",
+        }
+
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        self.context.logger.info(f"MirrorDB config data: {mirror_db_config_data}")
+        if mirror_db_config_data is None:
+            self.context.logger.info("Registering with MirrorDB")
+            yield from self._register_with_mirror_db()
+
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        # Extract the agent_id, twitter_user_id and api_key from the mirrorDB config
+        agent_id = mirror_db_config_data["agent_id"]  # type: ignore
+        twitter_user_id = mirror_db_config_data["twitter_user_id"]  # type: ignore
+
+        # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
         srr_message, srr_dialogue = srr_dialogues.create(
             counterparty=str(TWIKIT_CONNECTION_PUBLIC_ID),
@@ -153,7 +190,175 @@ class MemeooorrBaseBehaviour(
             self.context.logger.error(response_json["error"])
             return None
 
+        # Handle MirrorDB interaction if applicable
+        if method in twikit_to_mirrordb:
+            mirrordb_method = twikit_to_mirrordb[method]
+            mirrordb_kwargs = kwargs.copy()
+            if method == "post":
+                tweet_text = mirrordb_kwargs.pop("tweets")[0][
+                    "text"
+                ]  # Remove 'tweets' key
+                self.context.logger.info(f"Tweet text: {tweet_text}")
+                tweet_data = {
+                    "user_name": self.params.twitter_username,
+                    "text": tweet_text,
+                    "created_at": datetime.utcnow().isoformat() + "Z",
+                    "tweet_id": response_json["response"][0],
+                }
+                mirrordb_kwargs["tweet_data"] = tweet_data
+                mirrordb_kwargs["agent_id"] = agent_id  # Ensure agent_id is passed
+                mirrordb_kwargs[
+                    "twitter_user_id"
+                ] = twitter_user_id  # Ensure twitter_user_id is passed
+                # Use the tweet ID returned by Twikit
+                tweet_id = response_json["response"][0]
+                mirrordb_kwargs["tweet_data"]["tweet_id"] = tweet_id
+                self.context.logger.info(f"mirrorDb kwargs: {mirrordb_kwargs}")
+            elif method in [
+                "like_tweet",
+                "retweet",
+                "reply",
+                "quote_tweet",
+                "follow_user",
+            ]:
+                interaction_type = method.replace("_tweet", "").replace("_user", "")
+                interaction_data = {
+                    "interaction_type": interaction_type,
+                }
+                if interaction_type == "follow":
+                    interaction_data["user_id"] = str(kwargs.get("user_id"))
+                else:
+                    interaction_data["tweet_id"] = str(kwargs.get("tweet_id"))
+
+                mirrordb_kwargs = {
+                    "interaction_data": interaction_data,
+                    "agent_id": agent_id,
+                    "twitter_user_id": twitter_user_id,
+                }
+                self.context.logger.info(f"mirrorDb kwargs: {mirrordb_kwargs}")
+                mirrordb_response = yield from self._call_mirrordb(
+                    "create_interaction", **mirrordb_kwargs
+                )
+                if mirrordb_response is None:
+                    self.context.logger.error(
+                        f"MirrorDB interaction for method {method} failed."
+                    )
+
+            mirrordb_response = yield from self._call_mirrordb(
+                mirrordb_method, **mirrordb_kwargs
+            )
+            if mirrordb_response is None:
+                self.context.logger.error(
+                    f"MirrorDB interaction for method {method} failed."
+                )
+
         return response_json["response"]  # type: ignore
+
+    def _call_mirrordb(self, method: str, **kwargs: Any) -> Generator[None, None, Any]:
+        """Send a request message to the MirrorDB connection."""
+        srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
+        srr_message, srr_dialogue = srr_dialogues.create(
+            counterparty=str(MIRRORDB_CONNECTION_PUBLIC_ID),
+            performative=SrrMessage.Performative.REQUEST,
+            payload=json.dumps({"method": method, "kwargs": kwargs}),
+        )
+        srr_message = cast(SrrMessage, srr_message)
+        srr_dialogue = cast(SrrDialogue, srr_dialogue)
+        response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+
+        response_json = json.loads(response.payload)  # type: ignore
+
+        if "error" in response_json:
+            self.context.logger.error(response_json["error"])
+            return None
+
+        return response_json["response"]  # type: ignore
+
+    def _register_with_mirror_db(self) -> Generator[None, None, None]:
+        """Register with the MirrorDB service and save the configuration."""
+        # Pull the twitter_user_id using Twikit
+        twitter_user_data = yield from self._get_twitter_user_data()
+
+        twitter_user_id = twitter_user_data["id"]
+        twitter_username = twitter_user_data["screen_name"]
+        twitter_name = twitter_user_data["name"]
+
+        # Create the agent
+        agent_data = {
+            "agent_name": f"{self.synchronized_data.safe_contract_address}_{datetime.utcnow().isoformat()}",
+        }
+        twitter_account_data = {
+            "username": twitter_username,
+            "name": twitter_name,
+            "twitter_user_id": twitter_user_id,
+        }
+        agent_response = yield from self._call_mirrordb(
+            "create_agent", agent_data=agent_data
+        )
+        self.context.logger.info(f"Agent created: {agent_response}")
+
+        agent_id = agent_response["agent_id"]
+        api_key = agent_response["api_key"]
+
+        twitter_account_data["api_key"] = api_key
+        twitter_account_data["name"] = twitter_name
+        twitter_account_data["twitter_user_id"] = twitter_user_id
+        twitter_account_data["username"] = twitter_username
+
+        # create the twitter account
+        twitter_account_response = yield from self._call_mirrordb(
+            "create_twitter_account",
+            agent_id=agent_id,
+            account_data=twitter_account_data,
+        )
+        self.context.logger.info(
+            f"Twitter account created in MirrorDB: {twitter_account_response}"
+        )
+
+        # updating class vars
+        yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
+        yield from self._call_mirrordb(
+            "update_twitter_user_id", twitter_user_id=twitter_user_id
+        )
+        yield from self._call_mirrordb("update_api_key", api_key=api_key)
+
+        # Save the configuration to mirrorDB.json
+        config_data = {
+            "agent_id": agent_response["agent_id"],
+            "twitter_user_id": twitter_user_id,
+            "api_key": agent_response["api_key"],
+        }
+        self.context.logger.info(f"Saving MirrorDB config data: {config_data}")
+        yield from self._write_kv({"mirrod_db_config": json.dumps(config_data)})
+
+    def _get_twitter_user_data(self) -> Generator[None, None, Dict[str, str]]:
+        """Get the twitter user data using Twikit."""
+
+        TWIKIT_USERNAME = self.params.twitter_username
+        if not TWIKIT_USERNAME:
+            raise ValueError("TWIKIT_USERNAME environment variable not set")
+
+        srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
+        srr_message, srr_dialogue = srr_dialogues.create(
+            counterparty=str(TWIKIT_CONNECTION_PUBLIC_ID),
+            performative=SrrMessage.Performative.REQUEST,
+            payload=json.dumps(
+                {
+                    "method": "get_user_by_screen_name",
+                    "kwargs": {"screen_name": TWIKIT_USERNAME},
+                }
+            ),
+        )
+        srr_message = cast(SrrMessage, srr_message)
+        srr_dialogue = cast(SrrDialogue, srr_dialogue)
+        response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+
+        response_json = json.loads(response.payload)  # type: ignore
+        if "error" in response_json:
+            raise ValueError(response_json["error"])
+
+        self.context.logger.info(f"Got twitter_user_data: {response_json['response']}")
+        return response_json["response"]
 
     def _call_genai(
         self,

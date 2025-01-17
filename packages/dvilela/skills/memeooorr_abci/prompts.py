@@ -92,6 +92,7 @@ TOKEN_DECISION_PROMPT = (  # nosec
 
     Your task is to make a decision on what should be the next action to be executed to maximize your portfolio value.
     Take into account the engagement you're getting on twitter and also the existing token's popularity.
+    Whenever hearting is in the list of available actions, try to heart a token from time to time.
 
     You have three options:
     * Do nothing
