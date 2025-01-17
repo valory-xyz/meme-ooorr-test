@@ -26,6 +26,7 @@ packages/dvilela/protocols/kv_store
 __pycache__/
 
 .vscode/launch.json
+.vscode/settings.json
 
 memeooorr.db
 

@@ -62,6 +62,8 @@ PATH_TO_VAR = {
     "config/genai_api_key": "GENAI_API_KEY",
     # DB
     "config/db_path": "DB_PATH",
+    # Mirror DB
+    "config/mirror_db_base_url": "MIRROR_DB_BASE_URL",
 }
 
 CONFIG_REGEX = r"\${.*?:(.*)}"

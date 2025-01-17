@@ -247,6 +247,7 @@ class TwikitConnection(Connection):
             "retweet",
             "follow_user",
             "filter_suspended_users",
+            "get_user_by_screen_name",
         ]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
@@ -444,6 +445,11 @@ class TwikitConnection(Connection):
                 continue
         return not_suspendend_users
 
+    async def get_user_by_screen_name(self, screen_name: str) -> Dict:
+        """Get user by screen name"""
+        user = await self.client.get_user_by_screen_name(screen_name=screen_name)
+        return user_to_json(user)
+
 
 def tweet_to_json(tweet: Any) -> Dict:
     """Tweet to json"""
@@ -456,4 +462,13 @@ def tweet_to_json(tweet: Any) -> Dict:
         "retweet_count": tweet.retweet_count,
         "quote_count": tweet.quote_count,
         "view_count_state": tweet.view_count_state,
+    }
+
+
+def user_to_json(user: Any) -> Dict:
+    """User to Json"""
+    return {
+        "id": user.id,
+        "name": user.name,
+        "screen_name": user.screen_name,
     }

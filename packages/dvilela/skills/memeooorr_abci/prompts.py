@@ -92,6 +92,7 @@ TOKEN_DECISION_PROMPT = (  # nosec
 
     Your task is to make a decision on what should be the next action to be executed to maximize your portfolio value.
     Take into account the engagement you're getting on twitter and also the existing token's popularity.
+    Whenever hearting is in the list of available actions, try to heart a token from time to time.
 
     You have three options:
     * Do nothing
@@ -111,6 +112,7 @@ TOKEN_DECISION_PROMPT = (  # nosec
 
     You have {balance} ETH currently available, so stick to that budget.
     Every now and then you will need to make more decisions using the same budget, so it might be wise not to spend eveything on a single action.
+    Whenever hearting is in the list of available actions, try to heart a token from time to time.
 
     OUTPUT_FORMAT
     * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
