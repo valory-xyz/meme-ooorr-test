@@ -376,6 +376,7 @@ class TwikitConnection(Connection):
                     break
             except Exception as e:
                 self.logger.error(f"Failed to create the tweet: {e}. Retrying...")
+            finally:
                 retries += 1
 
         # Verify that the tweet exists
@@ -386,10 +387,12 @@ class TwikitConnection(Connection):
                 return tweet_id
             except twikit.errors.TweetNotAvailable:
                 self.logger.error("Failed to verify the tweet. Retrying...")
-                retries += 1
                 time.sleep(3)
-                continue
+            finally:
+                retries += 1
 
+        if tweet_id is None:
+            self.logger.error("Failed to create the tweet after maximum retries.")
         return None
 
     async def delete_tweet(self, tweet_id: str) -> None:
