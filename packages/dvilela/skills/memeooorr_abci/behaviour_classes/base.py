@@ -921,6 +921,7 @@ class MemeooorrBaseBehaviour(
             return meme_coins
 
         meme_coins = yield from self.get_meme_coins_from_subgraph()
+
         return meme_coins
 
     def get_min_deploy_value(self) -> int:

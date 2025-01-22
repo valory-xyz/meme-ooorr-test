@@ -352,7 +352,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         other_tweets = "\n\n".join(
             [
-                f"tweet_id: {t_id}\ntweet_text: {t_data['text']}"
+                f"tweet_id: {t_id}\ntweet_text: {t_data['text']}\nuser_id: {t_data['user_id']}"
                 for t_id, t_data in pending_tweets.items()
             ]
         )
@@ -392,6 +392,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         for interaction in json_response:
             tweet_id = interaction.get("tweet_id", None)
+            user_id = interaction.get("user_id", None)
             action = interaction.get("action", None)
             text = interaction.get("text", None)
 
@@ -421,8 +422,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                     new_interacted_tweet_ids.append(tweet_id)
                 continue
 
-            if action == "follow":
-                followed = yield from self.follow_user(tweet_id)
+            if action == "follow" and user_id:
+                followed = yield from self.follow_user(user_id)
                 if followed:
                     new_interacted_tweet_ids.append(tweet_id)
                 continue

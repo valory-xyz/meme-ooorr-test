@@ -45,16 +45,6 @@ Your task is to decide what actions to do, if any. Some reccomenadations:
 - If you decide to reply or quote, make sure it is relevant to the tweet you are replying to.
 - We encourage you to interact with other users to increase your engagement.
 - Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
-
-OUTPUT_FORMAT
-* Your output response must be only a single JSON list to be parsed by Python's "json.loads()".
-* The JSON must contain a list with the actions you want to take. Each entry in that list is a dict that needs to define:
-    - action: a string with one of the following values: none, tweet, like, retweet, reply, quote or follow. Use none when you don't want to do anything.
-    - tweet_id: the id of the tweet you are interacting with, if any.
-    - text: a string. If the selected action is tweet, reply or quote, this field must contain the text of the reply or quote. If the action is like, retweet or follow, this field must be empty. Please do not include any hastags on the tweet. Remember that tweets can't be longer than 280 characters.
-* This is incorrect:"```json{{response}}```"
-* This is incorrect:```json"{{response}}"```
-* This is correct:"{{response}}"
 """
 
 

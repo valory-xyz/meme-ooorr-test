@@ -120,6 +120,9 @@ class ActionDecisionBehaviour(
         meme_coins = "\n".join(
             TOKEN_SUMMARY.format(**meme_coin)
             for meme_coin in self.synchronized_data.meme_coins
+            if meme_coin[
+                "available_actions"
+            ]  # Filter out tokens with no available actions
         )
 
         self.context.logger.info(f"Action options:\n{meme_coins}")

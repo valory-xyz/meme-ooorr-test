@@ -421,7 +421,7 @@ class TwikitConnection(Connection):
         tweets = await self.client.get_user_tweets(
             user_id=user.id, tweet_type=tweet_type, count=count
         )
-        return [tweet_to_json(t) for t in tweets]
+        return [tweet_to_json(t, user.id) for t in tweets]
 
     async def like_tweet(self, tweet_id: str) -> Dict:
         """Like a tweet"""
@@ -458,11 +458,12 @@ class TwikitConnection(Connection):
         return user_to_json(user)
 
 
-def tweet_to_json(tweet: Any) -> Dict:
+def tweet_to_json(tweet: Any, user_id: str = None) -> Dict:
     """Tweet to json"""
     return {
         "id": tweet.id,
         "user_name": tweet.user.name,
+        "user_id": user_id,
         "text": tweet.text,
         "created_at": tweet.created_at,
         "view_count": tweet.view_count,
