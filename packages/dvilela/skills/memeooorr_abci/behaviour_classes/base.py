@@ -151,7 +151,7 @@ class MemeooorrBaseBehaviour(
         }
 
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]  # type: ignore
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
@@ -163,15 +163,15 @@ class MemeooorrBaseBehaviour(
             yield from self._register_with_mirror_db()
 
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]  # type: ignore
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
             mirror_db_config_data = json.loads(mirror_db_config_data)
 
         # Extract the agent_id, twitter_user_id and api_key from the mirrorDB config
-        agent_id = mirror_db_config_data["agent_id"]  # type: ignore
-        twitter_user_id = mirror_db_config_data["twitter_user_id"]  # type: ignore
+        agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
+        twitter_user_id = mirror_db_config_data.get("twitter_user_id")  # type: ignore
 
         # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
@@ -272,16 +272,16 @@ class MemeooorrBaseBehaviour(
             self.context.logger.error(response_json["error"])
             return None
 
-        return response_json["response"]  # type: ignore
+        return response_json.get("response")  # type: ignore
 
     def _register_with_mirror_db(self) -> Generator[None, None, None]:
         """Register with the MirrorDB service and save the configuration."""
         # Pull the twitter_user_id using Twikit
         twitter_user_data = yield from self._get_twitter_user_data()
 
-        twitter_user_id = twitter_user_data["id"]
-        twitter_username = twitter_user_data["screen_name"]
-        twitter_name = twitter_user_data["name"]
+        twitter_user_id = twitter_user_data.get("id")
+        twitter_username = twitter_user_data.get("screen_name")
+        twitter_name = twitter_user_data.get("name")
 
         # Create the agent
         agent_data = {
@@ -297,8 +297,8 @@ class MemeooorrBaseBehaviour(
         )
         self.context.logger.info(f"Agent created: {agent_response}")
 
-        agent_id = agent_response["agent_id"]
-        api_key = agent_response["api_key"]
+        agent_id = agent_response.get("agent_id")
+        api_key = agent_response.get("api_key")
 
         twitter_account_data["api_key"] = api_key
         twitter_account_data["name"] = twitter_name
@@ -324,9 +324,9 @@ class MemeooorrBaseBehaviour(
 
         # Save the configuration to mirrorDB.json
         config_data = {
-            "agent_id": agent_response["agent_id"],
+            "agent_id": agent_response.get("agent_id"),
             "twitter_user_id": twitter_user_id,
-            "api_key": agent_response["api_key"],
+            "api_key": agent_response.get("api_key"),
         }
         self.context.logger.info(f"Saving MirrorDB config data: {config_data}")
         yield from self._write_kv({"mirrod_db_config": json.dumps(config_data)})
@@ -357,8 +357,8 @@ class MemeooorrBaseBehaviour(
         if "error" in response_json:
             raise ValueError(response_json["error"])
 
-        self.context.logger.info(f"Got twitter_user_data: {response_json['response']}")
-        return response_json["response"]
+        self.context.logger.info(f"Got twitter_user_data: {response_json.get('response')}")
+        return response_json.get("response")
 
     def _call_genai(
         self,

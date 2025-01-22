@@ -8,7 +8,7 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeie2eawrcp7xnwpdufesc2zhqqdgie2khkfh5kfazn5uo7yup7ey3m
+  behaviour_classes/base.py: bafybeid3zidsveqkrwadpvizzyrpu472iudoq4vlcauvtgmbl3aa7mrkly
   behaviour_classes/chain.py: bafybeieuf6l7bd4dqw3jgt5cjxflxbb5lcysgymef2wjcj3uzpojn3msv4
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
   behaviour_classes/llm.py: bafybeiaet5g7lo2bdz2snypctn6vn4chqdw52ytjudx7st35eywa2difhq
