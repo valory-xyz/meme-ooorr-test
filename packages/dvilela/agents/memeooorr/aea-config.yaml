@@ -245,6 +245,7 @@ config:
   twikit_cookies: ${str:null}
   twikit_cookies_path: ${str:/tmp/twikit_cookies.json}
   twikit_disable_tweets: ${bool:false}
+  twikit_skip_connection: ${bool:false}
 ---
 public_id: dvilela/mirror_db:0.1.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection
