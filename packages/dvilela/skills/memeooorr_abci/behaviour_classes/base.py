@@ -592,10 +592,13 @@ class MemeooorrBaseBehaviour(
 
     def get_chain_id(self) -> str:
         """Get chain id"""
-        chain_id = (
-            BASE_CHAIN_ID if self.params.home_chain_id == "BASE" else CELO_CHAIN_ID
-        )
-        return chain_id
+        if self.params.home_chain_id.lower() == BASE_CHAIN_ID:
+            return BASE_CHAIN_ID
+
+        if self.params.home_chain_id.lower() == CELO_CHAIN_ID:
+            return CELO_CHAIN_ID
+
+        return ""
 
     def get_native_ticker(self) -> str:
         """Get native ticker"""
