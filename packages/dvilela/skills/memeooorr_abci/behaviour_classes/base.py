@@ -357,7 +357,9 @@ class MemeooorrBaseBehaviour(
         if "error" in response_json:
             raise ValueError(response_json["error"])
 
-        self.context.logger.info(f"Got twitter_user_data: {response_json.get('response')}")
+        self.context.logger.info(
+            f"Got twitter_user_data: {response_json.get('response')}"
+        )
         return response_json.get("response")
 
     def _call_genai(
