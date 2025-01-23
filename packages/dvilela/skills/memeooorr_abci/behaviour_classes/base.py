@@ -150,8 +150,8 @@ class MemeooorrBaseBehaviour(
             "post": "create_tweet",
         }
 
-        mirror_db_config_data = yield from self._read_kv(keys=("mirror_db_config",))
-        mirror_db_config_data = mirror_db_config_data.get("mirror_db_config")  # type: ignore
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
@@ -162,8 +162,8 @@ class MemeooorrBaseBehaviour(
             self.context.logger.info("Registering with MirrorDB")
             yield from self._register_with_mirror_db()
 
-        mirror_db_config_data = yield from self._read_kv(keys=("mirror_db_config",))
-        mirror_db_config_data = mirror_db_config_data.get("mirror_db_config")  # type: ignore
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
@@ -365,7 +365,7 @@ class MemeooorrBaseBehaviour(
                 "api_key": agent_response.get("api_key"),
             }
             self.context.logger.info(f"Saving MirrorDB config data: {config_data}")
-            yield from self._write_kv({"mirror_db_config": json.dumps(config_data)})
+            yield from self._write_kv({"mirrod_db_config": json.dumps(config_data)})
         except Exception as e:  # pylint: disable=broad-except
             self.context.logger.error(f"Exception while registering with MirrorDB: {e}")
 
