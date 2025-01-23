@@ -197,6 +197,18 @@ class MemeooorrBaseBehaviour(
         response_json = json.loads(response.payload)  # type: ignore
 
         if "error" in response_json:
+            if "locked, suspended or unauthorized" in response_json["error"]:
+                self.context.state.env_var_status["needs_update"] = True
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_USERNAME"
+                ] = response_json["error"]
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_EMAIL"
+                ] = response_json["error"]
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_COOKIES"
+                ] = response_json["error"]
+
             self.context.logger.error(response_json["error"])
             return None
 
