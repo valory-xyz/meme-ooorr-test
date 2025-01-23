@@ -456,15 +456,18 @@ class MemeooorrBaseBehaviour(
             return self.synchronized_data.persona
 
         # If we reach this point, the agent has just started
+        persona_config = self.params.persona
 
         # Try getting the persona from the db
         db_data = yield from self._read_kv(keys=("persona", "initial_persona"))
 
         if not db_data:
-            self.context.logger.error("Error while loading the database")
+            self.context.logger.error(
+                "Error while loading the database. Falling back to the config."
+            )
+            return persona_config
 
         # Load values from the config and database
-        persona_config = self.params.persona
         initial_persona_db = db_data.get("initial_persona", None)
         persona_db = db_data.get("persona", None)
 
