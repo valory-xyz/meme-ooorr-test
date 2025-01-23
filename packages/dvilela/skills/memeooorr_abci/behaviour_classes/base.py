@@ -201,7 +201,7 @@ class MemeooorrBaseBehaviour(
             return None
 
         # Handle MirrorDB interaction if applicable
-        if method in twikit_to_mirrordb:
+        if method in twikit_to_mirrordb and mirror_db_config_data is not None:
             mirrordb_method = twikit_to_mirrordb[method]
             mirrordb_kwargs = kwargs.copy()
             if method == "post":
