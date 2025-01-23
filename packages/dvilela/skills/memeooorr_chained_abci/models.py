@@ -58,7 +58,7 @@ class SharedState(BaseSharedState):
     def __init__(self, *args: Any, skill_context: SkillContext, **kwargs: Any) -> None:
         """Init"""
         super().__init__(*args, skill_context=skill_context, **kwargs)
-        self.env_var_status: dict = {"needs_update": False, "message": ""}
+        self.env_var_status: dict = {"needs_update": False, "env_vars": {}}
 
     def setup(self) -> None:
         """Set up."""
