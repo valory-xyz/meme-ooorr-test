@@ -198,7 +198,7 @@ class MemeooorrBaseBehaviour(
 
         if "error" in response_json:
             if "locked, suspended or unauthorized" in response_json["error"]:
-                self.context.state.user_envs_status = {
+                self.context.state.env_var_status = {
                     "needs_update": True,
                     "message": response_json["error"],
                 }
