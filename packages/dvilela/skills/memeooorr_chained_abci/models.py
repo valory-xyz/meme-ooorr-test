@@ -19,6 +19,10 @@
 
 """This module contains the shared state for the abci skill of MemeooorrChainedSkillAbciApp."""
 
+from typing import Any
+
+from aea.skills.base import SkillContext
+
 from packages.dvilela.skills.memeooorr_abci.models import Params as MemeooorrParams
 from packages.dvilela.skills.memeooorr_abci.models import (
     RandomnessApi as MemeooorrRandomnessApi,
@@ -50,6 +54,11 @@ class SharedState(BaseSharedState):
     """Keep the current shared state of the skill."""
 
     abci_app_cls = MemeooorrChainedSkillAbciApp
+
+    def __init__(self, *args: Any, skill_context: SkillContext, **kwargs: Any) -> None:
+        """Init"""
+        super().__init__(*args, skill_context=skill_context, **kwargs)
+        self.env_var_status: dict = {"needs_update": False, "message": ""}
 
     def setup(self) -> None:
         """Set up."""
