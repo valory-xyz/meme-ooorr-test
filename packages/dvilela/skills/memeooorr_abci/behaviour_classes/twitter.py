@@ -292,6 +292,10 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         )
         self.context.logger.info(f"Not suspended users: {agent_handles}")
 
+        if not agent_handles:
+            self.context.logger.error("No valid Twitter handles")
+            return Event.DONE.value
+
         # Load previously responded tweets
         db_data = yield from self._read_kv(keys=("interacted_tweet_ids",))
 
