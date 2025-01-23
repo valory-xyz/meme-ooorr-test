@@ -21,6 +21,8 @@
 
 from typing import Any
 
+from aea.skills.base import SkillContext
+
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.models import ApiSpecs, BaseParams
 from packages.valory.skills.abstract_round_abci.models import (
@@ -36,6 +38,11 @@ class SharedState(BaseSharedState):
     """Keep the current shared state of the skill."""
 
     abci_app_cls = MemeooorrAbciApp
+
+    def __init__(self, *args: Any, skill_context: SkillContext, **kwargs: Any) -> None:
+        """Init"""
+        super().__init__(*args, skill_context=skill_context, **kwargs)
+        self.user_envs_status: dict = {"needs_update": False, "message": ""}
 
 
 Requests = BaseRequests

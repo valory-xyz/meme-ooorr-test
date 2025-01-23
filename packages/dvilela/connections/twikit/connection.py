@@ -287,6 +287,17 @@ class TwikitConnection(Connection):
             )
             return response_message
 
+        except (
+            twikit.errors.AccountLocked,
+            twikit.errors.AccountSuspended,
+            twikit.errors.Unauthorized,
+        ):
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                "Twitter account is locked, suspended or unauthorized.",
+            )
+
         except Exception as e:
             return self.prepare_error_message(
                 srr_message, dialogue, f"Exception while calling Twikit:\n{e}"

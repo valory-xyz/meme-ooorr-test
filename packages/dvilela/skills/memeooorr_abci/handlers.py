@@ -343,6 +343,7 @@ class HttpHandler(BaseHttpHandler):
             "rounds": rounds,
             "is_transitioning_fast": is_transitioning_fast,
             "rounds_info": self.rounds_info,
+            "user_envs_status": self.context.state.user_envs_status,
         }
 
         self._send_ok_response(http_msg, http_dialogue, data)
