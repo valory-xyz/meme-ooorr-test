@@ -205,7 +205,7 @@ models:
       multisend_batch_size: ${int:50}
       ipfs_address: ${str:https://gateway.autonolas.tech/ipfs/}
       default_chain_id: ${str:base}
-      termination_from_block: ${int:0}
+      termination_from_block: ${int:21629820}
       minimum_gas_balance: ${float:0.00005}
       min_feedback_replies: ${int:10}
       meme_factory_address_base: ${str:0x82a9c823332518c32a0c0edc050ef00934cf04d4}
@@ -245,6 +245,7 @@ config:
   twikit_cookies: ${str:null}
   twikit_cookies_path: ${str:/tmp/twikit_cookies.json}
   twikit_disable_tweets: ${bool:false}
+  twikit_skip_connection: ${bool:false}
 ---
 public_id: dvilela/mirror_db:0.1.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

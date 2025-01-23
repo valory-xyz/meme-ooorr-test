@@ -499,15 +499,43 @@ class MemeooorrBaseBehaviour(
         if self.synchronized_data.persona:
             return self.synchronized_data.persona
 
-        # Try getting the persona from the db
-        db_data = yield from self._read_kv(keys=("persona",))
-        if db_data and "persona" in db_data and db_data["persona"] is not None:
-            return db_data["persona"]
+        # If we reach this point, the agent has just started
+        persona_config = self.params.persona
 
-        # Use the default persona from the configuration and store on the db
-        persona = self.params.persona
-        yield from self._write_kv({"persona": persona})
-        return persona
+        # Try getting the persona from the db
+        db_data = yield from self._read_kv(keys=("persona", "initial_persona"))
+
+        if not db_data:
+            self.context.logger.error(
+                "Error while loading the database. Falling back to the config."
+            )
+            return persona_config
+
+        # Load values from the config and database
+        initial_persona_db = db_data.get("initial_persona", None)
+        persona_db = db_data.get("persona", None)
+
+        # If the initial persona is not in the db, we need to store it
+        if initial_persona_db is None:
+            yield from self._write_kv({"initial_persona": persona_config})
+            initial_persona_db = persona_config
+
+        # If the persona is not in the db, this is the first run
+        if persona_db is None:
+            yield from self._write_kv({"persona": persona_config})
+            persona_db = persona_config
+
+        # If the configured persona does not match the initial persona in the db,
+        # the user has reconfigured it and we need to update it:
+        if persona_config != initial_persona_db:
+            yield from self._write_kv(
+                {"persona": persona_config, "initial_persona": persona_config}
+            )
+            initial_persona_db = persona_config
+            persona_db = persona_config
+
+        # At this point, the db in the persona is the correct one
+        return persona_db
 
     def get_native_balance(self) -> Generator[None, None, dict]:
         """Get the native balance"""
@@ -636,10 +664,13 @@ class MemeooorrBaseBehaviour(
 
     def get_chain_id(self) -> str:
         """Get chain id"""
-        chain_id = (
-            BASE_CHAIN_ID if self.params.home_chain_id == "BASE" else CELO_CHAIN_ID
-        )
-        return chain_id
+        if self.params.home_chain_id.lower() == BASE_CHAIN_ID:
+            return BASE_CHAIN_ID
+
+        if self.params.home_chain_id.lower() == CELO_CHAIN_ID:
+            return CELO_CHAIN_ID
+
+        return ""
 
     def get_native_ticker(self) -> str:
         """Get native ticker"""
