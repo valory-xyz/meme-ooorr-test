@@ -485,7 +485,7 @@ class MemeooorrBaseBehaviour(
         # the user has reconfigured it and we need to update it:
         if persona_config != initial_persona_db:
             yield from self._write_kv(
-                {"persona": persona_db, "initial_persona": initial_persona_db}
+                {"persona": persona_config, "initial_persona": persona_config}
             )
             initial_persona_db = persona_config
             persona_db = persona_config
