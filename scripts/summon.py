@@ -34,8 +34,8 @@ from web3 import Web3
 dotenv.load_dotenv(override=True)
 
 # Constants
-TOKEN_NAME = "Wave"
-TOKEN_SYMBOL = "WAVE"
+TOKEN_NAME = "Wave"  # nosec
+TOKEN_SYMBOL = "WAVE"  # nosec
 TOKEN_SUPPLY = 1000000000000000000000000
 MIN_SUMMON_VALUE = int(0.01e18)  # 0.01 ETH
 
@@ -69,7 +69,7 @@ meme_factory_contract = w3.eth.contract(
 
 # Instantiate the Safe contract
 ethereum_client_safe = EthereumClient(RPC)
-safe = Safe(SAFE_ADDRESS, ethereum_client_safe)
+safe = Safe(SAFE_ADDRESS, ethereum_client_safe)  # pylint: disable=abstract-class-instantiated
 
 
 def summon_from_agent():
@@ -131,7 +131,7 @@ def summon_from_safe():
     )
 
     # Build the safe transaction
-    safe_tx = safe.build_multisig_tx(
+    safe_tx = safe.build_multisig_tx(  # nosec
         to=meme_factory_address_base,
         value=MIN_SUMMON_VALUE,
         data=summon_tx["data"],
@@ -177,13 +177,12 @@ if __name__ == "__main__":
                 summon_from_agent()
                 break
 
-            elif option == "2":
+            if option == "2":
                 print("Summoning from Safe...")
                 summon_from_safe()
                 break
 
-            else:
-                print("Invalid option! Please select 1 or 2")
+            print("Invalid option! Please select 1 or 2")
 
     except KeyboardInterrupt:
         print("\nOperation cancelled")
