@@ -69,7 +69,9 @@ meme_factory_contract = w3.eth.contract(
 
 # Instantiate the Safe contract
 ethereum_client_safe = EthereumClient(RPC)
-safe = Safe(SAFE_ADDRESS, ethereum_client_safe)  # pylint: disable=abstract-class-instantiated
+safe = Safe(  # pylint: disable=abstract-class-instantiated
+    SAFE_ADDRESS, ethereum_client_safe
+)
 
 
 def summon_from_agent():
