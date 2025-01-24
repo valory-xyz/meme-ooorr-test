@@ -75,6 +75,9 @@ safe = Safe(SAFE_ADDRESS, ethereum_client_safe)
 def summon_from_agent():
     """Summon from agent"""
 
+    # Get the wallet nonce
+    agent_nonce = w3.eth.get_transaction_count(PUBLIC_KEY)
+
     # Build
     summon_tx = meme_factory_contract.functions.summonThisMeme(
         TOKEN_NAME,
@@ -86,7 +89,7 @@ def summon_from_agent():
             "chainId": BASE_CHAIN_ID,
             "gas": 500000,
             "gasPrice": w3.to_wei("3", "gwei"),
-            "nonce": w3.eth.get_transaction_count(PUBLIC_KEY),
+            "nonce": agent_nonce,
         }
     )
 
@@ -97,7 +100,11 @@ def summon_from_agent():
     tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
 
     # Wait
-    w3.eth.wait_for_transaction_receipt(tx_hash)
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    if tx_receipt.status == 1:
+        print("The summon transaction has been successfully validated")
+    else:
+        print("The summon transaction has failed")
 
 
 def summon_from_safe():
@@ -117,7 +124,7 @@ def summon_from_safe():
     ).build_transaction(
         {
             "chainId": BASE_CHAIN_ID,
-            "gas": 500000,
+            "gas": 1000000,
             "gasPrice": w3.to_wei("3", "gwei"),
             "nonce": safe_nonce,
         }
@@ -129,7 +136,7 @@ def summon_from_safe():
         value=MIN_SUMMON_VALUE,
         data=summon_tx["data"],
         operation=0,
-        safe_tx_gas=100000,
+        safe_tx_gas=500000,
         base_gas=0,
         gas_price=int(1e9),
         gas_token="0x0000000000000000000000000000000000000000",
@@ -143,8 +150,40 @@ def summon_from_safe():
     tx_hash, _ = safe_tx.execute(PRIVATE_KEY)
 
     # Wait
-    w3.eth.wait_for_transaction_receipt(tx_hash)
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    if tx_receipt.status == 1:
+        print("The summon transaction has been successfully validated")
+    else:
+        print("The summon transaction has failed")
 
 
-# summon_from_agent()
-summon_from_safe()
+if __name__ == "__main__":
+    NETWORK = "Tenderly Base" if "tenderly" in RPC else "Mainnet Base"
+    agent_balance = balance_eth = w3.from_wei(w3.eth.get_balance(PUBLIC_KEY), "ether")
+    safe_balance = balance_eth = w3.from_wei(w3.eth.get_balance(SAFE_ADDRESS), "ether")
+
+    print(
+        f"You are about to summon a new token with the following parameters:\nNETWORK: {NETWORK}\nNAME: {TOKEN_NAME}\nSYMBOL: {TOKEN_SYMBOL}\nSUPPLY: {TOKEN_SUPPLY / 1e18}\nVALUE: {MIN_SUMMON_VALUE / 1e18} ETH\n"
+    )
+
+    try:
+        while True:
+            option = input(
+                f"Would you like to summon from agent or Safe?\n 1) Agent [{PUBLIC_KEY}]: {agent_balance:.2f} ETH\n 2) Safe  [{SAFE_ADDRESS}]: {safe_balance:.2f} ETH\n>>> "
+            )
+
+            if option == "1":
+                print("Summoning from agent...")
+                summon_from_agent()
+                break
+
+            elif option == "2":
+                print("Summoning from Safe...")
+                summon_from_safe()
+                break
+
+            else:
+                print("Invalid option! Please select 1 or 2")
+
+    except KeyboardInterrupt:
+        print("\nOperation cancelled")
