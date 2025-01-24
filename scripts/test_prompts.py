@@ -23,12 +23,11 @@
 import enum
 import json
 import os
-
 import dotenv
 import google.generativeai as genai  # type: ignore
 import typing_extensions as typing
-
-from packages.dvilela.skills.memeooorr_abci.prompts import TWITTER_DECISION_PROMPT
+from typing import Optional, Union
+from packages.dvilela.skills.memeooorr_abci.prompts import TWITTER_DECISION_PROMPT, TOKEN_DECISION_PROMPT
 
 
 dotenv.load_dotenv(override=True)
@@ -43,28 +42,82 @@ text: Spent the day battling a rogue semicolon in my AI's code. The memecoin gen
 timestamp: 2025-01-17 15:29:00
 """
 
-OTHER_TWEETS = """
-tweet_id: 2
-user_id: 20
-tweet_text: Hahahaha!
+OTHER_TWEETS = [
+    {
+        "tweet_id": 2,
+        "user_id": 20,
+        "tweet_text": "Hahahaha!"
+    },
+    {
+        "tweet_id": 3,
+        "user_id": 30,
+        "tweet_text": "Pizza is the best food ever!"
+    },
+    {
+        "tweet_id": 4,
+        "user_id": 40,
+        "tweet_text": "Stop coding! AI is the future :)"
+    },
+    {
+        "tweet_id": 5,
+        "user_id": 50,
+        "tweet_text": "memecoins! memecoins everywhere!"
+    },
+]
 
-tweet_id: 3
-user_id: 30
-tweet_text: Pizza is the best food ever!
-
-tweet_id: 4
-user_id: 40
-tweet_text: Stop coding! AI is the future :)
-
-tweet_id: 5
-user_id: 50
-tweet_text: memecoins! memecoins everywhere!
-"""
+other_tweets_str = "\n\n".join(
+    [
+        f"tweet_id: {t['tweet_id']}\ntweet_text: {t['tweet_text']}\nuser_id: {t['user_id']}"
+        for t in OTHER_TWEETS
+    ]
+)
 
 TIME = """
 2025-01-17 16:29:00
 """
 
+TOKENS = [
+    {
+        "token_name": None,
+        "token_ticker": None,
+        "token_address": None,
+        "heart_count": None,
+        "is_unleashed": None,
+        "meme_nonce": None,
+        "token_nonce": None,
+        "available_actions": None
+    },
+    {
+        "token_name": "Wave",
+        "token_ticker": "WAVE",
+        "token_address": "",
+        "heart_count": 4,
+        "is_unleashed": False,
+        "meme_nonce": 4,
+        "token_nonce": 4,
+        "available_actions": ["heart"]
+    },
+    {
+        "token_name": "Meme",
+        "token_ticker": "MEME",
+        "token_address": "0xFBdEAE89477F28DA216c39C5b96707a8FB44680e",
+        "heart_count": 5,
+        "is_unleashed": True,
+        "meme_nonce": 5,
+        "token_nonce": 5,
+        "available_actions": ["collect"]
+    },
+    {
+        "token_name": "Flow",
+        "token_ticker": "FLOW",
+        "token_address": "0xFBdEAE89477F28DA216c39C5b96707a8FB44680a",
+        "heart_count": 6,
+        "is_unleashed": True,
+        "meme_nonce": 6,
+        "token_nonce": 6,
+        "available_actions": ["purge"]
+    },
+]
 
 class TwitterActionChoice(enum.Enum):
     """TwitterActionChoice"""
@@ -78,58 +131,130 @@ class TwitterActionChoice(enum.Enum):
     FOLLOW = "follow"
 
 
+# Dynamically build the tweet id enum
+TweetID = enum.Enum(
+    "TweetID",
+    {f"TWEET_ID_{tweet['tweet_id']}": str(tweet["tweet_id"]) for tweet in OTHER_TWEETS}
+)
+
+
 class TwitterAction(typing.TypedDict):
     """TwitterAction"""
 
     action: TwitterActionChoice
-    selected_tweet_id: str
+    selected_tweet_id: TweetID
     text: str
 
+
+# Dynamically build the addresses
+ValidNonce = enum.Enum(
+    "ValidNonce",
+    {f"NONCE_{token['token_nonce']}": str(token["token_nonce"]) for token in TOKENS}
+)
+
+
+class TokenSummon(typing.TypedDict):
+    """TokenSummon"""
+    token_name: str
+    token_ticker: str
+    token_supply: int
+    amount: int
+
+class TokenHeart(typing.TypedDict):
+    """TokenSummon"""
+
+    token_nonce: ValidNonce
+    amount: int
+
+
+class TokenUnleash(typing.TypedDict):
+    """TokenSummon"""
+
+    token_nonce: ValidNonce
+
+
+class TokenCollect(typing.TypedDict):
+    """TokenSummon"""
+
+    token_nonce: ValidNonce
+
+class TokenPurge(typing.TypedDict):
+    """TokenSummon"""
+
+    token_nonce: ValidNonce
+
+
+class ValidActionName(enum.Enum):
+    """ValidAction"""
+    NONE = "none"
+    SUMMON = "summon"
+    HEART = "heart"
+    UNLEASH = "unleash"
+    COLLECT = "collect"
+    PURGE = "purge"
+    BURN = "burn"
+
+
+class TokenAction(typing.TypedDict):
+    """TokenAction"""
+    action_name: ValidActionName
+    summon: Optional[TokenSummon]
+    heart: Optional[TokenHeart]
+    unleash: Optional[TokenUnleash]
+    collect: Optional[TokenCollect]
+    purge: Optional[TokenPurge]
+    new_persona: Optional[str]
 
 genai.configure(api_key=os.getenv("GENAI_API_KEY"))
 
 model = genai.GenerativeModel("gemini-2.0-flash-exp")
 
+# response = model.generate_content(
+#     TWITTER_DECISION_PROMPT.format(
+#         persona=PERSONA,
+#         previous_tweets=PREVIOUS_TWEETS,
+#         other_tweets=other_tweets_str,
+#         time=TIME,
+#     ),
+#     generation_config=genai.types.GenerationConfig(
+#         temperature=2.0,
+#         response_mime_type="application/json",
+#         response_schema=list[TwitterAction],
+#     ),
+# )
+
+TOKEN_SUMMARY = (  # nosec
+    """
+    token nonce: {token_nonce}
+    token address: {token_address}
+    token name: {token_name}
+    token symbol: {token_ticker}
+    heart count: {heart_count}
+    available actions: {available_actions}
+    """
+)
+
+meme_coins = "\n".join(
+    TOKEN_SUMMARY.format(**meme_coin)
+    for meme_coin in TOKENS
+    if meme_coin[
+        "available_actions"
+    ]  # Filter out tokens with no available actions
+)
+
 response = model.generate_content(
-    TWITTER_DECISION_PROMPT.format(
-        persona=PERSONA,
-        previous_tweets=PREVIOUS_TWEETS,
-        other_tweets=OTHER_TWEETS,
-        time=TIME,
+    TOKEN_DECISION_PROMPT.format(
+        meme_coins=meme_coins,
+        latest_tweet=PREVIOUS_TWEETS,
+        tweet_responses=other_tweets_str,
+        balance=0.1,
     ),
     generation_config=genai.types.GenerationConfig(
         temperature=2.0,
         response_mime_type="application/json",
-        response_schema=list[TwitterAction],
+        response_schema=TokenAction,
     ),
 )
-
-
-# def post_process(response: str, other_tweets: list) -> list:
-#     """Postprocess the response"""
-#     twitter_action_list = json.loads(response.text)
-#     valid_actions = []
-
-#     for action in twitter_action_list:
-
-#         if action["action"] == "none":
-#             continue
-
-#         if action["action"] == "tweet" and (
-#             "text" not in action or len(action["text"]) > 280 or not action["text"]
-#         ):
-#             continue
-
-#         if action["action"] in ["like", "retweet", "reply", "quote", "follow"] and (
-#             "tweet_id" not in action
-#         ):
-#             continue
-
-#         if action["action"] == "follow" and action["tweet_id"] == "1":
-
-#         valid_actions.append(action)
-
-#     return valid_actions
 
 
 print(json.loads(response.text))

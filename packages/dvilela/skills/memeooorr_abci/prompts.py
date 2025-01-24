@@ -80,9 +80,10 @@ TOKEN_DECISION_PROMPT = (  # nosec
     * purge: burn all uncollected tokens
     * burn: execute collateral burn
 
+    But not all the actions are available for every token. The available actions for each token are listed in the "available_actions" field.
+
     Your task is to make a decision on what should be the next action to be executed to maximize your portfolio value.
     Take into account the engagement you're getting on twitter and also the existing token's popularity.
-    Whenever hearting is in the list of available actions, try to heart a token from time to time.
 
     You have three options:
     * Do nothing
@@ -96,28 +97,10 @@ TOKEN_DECISION_PROMPT = (  # nosec
     "{latest_tweet}"
 
     Here's a list of tweets that you received as a response to your latest tweet and some engagement metrics.
+    You can use this information to update your persona if you think that will improve engagement.
     "{tweet_responses}"
-
-    You can use these tweets as feedback in order to update your persona if you think that will improve engagement.
 
     You have {balance} ETH currently available, so stick to that budget.
     Every now and then you will need to make more decisions using the same budget, so it might be wise not to spend eveything on a single action.
-    Whenever hearting is in the list of available actions, try to heart a token from time to time.
-
-    OUTPUT_FORMAT
-    * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
-    * The JSON must contain five fields: "action", "token_address", "token_nonce", "amount" and "tweet".
-        - action: a string with the action you have decided to take. none means do nothing.
-        - token_address: a string with the token address of the meme coin you decided to interact with, or empty if none
-        - token_nonce: a string with the token nonce of the meme coin you decided to interact with, or empty if none
-        - token_name: a new name for the new token if the action is summon. Empty if no token is going to be summonned.
-        - token_ticker: a new ticker for the new token. Empty if no token is going to be summonned.
-        - token_supply: the ERC-20 token supply in wei units. Empty if no token is going to be summonned. Token supply must be at least 1 million * 10**18 and at most the maximum number of uint256.
-        - amount: the amount (in wei units of {ticker}) to invest if the action is summon or heart, or 0 otherwise
-        - tweet: a short tweet to announce the action taken, or empty if none. Please do not include any hastags on the tweet. Remember that tweets can't be longer than 280 characters.
-        - new_persona: a string with your updated persona if you decide to update it, or empty if you don't.
-    * This is incorrect:"```json{{response}}```"
-    * This is incorrect:```json"{{response}}"```
-    * This is correct:"{{response}}"
     """
 )
