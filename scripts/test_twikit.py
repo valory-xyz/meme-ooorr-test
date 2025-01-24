@@ -101,6 +101,12 @@ async def like_tweet() -> None:
     await client.favorite_tweet("1868952161427882053")
 
 
+async def create_tweet() -> None:
+    """Like tweet"""
+    client = await cookie_login()
+    await client.create_tweet("Hello world!")
+
+
 async def is_suspended() -> None:
     """Is suspended"""
     client = await cookie_login()
