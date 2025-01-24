@@ -13,8 +13,8 @@ connections:
 - valory/http_client:0.23.0:bafybeihi772xgzpqeipp3fhmvpct4y6e6tpjp4sogwqrnf3wqspgeilg4u
 - valory/ledger:0.19.0:bafybeigntoericenpzvwejqfuc3kqzo2pscs76qoygg5dbj6f4zxusru5e
 - valory/p2p_libp2p_client:0.1.0:bafybeid3xg5k2ol5adflqloy75ibgljmol6xsvzvezebsg7oudxeeolz7e
-- dvilela/twikit:0.1.0:bafybeig2ljuchinfva7at45zmmvbb2hamtzi5os3phzhqa4selzjmbkj3i
-- dvilela/mirror_db:0.1.0:bafybeiapsp6k5l2qxzvyosie4dpnfywrwdcwzqxtoi6x6g3xfmdviov2he
+- dvilela/twikit:0.1.0:bafybeiabtrh5pnc3fzk46igjrbhvz4rt6oe63zvsnxzhwepnaxsm54n3li
+- dvilela/mirror_db:0.1.0:bafybeiflmyk4szmeawil7ibpis4o53mn5gcvcemj5g6yy2l6c4b4j2vufu
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 - dvilela/genai:0.1.0:bafybeidkxxlonrxirznivkmzc34wmby4e4s57rfg2b7k6xyos23g3y6cdy
@@ -42,8 +42,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeigh2vkt74jrad5gtsczrgqcuhcqe7jkgjy7jdw56yamlzwwnaymjy
 - valory/registration_abci:0.1.0:bafybeib3n6vqkfbrcubcbliebjnuwyywdinxkbzt76n6gbn2kg7ace47dq
 - valory/reset_pause_abci:0.1.0:bafybeihkj6lmaypspyxe5qqrjgnolyck62pyvqoylr24ab6ue4steqcw7e
-- dvilela/memeooorr_abci:0.1.0:bafybeibwb3uvrzoxyj7nsxqfxt7oyxlnv4gegaalpam44tm4a73dejskee
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeigcz2kndn2huxo5kmxgc655owb2ewoizt57pqo6wrcu4qeprwwddy
+- dvilela/memeooorr_abci:0.1.0:bafybeibclorwwh4inop2fsqfpwxqe7uqqgffhkdn3wqfjtn56vdifxag7e
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeibxqupd2owewg3eb4kpbkusquety3n2pfkfraeicwincylo6waf2a
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -205,7 +205,7 @@ models:
       multisend_batch_size: ${int:50}
       ipfs_address: ${str:https://gateway.autonolas.tech/ipfs/}
       default_chain_id: ${str:base}
-      termination_from_block: ${int:0}
+      termination_from_block: ${int:21629820}
       minimum_gas_balance: ${float:0.00005}
       min_feedback_replies: ${int:10}
       meme_factory_address_base: ${str:0x82a9c823332518c32a0c0edc050ef00934cf04d4}
@@ -245,6 +245,7 @@ config:
   twikit_cookies: ${str:null}
   twikit_cookies_path: ${str:/tmp/twikit_cookies.json}
   twikit_disable_tweets: ${bool:false}
+  twikit_skip_connection: ${bool:false}
 ---
 public_id: dvilela/mirror_db:0.1.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

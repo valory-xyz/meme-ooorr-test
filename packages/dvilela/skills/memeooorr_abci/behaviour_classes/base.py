@@ -151,7 +151,7 @@ class MemeooorrBaseBehaviour(
         }
 
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]  # type: ignore
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
@@ -163,15 +163,25 @@ class MemeooorrBaseBehaviour(
             yield from self._register_with_mirror_db()
 
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data["mirrod_db_config"]  # type: ignore
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
             mirror_db_config_data = json.loads(mirror_db_config_data)
+            # Extract the agent_id, twitter_user_id and api_key from the mirrorDB config
+            agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
+            if agent_id is None:
+                self.context.logger.error("agent_id is None, which is not expected.")
 
-        # Extract the agent_id, twitter_user_id and api_key from the mirrorDB config
-        agent_id = mirror_db_config_data["agent_id"]  # type: ignore
-        twitter_user_id = mirror_db_config_data["twitter_user_id"]  # type: ignore
+            twitter_user_id = mirror_db_config_data.get("twitter_user_id")  # type: ignore
+            if twitter_user_id is None:
+                self.context.logger.error(
+                    "twitter_user_id is None, which is not expected."
+                )
+        else:
+            self.context.logger.error(
+                "MirrorDB config data is None, which is not expected."
+            )
 
         # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
@@ -187,11 +197,23 @@ class MemeooorrBaseBehaviour(
         response_json = json.loads(response.payload)  # type: ignore
 
         if "error" in response_json:
+            if "locked, suspended or unauthorized" in response_json["error"]:
+                self.context.state.env_var_status["needs_update"] = True
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_USERNAME"
+                ] = response_json["error"]
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_EMAIL"
+                ] = response_json["error"]
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_COOKIES"
+                ] = response_json["error"]
+
             self.context.logger.error(response_json["error"])
             return None
 
         # Handle MirrorDB interaction if applicable
-        if method in twikit_to_mirrordb:
+        if method in twikit_to_mirrordb and mirror_db_config_data is not None:
             mirrordb_method = twikit_to_mirrordb[method]
             mirrordb_kwargs = kwargs.copy()
             if method == "post":
@@ -256,80 +278,108 @@ class MemeooorrBaseBehaviour(
 
     def _call_mirrordb(self, method: str, **kwargs: Any) -> Generator[None, None, Any]:
         """Send a request message to the MirrorDB connection."""
-        srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
-        srr_message, srr_dialogue = srr_dialogues.create(
-            counterparty=str(MIRRORDB_CONNECTION_PUBLIC_ID),
-            performative=SrrMessage.Performative.REQUEST,
-            payload=json.dumps({"method": method, "kwargs": kwargs}),
-        )
-        srr_message = cast(SrrMessage, srr_message)
-        srr_dialogue = cast(SrrDialogue, srr_dialogue)
-        response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+        try:
+            srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
+            srr_message, srr_dialogue = srr_dialogues.create(
+                counterparty=str(MIRRORDB_CONNECTION_PUBLIC_ID),
+                performative=SrrMessage.Performative.REQUEST,
+                payload=json.dumps({"method": method, "kwargs": kwargs}),
+            )
+            srr_message = cast(SrrMessage, srr_message)
+            srr_dialogue = cast(SrrDialogue, srr_dialogue)
+            response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
 
-        response_json = json.loads(response.payload)  # type: ignore
+            response_json = json.loads(response.payload)  # type: ignore
 
-        if "error" in response_json:
-            self.context.logger.error(response_json["error"])
+            if "error" in response_json:
+                self.context.logger.error(response_json["error"])
+                return None
+
+            return response_json.get("response")  # type: ignore
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(f"Exception while calling MirrorDB: {e}")
             return None
-
-        return response_json["response"]  # type: ignore
 
     def _register_with_mirror_db(self) -> Generator[None, None, None]:
         """Register with the MirrorDB service and save the configuration."""
-        # Pull the twitter_user_id using Twikit
-        twitter_user_data = yield from self._get_twitter_user_data()
+        try:
+            # Pull the twitter_user_id using Twikit
+            twitter_user_data = yield from self._get_twitter_user_data()
 
-        twitter_user_id = twitter_user_data["id"]
-        twitter_username = twitter_user_data["screen_name"]
-        twitter_name = twitter_user_data["name"]
+            twitter_user_id = twitter_user_data.get("id")
+            twitter_username = twitter_user_data.get("screen_name")
+            twitter_name = twitter_user_data.get("name")
 
-        # Create the agent
-        agent_data = {
-            "agent_name": f"{self.synchronized_data.safe_contract_address}_{datetime.utcnow().isoformat()}",
-        }
-        twitter_account_data = {
-            "username": twitter_username,
-            "name": twitter_name,
-            "twitter_user_id": twitter_user_id,
-        }
-        agent_response = yield from self._call_mirrordb(
-            "create_agent", agent_data=agent_data
-        )
-        self.context.logger.info(f"Agent created: {agent_response}")
+            if twitter_user_id is None:
+                self.context.logger.error(
+                    "twitter_user_id is None, which is not expected."
+                )
 
-        agent_id = agent_response["agent_id"]
-        api_key = agent_response["api_key"]
+            if twitter_username is None:
+                self.context.logger.error(
+                    "twitter_username is None, which is not expected."
+                )
 
-        twitter_account_data["api_key"] = api_key
-        twitter_account_data["name"] = twitter_name
-        twitter_account_data["twitter_user_id"] = twitter_user_id
-        twitter_account_data["username"] = twitter_username
+            if twitter_name is None:
+                self.context.logger.error(
+                    "twitter_name is None, which is not expected."
+                )
 
-        # create the twitter account
-        twitter_account_response = yield from self._call_mirrordb(
-            "create_twitter_account",
-            agent_id=agent_id,
-            account_data=twitter_account_data,
-        )
-        self.context.logger.info(
-            f"Twitter account created in MirrorDB: {twitter_account_response}"
-        )
+            # Create the agent
+            agent_data = {
+                "agent_name": f"{self.synchronized_data.safe_contract_address}_{datetime.utcnow().isoformat()}",
+            }
+            twitter_account_data = {
+                "username": twitter_username,
+                "name": twitter_name,
+                "twitter_user_id": twitter_user_id,
+            }
+            agent_response = yield from self._call_mirrordb(
+                "create_agent", agent_data=agent_data
+            )
+            self.context.logger.info(f"Agent created: {agent_response}")
 
-        # updating class vars
-        yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
-        yield from self._call_mirrordb(
-            "update_twitter_user_id", twitter_user_id=twitter_user_id
-        )
-        yield from self._call_mirrordb("update_api_key", api_key=api_key)
+            agent_id = agent_response.get("agent_id")
+            api_key = agent_response.get("api_key")
 
-        # Save the configuration to mirrorDB.json
-        config_data = {
-            "agent_id": agent_response["agent_id"],
-            "twitter_user_id": twitter_user_id,
-            "api_key": agent_response["api_key"],
-        }
-        self.context.logger.info(f"Saving MirrorDB config data: {config_data}")
-        yield from self._write_kv({"mirrod_db_config": json.dumps(config_data)})
+            if agent_id is None:
+                self.context.logger.error("agent_id is None, which is not expected.")
+
+            if api_key is None:
+                self.context.logger.error("api_key is None, which is not expected.")
+
+            twitter_account_data["api_key"] = api_key
+            twitter_account_data["name"] = twitter_name
+            twitter_account_data["twitter_user_id"] = twitter_user_id
+            twitter_account_data["username"] = twitter_username
+
+            # create the twitter account
+            twitter_account_response = yield from self._call_mirrordb(
+                "create_twitter_account",
+                agent_id=agent_id,
+                account_data=twitter_account_data,
+            )
+            self.context.logger.info(
+                f"Twitter account created in MirrorDB: {twitter_account_response}"
+            )
+
+            # updating class vars
+            yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
+            yield from self._call_mirrordb(
+                "update_twitter_user_id", twitter_user_id=twitter_user_id
+            )
+            yield from self._call_mirrordb("update_api_key", api_key=api_key)
+
+            # Save the configuration to mirrorDB.json
+            config_data = {
+                "agent_id": agent_response.get("agent_id"),
+                "twitter_user_id": twitter_user_id,
+                "api_key": agent_response.get("api_key"),
+            }
+            self.context.logger.info(f"Saving MirrorDB config data: {config_data}")
+            yield from self._write_kv({"mirrod_db_config": json.dumps(config_data)})
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(f"Exception while registering with MirrorDB: {e}")
 
     def _get_twitter_user_data(self) -> Generator[None, None, Dict[str, str]]:
         """Get the twitter user data using Twikit."""
@@ -357,8 +407,14 @@ class MemeooorrBaseBehaviour(
         if "error" in response_json:
             raise ValueError(response_json["error"])
 
-        self.context.logger.info(f"Got twitter_user_data: {response_json['response']}")
-        return response_json["response"]
+        twitter_user_data = response_json.get("response")
+        if twitter_user_data is None:
+            self.context.logger.error(
+                "twitter_user_data is None, which is not expected."
+            )
+
+        self.context.logger.info(f"Got twitter_user_data: {twitter_user_data}")
+        return twitter_user_data
 
     def _call_genai(
         self,
@@ -455,15 +511,43 @@ class MemeooorrBaseBehaviour(
         if self.synchronized_data.persona:
             return self.synchronized_data.persona
 
-        # Try getting the persona from the db
-        db_data = yield from self._read_kv(keys=("persona",))
-        if db_data and "persona" in db_data and db_data["persona"] is not None:
-            return db_data["persona"]
+        # If we reach this point, the agent has just started
+        persona_config = self.params.persona
 
-        # Use the default persona from the configuration and store on the db
-        persona = self.params.persona
-        yield from self._write_kv({"persona": persona})
-        return persona
+        # Try getting the persona from the db
+        db_data = yield from self._read_kv(keys=("persona", "initial_persona"))
+
+        if not db_data:
+            self.context.logger.error(
+                "Error while loading the database. Falling back to the config."
+            )
+            return persona_config
+
+        # Load values from the config and database
+        initial_persona_db = db_data.get("initial_persona", None)
+        persona_db = db_data.get("persona", None)
+
+        # If the initial persona is not in the db, we need to store it
+        if initial_persona_db is None:
+            yield from self._write_kv({"initial_persona": persona_config})
+            initial_persona_db = persona_config
+
+        # If the persona is not in the db, this is the first run
+        if persona_db is None:
+            yield from self._write_kv({"persona": persona_config})
+            persona_db = persona_config
+
+        # If the configured persona does not match the initial persona in the db,
+        # the user has reconfigured it and we need to update it:
+        if persona_config != initial_persona_db:
+            yield from self._write_kv(
+                {"persona": persona_config, "initial_persona": persona_config}
+            )
+            initial_persona_db = persona_config
+            persona_db = persona_config
+
+        # At this point, the db in the persona is the correct one
+        return persona_db
 
     def get_native_balance(self) -> Generator[None, None, dict]:
         """Get the native balance"""
@@ -592,10 +676,13 @@ class MemeooorrBaseBehaviour(
 
     def get_chain_id(self) -> str:
         """Get chain id"""
-        chain_id = (
-            BASE_CHAIN_ID if self.params.home_chain_id == "BASE" else CELO_CHAIN_ID
-        )
-        return chain_id
+        if self.params.home_chain_id.lower() == BASE_CHAIN_ID:
+            return BASE_CHAIN_ID
+
+        if self.params.home_chain_id.lower() == CELO_CHAIN_ID:
+            return CELO_CHAIN_ID
+
+        return ""
 
     def get_native_ticker(self) -> str:
         """Get native ticker"""

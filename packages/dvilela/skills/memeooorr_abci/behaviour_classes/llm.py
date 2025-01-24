@@ -274,6 +274,12 @@ class ActionDecisionBehaviour(
                 )
 
             # Fix amount if it is lower than the min required amount
+            if action == "summon":
+                amount = max(
+                    amount,
+                    int(0.01e18),  # 0.01 ETH
+                )
+
             if action == "heart":
                 amount = max(
                     amount,
