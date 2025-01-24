@@ -96,7 +96,7 @@ TOKEN_DECISION_PROMPT = (  # nosec
 
     You have three options:
     * Do nothing
-    * Deploy your own token if the engagement is good enough or if the number of meme coins in the market is low (under 30)
+    * Summon your own token if the engagement is good enough or if the number of meme coins in the market is low (under 30)
     * Execute one action from the available actions for one of the already existing tokens
 
     Here's the list of existing  memecoins:
@@ -120,10 +120,10 @@ TOKEN_DECISION_PROMPT = (  # nosec
         - action: a string with the action you have decided to take. none means do nothing.
         - token_address: a string with the token address of the meme coin you decided to interact with, or empty if none
         - token_nonce: a string with the token nonce of the meme coin you decided to interact with, or empty if none
-        - token_name: a new name for the new token if the action is deploy. Empty if no token is going to be deployed.
-        - token_ticker: a new ticker for the new token. Empty if no token is going to be deployed.
-        - token_supply: the ERC-20 token supply in wei units. Empty if no token is going to be deployed. Token supply must be at least 1 million * 10**18 and at most the maximum number of uint256.
-        - amount: the amount (in wei units of {ticker}) to heart (invest) if the action is deploy or heart, or 0 otherwise
+        - token_name: a new name for the new token if the action is summon. Empty if no token is going to be summonned.
+        - token_ticker: a new ticker for the new token. Empty if no token is going to be summonned.
+        - token_supply: the ERC-20 token supply in wei units. Empty if no token is going to be summonned. Token supply must be at least 1 million * 10**18 and at most the maximum number of uint256.
+        - amount: the amount (in wei units of {ticker}) to invest if the action is summon or heart, or 0 otherwise
         - tweet: a short tweet to announce the action taken, or empty if none. Please do not include any hastags on the tweet. Remember that tweets can't be longer than 280 characters.
         - new_persona: a string with your updated persona if you decide to update it, or empty if you don't.
     * This is incorrect:"```json{{response}}```"

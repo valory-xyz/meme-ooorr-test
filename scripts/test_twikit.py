@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2021-2024 Valory AG
+#   Copyright 2021-2025 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -99,6 +99,12 @@ async def like_tweet() -> None:
     """Like tweet"""
     client = await cookie_login()
     await client.favorite_tweet("1868952161427882053")
+
+
+async def create_tweet() -> None:
+    """Like tweet"""
+    client = await cookie_login()
+    await client.create_tweet("Hello world!")
 
 
 async def is_suspended() -> None:
