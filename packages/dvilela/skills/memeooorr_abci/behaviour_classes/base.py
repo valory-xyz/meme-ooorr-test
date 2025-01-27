@@ -652,7 +652,7 @@ class MemeooorrBaseBehaviour(
         available_actions: List[str] = []
 
         # Heart
-        if not is_unleashed and meme_data.get("token_nonce", None) in hearted_memes:
+        if not is_unleashed and meme_data.get("token_nonce", None) not in hearted_memes:
             available_actions.append("heart")
 
         # Unleash
