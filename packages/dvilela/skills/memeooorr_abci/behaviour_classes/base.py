@@ -178,6 +178,14 @@ class MemeooorrBaseBehaviour(
                 self.context.logger.error(
                     "twitter_user_id is None, which is not expected."
                 )
+                
+            twitter_user_from_cookie = self._get_twitter_user_id_from_cookie() # type: ignore
+            if twitter_user_from_cookie != twitter_user_id :
+                self.context.logger.info("New account detected ! , updating in mirrorDB and registering new account in mirrorDB")
+                yield from self._call_mirrordb()
+
+
+            
         else:
             self.context.logger.error(
                 "MirrorDB config data is None, which is not expected."
@@ -415,6 +423,31 @@ class MemeooorrBaseBehaviour(
 
         self.context.logger.info(f"Got twitter_user_data: {twitter_user_data}")
         return twitter_user_data
+
+    def _get_twitter_user_id_from_cookie(self) -> Generator[None, None, str]:
+        """Get the Twitter user ID from the Twikit connection."""
+        srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
+        srr_message, srr_dialogue = srr_dialogues.create(
+            counterparty=str(TWIKIT_CONNECTION_PUBLIC_ID),
+            performative=SrrMessage.Performative.REQUEST,
+            payload=json.dumps({"method": "get_twitter_user_id", "kwargs": {}}),
+        )
+        srr_message = cast(SrrMessage, srr_message)
+        srr_dialogue = cast(SrrDialogue, srr_dialogue)
+        response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+
+        response_json = json.loads(response.payload)  # type: ignore
+        if "error" in response_json:
+            raise ValueError(response_json["error"])
+
+        twitter_user_id = response_json.get("response")
+        if twitter_user_id is None:
+            self.context.logger.error(
+                "twitter_user_id is None, which is not expected."
+            )
+
+        self.context.logger.info(f"Got twitter_user_id: {twitter_user_id}")
+        return twitter_user_id
 
     def _call_genai(
         self,
