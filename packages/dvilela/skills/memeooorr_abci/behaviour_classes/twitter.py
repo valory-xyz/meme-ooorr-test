@@ -329,6 +329,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             pending_tweets[tweet_id] = {
                 "text": latest_tweets[0]["text"],
                 "user_name": latest_tweets[0]["user_name"],
+                "user_id": latest_tweets[0]["user_id"],
             }
 
         # Build and post interactions
