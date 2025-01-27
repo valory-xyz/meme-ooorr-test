@@ -72,14 +72,17 @@ query Tokens {
       heartCount
       id
       isUnleashed
+      isPurged
       liquidity
       lpPairAddress
       owner
       timestamp
       memeNonce
       summonTime
+      unleashTime
       memeToken
       name
+      symbol
     }
   }
 }
@@ -608,7 +611,7 @@ class MemeooorrBaseBehaviour(
 
         return {"safe": safe_balance, "agent": agent_balance}
 
-    def get_heart_burn_and_purge_data(
+    def get_heart_and_burn_data(
         self,
     ) -> Generator[None, None, Tuple[List[str], List[str], int]]:
         """Get heart, burn and purge data"""
@@ -623,19 +626,15 @@ class MemeooorrBaseBehaviour(
 
         hearted_memes = json.loads(hearted_memes_str)
 
-        # Load purged memes
-        purged_memes = yield from self.get_purged_memes_from_chain()
-
-        # Get
+        # Get burnable amount
         burnable_amount = yield from self.get_burnable_amount()
 
-        return hearted_memes, purged_memes, burnable_amount
+        return hearted_memes, burnable_amount
 
     def get_meme_available_actions(  # pylint: disable=too-many-arguments
         self,
         meme_data: Dict,
         hearted_memes: List[str],
-        purged_memes: List[str],
         burnable_amount: int,
         maga_launched: bool,
     ) -> List[str]:
@@ -648,7 +647,7 @@ class MemeooorrBaseBehaviour(
         seconds_since_summon = (now - summon_time).total_seconds()
         seconds_since_unleash = (now - unleash_time).total_seconds()
         is_unleashed = meme_data.get("unleash_time", 0) != 0
-        is_purged = meme_data.get("token_address", None) in purged_memes
+        is_purged = meme_data.get("is_purged")
 
         available_actions: List[str] = []
 
@@ -889,9 +888,8 @@ class MemeooorrBaseBehaviour(
 
         (
             hearted_memes,
-            purged_memes,
             burnable_amount,
-        ) = yield from self.get_heart_burn_and_purge_data()
+        ) = yield from self.get_heart_and_burn_data()
 
         maga_launched = False
         for token in tokens:
@@ -900,7 +898,7 @@ class MemeooorrBaseBehaviour(
 
         for token in tokens:
             token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes, purged_memes, burnable_amount, maga_launched
+                token, hearted_memes, burnable_amount, maga_launched
             )
 
         return tokens
@@ -931,17 +929,21 @@ class MemeooorrBaseBehaviour(
         response_json = json.loads(response.body)
         tokens = [
             {
+                "token_name": t["name"],
+                "token_ticker": t["symbol"],
                 "block_number": int(t["blockNumber"]),
                 "chain": t["chain"],
                 "token_address": t["memeToken"],
                 "liquidity": int(t["liquidity"]),
                 "heart_count": int(t["heartCount"]),
                 "is_unleashed": t["isUnleashed"],
+                "is_purged": t["isPurged"],
                 "lp_pair_address": t["lpPairAddress"],
                 "owner": t["owner"],
                 "timestamp": t["timestamp"],
                 "meme_nonce": int(t["memeNonce"]),
                 "summon_time": int(t["summonTime"]),
+                "unleash_time": int(t["unleashTime"]),
                 "token_nonce": int(t["memeNonce"]),
             }
             for t in response_json["data"]["memeTokens"]["items"]
@@ -950,45 +952,10 @@ class MemeooorrBaseBehaviour(
             and int(t["memeNonce"]) > 0
         ]
 
-        for token in tokens:
-            token_nonce = token.get("meme_nonce", None)
-            token_address = token.get("token_address", None)
-
-            response_msg = yield from self.get_contract_api_response(
-                performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-                contract_address=self.get_meme_factory_address(),
-                contract_id=str(MemeFactoryContract.contract_id),
-                contract_callable="get_meme_summons_info",
-                token_nonce=token_nonce,
-                token_address=token_address,
-                chain_id=self.get_chain_id(),
-            )
-
-            # Check that the response is what we expect
-            if response_msg.performative != ContractApiMessage.Performative.STATE:
-                self.context.logger.error(
-                    f"Could not get the memecoin summon data: {response_msg}"
-                )
-                continue
-
-            summon_data = cast(list, response_msg.state.body.get("token_data", None))
-
-            token["token_name"] = summon_data[0]
-            token["token_ticker"] = summon_data[1]
-            token["token_supply"] = summon_data[2]
-            token["eth_contributed"] = summon_data[3]
-            token["summon_time"] = summon_data[4]
-            token["unleash_time"] = summon_data[5]
-            token["heart_count"] = summon_data[6]
-            token["position_id"] = summon_data[7]
-            token["is_native_first"] = summon_data[8]
-            token["decimals"] = 18
-
         (
             hearted_memes,
-            purged_memes,
             burnable_amount,
-        ) = yield from self.get_heart_burn_and_purge_data()
+        ) = yield from self.get_heart_and_burn_data()
 
         # We can only burn when the AG3NT token (nonce=1) has been unleashed
         maga_launched = False
@@ -998,7 +965,7 @@ class MemeooorrBaseBehaviour(
 
         for token in tokens:
             token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes, purged_memes, burnable_amount, maga_launched
+                token, hearted_memes, burnable_amount, maga_launched
             )
 
         return tokens
