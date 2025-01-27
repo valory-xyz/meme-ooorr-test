@@ -29,7 +29,10 @@ from twitter_text import parse_tweet  # type: ignore
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.prompts import TWITTER_DECISION_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import (
+    TWITTER_DECISION_PROMPT,
+    build_twitter_action_schema,
+)
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionTweetPayload,
     ActionTweetRound,
@@ -382,7 +385,10 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             time=self.get_sync_time_str(),
         )
 
-        llm_response = yield from self._call_genai(prompt=prompt)
+        llm_response = yield from self._call_genai(
+            prompt=prompt,
+            schema=build_twitter_action_schema(pending_tweets),
+        )
         self.context.logger.info(f"LLM response for twitter decision: {llm_response}")
 
         if llm_response is None:

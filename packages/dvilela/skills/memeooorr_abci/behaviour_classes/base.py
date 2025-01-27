@@ -419,11 +419,15 @@ class MemeooorrBaseBehaviour(
     def _call_genai(
         self,
         prompt: str,
+        schema: Optional[Dict] = None,
         temperature: Optional[float] = None,
     ) -> Generator[None, None, Optional[str]]:
         """Send a request message from the skill context."""
 
         payload_data: Dict[str, Any] = {"prompt": prompt}
+
+        if schema is not None:
+            payload_data["schema"] = schema
 
         if temperature is not None:
             payload_data["temperature"] = temperature

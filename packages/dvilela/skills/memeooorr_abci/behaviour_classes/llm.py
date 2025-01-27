@@ -26,7 +26,10 @@ from typing import Generator, Optional, Tuple, Type
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.prompts import TOKEN_DECISION_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import (
+    TOKEN_DECISION_PROMPT,
+    build_token_action_schema,
+)
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionDecisionPayload,
     ActionDecisionRound,
@@ -153,7 +156,8 @@ class ActionDecisionBehaviour(
         }
 
         llm_response = yield from self._call_genai(
-            prompt=TOKEN_DECISION_PROMPT.format(**prompt_data)
+            prompt=TOKEN_DECISION_PROMPT.format(**prompt_data),
+            schema=build_token_action_schema(meme_coins),
         )
         self.context.logger.info(f"LLM response: {llm_response}")
 

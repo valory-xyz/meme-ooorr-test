@@ -21,6 +21,7 @@
 """Genai connection."""
 
 import json
+import pickle
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Tuple, cast
@@ -198,14 +199,23 @@ class GenaiConnection(BaseSyncConnection):
             while (datetime.now(timezone.utc) - self.last_call).total_seconds() < 5:
                 time.sleep(1)
 
-            temperature = payload.get("temperature", None)
-            if temperature is None:
-                temperature = DEFAULT_TEMPERATURE
+            generation_config_kwargs = {
+                "temperature": payload.get("temperature", DEFAULT_TEMPERATURE)
+            }
+
+            if "schema" in payload:
+                schema = payload["schema"]
+                schema_class = pickle.loads(schema["class"])
+                is_list = payload.get("is_list", False)
+                if not is_list:
+                    generation_config_kwargs["response_schema"] = schema_class
+                else:
+                    generation_config_kwargs["response_schema"] = list[schema_class]
 
             response = model.generate_content(
                 payload["prompt"],
                 generation_config=genai.types.GenerationConfig(
-                    temperature=temperature,
+                    **generation_config_kwargs,
                 ),
             )
             self.logger.info(f"LLM response: {response.text}")

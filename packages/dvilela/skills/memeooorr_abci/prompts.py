@@ -19,6 +19,10 @@
 
 """This package contains LLM prompts."""
 
+import enum
+import pickle
+import typing
+
 
 TWITTER_DECISION_PROMPT = """
 You are a user on Twitter with a specific persona. You create tweets and also analyze tweets from other users and decide whether to interact with them or not.
@@ -46,6 +50,34 @@ Your task is to decide what actions to do, if any. Some reccomenadations:
 - We encourage you to interact with other users to increase your engagement.
 - Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
 """
+
+
+class TwitterActionName(enum.Enum):
+    """TwitterActionName"""
+
+    NONE = "none"
+    TWEET = "tweet"
+    LIKE = "like"
+    RETWEET = "retweet"
+    REPLY = "reply"
+    QUOTE = "quote"
+    FOLLOW = "follow"
+
+
+def build_twitter_action_schema(tweets: dict) -> dict:
+    """Build a schema for Twitter action response based on a list of tweets"""
+    ValidTweetID = enum.Enum(
+        "TweetID", {f"TWEET_ID_{t_id}": t_id for t_id in tweets.keys()}
+    )
+
+    class TwitterAction(typing.TypedDict):
+        """TwitterAction"""
+
+        action: TwitterActionName
+        selected_tweet_id: ValidTweetID
+        text: str
+
+    return {"class": pickle.dumps(TwitterAction), "is_list": True}
 
 
 TOKEN_DECISION_PROMPT = (  # nosec
@@ -104,3 +136,69 @@ TOKEN_DECISION_PROMPT = (  # nosec
     Every now and then you will need to make more decisions using the same budget, so it might be wise not to spend eveything on a single action.
     """
 )
+
+
+def build_token_action_schema(tokens: list) -> dict:
+    """Build a schema for token action response based on a list of tokens"""
+
+    # Dynamically build the valid nonce class
+    ValidNonce = enum.Enum(
+        "ValidNonce",
+        {
+            f"NONCE_{token['token_nonce']}": str(token["token_nonce"])
+            for token in tokens
+        },
+    )
+
+    class TokenSummon(typing.TypedDict):
+        """TokenSummon"""
+
+        token_name: str
+        token_ticker: str
+        token_supply: int
+        amount: int
+
+    class TokenHeart(typing.TypedDict):
+        """TokenSummon"""
+
+        token_nonce: ValidNonce
+        amount: int
+
+    class TokenUnleash(typing.TypedDict):
+        """TokenSummon"""
+
+        token_nonce: ValidNonce
+
+    class TokenCollect(typing.TypedDict):
+        """TokenSummon"""
+
+        token_nonce: ValidNonce
+
+    class TokenPurge(typing.TypedDict):
+        """TokenSummon"""
+
+        token_nonce: ValidNonce
+
+    class ValidActionName(enum.Enum):
+        """ValidAction"""
+
+        NONE = "none"
+        SUMMON = "summon"
+        HEART = "heart"
+        UNLEASH = "unleash"
+        COLLECT = "collect"
+        PURGE = "purge"
+        BURN = "burn"
+
+    class TokenAction(typing.TypedDict):
+        """TokenAction"""
+
+        action_name: ValidActionName
+        summon: typing.Optional[TokenSummon]
+        heart: typing.Optional[TokenHeart]
+        unleash: typing.Optional[TokenUnleash]
+        collect: typing.Optional[TokenCollect]
+        purge: typing.Optional[TokenPurge]
+        new_persona: typing.Optional[str]
+
+    return {"class": pickle.dumps(TokenAction), "is_list": False}
