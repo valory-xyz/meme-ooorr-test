@@ -1073,3 +1073,21 @@ class MemeooorrBaseBehaviour(
             list, response_msg.state.body.get("purged_addresses", [])
         )
         return purged_addresses
+
+    def _update_mirror_db_config_with_new_twitter_user_id(self, new_twitter_user_id: str) -> Generator[None, None, bool]:
+        """Update the mirrod_db_config with the new twitter_user_id."""
+        # Read the current configuration
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        # Update the twitter_user_id
+        mirror_db_config_data["twitter_user_id"] = new_twitter_user_id
+
+        # Write the updated configuration back to the KV store
+        success = yield from self._write_kv({"mirrod_db_config": json.dumps(mirror_db_config_data)})
+
+        return success
