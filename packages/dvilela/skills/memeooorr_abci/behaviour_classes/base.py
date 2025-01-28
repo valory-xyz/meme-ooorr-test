@@ -652,11 +652,19 @@ class MemeooorrBaseBehaviour(
         available_actions: List[str] = []
 
         # Heart
-        if not is_unleashed and meme_data.get("token_nonce", None) not in hearted_memes:
+        if (
+            not is_unleashed
+            and meme_data.get("token_nonce", None) not in hearted_memes
+            and meme_data.get("token_nonce", None) != 1
+        ):
             available_actions.append("heart")
 
         # Unleash
-        if not is_unleashed and seconds_since_summon > 24 * 3600:
+        if (
+            not is_unleashed
+            and seconds_since_summon > 24 * 3600
+            and meme_data.get("token_nonce", None) != 1
+        ):
             available_actions.append("unleash")
 
         # Collect

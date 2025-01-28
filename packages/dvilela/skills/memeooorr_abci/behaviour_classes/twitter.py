@@ -22,6 +22,7 @@
 import json
 import re
 import secrets
+from datetime import datetime
 from typing import Dict, Generator, List, Optional, Tuple, Type, Union
 
 from twitter_text import parse_tweet  # type: ignore
@@ -293,6 +294,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             method="filter_suspended_users",
             user_names=agent_handles,
         )
+
         self.context.logger.info(f"Not suspended users: {agent_handles}")
 
         if not agent_handles:
@@ -372,7 +374,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         if tweets:
             previous_tweets = "\n\n".join(
                 [
-                    f"tweet_id: {tweet['tweet_id']}\ntweet_text: {tweet['text']}\ntimestamp: {tweet['timestamp']}"
+                    f"tweet_id: {tweet['tweet_id']}\ntweet_text: {tweet['text']}\ntime: {datetime.fromtimestamp(tweet['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}"
                     for tweet in tweets
                 ]
             )
@@ -388,7 +390,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         llm_response = yield from self._call_genai(
             prompt=prompt,
-            schema=build_twitter_action_schema(pending_tweets),
+            schema=build_twitter_action_schema(),
         )
         self.context.logger.info(f"LLM response for twitter decision: {llm_response}")
 
@@ -396,21 +398,32 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             self.context.logger.error("Error getting a response from the LLM.")
             return Event.ERROR.value, new_interacted_tweet_ids
 
-        json_response = parse_json_from_llm(llm_response)
-
-        if not json_response:
-            return Event.ERROR.value, new_interacted_tweet_ids
+        json_response = json.loads(llm_response)
 
         for interaction in json_response:
-            tweet_id = interaction.get("tweet_id", None)
+            tweet_id = interaction.get("selected_tweet_id", None)
             user_id = interaction.get("user_id", None)
             action = interaction.get("action", None)
             text = interaction.get("text", None)
 
             if action == "none":
+                self.context.logger.error("Action is none")
                 continue
 
             if action != "tweet" and str(tweet_id) not in pending_tweets.keys():
+                self.context.logger.error(
+                    f"Action is {action} but tweet_id is not valid [{tweet_id}]"
+                )
+                continue
+
+            if (
+                action == "follow"
+                and not user_id
+                or user_id not in pending_tweets[tweet_id]["user_id"]
+            ):
+                self.context.logger.error(
+                    f"Action is {action} but user_id is not valid [{user_id}]"
+                )
                 continue
 
             # use yield from self.sleep(1) to simulate a delay use secrests to randomize the delay

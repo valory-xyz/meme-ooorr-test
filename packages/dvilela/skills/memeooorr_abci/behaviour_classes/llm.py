@@ -20,6 +20,7 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
+import pickle
 import re
 from typing import Generator, Optional, Tuple, Type
 
@@ -47,8 +48,6 @@ TOKEN_SUMMARY = (  # nosec
     token address: {token_address}
     token name: {token_name}
     token symbol: {token_ticker}
-    total supply (wei): {token_supply}
-    decimals: {decimals}
     heart count: {heart_count}
     available actions: {available_actions}
     """
@@ -157,7 +156,7 @@ class ActionDecisionBehaviour(
 
         llm_response = yield from self._call_genai(
             prompt=TOKEN_DECISION_PROMPT.format(**prompt_data),
-            schema=build_token_action_schema(meme_coins),
+            schema=build_token_action_schema(),
         )
         self.context.logger.info(f"LLM response: {llm_response}")
 
@@ -178,23 +177,22 @@ class ActionDecisionBehaviour(
             )
 
         try:
-            llm_response = llm_response.replace("\n", "").strip()
-            match = re.search(JSON_RESPONSE_REGEX, llm_response, re.DOTALL)
-            if match:
-                llm_response = match.groups()[0]
             response = json.loads(llm_response)
+            action_name = response.get("action_name", "none")
+            action = response.get(action_name, {})
 
-            action = response.get("action", "none")
-            token_address = response.get("token_address", None)
+            token_name = action.get("token_name", None)
+            token_ticker = action.get("token_ticker", None)
+            token_supply = int(action.get("token_supply", 1e6))
+            amount = int(action.get("amount", 0))
+            token_nonce = action.get("token_nonce", None)
+            token_address = action.get("token_address", None)
+            tweet = response.get("tweet", None)
 
-            token_nonce = response.get("token_nonce", None)
             if isinstance(token_nonce, str) and token_nonce.isdigit():
                 token_nonce = int(token_nonce)
 
-            amount = float(response.get("amount", 0))
-            tweet = response.get("tweet", None)
-
-            if action == "none":
+            if action_name == "none":
                 self.context.logger.info("Action is none")
                 return (
                     Event.WAIT.value,
@@ -209,7 +207,7 @@ class ActionDecisionBehaviour(
                     None,
                 )
 
-            if action in ["heart", "unleash"] and token_nonce not in valid_nonces:
+            if action_name in ["heart", "unleash"] and token_nonce not in valid_nonces:
                 self.context.logger.info(
                     f"Token nonce {token_nonce} is not in valid_nonces={valid_nonces}"
                 )
@@ -232,9 +230,9 @@ class ActionDecisionBehaviour(
                     available_actions = t["available_actions"]
                     break
 
-            if action != "summon" and action not in available_actions:
+            if action_name != "summon" and action_name not in available_actions:
                 self.context.logger.info(
-                    f"Action [{action}] is not in available_actions={available_actions}"
+                    f"Action [{action_name}] is not in available_actions={available_actions}"
                 )
                 return (
                     Event.WAIT.value,
@@ -249,7 +247,7 @@ class ActionDecisionBehaviour(
                     None,
                 )
 
-            if action == "summon":
+            if action_name == "summon":
                 token_name = response.get("token_name", None)
                 token_ticker = response.get("token_ticker", None)
                 token_supply = response.get("token_supply", None)
@@ -278,13 +276,13 @@ class ActionDecisionBehaviour(
                 )
 
             # Fix amount if it is lower than the min required amount
-            if action == "summon":
+            if action_name == "summon":
                 amount = max(
                     amount,
                     int(0.01e18),  # 0.01 ETH
                 )
 
-            if action == "heart":
+            if action_name == "heart":
                 amount = max(
                     amount,
                     1,  # 1 wei
@@ -295,7 +293,7 @@ class ActionDecisionBehaviour(
                 yield from self._write_kv({"persona": new_persona})
             return (
                 Event.DONE.value,
-                action,
+                action_name,
                 token_address,
                 token_nonce,
                 token_name,
