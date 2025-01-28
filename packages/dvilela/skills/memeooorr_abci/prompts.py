@@ -20,7 +20,7 @@
 """This package contains LLM prompts."""
 
 import enum
-import pickle
+import pickle  # nosec
 import typing
 from dataclasses import dataclass
 
@@ -194,7 +194,7 @@ class ValidActionName(enum.Enum):
 
 
 @dataclass(frozen=True)
-class TokenAction:
+class TokenAction:  # pylint: disable=too-many-instance-attributes
     """TokenAction"""
 
     action_name: ValidActionName

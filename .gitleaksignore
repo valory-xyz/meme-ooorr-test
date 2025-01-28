@@ -395,3 +395,5 @@ cf5ef5cfdb24d6311f60e4b81b5923a244bcd283:packages/dvilela/skills/memeooorr_chain
 cf5ef5cfdb24d6311f60e4b81b5923a244bcd283:packages/dvilela/skills/memeooorr_chained_abci/skill.yaml:generic-api-key:151
 cf5ef5cfdb24d6311f60e4b81b5923a244bcd283:packages/dvilela/services/memeooorr/service.yaml:generic-api-key:55
 cf5ef5cfdb24d6311f60e4b81b5923a244bcd283:packages/dvilela/agents/memeooorr/aea-config.yaml:generic-api-key:148
+d4500652a594cda88bf4f9b1d3a302e4529fbffe:scripts/test_prompts.py:generic-api-key:103
+d4500652a594cda88bf4f9b1d3a302e4529fbffe:scripts/test_prompts.py:generic-api-key:113

@@ -23,16 +23,13 @@
 import enum
 import json
 import os
-from typing import Optional, Union
+from typing import Optional
 
 import dotenv
 import google.generativeai as genai  # type: ignore
 import typing_extensions as typing
 
-from packages.dvilela.skills.memeooorr_abci.prompts import (
-    TOKEN_DECISION_PROMPT,
-    TWITTER_DECISION_PROMPT,
-)
+from packages.dvilela.skills.memeooorr_abci.prompts import TOKEN_DECISION_PROMPT
 
 
 dotenv.load_dotenv(override=True)
@@ -219,14 +216,18 @@ model = genai.GenerativeModel("gemini-2.0-flash-exp")
 #     ),
 # )
 
-TOKEN_SUMMARY = """
+# fmt: off
+TOKEN_SUMMARY = (  # nosec
+    """
     token nonce: {token_nonce}
     token address: {token_address}
     token name: {token_name}
     token symbol: {token_ticker}
     heart count: {heart_count}
     available actions: {available_actions}
-    """  # nosec
+    """
+)
+# fmt: on
 
 meme_coins = "\n".join(
     TOKEN_SUMMARY.format(**meme_coin)

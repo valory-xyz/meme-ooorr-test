@@ -21,7 +21,7 @@
 """Genai connection."""
 
 import json
-import pickle
+import pickle  # nosec
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Tuple, cast
@@ -205,13 +205,13 @@ class GenaiConnection(BaseSyncConnection):
 
             if "schema" in payload:
                 schema = payload["schema"]
-                schema_class = pickle.loads(bytes.fromhex(schema["class"]))
+                schema_class = pickle.loads(bytes.fromhex(schema["class"]))  # nosec
                 generation_config_kwargs["response_mime_type"] = "application/json"
                 is_list = schema.get("is_list", False)
                 if not is_list:
                     generation_config_kwargs["response_schema"] = schema_class
                 else:
-                    generation_config_kwargs["response_schema"] = list[schema_class]
+                    generation_config_kwargs["response_schema"] = list[schema_class]  # type: ignore
 
             response = model.generate_content(
                 payload["prompt"],

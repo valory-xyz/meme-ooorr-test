@@ -20,8 +20,6 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
-import pickle
-import re
 from typing import Generator, Optional, Tuple, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
@@ -183,7 +181,7 @@ class ActionDecisionBehaviour(
 
             token_name = action.get("token_name", None)
             token_ticker = action.get("token_ticker", None)
-            token_supply = int(action.get("token_supply", 1e6))
+            token_supply = action.get("token_supply", None)
             amount = int(action.get("amount", 0))
             token_nonce = action.get("token_nonce", None)
             token_address = action.get("token_address", None)
@@ -191,6 +189,9 @@ class ActionDecisionBehaviour(
 
             if isinstance(token_nonce, str) and token_nonce.isdigit():
                 token_nonce = int(token_nonce)
+
+            if isinstance(token_supply, str) and token_supply.isdigit():
+                token_supply = int(token_supply)
 
             if action_name == "none":
                 self.context.logger.info("Action is none")

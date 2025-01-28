@@ -613,7 +613,7 @@ class MemeooorrBaseBehaviour(
 
     def get_heart_and_burn_data(
         self,
-    ) -> Generator[None, None, Tuple[List[str], List[str], int]]:
+    ) -> Generator[None, None, Tuple[List[str], int]]:
         """Get heart, burn and purge data"""
         # Load previously hearted memes
         db_data = yield from self._read_kv(keys=("hearted_memes",))

@@ -469,12 +469,12 @@ class TwikitConnection(Connection):
         return user_to_json(user)
 
 
-def tweet_to_json(tweet: Any, user_id: str = None) -> Dict:
+def tweet_to_json(tweet: Any, user_id: Optional[str] = None) -> Dict:
     """Tweet to json"""
     return {
         "id": tweet.id,
         "user_name": tweet.user.name,
-        "user_id": user_id,
+        "user_id": user_id or tweet.user.id,
         "text": tweet.text,
         "created_at": tweet.created_at,
         "view_count": tweet.view_count,
