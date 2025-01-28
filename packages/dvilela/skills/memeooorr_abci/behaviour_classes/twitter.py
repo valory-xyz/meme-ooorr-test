@@ -167,7 +167,33 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         Returns:
             Generator yielding Optional[str]: Numbered list of tweets or empty string
         """
+        # Try to get tweets from MirrorDB
+        self.context.logger.info(f"Trying to get latest tweets from MirrorDB for {twitter_handle}")
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
+
+        if agent_id:
+            try:
+                mirror_db_response = yield from self._call_mirrordb(
+                    method="get_latest_tweets",
+                    agent_id=agent_id,
+                )
+                print("mirror_db_response :", mirror_db_response)
+                if mirror_db_response:
+                    numbered_tweets = [
+                        f"{i+1}. {tweet['text']}"
+                        for i, tweet in enumerate(mirror_db_response[:limit])
+                    ]
+                    return "\n".join(numbered_tweets)
+            except Exception as e:
+                self.context.logger.error(f"Error getting tweets from MirrorDB: {e}")
+
+        # Fallback to Twikit if MirrorDB fails or returns no results
         delay = secrets.randbelow(5)
         self.context.logger.info(f"Sleeping for {delay} seconds")
         yield from self.sleep(delay)

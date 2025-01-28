@@ -23,7 +23,6 @@
 import asyncio
 import json
 from typing import Any, Dict, Optional, Union, cast, List
-from . import schemas
 
 import aiohttp
 from aea.configurations.base import PublicId
@@ -293,7 +292,7 @@ class MirrorDBConnection(Connection):
         ) as response:
             return await response.json()
 
-    async def get_latest_tweets(self, agent_id: int) -> List[schemas.Tweet]:
+    async def get_latest_tweets(self, agent_id: int) -> List[Dict]:
         """Get the latest tweets for a given agent."""
         async with self.session.get(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/twitter_accounts/tweets/",
