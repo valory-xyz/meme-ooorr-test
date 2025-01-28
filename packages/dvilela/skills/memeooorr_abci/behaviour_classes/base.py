@@ -145,14 +145,52 @@ class MemeooorrBaseBehaviour(
         self, method: str, **kwargs: Any
     ) -> Generator[None, None, Any]:
         """Send a request message to the Twikit connection and handle MirrorDB interactions."""
-        # Define the mapping of Twikit methods to MirrorDB methods
-        twikit_to_mirrordb = {
-            "like_tweet": "create_interaction",
-            "retweet": "create_interaction",
-            "follow_user": "create_interaction",
-            "post": "create_tweet",
-        }
+        mirror_db_config_data = yield from self._handle_mirror_db_interactions()
 
+        if mirror_db_config_data is None:
+            self.context.logger.error(
+                "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
+            )
+            return None
+
+        # Create the request message for Twikit
+        srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
+        srr_message, srr_dialogue = srr_dialogues.create(
+            counterparty=str(TWIKIT_CONNECTION_PUBLIC_ID),
+            performative=SrrMessage.Performative.REQUEST,
+            payload=json.dumps({"method": method, "kwargs": kwargs}),
+        )
+        srr_message = cast(SrrMessage, srr_message)
+        srr_dialogue = cast(SrrDialogue, srr_dialogue)
+        response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+
+        response_json = json.loads(response.payload)  # type: ignore
+
+        if "error" in response_json:
+            if "locked, suspended or unauthorized" in response_json["error"]:
+                self.context.state.env_var_status["needs_update"] = True
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_USERNAME"
+                ] = response_json["error"]
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_EMAIL"
+                ] = response_json["error"]
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_COOKIES"
+                ] = response_json["error"]
+
+            self.context.logger.error(response_json["error"])
+            return None
+
+        # Handle MirrorDB interaction if applicable
+        yield from self._handle_mirrordb_interaction_post_twikit(
+            method, kwargs, response_json, mirror_db_config_data
+        )
+
+        return response_json["response"]  # type: ignore
+
+    def _handle_mirror_db_interactions(self) -> Generator[None, None, Optional[Dict]]:
+        """Handle MirrorDB interactions."""
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
         mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
@@ -194,9 +232,13 @@ class MemeooorrBaseBehaviour(
 
             try:
                 twitter_user_id_from_cookie = yield from self._get_twitter_user_id_from_cookie()  # type: ignore
-                twitter_user_id_from_cookie = twitter_user_id_from_cookie.split("u=")[-1]
+                twitter_user_id_from_cookie = twitter_user_id_from_cookie.split("u=")[
+                    -1
+                ]
             except ValueError as e:
-                self.context.logger.error(f"Error getting Twitter user ID from cookie: {e}")
+                self.context.logger.error(
+                    f"Error getting Twitter user ID from cookie: {e}"
+                )
                 return None
 
             if twitter_user_id_from_cookie != twitter_user_id:
@@ -228,44 +270,29 @@ class MemeooorrBaseBehaviour(
                 )
                 self.context.logger.info("New account registered in mirrorDB")
 
-        else:
-            self.context.logger.error(
-                "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
-            )
+        return mirror_db_config_data
 
-        # Create the request message for Twikit
-        srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
-        srr_message, srr_dialogue = srr_dialogues.create(
-            counterparty=str(TWIKIT_CONNECTION_PUBLIC_ID),
-            performative=SrrMessage.Performative.REQUEST,
-            payload=json.dumps({"method": method, "kwargs": kwargs}),
-        )
-        srr_message = cast(SrrMessage, srr_message)
-        srr_dialogue = cast(SrrDialogue, srr_dialogue)
-        response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+    def _handle_mirrordb_interaction_post_twikit(  # pylint: disable=too-many-locals
+        self,
+        method: str,
+        kwargs: Dict[str, Any],
+        response_json: Dict[str, Any],
+        mirror_db_config_data: Dict[str, Any],
+    ) -> Generator[None, None, None]:
+        """Handle MirrorDB interaction after Twikit response."""
+        twikit_to_mirrordb = {
+            "like_tweet": "create_interaction",
+            "retweet": "create_interaction",
+            "follow_user": "create_interaction",
+            "post": "create_tweet",
+        }
 
-        response_json = json.loads(response.payload)  # type: ignore
-
-        if "error" in response_json:
-            if "locked, suspended or unauthorized" in response_json["error"]:
-                self.context.state.env_var_status["needs_update"] = True
-                self.context.state.env_var_status["env_vars"][
-                    "TWIKIT_USERNAME"
-                ] = response_json["error"]
-                self.context.state.env_var_status["env_vars"][
-                    "TWIKIT_EMAIL"
-                ] = response_json["error"]
-                self.context.state.env_var_status["env_vars"][
-                    "TWIKIT_COOKIES"
-                ] = response_json["error"]
-
-            self.context.logger.error(response_json["error"])
-            return None
-
-        # Handle MirrorDB interaction if applicable
         if method in twikit_to_mirrordb and mirror_db_config_data is not None:
             mirrordb_method = twikit_to_mirrordb[method]
             mirrordb_kwargs = kwargs.copy()
+            agent_id = mirror_db_config_data.get("agent_id")
+            twitter_user_id = mirror_db_config_data.get("twitter_user_id")
+
             if method == "post":
                 tweet_text = mirrordb_kwargs.pop("tweets")[0][
                     "text"
@@ -323,8 +350,6 @@ class MemeooorrBaseBehaviour(
                 self.context.logger.error(
                     f"MirrorDB interaction for method {method} failed."
                 )
-
-        return response_json["response"]  # type: ignore
 
     def _call_mirrordb(self, method: str, **kwargs: Any) -> Generator[None, None, Any]:
         """Send a request message to the MirrorDB connection."""
@@ -491,7 +516,6 @@ class MemeooorrBaseBehaviour(
         if twitter_user_id is None:
             self.context.logger.error("twitter_user_id is None, which is not expected.")
 
-        self.context.logger.info(f"Got twitter_user_id: {twitter_user_id}")
         return twitter_user_id
 
     def _call_genai(
