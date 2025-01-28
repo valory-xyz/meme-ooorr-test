@@ -416,9 +416,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 )
                 continue
 
-            if (
-                action == "follow"
-                and not user_id
+            if action == "follow" and (
+                not user_id
                 or user_id not in [t["user_id"] for t in pending_tweets.values()]
             ):
                 self.context.logger.error(
