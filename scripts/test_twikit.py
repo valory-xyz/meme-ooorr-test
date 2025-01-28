@@ -117,4 +117,10 @@ async def is_suspended() -> None:
         return True
 
 
-print(asyncio.run(is_suspended()))
+async def search_tweet() -> None:
+    """Search tweet"""
+    client = await cookie_login()
+    await client.search_tweet(query="$OLAS", product="Top", count=5)
+
+
+print(asyncio.run(search_tweet()))
