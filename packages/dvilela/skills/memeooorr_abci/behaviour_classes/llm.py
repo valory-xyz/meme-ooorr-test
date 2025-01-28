@@ -283,10 +283,23 @@ class ActionDecisionBehaviour(
                     int(0.01e18),  # 0.01 ETH = min summon amount
                 )
 
+                amount = min(
+                    amount,
+                    int(
+                        0.1e18
+                    ),  # for security, let's put a top to this amount (0.1 ETH)
+                )
             if action_name == "heart":
                 amount = max(
                     amount,
                     1,  # 1 wei
+                )
+
+                amount = min(
+                    amount,
+                    int(
+                        0.1e18
+                    ),  # for security, let's put a top to this amount (0.1 ETH)
                 )
 
             self.context.logger.info("The LLM returned a valid response")
