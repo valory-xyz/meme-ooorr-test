@@ -248,6 +248,7 @@ class TwikitConnection(Connection):
             "follow_user",
             "filter_suspended_users",
             "get_user_by_screen_name",
+            "get_twitter_user_id"
         ]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
@@ -463,6 +464,7 @@ class TwikitConnection(Connection):
     
     async def get_twitter_user_id(self) -> str:
         """Returns Twitter ID for the instance Twitter account."""
+        
         if not self.cookies:
             raise ValueError("Cookies are not set.")
         

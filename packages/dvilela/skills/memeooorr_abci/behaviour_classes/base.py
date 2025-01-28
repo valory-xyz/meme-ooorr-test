@@ -101,7 +101,6 @@ query getPackages($package_type: String!) {
 }
 """
 
-
 class MemeooorrBaseBehaviour(
     BaseBehaviour, ABC
 ):  # pylint: disable=too-many-ancestors,too-many-public-methods
@@ -178,17 +177,37 @@ class MemeooorrBaseBehaviour(
                 self.context.logger.error(
                     "twitter_user_id is None, which is not expected."
                 )
+            api_key = mirror_db_config_data.get("api_key")
+            if api_key is None:
+                self.context.logger.error("api_key is None, which is not expected.")
+
+            #updating instance vars for agent_id,api_key and twitter_user_id in mirrorDB connection
+            yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
+            yield from self._call_mirrordb("update_api_key", api_key=api_key)
+            yield from self._call_mirrordb("update_twitter_user_id", twitter_user_id=twitter_user_id)
                 
-            twitter_user_from_cookie = self._get_twitter_user_id_from_cookie() # type: ignore
-            if twitter_user_from_cookie != twitter_user_id :
+            twitter_user_id_from_cookie = yield from self._get_twitter_user_id_from_cookie() # type: ignore
+            twitter_user_id_from_cookie = twitter_user_id_from_cookie.split("u=")[-1]
+
+            if twitter_user_id_from_cookie != twitter_user_id :
+                self.context.logger.info(f"Twitter user id from cookie : {twitter_user_id_from_cookie} != Twitter ID stored : {twitter_user_id}" )
                 self.context.logger.info("New account detected ! , updating in mirrorDB and registering new account in mirrorDB")
-                yield from self._call_mirrordb()
+                yield from self._update_mirror_db_config_with_new_twitter_user_id(new_twitter_user_id=twitter_user_id_from_cookie)
+                #updating the twitter_id for instance var in mirrorDB connection
+                yield from self._call_mirrordb("update_twitter_user_id", twitter_user_id=twitter_user_id_from_cookie)
+                #registering new account in mirrorDB
+                account_data = {
+                    "username": self.params.twitter_username,
+                    "name": self.params.twitter_username,
+                    "twitter_user_id": twitter_user_id_from_cookie,
+                    "api_key": api_key,
+                }
+                yield from self._call_mirrordb("create_twitter_account", agent_id=agent_id, account_data=account_data)
+                self.context.logger.info("New account registered in mirrorDB")
 
-
-            
         else:
             self.context.logger.error(
-                "MirrorDB config data is None, which is not expected."
+                "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
             )
 
         # Create the request message for Twikit
@@ -311,9 +330,12 @@ class MemeooorrBaseBehaviour(
     def _register_with_mirror_db(self) -> Generator[None, None, None]:
         """Register with the MirrorDB service and save the configuration."""
         try:
-            # Pull the twitter_user_id using Twikit
             twitter_user_data = yield from self._get_twitter_user_data()
+            if not twitter_user_data:
+                self.context.logger.error("Failed to get Twitter user data. Registration with MirrorDB aborted.")
+                return
 
+            # Pull the twitter_user_id using Twikit
             twitter_user_id = twitter_user_data.get("id")
             twitter_username = twitter_user_data.get("screen_name")
             twitter_name = twitter_user_data.get("name")
@@ -1106,3 +1128,21 @@ class MemeooorrBaseBehaviour(
             list, response_msg.state.body.get("purged_addresses", [])
         )
         return purged_addresses
+
+    def _update_mirror_db_config_with_new_twitter_user_id(self, new_twitter_user_id: str) -> Generator[None, None, bool]:
+        """Update the mirrod_db_config with the new twitter_user_id."""
+        # Read the current configuration
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        # Update the twitter_user_id
+        mirror_db_config_data["twitter_user_id"] = new_twitter_user_id
+
+        # Write the updated configuration back to the KV store
+        success = yield from self._write_kv({"mirrod_db_config": json.dumps(mirror_db_config_data)})
+
+        return success
