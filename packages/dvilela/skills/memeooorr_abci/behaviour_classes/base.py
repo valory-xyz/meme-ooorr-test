@@ -192,8 +192,12 @@ class MemeooorrBaseBehaviour(
                 "update_twitter_user_id", twitter_user_id=twitter_user_id
             )
 
-            twitter_user_id_from_cookie = yield from self._get_twitter_user_id_from_cookie()  # type: ignore
-            twitter_user_id_from_cookie = twitter_user_id_from_cookie.split("u=")[-1]
+            try:
+                twitter_user_id_from_cookie = yield from self._get_twitter_user_id_from_cookie()  # type: ignore
+                twitter_user_id_from_cookie = twitter_user_id_from_cookie.split("u=")[-1]
+            except ValueError as e:
+                self.context.logger.error(f"Error getting Twitter user ID from cookie: {e}")
+                return None
 
             if twitter_user_id_from_cookie != twitter_user_id:
                 self.context.logger.info(
