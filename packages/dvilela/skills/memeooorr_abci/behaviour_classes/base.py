@@ -697,8 +697,13 @@ class MemeooorrBaseBehaviour(
 
     def get_native_ticker(self) -> str:
         """Get native ticker"""
-        native_ticker = "ETH" if self.params.home_chain_id == "BASE" else "CELO"
-        return native_ticker
+        if self.params.home_chain_id.lower() == BASE_CHAIN_ID:
+            return "ETH"
+
+        if self.params.home_chain_id.lower() == CELO_CHAIN_ID:
+            return "CELO"
+
+        return ""
 
     def get_packages(self, package_type: str) -> Generator[None, None, Optional[Dict]]:
         """Gets minted packages from the Olas subgraph"""

@@ -149,7 +149,7 @@ class ActionDecisionBehaviour(
             "latest_tweet": latest_tweet,
             "tweet_responses": tweet_responses,
             "balance": safe_native_balance,
-            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
+            "ticker": self.get_native_ticker(),
         }
 
         llm_response = yield from self._call_genai(
@@ -280,7 +280,7 @@ class ActionDecisionBehaviour(
             if action_name == "summon":
                 amount = max(
                     amount,
-                    int(0.01e18),  # 0.01 ETH
+                    int(0.01e18),  # 0.01 ETH = min summon amount
                 )
 
             if action_name == "heart":

@@ -132,7 +132,8 @@ TOKEN_DECISION_PROMPT = (  # nosec
     You can use this information to update your persona if you think that will improve engagement.
     "{tweet_responses}"
 
-    You have {balance} ETH currently available, so stick to that budget.
+    You have {balance} {ticker} currently available, so stick to that budget.
+    Amounts should be expressed in wei.
     Every now and then you will need to make more decisions using the same budget, so it might be wise not to spend eveything on a single action.
 
     For each action you take, you should also tweet about it to keep your followers engaged.
