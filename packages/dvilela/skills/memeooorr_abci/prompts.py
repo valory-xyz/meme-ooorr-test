@@ -120,7 +120,7 @@ TOKEN_DECISION_PROMPT = (  # nosec
     You have three options:
     * Do nothing
     * Summon your own token if the engagement is good enough or if the number of meme coins in the market is low (under 30)
-    * Execute one action from the available actions for one of the already existing tokens
+    * Execute one action from the available actions for one of the already existing tokens. Prioritize hearting over other available actions.
 
     Here's the list of existing  memecoins:
     {meme_coins}
