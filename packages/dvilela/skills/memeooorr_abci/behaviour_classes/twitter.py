@@ -161,15 +161,14 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
     def get_previous_tweets(
         self, limit: int = 5
-    ) -> Generator[None, None, Optional[str]]:
-        """Get the latest tweets formatted as numbered list
+    ) -> Generator[None, None, Optional[List[Dict]]]:
+        """Get the latest tweets
 
         Args:
-            twitter_handle (str): The Twitter handle to fetch tweets from
             limit (int, optional): Maximum number of tweets to return. Defaults to 5.
 
         Returns:
-            Generator yielding Optional[str]: Numbered list of tweets or empty string
+            Generator yielding Optional[List[Dict]]: List of tweets or None
         """
         # Try to get tweets from MirrorDB
         self.context.logger.info(f"Trying to get latest tweets from MirrorDB for agent")
@@ -187,16 +186,11 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
                     method="get_latest_tweets",
                     agent_id=agent_id,
                 )
-                print(f"MirrorDB response: {mirror_db_response}")
                 self.context.logger.info(f"MirrorDB response: {mirror_db_response}")
                 if mirror_db_response:
-                    numbered_tweets = [
-                        f"{i+1}. {tweet['text']}"
-                        for i, tweet in enumerate(mirror_db_response[:limit])
-                    ]
-                    #print joined tweets
-                    print("\n".join(numbered_tweets))
-                    return "\n".join(numbered_tweets)
+                    for tweet in mirror_db_response:
+                        tweet["timestamp"] = datetime.fromisoformat(tweet["created_at"]).timestamp()
+                    return mirror_db_response[:limit]
             except Exception as e:
                 self.context.logger.error(f"Error getting tweets from MirrorDB: {e}")
 
@@ -205,13 +199,11 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         tweets = yield from self.get_tweets_from_db()
 
         if tweets:
-            numbered_tweets = [
-                f"{i+1}. {tweet['text']}"
-                for i, tweet in enumerate(tweets[:limit])
-            ]
-            return "\n".join(numbered_tweets)
+            for tweet in tweets:
+                tweet["timestamp"] = datetime.fromisoformat(tweet["created_at"]).timestamp()
+            return tweets[:limit]
 
-        return ""
+        return None
 
 
 class CollectFeedbackBehaviour(

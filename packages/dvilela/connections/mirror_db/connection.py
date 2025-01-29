@@ -266,6 +266,11 @@ class MirrorDBConnection(Connection):
         self, agent_id: int, twitter_user_id: str, tweet_data: Dict
     ) -> Dict:
         """Create a tweet."""
+        #check if tweet id is present in the tweet_data if not raise an error
+        tweet_id = tweet_data.get("tweet_id")
+        if tweet_id is None:
+            raise ValueError("Failed to create tweet, no tweet_id provided.")
+
         async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/",
             json=tweet_data,
