@@ -171,7 +171,7 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             Generator yielding Optional[List[Dict]]: List of tweets or None
         """
         # Try to get tweets from MirrorDB
-        self.context.logger.info(f"Trying to get latest tweets from MirrorDB for agent")
+        self.context.logger.info("Trying to get latest tweets from MirrorDB for agent")
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
         mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
@@ -187,11 +187,21 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
                     agent_id=agent_id,
                 )
                 self.context.logger.info(f"MirrorDB response: {mirror_db_response}")
+
+                if (
+                    "detail" in mirror_db_response
+                    and mirror_db_response["detail"]
+                    == "No tweets found for the associated Twitter accounts"
+                ):
+                    mirror_db_response = None
+
                 if mirror_db_response:
                     for tweet in mirror_db_response:
-                        tweet["timestamp"] = datetime.fromisoformat(tweet["created_at"]).timestamp()
+                        tweet["timestamp"] = datetime.fromisoformat(
+                            tweet["created_at"]
+                        ).timestamp()
                     return mirror_db_response[:limit]
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 self.context.logger.error(f"Error getting tweets from MirrorDB: {e}")
 
         # Fallback to get_tweets_from_db if MirrorDB fails or returns no results
@@ -200,7 +210,9 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
         if tweets:
             for tweet in tweets:
-                tweet["timestamp"] = datetime.fromisoformat(tweet["created_at"]).timestamp()
+                tweet["timestamp"] = datetime.fromisoformat(
+                    tweet["created_at"]
+                ).timestamp()
             return tweets[:limit]
 
         return None
@@ -381,11 +393,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             ]
         )
 
-        # Get at most your 5 latest tweets
-        # tweets = yield from self.get_tweets_from_db()
-        # tweets = tweets[-5:]
-
-        tweets = yield from self.get_previous_tweets()
+        tweets = yield from self.get_previous_tweets()  # type: ignore
+        tweets = tweets[-5:] if tweets else None  # type: ignore
 
         if tweets:
             previous_tweets = "\n\n".join(

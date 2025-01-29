@@ -22,7 +22,7 @@
 
 import asyncio
 import json
-from typing import Any, Dict, Optional, Union, cast, List
+from typing import Any, Dict, List, Optional, Union, cast
 
 import aiohttp
 from aea.configurations.base import PublicId
@@ -266,7 +266,7 @@ class MirrorDBConnection(Connection):
         self, agent_id: int, twitter_user_id: str, tweet_data: Dict
     ) -> Dict:
         """Create a tweet."""
-        #check if tweet id is present in the tweet_data if not raise an error
+        # check if tweet id is present in the tweet_data if not raise an error
         tweet_id = tweet_data.get("tweet_id")
         if tweet_id is None:
             raise ValueError("Failed to create tweet, no tweet_id provided.")
