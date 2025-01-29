@@ -72,14 +72,17 @@ query Tokens {
       heartCount
       id
       isUnleashed
+      isPurged
       liquidity
       lpPairAddress
       owner
       timestamp
       memeNonce
       summonTime
+      unleashTime
       memeToken
       name
+      symbol
     }
   }
 }
@@ -142,46 +145,13 @@ class MemeooorrBaseBehaviour(
         self, method: str, **kwargs: Any
     ) -> Generator[None, None, Any]:
         """Send a request message to the Twikit connection and handle MirrorDB interactions."""
-        # Define the mapping of Twikit methods to MirrorDB methods
-        twikit_to_mirrordb = {
-            "like_tweet": "create_interaction",
-            "retweet": "create_interaction",
-            "follow_user": "create_interaction",
-            "post": "create_tweet",
-        }
+        mirror_db_config_data = yield from self._handle_mirror_db_interactions()
 
-        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
-
-        # Ensure mirror_db_config_data is parsed as JSON if it is a string
-        if isinstance(mirror_db_config_data, str):
-            mirror_db_config_data = json.loads(mirror_db_config_data)
-
-        self.context.logger.info(f"MirrorDB config data: {mirror_db_config_data}")
         if mirror_db_config_data is None:
-            self.context.logger.info("Registering with MirrorDB")
-            yield from self._register_with_mirror_db()
-
-        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
-
-        # Ensure mirror_db_config_data is parsed as JSON if it is a string
-        if isinstance(mirror_db_config_data, str):
-            mirror_db_config_data = json.loads(mirror_db_config_data)
-            # Extract the agent_id, twitter_user_id and api_key from the mirrorDB config
-            agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
-            if agent_id is None:
-                self.context.logger.error("agent_id is None, which is not expected.")
-
-            twitter_user_id = mirror_db_config_data.get("twitter_user_id")  # type: ignore
-            if twitter_user_id is None:
-                self.context.logger.error(
-                    "twitter_user_id is None, which is not expected."
-                )
-        else:
             self.context.logger.error(
-                "MirrorDB config data is None, which is not expected."
+                "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
             )
+            return None
 
         # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
@@ -213,9 +183,116 @@ class MemeooorrBaseBehaviour(
             return None
 
         # Handle MirrorDB interaction if applicable
+        yield from self._handle_mirrordb_interaction_post_twikit(
+            method, kwargs, response_json, mirror_db_config_data
+        )
+
+        return response_json["response"]  # type: ignore
+
+    def _handle_mirror_db_interactions(self) -> Generator[None, None, Optional[Dict]]:
+        """Handle MirrorDB interactions."""
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        self.context.logger.info(f"MirrorDB config data: {mirror_db_config_data}")
+        if mirror_db_config_data is None:
+            self.context.logger.info("Registering with MirrorDB")
+            yield from self._register_with_mirror_db()
+
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+            # Extract the agent_id, twitter_user_id and api_key from the mirrorDB config
+            agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
+            if agent_id is None:
+                self.context.logger.error("agent_id is None, which is not expected.")
+
+            twitter_user_id = mirror_db_config_data.get("twitter_user_id")  # type: ignore
+            if twitter_user_id is None:
+                self.context.logger.error(
+                    "twitter_user_id is None, which is not expected."
+                )
+            api_key = mirror_db_config_data.get("api_key")  # type: ignore
+            if api_key is None:
+                self.context.logger.error("api_key is None, which is not expected.")
+
+            # updating instance vars for agent_id,api_key and twitter_user_id in mirrorDB connection
+            yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
+            yield from self._call_mirrordb("update_api_key", api_key=api_key)
+            yield from self._call_mirrordb(
+                "update_twitter_user_id", twitter_user_id=twitter_user_id
+            )
+
+            try:
+                twitter_user_id_from_cookie = yield from self._get_twitter_user_id_from_cookie()  # type: ignore
+                twitter_user_id_from_cookie = twitter_user_id_from_cookie.split("u=")[
+                    -1
+                ]
+            except ValueError as e:
+                self.context.logger.error(
+                    f"Error getting Twitter user ID from cookie: {e}"
+                )
+                return None
+
+            if twitter_user_id_from_cookie != twitter_user_id:
+                self.context.logger.info(
+                    f"Twitter user id from cookie : {twitter_user_id_from_cookie} != Twitter ID stored : {twitter_user_id}"
+                )
+                self.context.logger.info(
+                    "New account detected ! , updating in mirrorDB and registering new account in mirrorDB"
+                )
+                yield from self._update_mirror_db_config_with_new_twitter_user_id(
+                    new_twitter_user_id=twitter_user_id_from_cookie
+                )
+                # updating the twitter_id for instance var in mirrorDB connection
+                yield from self._call_mirrordb(
+                    "update_twitter_user_id",
+                    twitter_user_id=twitter_user_id_from_cookie,
+                )
+                # registering new account in mirrorDB
+                account_data = {
+                    "username": self.params.twitter_username,
+                    "name": self.params.twitter_username,
+                    "twitter_user_id": twitter_user_id_from_cookie,
+                    "api_key": api_key,
+                }
+                yield from self._call_mirrordb(
+                    "create_twitter_account",
+                    agent_id=agent_id,
+                    account_data=account_data,
+                )
+                self.context.logger.info("New account registered in mirrorDB")
+
+        return mirror_db_config_data
+
+    def _handle_mirrordb_interaction_post_twikit(  # pylint: disable=too-many-locals
+        self,
+        method: str,
+        kwargs: Dict[str, Any],
+        response_json: Dict[str, Any],
+        mirror_db_config_data: Dict[str, Any],
+    ) -> Generator[None, None, None]:
+        """Handle MirrorDB interaction after Twikit response."""
+        twikit_to_mirrordb = {
+            "like_tweet": "create_interaction",
+            "retweet": "create_interaction",
+            "follow_user": "create_interaction",
+            "post": "create_tweet",
+        }
+
         if method in twikit_to_mirrordb and mirror_db_config_data is not None:
             mirrordb_method = twikit_to_mirrordb[method]
             mirrordb_kwargs = kwargs.copy()
+            agent_id = mirror_db_config_data.get("agent_id")
+            twitter_user_id = mirror_db_config_data.get("twitter_user_id")
+
             if method == "post":
                 tweet_text = mirrordb_kwargs.pop("tweets")[0][
                     "text"
@@ -274,8 +351,6 @@ class MemeooorrBaseBehaviour(
                     f"MirrorDB interaction for method {method} failed."
                 )
 
-        return response_json["response"]  # type: ignore
-
     def _call_mirrordb(self, method: str, **kwargs: Any) -> Generator[None, None, Any]:
         """Send a request message to the MirrorDB connection."""
         try:
@@ -303,9 +378,14 @@ class MemeooorrBaseBehaviour(
     def _register_with_mirror_db(self) -> Generator[None, None, None]:
         """Register with the MirrorDB service and save the configuration."""
         try:
-            # Pull the twitter_user_id using Twikit
             twitter_user_data = yield from self._get_twitter_user_data()
+            if not twitter_user_data:
+                self.context.logger.error(
+                    "Failed to get Twitter user data. Registration with MirrorDB aborted."
+                )
+                return
 
+            # Pull the twitter_user_id using Twikit
             twitter_user_id = twitter_user_data.get("id")
             twitter_username = twitter_user_data.get("screen_name")
             twitter_name = twitter_user_data.get("name")
@@ -416,14 +496,40 @@ class MemeooorrBaseBehaviour(
         self.context.logger.info(f"Got twitter_user_data: {twitter_user_data}")
         return twitter_user_data
 
+    def _get_twitter_user_id_from_cookie(self) -> Generator[None, None, str]:
+        """Get the Twitter user ID from the Twikit connection."""
+        srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
+        srr_message, srr_dialogue = srr_dialogues.create(
+            counterparty=str(TWIKIT_CONNECTION_PUBLIC_ID),
+            performative=SrrMessage.Performative.REQUEST,
+            payload=json.dumps({"method": "get_twitter_user_id", "kwargs": {}}),
+        )
+        srr_message = cast(SrrMessage, srr_message)
+        srr_dialogue = cast(SrrDialogue, srr_dialogue)
+        response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+
+        response_json = json.loads(response.payload)  # type: ignore
+        if "error" in response_json:
+            raise ValueError(response_json["error"])
+
+        twitter_user_id = response_json.get("response")
+        if twitter_user_id is None:
+            self.context.logger.error("twitter_user_id is None, which is not expected.")
+
+        return twitter_user_id
+
     def _call_genai(
         self,
         prompt: str,
+        schema: Optional[Dict] = None,
         temperature: Optional[float] = None,
     ) -> Generator[None, None, Optional[str]]:
         """Send a request message from the skill context."""
 
         payload_data: Dict[str, Any] = {"prompt": prompt}
+
+        if schema is not None:
+            payload_data["schema"] = schema
 
         if temperature is not None:
             payload_data["temperature"] = temperature
@@ -604,9 +710,9 @@ class MemeooorrBaseBehaviour(
 
         return {"safe": safe_balance, "agent": agent_balance}
 
-    def get_heart_burn_and_purge_data(
+    def get_heart_and_burn_data(
         self,
-    ) -> Generator[None, None, Tuple[List[str], List[str], int]]:
+    ) -> Generator[None, None, Tuple[List[str], int]]:
         """Get heart, burn and purge data"""
         # Load previously hearted memes
         db_data = yield from self._read_kv(keys=("hearted_memes",))
@@ -619,19 +725,15 @@ class MemeooorrBaseBehaviour(
 
         hearted_memes = json.loads(hearted_memes_str)
 
-        # Load purged memes
-        purged_memes = yield from self.get_purged_memes_from_chain()
-
-        # Get
+        # Get burnable amount
         burnable_amount = yield from self.get_burnable_amount()
 
-        return hearted_memes, purged_memes, burnable_amount
+        return hearted_memes, burnable_amount
 
     def get_meme_available_actions(  # pylint: disable=too-many-arguments
         self,
         meme_data: Dict,
         hearted_memes: List[str],
-        purged_memes: List[str],
         burnable_amount: int,
         maga_launched: bool,
     ) -> List[str]:
@@ -644,16 +746,24 @@ class MemeooorrBaseBehaviour(
         seconds_since_summon = (now - summon_time).total_seconds()
         seconds_since_unleash = (now - unleash_time).total_seconds()
         is_unleashed = meme_data.get("unleash_time", 0) != 0
-        is_purged = meme_data.get("token_address", None) in purged_memes
+        is_purged = meme_data.get("is_purged")
 
         available_actions: List[str] = []
 
         # Heart
-        if not is_unleashed and meme_data.get("token_nonce", None) in hearted_memes:
+        if (
+            not is_unleashed
+            and meme_data.get("token_nonce", None) not in hearted_memes
+            and meme_data.get("token_nonce", None) != 1
+        ):
             available_actions.append("heart")
 
         # Unleash
-        if not is_unleashed and seconds_since_summon > 24 * 3600:
+        if (
+            not is_unleashed
+            and seconds_since_summon > 24 * 3600
+            and meme_data.get("token_nonce", None) != 1
+        ):
             available_actions.append("unleash")
 
         # Collect
@@ -686,8 +796,13 @@ class MemeooorrBaseBehaviour(
 
     def get_native_ticker(self) -> str:
         """Get native ticker"""
-        native_ticker = "ETH" if self.params.home_chain_id == "BASE" else "CELO"
-        return native_ticker
+        if self.params.home_chain_id.lower() == BASE_CHAIN_ID:
+            return "ETH"
+
+        if self.params.home_chain_id.lower() == CELO_CHAIN_ID:
+            return "CELO"
+
+        return ""
 
     def get_packages(self, package_type: str) -> Generator[None, None, Optional[Dict]]:
         """Gets minted packages from the Olas subgraph"""
@@ -885,9 +1000,8 @@ class MemeooorrBaseBehaviour(
 
         (
             hearted_memes,
-            purged_memes,
             burnable_amount,
-        ) = yield from self.get_heart_burn_and_purge_data()
+        ) = yield from self.get_heart_and_burn_data()
 
         maga_launched = False
         for token in tokens:
@@ -896,7 +1010,7 @@ class MemeooorrBaseBehaviour(
 
         for token in tokens:
             token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes, purged_memes, burnable_amount, maga_launched
+                token, hearted_memes, burnable_amount, maga_launched
             )
 
         return tokens
@@ -927,17 +1041,21 @@ class MemeooorrBaseBehaviour(
         response_json = json.loads(response.body)
         tokens = [
             {
+                "token_name": t["name"],
+                "token_ticker": t["symbol"],
                 "block_number": int(t["blockNumber"]),
                 "chain": t["chain"],
                 "token_address": t["memeToken"],
                 "liquidity": int(t["liquidity"]),
                 "heart_count": int(t["heartCount"]),
                 "is_unleashed": t["isUnleashed"],
+                "is_purged": t["isPurged"],
                 "lp_pair_address": t["lpPairAddress"],
                 "owner": t["owner"],
                 "timestamp": t["timestamp"],
                 "meme_nonce": int(t["memeNonce"]),
                 "summon_time": int(t["summonTime"]),
+                "unleash_time": int(t["unleashTime"]),
                 "token_nonce": int(t["memeNonce"]),
             }
             for t in response_json["data"]["memeTokens"]["items"]
@@ -946,45 +1064,10 @@ class MemeooorrBaseBehaviour(
             and int(t["memeNonce"]) > 0
         ]
 
-        for token in tokens:
-            token_nonce = token.get("meme_nonce", None)
-            token_address = token.get("token_address", None)
-
-            response_msg = yield from self.get_contract_api_response(
-                performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-                contract_address=self.get_meme_factory_address(),
-                contract_id=str(MemeFactoryContract.contract_id),
-                contract_callable="get_meme_summons_info",
-                token_nonce=token_nonce,
-                token_address=token_address,
-                chain_id=self.get_chain_id(),
-            )
-
-            # Check that the response is what we expect
-            if response_msg.performative != ContractApiMessage.Performative.STATE:
-                self.context.logger.error(
-                    f"Could not get the memecoin summon data: {response_msg}"
-                )
-                continue
-
-            summon_data = cast(list, response_msg.state.body.get("token_data", None))
-
-            token["token_name"] = summon_data[0]
-            token["token_ticker"] = summon_data[1]
-            token["token_supply"] = summon_data[2]
-            token["eth_contributed"] = summon_data[3]
-            token["summon_time"] = summon_data[4]
-            token["unleash_time"] = summon_data[5]
-            token["heart_count"] = summon_data[6]
-            token["position_id"] = summon_data[7]
-            token["is_native_first"] = summon_data[8]
-            token["decimals"] = 18
-
         (
             hearted_memes,
-            purged_memes,
             burnable_amount,
-        ) = yield from self.get_heart_burn_and_purge_data()
+        ) = yield from self.get_heart_and_burn_data()
 
         # We can only burn when the AG3NT token (nonce=1) has been unleashed
         maga_launched = False
@@ -994,7 +1077,7 @@ class MemeooorrBaseBehaviour(
 
         for token in tokens:
             token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes, purged_memes, burnable_amount, maga_launched
+                token, hearted_memes, burnable_amount, maga_launched
             )
 
         return tokens
@@ -1008,6 +1091,7 @@ class MemeooorrBaseBehaviour(
             return meme_coins
 
         meme_coins = yield from self.get_meme_coins_from_subgraph()
+
         return meme_coins
 
     def get_min_deploy_value(self) -> int:
@@ -1074,7 +1158,9 @@ class MemeooorrBaseBehaviour(
         )
         return purged_addresses
 
-    def _update_mirror_db_config_with_new_twitter_user_id(self, new_twitter_user_id: str) -> Generator[None, None, bool]:
+    def _update_mirror_db_config_with_new_twitter_user_id(
+        self, new_twitter_user_id: str
+    ) -> Generator[None, None, bool]:
         """Update the mirrod_db_config with the new twitter_user_id."""
         # Read the current configuration
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
@@ -1084,10 +1170,18 @@ class MemeooorrBaseBehaviour(
         if isinstance(mirror_db_config_data, str):
             mirror_db_config_data = json.loads(mirror_db_config_data)
 
-        # Update the twitter_user_id
-        mirror_db_config_data["twitter_user_id"] = new_twitter_user_id
+        # Check if mirror_db_config_data is a dictionary
+        if isinstance(mirror_db_config_data, dict):
+            # Update the twitter_user_id
+            mirror_db_config_data["twitter_user_id"] = new_twitter_user_id
 
-        # Write the updated configuration back to the KV store
-        success = yield from self._write_kv({"mirrod_db_config": json.dumps(mirror_db_config_data)})
+            # Write the updated configuration back to the KV store
+            success = yield from self._write_kv(
+                {"mirrod_db_config": json.dumps(mirror_db_config_data)}
+            )
+            return success
 
-        return success
+        self.context.logger.error(
+            "mirror_db_config_data is not a dictionary. failed to update new twitter_user_id."
+        )
+        return False

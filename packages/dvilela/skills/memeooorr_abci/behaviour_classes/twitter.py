@@ -156,19 +156,19 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         return response["success"]
 
     def get_previous_tweets(
-        self, twitter_handle: str, limit: int = 20
+        self, limit: int = 5
     ) -> Generator[None, None, Optional[str]]:
         """Get the latest tweets formatted as numbered list
 
         Args:
             twitter_handle (str): The Twitter handle to fetch tweets from
-            limit (int, optional): Maximum number of tweets to return. Defaults to 20.
+            limit (int, optional): Maximum number of tweets to return. Defaults to 5.
 
         Returns:
             Generator yielding Optional[str]: Numbered list of tweets or empty string
         """
         # Try to get tweets from MirrorDB
-        self.context.logger.info(f"Trying to get latest tweets from MirrorDB for {twitter_handle}")
+        self.context.logger.info(f"Trying to get latest tweets from MirrorDB for agent")
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
         mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
@@ -183,31 +183,27 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
                     method="get_latest_tweets",
                     agent_id=agent_id,
                 )
-                print("mirror_db_response :", mirror_db_response)
+                print(f"MirrorDB response: {mirror_db_response}")
+                self.context.logger.info(f"MirrorDB response: {mirror_db_response}")
                 if mirror_db_response:
                     numbered_tweets = [
                         f"{i+1}. {tweet['text']}"
                         for i, tweet in enumerate(mirror_db_response[:limit])
                     ]
+                    #print joined tweets
+                    print("\n".join(numbered_tweets))
                     return "\n".join(numbered_tweets)
             except Exception as e:
                 self.context.logger.error(f"Error getting tweets from MirrorDB: {e}")
 
-        # Fallback to Twikit if MirrorDB fails or returns no results
-        delay = secrets.randbelow(5)
-        self.context.logger.info(f"Sleeping for {delay} seconds")
-        yield from self.sleep(delay)
+        # Fallback to get_tweets_from_db if MirrorDB fails or returns no results
+        self.context.logger.info(f"Getting latest {limit} tweets from local DB")
+        tweets = yield from self.get_tweets_from_db()
 
-        self.context.logger.info(f"Getting latest {limit} tweets from {twitter_handle}")
-        previous_tweets = yield from self._call_twikit(
-            method="get_user_tweets",
-            twitter_handle=twitter_handle,
-        )
-
-        if previous_tweets:
+        if tweets:
             numbered_tweets = [
                 f"{i+1}. {tweet['text']}"
-                for i, tweet in enumerate(previous_tweets[:limit])
+                for i, tweet in enumerate(tweets[:limit])
             ]
             return "\n".join(numbered_tweets)
 
@@ -388,8 +384,10 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         )
 
         # Get at most your 5 latest tweets
-        tweets = yield from self.get_tweets_from_db()
-        tweets = tweets[-5:]
+        # tweets = yield from self.get_tweets_from_db()
+        # tweets = tweets[-5:]
+
+        tweets = yield from self.get_previous_tweets()
 
         if tweets:
             previous_tweets = "\n\n".join(
