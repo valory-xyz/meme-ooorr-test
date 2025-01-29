@@ -167,6 +167,9 @@ models:
       service_registry_address_celo: '0xE3607b00E75f6405248323A9417ff6b39B244b50'
       meme_subgraph_url: https://agentsfun-indexer-production.up.railway.app
       skip_engagement: false
+      min_summon_amount_eth: 0.01
+      max_summon_amount_eth: 0.02
+      max_heart_amount_eth: 0.0002
     class_name: Params
   requests:
     args: {}

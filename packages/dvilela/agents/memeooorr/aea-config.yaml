@@ -223,6 +223,9 @@ models:
       service_registry_address_celo: ${str:0xE3607b00E75f6405248323A9417ff6b39B244b50}
       meme_subgraph_url: ${str:https://agentsfun-indexer-production.up.railway.app}
       skip_engagement: ${bool:false}
+      min_summon_amount_eth: ${float:0.01}
+      max_summon_amount_eth: ${float:0.02}
+      max_heart_amount_eth: ${float:0.0002}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection
