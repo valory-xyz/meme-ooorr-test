@@ -20,6 +20,7 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
+import random
 from typing import Generator, Optional, Tuple, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
@@ -117,12 +118,14 @@ class ActionDecisionBehaviour(
     ]:
         """Get the next event"""
 
+        # Filter out tokens with no available actions and
+        # randomly sort to avoid the LLM to always selecting the first ones
+        meme_coins = self.synchronized_data.meme_coins
+        random.shuffle(meme_coins)
         meme_coins = "\n".join(
             TOKEN_SUMMARY.format(**meme_coin)
-            for meme_coin in self.synchronized_data.meme_coins
-            if meme_coin[
-                "available_actions"
-            ]  # Filter out tokens with no available actions
+            for meme_coin in meme_coins
+            if meme_coin["available_actions"]
         )
 
         self.context.logger.info(f"Action options:\n{meme_coins}")
