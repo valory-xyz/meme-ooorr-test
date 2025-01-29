@@ -122,13 +122,13 @@ class ActionDecisionBehaviour(
         # randomly sort to avoid the LLM to always selecting the first ones
         meme_coins = self.synchronized_data.meme_coins
         random.shuffle(meme_coins)
-        meme_coins = "\n".join(
+        meme_coins_str = "\n".join(
             TOKEN_SUMMARY.format(**meme_coin)
             for meme_coin in meme_coins
             if meme_coin["available_actions"]
         )
 
-        self.context.logger.info(f"Action options:\n{meme_coins}")
+        self.context.logger.info(f"Action options:\n{meme_coins_str}")
 
         valid_nonces = [c["token_nonce"] for c in self.synchronized_data.meme_coins]
 
@@ -148,7 +148,7 @@ class ActionDecisionBehaviour(
         )
 
         prompt_data = {
-            "meme_coins": meme_coins,
+            "meme_coins": meme_coins_str,
             "latest_tweet": latest_tweet,
             "tweet_responses": tweet_responses,
             "balance": safe_native_balance,

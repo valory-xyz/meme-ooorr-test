@@ -21,7 +21,6 @@
 
 import json
 import random
-import re
 import secrets
 from datetime import datetime
 from typing import Dict, Generator, List, Optional, Tuple, Type, Union
