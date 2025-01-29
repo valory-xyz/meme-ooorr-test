@@ -384,9 +384,8 @@ class TwikitConnection(Connection):
                 result = await self.client.create_tweet(**kwargs)
                 tweet_id = result.id
                 if tweet_id is not None:
-                    self.logger.error(f"Tweet created: {tweet_id}")
+                    self.logger.info(f"Tweet created with tweet ID: {tweet_id}")
                     break
-                self.logger.error("Failed to create the tweet. Retrying...")
             except Exception as e:
                 self.logger.error(f"Failed to create the tweet: {e}. Retrying...")
             finally:
@@ -403,10 +402,12 @@ class TwikitConnection(Connection):
                 return tweet_id
             except twikit.errors.TweetNotAvailable:
                 self.logger.error("Failed to verify the tweet. Retrying...")
-                retries += 1
                 time.sleep(3)
-                continue
+            finally:
+                retries += 1
 
+        if tweet_id is None:
+            self.logger.error("Failed to create the tweet after maximum retries.")
         return None
 
     async def delete_tweet(self, tweet_id: str) -> None:
