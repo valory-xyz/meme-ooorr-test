@@ -281,23 +281,27 @@ class ActionDecisionBehaviour(
 
             # Fix amounts
             if action_name == "summon":
+                chain_id = self.get_chain_id()
+
                 amount = max(
                     amount,
-                    int(self.params.min_summon_amount_eth * 1e18),
+                    int(getattr(self.params, f"min_summon_amount_{chain_id}") * 1e18),
                 )
                 amount = min(
                     amount,
-                    int(self.params.max_summon_amount_eth * 1e18),
+                    int(getattr(self.params, f"max_summon_amount_{chain_id}") * 1e18),
                 )
 
             if action_name == "heart":
+                chain_id = self.get_chain_id()
+
                 amount = max(
                     amount,
                     1,  # 1 wei
                 )
                 amount = min(
                     amount,
-                    int(self.params.max_heart_amount_eth * 1e18),
+                    int(getattr(self.params, f"max_heart_amount_{chain_id}") * 1e18),
                 )
 
             self.context.logger.info("The LLM returned a valid response")
