@@ -382,10 +382,17 @@ class TwikitConnection(Connection):
                 self.logger.info(f"Posting: {kwargs}")
                 result = await self.client.create_tweet(**kwargs)
                 tweet_id = result.id
-                break
+                if tweet_id is not None:
+                    self.logger.error(f"Tweet created: {tweet_id}")
+                    break
+                self.logger.error("Failed to create the tweet. Retrying...")
             except Exception as e:
                 self.logger.error(f"Failed to create the tweet: {e}. Retrying...")
+            finally:
                 retries += 1
+
+        if not tweet_id:
+            return None
 
         # Verify that the tweet exists
         retries = 0
@@ -425,7 +432,7 @@ class TwikitConnection(Connection):
         tweets = await self.client.get_user_tweets(
             user_id=user.id, tweet_type=tweet_type, count=count
         )
-        return [tweet_to_json(t) for t in tweets]
+        return [tweet_to_json(t, user.id) for t in tweets]
 
     async def like_tweet(self, tweet_id: str) -> Dict:
         """Like a tweet"""
@@ -462,11 +469,12 @@ class TwikitConnection(Connection):
         return user_to_json(user)
 
 
-def tweet_to_json(tweet: Any) -> Dict:
+def tweet_to_json(tweet: Any, user_id: Optional[str] = None) -> Dict:
     """Tweet to json"""
     return {
         "id": tweet.id,
         "user_name": tweet.user.name,
+        "user_id": user_id or tweet.user.id,
         "text": tweet.text,
         "created_at": tweet.created_at,
         "view_count": tweet.view_count,

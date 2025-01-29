@@ -19,10 +19,15 @@
 
 """This package contains LLM prompts."""
 
+import enum
+import pickle  # nosec
+import typing
+from dataclasses import dataclass
+
 
 TWITTER_DECISION_PROMPT = """
 You are a user on Twitter with a specific persona. You create tweets and also analyze tweets from other users and decide whether to interact with them or not.
-You need to decide whether to create your own tweet or to interact with other users. The available actions are:
+You need to decide what actions on Twitter you want to perform. The available actions are:
 
 - Tweet
 - Reply
@@ -40,22 +45,39 @@ Here are some of your previous tweets:
 Here are some tweets from other users:
 {other_tweets}
 
-Your task is to decide what actions to do, if any. Some reccomenadations:
+Your task is to decide what actions to do, if any. Some recommenadations:
 - If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.
 - If you decide to reply or quote, make sure it is relevant to the tweet you are replying to.
-- We encourage you to interact with other users to increase your engagement.
+- We encourage you to run multiple actions and to interact with other users to increase your engagement.
 - Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
-
-OUTPUT_FORMAT
-* Your output response must be only a single JSON list to be parsed by Python's "json.loads()".
-* The JSON must contain a list with the actions you want to take. Each entry in that list is a dict that needs to define:
-    - action: a string with one of the following values: none, tweet, like, retweet, reply, quote or follow. Use none when you don't want to do anything.
-    - tweet_id: the id of the tweet you are interacting with, if any.
-    - text: a string. If the selected action is tweet, reply or quote, this field must contain the text of the reply or quote. If the action is like, retweet or follow, this field must be empty. Please do not include any hastags on the tweet. Remember that tweets can't be longer than 280 characters.
-* This is incorrect:"```json{{response}}```"
-* This is incorrect:```json"{{response}}"```
-* This is correct:"{{response}}"
 """
+
+
+class TwitterActionName(enum.Enum):
+    """TwitterActionName"""
+
+    NONE = "none"
+    TWEET = "tweet"
+    LIKE = "like"
+    RETWEET = "retweet"
+    REPLY = "reply"
+    QUOTE = "quote"
+    FOLLOW = "follow"
+
+
+@dataclass(frozen=True)
+class TwitterAction:
+    """TwitterAction"""
+
+    action: TwitterActionName
+    selected_tweet_id: str
+    user_id: str
+    text: str
+
+
+def build_twitter_action_schema() -> dict:
+    """Build a schema for Twitter action response"""
+    return {"class": pickle.dumps(TwitterAction).hex(), "is_list": True}
 
 
 TOKEN_DECISION_PROMPT = (  # nosec
@@ -90,14 +112,15 @@ TOKEN_DECISION_PROMPT = (  # nosec
     * purge: burn all uncollected tokens
     * burn: execute collateral burn
 
+    But not all the actions are available for every token. The available actions for each token are listed in the "available_actions" field.
+
     Your task is to make a decision on what should be the next action to be executed to maximize your portfolio value.
     Take into account the engagement you're getting on twitter and also the existing token's popularity.
-    Whenever hearting is in the list of available actions, try to heart a token from time to time.
 
     You have three options:
     * Do nothing
     * Summon your own token if the engagement is good enough or if the number of meme coins in the market is low (under 30)
-    * Execute one action from the available actions for one of the already existing tokens
+    * Execute one action from the available actions for one of the already existing tokens. Prioritize hearting over other available actions.
 
     Here's the list of existing  memecoins:
     {meme_coins}
@@ -106,28 +129,85 @@ TOKEN_DECISION_PROMPT = (  # nosec
     "{latest_tweet}"
 
     Here's a list of tweets that you received as a response to your latest tweet and some engagement metrics.
+    You can use this information to update your persona if you think that will improve engagement.
     "{tweet_responses}"
 
-    You can use these tweets as feedback in order to update your persona if you think that will improve engagement.
-
-    You have {balance} ETH currently available, so stick to that budget.
+    You have {balance} {ticker} currently available, so stick to that budget.
+    Amounts should be expressed in wei.
     Every now and then you will need to make more decisions using the same budget, so it might be wise not to spend eveything on a single action.
-    Whenever hearting is in the list of available actions, try to heart a token from time to time.
 
-    OUTPUT_FORMAT
-    * Your output response must be only a single JSON object to be parsed by Python's "json.loads()".
-    * The JSON must contain five fields: "action", "token_address", "token_nonce", "amount" and "tweet".
-        - action: a string with the action you have decided to take. none means do nothing.
-        - token_address: a string with the token address of the meme coin you decided to interact with, or empty if none
-        - token_nonce: a string with the token nonce of the meme coin you decided to interact with, or empty if none
-        - token_name: a new name for the new token if the action is summon. Empty if no token is going to be summonned.
-        - token_ticker: a new ticker for the new token. Empty if no token is going to be summonned.
-        - token_supply: the ERC-20 token supply in wei units. Empty if no token is going to be summonned. Token supply must be at least 1 million * 10**18 and at most the maximum number of uint256.
-        - amount: the amount (in wei units of {ticker}) to invest if the action is summon or heart, or 0 otherwise
-        - tweet: a short tweet to announce the action taken, or empty if none. Please do not include any hastags on the tweet. Remember that tweets can't be longer than 280 characters.
-        - new_persona: a string with your updated persona if you decide to update it, or empty if you don't.
-    * This is incorrect:"```json{{response}}```"
-    * This is incorrect:```json"{{response}}"```
-    * This is correct:"{{response}}"
+    For each action you take, you should also tweet about it to keep your followers engaged.
     """
 )
+
+
+@dataclass(frozen=True)
+class TokenSummon:
+    """TokenSummon"""
+
+    token_name: str
+    token_ticker: str
+    token_supply: int
+    amount: int
+
+
+@dataclass(frozen=True)
+class TokenHeart:
+    """TokenSummon"""
+
+    token_nonce: str
+    amount: int
+
+
+@dataclass(frozen=True)
+class TokenUnleash:
+    """TokenSummon"""
+
+    token_nonce: str
+
+
+@dataclass(frozen=True)
+class TokenCollect:
+    """TokenSummon"""
+
+    token_nonce: str
+    token_address: str
+
+
+@dataclass(frozen=True)
+class TokenPurge:
+    """TokenSummon"""
+
+    token_nonce: str
+    token_address: str
+
+
+class ValidActionName(enum.Enum):
+    """ValidAction"""
+
+    NONE = "none"
+    SUMMON = "summon"
+    HEART = "heart"
+    UNLEASH = "unleash"
+    COLLECT = "collect"
+    PURGE = "purge"
+    BURN = "burn"
+
+
+@dataclass(frozen=True)
+class TokenAction:  # pylint: disable=too-many-instance-attributes
+    """TokenAction"""
+
+    action_name: ValidActionName
+    summon: typing.Optional[TokenSummon]
+    heart: typing.Optional[TokenHeart]
+    unleash: typing.Optional[TokenUnleash]
+    collect: typing.Optional[TokenCollect]
+    purge: typing.Optional[TokenPurge]
+    new_persona: typing.Optional[str]
+    tweet: str
+
+
+def build_token_action_schema() -> dict:
+    """Build a schema for token action response"""
+    return {"class": pickle.dumps(TokenAction).hex(), "is_list": False}

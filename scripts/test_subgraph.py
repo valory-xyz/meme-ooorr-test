@@ -37,14 +37,17 @@ query Tokens {
       heartCount
       id
       isUnleashed
+      isPurged
       liquidity
       lpPairAddress
       owner
       timestamp
       memeNonce
       summonTime
+      unleashTime
       memeToken
       name
+      symbol
     }
   }
 }
@@ -90,12 +93,14 @@ def get_meme_coins_from_subgraph():
     response_json = response.json()
     meme_coins = [
         {
+            "token_name": t["name"],
             "block_number": int(t["blockNumber"]),
             "chain": t["chain"],
             "token_address": t["memeToken"],
             "liquidity": int(t["liquidity"]),
             "heart_count": int(t["heartCount"]),
             "is_unleashed": t["isUnleashed"],
+            "is_purged": t["isPurged"],
             "lp_pair_address": t["lpPairAddress"],
             "owner": t["owner"],
             "timestamp": t["timestamp"],
