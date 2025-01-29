@@ -20,7 +20,7 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
-import re
+import random
 import secrets
 from datetime import datetime
 from typing import Dict, Generator, List, Optional, Tuple, Type, Union
@@ -49,21 +49,6 @@ from packages.valory.skills.abstract_round_abci.base import AbstractRound
 MAX_TWEET_CHARS = 280
 JSON_RESPONSE_REGEXES = [r"json.?({.*})", r"json({.*})", r"\`\`\`json(.*)\`\`\`"]
 MAX_TWEET_PREPARATIONS_RETRIES = 3
-
-
-def parse_json_from_llm(response: str) -> Optional[Union[Dict, List]]:
-    """Parse JSON from LLM response"""
-    for JSON_RESPONSE_REGEX in JSON_RESPONSE_REGEXES:
-        match = re.search(JSON_RESPONSE_REGEX, response, re.DOTALL)
-        if not match:
-            continue
-
-        try:
-            loaded_response = json.loads(match.groups()[0])
-            return loaded_response
-        except json.JSONDecodeError:
-            continue
-    return None
 
 
 def is_tweet_valid(tweet: str) -> bool:
@@ -160,36 +145,62 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         return response["success"]
 
     def get_previous_tweets(
-        self, twitter_handle: str, limit: int = 20
-    ) -> Generator[None, None, Optional[str]]:
-        """Get the latest tweets formatted as numbered list
+        self, limit: int = 5
+    ) -> Generator[None, None, Optional[List[Dict]]]:
+        """Get the latest tweets
 
         Args:
-            twitter_handle (str): The Twitter handle to fetch tweets from
-            limit (int, optional): Maximum number of tweets to return. Defaults to 20.
+            limit (int, optional): Maximum number of tweets to return. Defaults to 5.
 
         Returns:
-            Generator yielding Optional[str]: Numbered list of tweets or empty string
+            Generator yielding Optional[List[Dict]]: List of tweets or None
         """
+        # Try to get tweets from MirrorDB
+        self.context.logger.info("Trying to get latest tweets from MirrorDB for agent")
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
-        delay = secrets.randbelow(5)
-        self.context.logger.info(f"Sleeping for {delay} seconds")
-        yield from self.sleep(delay)
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
 
-        self.context.logger.info(f"Getting latest {limit} tweets from {twitter_handle}")
-        previous_tweets = yield from self._call_twikit(
-            method="get_user_tweets",
-            twitter_handle=twitter_handle,
-        )
+        agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
 
-        if previous_tweets:
-            numbered_tweets = [
-                f"{i+1}. {tweet['text']}"
-                for i, tweet in enumerate(previous_tweets[:limit])
-            ]
-            return "\n".join(numbered_tweets)
+        if agent_id:
+            try:
+                mirror_db_response = yield from self._call_mirrordb(
+                    method="get_latest_tweets",
+                    agent_id=agent_id,
+                )
+                self.context.logger.info(f"MirrorDB response: {mirror_db_response}")
 
-        return ""
+                if (
+                    "detail" in mirror_db_response
+                    and mirror_db_response["detail"]
+                    == "No tweets found for the associated Twitter accounts"
+                ):
+                    mirror_db_response = None
+
+                if mirror_db_response:
+                    for tweet in mirror_db_response:
+                        tweet["timestamp"] = datetime.fromisoformat(
+                            tweet["created_at"]
+                        ).timestamp()
+                    return mirror_db_response[:limit]
+            except Exception as e:  # pylint: disable=broad-except
+                self.context.logger.error(f"Error getting tweets from MirrorDB: {e}")
+
+        # Fallback to get_tweets_from_db if MirrorDB fails or returns no results
+        self.context.logger.info(f"Getting latest {limit} tweets from local DB")
+        tweets = yield from self.get_tweets_from_db()
+
+        if tweets:
+            for tweet in tweets:
+                tweet["timestamp"] = datetime.fromisoformat(
+                    tweet["created_at"]
+                ).timestamp()
+            return tweets[:limit]
+
+        return None
 
 
 class CollectFeedbackBehaviour(
@@ -363,15 +374,17 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         other_tweets = "\n\n".join(
             [
                 f"tweet_id: {t_id}\ntweet_text: {t_data['text']}\nuser_id: {t_data['user_id']}"
-                for t_id, t_data in pending_tweets.items()
+                for t_id, t_data in dict(
+                    random.sample(list(pending_tweets.items()), len(pending_tweets))
+                )
             ]
         )
 
-        # Get at most your 5 latest tweets
-        tweets = yield from self.get_tweets_from_db()
-        tweets = tweets[-5:]
+        tweets = yield from self.get_previous_tweets()  # type: ignore
+        tweets = tweets[-5:] if tweets else None  # type: ignore
 
         if tweets:
+            random.shuffle(tweets)
             previous_tweets = "\n\n".join(
                 [
                     f"tweet_id: {tweet['tweet_id']}\ntweet_text: {tweet['text']}\ntime: {datetime.fromtimestamp(tweet['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}"

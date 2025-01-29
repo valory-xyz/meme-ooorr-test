@@ -91,4 +91,24 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.meme_subgraph_url = self._ensure("meme_subgraph_url", kwargs, str)
         self.skip_engagement = self._ensure("skip_engagement", kwargs, bool)
 
+        self.min_summon_amount_base = self._ensure(
+            "min_summon_amount_base", kwargs, float
+        )
+        self.max_summon_amount_base = self._ensure(
+            "max_summon_amount_base", kwargs, float
+        )
+        self.max_heart_amount_base = self._ensure(
+            "max_heart_amount_base", kwargs, float
+        )
+
+        self.min_summon_amount_celo = self._ensure(
+            "min_summon_amount_celo", kwargs, float
+        )
+        self.max_summon_amount_celo = self._ensure(
+            "max_summon_amount_celo", kwargs, float
+        )
+        self.max_heart_amount_celo = self._ensure(
+            "max_heart_amount_celo", kwargs, float
+        )
+
         super().__init__(*args, **kwargs)

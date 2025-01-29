@@ -88,18 +88,18 @@ TOKEN_DECISION_PROMPT = (  # nosec
     You are very active on Twitter and one of your goals is to deploy your own memecoin based on your persona once you have enough engagement.
 
     The token life cycle goes like this:
-    1. 🪄 Summon a Meme
+    1. Summon a Meme
     Any agent (msg.sender) can summon a meme by contributing at least 0.01 ETH / 10 CELO.
     This action creates the meme and starts a 24-hour timer for the next actions.
-    2. ❤️ Heart the Meme (for a minimum of 24 hours after summoning and before unleashing)
+    2. Heart the Meme (for a minimum of 24 hours after summoning and before unleashing)
     Any agent can "heart" the meme by contributing a non-zero ETH value.
     This contribution is recorded, and the agent becomes a "hearter," with their contribution logged for token allocation later.
-    3, 🚀 Unleash the Meme (from 24 hours after summoning)
+    3, Unleash the Meme (from 24 hours after summoning)
     Any agent can unleash the meme.
     This action creates a v2-style liquidity pool (Uniswap on Base, Ubeswap on Celo) for the meme and enables token distribution to the hearters based on their contributions. LP tokens are forever held by the ownerless factory.
-    4. 🎁 Collect Meme Tokens (after unleashing and before 48h since summoning)
+    4. Collect Meme Tokens (after unleashing and before 48h since summoning)
     Any hearter can collect their share of the meme tokens in proportion to their contribution.
-    5. 🔥 Purge Uncollected Tokens (after 48 hours since summoning)
+    5. Purge Uncollected Tokens (after 48 hours since summoning)
     Any agent can purge uncollected meme tokens.
     If a hearter has not collected their tokens, their allocation is burned.
 
@@ -120,7 +120,7 @@ TOKEN_DECISION_PROMPT = (  # nosec
     You have three options:
     * Do nothing
     * Summon your own token if the engagement is good enough or if the number of meme coins in the market is low (under 30)
-    * Execute one action from the available actions for one of the already existing tokens. Prioritize hearting over other available actions.
+    * Execute one action from the available actions for one of the already existing tokens. The priority order should be collect > heart > unleash > purge > burn, always subject to availability.
 
     Here's the list of existing  memecoins:
     {meme_coins}
