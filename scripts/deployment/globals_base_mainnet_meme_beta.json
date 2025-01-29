@@ -22,10 +22,10 @@
   "memeActivityCheckerAddress":"",
   "stakingParams":
     {
-      "metadataHash":"",
-      "maxNumServices":"20",
-      "rewardsPerSecond":"43981481481520",
-      "minStakingDeposit":"500000000000000000000",
+      "metadataHash":"0xa4281ec71a254c8dd08d624ff09609dc3235a0e63b05c1e410eb7e1f3d07e57d",
+      "maxNumServices":"100",
+      "rewardsPerSecond":"4398148148152",
+      "minStakingDeposit":"50000000000000000000",
       "minNumStakingPeriods":"3",
       "maxNumInactivityPeriods":"3",
       "livenessPeriod":"86400",
