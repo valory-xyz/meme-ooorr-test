@@ -276,30 +276,25 @@ class ActionDecisionBehaviour(
                     None,
                 )
 
-            # Fix amount if it is lower than the min required amount
+            # Fix amounts
             if action_name == "summon":
                 amount = max(
                     amount,
-                    int(0.01e18),  # 0.01 ETH = min summon amount
+                    int(self.params.min_summon_amount_eth * 1e18),
                 )
-
                 amount = min(
                     amount,
-                    int(
-                        0.1e18
-                    ),  # for security, let's put a top to this amount (0.1 ETH)
+                    int(self.params.max_summon_amount_eth * 1e18),
                 )
+
             if action_name == "heart":
                 amount = max(
                     amount,
                     1,  # 1 wei
                 )
-
                 amount = min(
                     amount,
-                    int(
-                        0.1e18
-                    ),  # for security, let's put a top to this amount (0.1 ETH)
+                    int(self.params.max_heart_amount_eth * 1e18),
                 )
 
             self.context.logger.info("The LLM returned a valid response")

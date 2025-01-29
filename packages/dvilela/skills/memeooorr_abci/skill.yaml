@@ -11,15 +11,15 @@ fingerprint:
   behaviour_classes/base.py: bafybeieed23mlc6osvjlh3fqfjrjbii22y3233gkwk27oo5jqysdqwchbq
   behaviour_classes/chain.py: bafybeigjprhsjuwvr66iymvytwnyp6nhgidfmdqp2wned3pgfmwthtotma
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
-  behaviour_classes/llm.py: bafybeibfx3xrqoijvy5rkkkmmmlnk5udfluv42xxeqn5xpdygbov2jc7au
+  behaviour_classes/llm.py: bafybeiezxr2aiotlvwdqwgzmdnhe3vdfhdyedjdmwz4lr5hdlwdkhx3fou
   behaviour_classes/twitter.py: bafybeia64ew3sohjdka6hiw4fyypahh5qt4mclyn3p3n6gena6y4exihji
   behaviours.py: bafybeicpq6utktukthmol2y63tdcqzdrrj7qgbi3vw42uad56eyny2bkii
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeid5mr6fllsguewlan6c2fkxh4rmjl5j4ftn2jzhfofy2muhatksqm
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
-  models.py: bafybeibvehinchtdmzwiunjtlwljhwipz2axkvyq6w5g352yfjj3jeqtym
+  models.py: bafybeiaz2mz6jjedt3satgdu6lhvikrlv52yuvevu7o3ybi7kudvwuvo6q
   payloads.py: bafybeicm4cvsihp2gxxbiwrhqzjixsatkpm2zhd3pvlem2v36alw52n6bu
-  prompts.py: bafybeige2x4bpaqr6erirzceb47asm3xseye6jawaww3cprus33qsmmohi
+  prompts.py: bafybeihes24xtbyzg3rfwjasnsmcrauzgdn25s46aza36rgrbrzadab2hy
   rounds.py: bafybeiaqpdohvexyenalnyzngx37ce4tbgfh3fhtlzz4lbyty7akr4jffq
   rounds_info.py: bafybeibtcdxu46hfoqhtscyn2gdc6zuah5yw6l5anqrs4u6rozvza42j4m
 fingerprint_ignore_patterns: []
@@ -167,6 +167,9 @@ models:
       service_registry_address_celo: '0xE3607b00E75f6405248323A9417ff6b39B244b50'
       meme_subgraph_url: https://agentsfun-indexer-production.up.railway.app
       skip_engagement: false
+      min_summon_amount_eth: 0.01
+      max_summon_amount_eth: 0.02
+      max_heart_amount_eth: 0.0002
     class_name: Params
   requests:
     args: {}
