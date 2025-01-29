@@ -326,11 +326,6 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             value=value,
         )
 
-        # Optimistic design: we now store the hearted token address
-        # Ideally, this should be done after a succesful heart transaction
-        if action == "heart":
-            self.store_heart(token_action["token_nonce"])
-
         return safe_tx_hash
 
     def post_action(  # pylint: disable=too-many-locals

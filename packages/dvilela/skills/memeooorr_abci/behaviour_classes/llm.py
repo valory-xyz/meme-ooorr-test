@@ -20,13 +20,15 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
-import re
 from typing import Generator, Optional, Tuple, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.prompts import TOKEN_DECISION_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import (
+    TOKEN_DECISION_PROMPT,
+    build_token_action_schema,
+)
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionDecisionPayload,
     ActionDecisionRound,
@@ -44,8 +46,6 @@ TOKEN_SUMMARY = (  # nosec
     token address: {token_address}
     token name: {token_name}
     token symbol: {token_ticker}
-    total supply (wei): {token_supply}
-    decimals: {decimals}
     heart count: {heart_count}
     available actions: {available_actions}
     """
@@ -120,6 +120,9 @@ class ActionDecisionBehaviour(
         meme_coins = "\n".join(
             TOKEN_SUMMARY.format(**meme_coin)
             for meme_coin in self.synchronized_data.meme_coins
+            if meme_coin[
+                "available_actions"
+            ]  # Filter out tokens with no available actions
         )
 
         self.context.logger.info(f"Action options:\n{meme_coins}")
@@ -146,11 +149,12 @@ class ActionDecisionBehaviour(
             "latest_tweet": latest_tweet,
             "tweet_responses": tweet_responses,
             "balance": safe_native_balance,
-            "ticker": "ETH" if self.params.home_chain_id == "BASE" else "CELO",
+            "ticker": self.get_native_ticker(),
         }
 
         llm_response = yield from self._call_genai(
-            prompt=TOKEN_DECISION_PROMPT.format(**prompt_data)
+            prompt=TOKEN_DECISION_PROMPT.format(**prompt_data),
+            schema=build_token_action_schema(),
         )
         self.context.logger.info(f"LLM response: {llm_response}")
 
@@ -171,23 +175,25 @@ class ActionDecisionBehaviour(
             )
 
         try:
-            llm_response = llm_response.replace("\n", "").strip()
-            match = re.search(JSON_RESPONSE_REGEX, llm_response, re.DOTALL)
-            if match:
-                llm_response = match.groups()[0]
             response = json.loads(llm_response)
+            action_name = response.get("action_name", "none")
+            action = response.get(action_name, {})
 
-            action = response.get("action", "none")
-            token_address = response.get("token_address", None)
+            token_name = action.get("token_name", None)
+            token_ticker = action.get("token_ticker", None)
+            token_supply = action.get("token_supply", None)
+            amount = int(action.get("amount", 0))
+            token_nonce = action.get("token_nonce", None)
+            token_address = action.get("token_address", None)
+            tweet = response.get("tweet", None)
 
-            token_nonce = response.get("token_nonce", None)
             if isinstance(token_nonce, str) and token_nonce.isdigit():
                 token_nonce = int(token_nonce)
 
-            amount = float(response.get("amount", 0))
-            tweet = response.get("tweet", None)
+            if isinstance(token_supply, str) and token_supply.isdigit():
+                token_supply = int(token_supply)
 
-            if action == "none":
+            if action_name == "none":
                 self.context.logger.info("Action is none")
                 return (
                     Event.WAIT.value,
@@ -202,7 +208,7 @@ class ActionDecisionBehaviour(
                     None,
                 )
 
-            if action in ["heart", "unleash"] and token_nonce not in valid_nonces:
+            if action_name in ["heart", "unleash"] and token_nonce not in valid_nonces:
                 self.context.logger.info(
                     f"Token nonce {token_nonce} is not in valid_nonces={valid_nonces}"
                 )
@@ -225,9 +231,9 @@ class ActionDecisionBehaviour(
                     available_actions = t["available_actions"]
                     break
 
-            if action != "summon" and action not in available_actions:
+            if action_name != "summon" and action_name not in available_actions:
                 self.context.logger.info(
-                    f"Action [{action}] is not in available_actions={available_actions}"
+                    f"Action [{action_name}] is not in available_actions={available_actions}"
                 )
                 return (
                     Event.WAIT.value,
@@ -242,7 +248,7 @@ class ActionDecisionBehaviour(
                     None,
                 )
 
-            if action == "summon":
+            if action_name == "summon":
                 token_name = response.get("token_name", None)
                 token_ticker = response.get("token_ticker", None)
                 token_supply = response.get("token_supply", None)
@@ -271,10 +277,29 @@ class ActionDecisionBehaviour(
                 )
 
             # Fix amount if it is lower than the min required amount
-            if action == "heart":
+            if action_name == "summon":
+                amount = max(
+                    amount,
+                    int(0.01e18),  # 0.01 ETH = min summon amount
+                )
+
+                amount = min(
+                    amount,
+                    int(
+                        0.1e18
+                    ),  # for security, let's put a top to this amount (0.1 ETH)
+                )
+            if action_name == "heart":
                 amount = max(
                     amount,
                     1,  # 1 wei
+                )
+
+                amount = min(
+                    amount,
+                    int(
+                        0.1e18
+                    ),  # for security, let's put a top to this amount (0.1 ETH)
                 )
 
             self.context.logger.info("The LLM returned a valid response")
@@ -282,7 +307,7 @@ class ActionDecisionBehaviour(
                 yield from self._write_kv({"persona": new_persona})
             return (
                 Event.DONE.value,
-                action,
+                action_name,
                 token_address,
                 token_nonce,
                 token_name,

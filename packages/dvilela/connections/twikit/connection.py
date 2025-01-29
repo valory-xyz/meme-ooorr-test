@@ -287,6 +287,17 @@ class TwikitConnection(Connection):
             )
             return response_message
 
+        except (
+            twikit.errors.AccountLocked,
+            twikit.errors.AccountSuspended,
+            twikit.errors.Unauthorized,
+        ):
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                "Twitter account is locked, suspended or unauthorized.",
+            )
+
         except Exception as e:
             return self.prepare_error_message(
                 srr_message, dialogue, f"Exception while calling Twikit:\n{e}"
@@ -379,6 +390,9 @@ class TwikitConnection(Connection):
             finally:
                 retries += 1
 
+        if not tweet_id:
+            return None
+
         # Verify that the tweet exists
         retries = 0
         while retries < MAX_GET_RETRIES:
@@ -419,7 +433,7 @@ class TwikitConnection(Connection):
         tweets = await self.client.get_user_tweets(
             user_id=user.id, tweet_type=tweet_type, count=count
         )
-        return [tweet_to_json(t) for t in tweets]
+        return [tweet_to_json(t, user.id) for t in tweets]
 
     async def like_tweet(self, tweet_id: str) -> Dict:
         """Like a tweet"""
@@ -456,11 +470,12 @@ class TwikitConnection(Connection):
         return user_to_json(user)
 
 
-def tweet_to_json(tweet: Any) -> Dict:
+def tweet_to_json(tweet: Any, user_id: Optional[str] = None) -> Dict:
     """Tweet to json"""
     return {
         "id": tweet.id,
         "user_name": tweet.user.name,
+        "user_id": user_id or tweet.user.id,
         "text": tweet.text,
         "created_at": tweet.created_at,
         "view_count": tweet.view_count,
