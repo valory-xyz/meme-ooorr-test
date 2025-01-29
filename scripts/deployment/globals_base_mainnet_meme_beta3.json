@@ -22,7 +22,7 @@
   "memeActivityCheckerAddress":"0x026AB1c5ea14E61f67d245685D9561c0c2Cb39Ba",
   "stakingParams":
     {
-      "metadataHash":"",
+      "metadataHash":"0xfac4acb6911e49755cdb99fb9c9bb680cb6dd878931a9c5ecd2c6abc48595226",
       "maxNumServices":"20",
       "rewardsPerSecond":"219907407407600",
       "minStakingDeposit":"2500000000000000000000",
@@ -38,5 +38,5 @@
       "serviceRegistry":"0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE",
       "activityChecker":"0x026AB1c5ea14E61f67d245685D9561c0c2Cb39Ba"
     },
-  "stakingTokenInstanceAddress":""
+  "stakingTokenInstanceAddress":"0xCA61633b03c54F64b6A7F1f9A9C0A6Feb231Cc4D"
 }
