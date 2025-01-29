@@ -22,7 +22,7 @@
 
 import asyncio
 import json
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import aiohttp
 from aea.configurations.base import PublicId
@@ -266,6 +266,11 @@ class MirrorDBConnection(Connection):
         self, agent_id: int, twitter_user_id: str, tweet_data: Dict
     ) -> Dict:
         """Create a tweet."""
+        # check if tweet id is present in the tweet_data if not raise an error
+        tweet_id = tweet_data.get("tweet_id")
+        if tweet_id is None:
+            raise ValueError("Failed to create tweet, no tweet_id provided.")
+
         async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/",
             json=tweet_data,
@@ -288,6 +293,14 @@ class MirrorDBConnection(Connection):
         async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/interactions/",
             json=interaction_data,
+            headers={"access-token": f"{self.api_key}"},
+        ) as response:
+            return await response.json()
+
+    async def get_latest_tweets(self, agent_id: int) -> List[Dict]:
+        """Get the latest tweets for a given agent."""
+        async with self.session.get(  # type: ignore
+            f"{self.base_url}/api/agents/{agent_id}/twitter_accounts/tweets/",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
             return await response.json()
