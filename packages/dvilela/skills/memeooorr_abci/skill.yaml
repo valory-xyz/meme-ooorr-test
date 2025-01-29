@@ -170,8 +170,8 @@ models:
       min_summon_amount_base: 0.01
       max_summon_amount_base: 0.02
       max_heart_amount_base: 0.0002
-      min_summon_amount_celo: 10
-      max_summon_amount_celo: 20
+      min_summon_amount_celo: 10.0
+      max_summon_amount_celo: 20.0
       max_heart_amount_celo: 0.2
     class_name: Params
   requests:

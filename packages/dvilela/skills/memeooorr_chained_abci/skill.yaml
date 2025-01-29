@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeigmyonotdry7q5uxt55xzcho2byp6u7seshisvrw6hhcgn7mzfti4
 - valory/transaction_settlement_abci:0.1.0:bafybeidpzdtevjmqw7swdmk6mtz2ez47fvsit3choh5d4nzgioyfqkzgba
 - valory/termination_abci:0.1.0:bafybeifs4vorsmsulzgobr754od2omj6uphylslkrtuadxzludoexld6ny
-- dvilela/memeooorr_abci:0.1.0:bafybeiag4zevl2rhie4smiptfjd63rqpxy63amnoc2sgh3dl2dzyeo5toa
+- dvilela/memeooorr_abci:0.1.0:bafybeicgsrmgg4ji4u7iio7cdkbu7owk63xgkgmo3mwo2ey5ixbij2ua5y
 behaviours:
   main:
     args: {}
@@ -161,8 +161,8 @@ models:
       min_summon_amount_base: 0.01
       max_summon_amount_base: 0.02
       max_heart_amount_base: 0.0002
-      min_summon_amount_celo: 10
-      max_summon_amount_celo: 20
+      min_summon_amount_celo: 10.0
+      max_summon_amount_celo: 20.0
       max_heart_amount_celo: 0.2
     class_name: Params
   randomness_api:

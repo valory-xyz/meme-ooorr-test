@@ -42,8 +42,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeidpzdtevjmqw7swdmk6mtz2ez47fvsit3choh5d4nzgioyfqkzgba
 - valory/registration_abci:0.1.0:bafybeib2qkzymrwklb3lfp6biqllsch4werp7e3wttjpmx4eizefpiwmhi
 - valory/reset_pause_abci:0.1.0:bafybeigmyonotdry7q5uxt55xzcho2byp6u7seshisvrw6hhcgn7mzfti4
-- dvilela/memeooorr_abci:0.1.0:bafybeiag4zevl2rhie4smiptfjd63rqpxy63amnoc2sgh3dl2dzyeo5toa
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeiadt3q4cpixrbjafavh4fh3mrhgahtpfa5ffxxvchrdfn6uajsxsy
+- dvilela/memeooorr_abci:0.1.0:bafybeicgsrmgg4ji4u7iio7cdkbu7owk63xgkgmo3mwo2ey5ixbij2ua5y
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeienliwnu5re73bkebxgnqmhc4yvelftfb6kn4dxseanptbfxdvdia
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -226,8 +226,8 @@ models:
       min_summon_amount_base: ${float:0.01}
       max_summon_amount_base: ${float:0.02}
       max_heart_amount_base: ${float:0.0002}
-      min_summon_amount_celo: ${float:10}
-      max_summon_amount_celo: ${float:20}
+      min_summon_amount_celo: ${float:10.0}
+      max_summon_amount_celo: ${float:20.0}
       max_heart_amount_celo: ${float:0.2}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq

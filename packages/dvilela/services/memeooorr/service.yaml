@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeihepyqg5kleno6xbfdveisiwueva5avkyz3efv7er7fwojkikqsrq
+agent: dvilela/memeooorr:0.1.0:bafybeibduowylzszj4wkmi4df6hdmuq5lokkidfjwkwjod7uvo4a7lxbay
 number_of_agents: 1
 deployment:
   agent:
@@ -102,8 +102,8 @@ extra:
         min_summon_amount_base: ${MIN_SUMMON_AMOUNT_BASE:float:0.01}
         max_summon_amount_base: ${MAX_SUMMON_AMOUNT_BASE:float:0.02}
         max_heart_amount_base: ${MAX_HEART_AMOUNT_BASE:float:0.0002}
-        min_summon_amount_celo: ${MIN_SUMMON_AMOUNT_CELO:float:10}
-        max_summon_amount_celo: ${MAX_SUMMON_AMOUNT_CELO:float:20}
+        min_summon_amount_celo: ${MIN_SUMMON_AMOUNT_CELO:float:10.0}
+        max_summon_amount_celo: ${MAX_SUMMON_AMOUNT_CELO:float:20.0}
         max_heart_amount_celo: ${MAX_HEART_AMOUNT_CELO:float:0.2}
 ---
 public_id: valory/ledger:0.19.0
