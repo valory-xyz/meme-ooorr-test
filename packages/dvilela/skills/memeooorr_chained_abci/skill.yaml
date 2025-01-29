@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeigmyonotdry7q5uxt55xzcho2byp6u7seshisvrw6hhcgn7mzfti4
 - valory/transaction_settlement_abci:0.1.0:bafybeidpzdtevjmqw7swdmk6mtz2ez47fvsit3choh5d4nzgioyfqkzgba
 - valory/termination_abci:0.1.0:bafybeifs4vorsmsulzgobr754od2omj6uphylslkrtuadxzludoexld6ny
-- dvilela/memeooorr_abci:0.1.0:bafybeie3hnhipwzl5dwdhpo2snyrgvh7fblq4inldxmfzv7mhcisr655de
+- dvilela/memeooorr_abci:0.1.0:bafybeicgsrmgg4ji4u7iio7cdkbu7owk63xgkgmo3mwo2ey5ixbij2ua5y
 behaviours:
   main:
     args: {}
@@ -158,9 +158,12 @@ models:
       service_registry_address_celo: '0xE3607b00E75f6405248323A9417ff6b39B244b50'
       meme_subgraph_url: https://agentsfun-indexer-production.up.railway.app
       skip_engagement: false
-      min_summon_amount_eth: 0.01
-      max_summon_amount_eth: 0.02
-      max_heart_amount_eth: 0.0002
+      min_summon_amount_base: 0.01
+      max_summon_amount_base: 0.02
+      max_heart_amount_base: 0.0002
+      min_summon_amount_celo: 10.0
+      max_summon_amount_celo: 20.0
+      max_heart_amount_celo: 0.2
     class_name: Params
   randomness_api:
     args:

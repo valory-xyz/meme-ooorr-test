@@ -20,7 +20,7 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
-import re
+import random
 import secrets
 from datetime import datetime
 from typing import Dict, Generator, List, Optional, Tuple, Type, Union
@@ -49,21 +49,6 @@ from packages.valory.skills.abstract_round_abci.base import AbstractRound
 MAX_TWEET_CHARS = 280
 JSON_RESPONSE_REGEXES = [r"json.?({.*})", r"json({.*})", r"\`\`\`json(.*)\`\`\`"]
 MAX_TWEET_PREPARATIONS_RETRIES = 3
-
-
-def parse_json_from_llm(response: str) -> Optional[Union[Dict, List]]:
-    """Parse JSON from LLM response"""
-    for JSON_RESPONSE_REGEX in JSON_RESPONSE_REGEXES:
-        match = re.search(JSON_RESPONSE_REGEX, response, re.DOTALL)
-        if not match:
-            continue
-
-        try:
-            loaded_response = json.loads(match.groups()[0])
-            return loaded_response
-        except json.JSONDecodeError:
-            continue
-    return None
 
 
 def is_tweet_valid(tweet: str) -> bool:
@@ -389,7 +374,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         other_tweets = "\n\n".join(
             [
                 f"tweet_id: {t_id}\ntweet_text: {t_data['text']}\nuser_id: {t_data['user_id']}"
-                for t_id, t_data in pending_tweets.items()
+                for t_id, t_data in dict(
+                    random.sample(list(pending_tweets.items()), len(pending_tweets))
+                )
             ]
         )
 
@@ -397,6 +384,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         tweets = tweets[-5:] if tweets else None  # type: ignore
 
         if tweets:
+            random.shuffle(tweets)
             previous_tweets = "\n\n".join(
                 [
                     f"tweet_id: {tweet['tweet_id']}\ntweet_text: {tweet['text']}\ntime: {datetime.fromtimestamp(tweet['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}"

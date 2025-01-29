@@ -20,6 +20,7 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
+import random
 from typing import Generator, Optional, Tuple, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
@@ -117,15 +118,17 @@ class ActionDecisionBehaviour(
     ]:
         """Get the next event"""
 
-        meme_coins = "\n".join(
+        # Filter out tokens with no available actions and
+        # randomly sort to avoid the LLM to always selecting the first ones
+        meme_coins = self.synchronized_data.meme_coins
+        random.shuffle(meme_coins)
+        meme_coins_str = "\n".join(
             TOKEN_SUMMARY.format(**meme_coin)
-            for meme_coin in self.synchronized_data.meme_coins
-            if meme_coin[
-                "available_actions"
-            ]  # Filter out tokens with no available actions
+            for meme_coin in meme_coins
+            if meme_coin["available_actions"]
         )
 
-        self.context.logger.info(f"Action options:\n{meme_coins}")
+        self.context.logger.info(f"Action options:\n{meme_coins_str}")
 
         valid_nonces = [c["token_nonce"] for c in self.synchronized_data.meme_coins]
 
@@ -145,7 +148,7 @@ class ActionDecisionBehaviour(
         )
 
         prompt_data = {
-            "meme_coins": meme_coins,
+            "meme_coins": meme_coins_str,
             "latest_tweet": latest_tweet,
             "tweet_responses": tweet_responses,
             "balance": safe_native_balance,
@@ -278,23 +281,27 @@ class ActionDecisionBehaviour(
 
             # Fix amounts
             if action_name == "summon":
+                chain_id = self.get_chain_id()
+
                 amount = max(
                     amount,
-                    int(self.params.min_summon_amount_eth * 1e18),
+                    int(getattr(self.params, f"min_summon_amount_{chain_id}") * 1e18),
                 )
                 amount = min(
                     amount,
-                    int(self.params.max_summon_amount_eth * 1e18),
+                    int(getattr(self.params, f"max_summon_amount_{chain_id}") * 1e18),
                 )
 
             if action_name == "heart":
+                chain_id = self.get_chain_id()
+
                 amount = max(
                     amount,
                     1,  # 1 wei
                 )
                 amount = min(
                     amount,
-                    int(self.params.max_heart_amount_eth * 1e18),
+                    int(getattr(self.params, f"max_heart_amount_{chain_id}") * 1e18),
                 )
 
             self.context.logger.info("The LLM returned a valid response")
