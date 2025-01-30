@@ -37,6 +37,14 @@ json_data = {
     "id": "1234",
 }
 
+# seconds = hex(1 * 60 * 60)
+
+# json_data = {
+#     "jsonrpc": "2.0",
+#     "method": "evm_increaseTime",
+#     "params": [str(seconds)],
+# }
+
 
 response = requests.post(
     url=TENDERLY_ADMIN_RPC,
