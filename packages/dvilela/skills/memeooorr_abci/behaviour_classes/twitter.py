@@ -182,9 +182,11 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
                 if mirror_db_response:
                     for tweet in mirror_db_response:
-                        tweet["timestamp"] = datetime.fromisoformat(
-                            tweet["created_at"]
-                        ).timestamp()
+                        created_at = tweet.get("created_at")
+                        if created_at:
+                            tweet["timestamp"] = datetime.fromisoformat(
+                                created_at
+                            ).timestamp()
                     return mirror_db_response[:limit]
             except Exception as e:  # pylint: disable=broad-except
                 self.context.logger.error(f"Error getting tweets from MirrorDB: {e}")
@@ -195,9 +197,9 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
         if tweets:
             for tweet in tweets:
-                tweet["timestamp"] = datetime.fromisoformat(
-                    tweet["created_at"]
-                ).timestamp()
+                created_at = tweet.get("created_at")
+                if created_at:
+                    tweet["timestamp"] = datetime.fromisoformat(created_at).timestamp()
             return tweets[:limit]
 
         return None
