@@ -27,12 +27,13 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     ActionDecisionPayload,
     ActionPreparationPayload,
     ActionTweetPayload,
+    CallCheckpointPayload,
     CheckFundsPayload,
     CollectFeedbackPayload,
     EngageTwitterPayload,
     LoadDatabasePayload,
+    PostTxDecisionMakingPayload,
     PullMemesPayload,
-    CallCheckpointPayload
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -45,9 +46,10 @@ from packages.valory.skills.abstract_round_abci.base import (
     DegenerateRound,
     DeserializedCollection,
     EventToTimeout,
+    NONE_EVENT_ATTRIBUTE,
     get_name,
-    NONE_EVENT_ATTRIBUTE
 )
+
 
 class StakingState(Enum):
     """Staking state enumeration for the staking."""
@@ -55,6 +57,7 @@ class StakingState(Enum):
     UNSTAKED = 0
     STAKED = 1
     EVICTED = 2
+
 
 class Event(Enum):
     """MemeooorrAbciApp Events"""
@@ -71,6 +74,7 @@ class Event(Enum):
     NO_MEMES = "no_memes"
     TO_DEPLOY = "to_deploy"
     TO_ACTION_TWEET = "to_action_tweet"
+    ACTION = "action"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -126,6 +130,11 @@ class SynchronizedData(BaseSynchronizedData):
     def final_tx_hash(self) -> Optional[str]:
         """Get the verified tx hash."""
         return self.db.get("final_tx_hash", None)
+
+    @property
+    def tx_submitter(self) -> str:
+        """Get the round that submitted a tx to transaction_settlement_abci."""
+        return str(self.db.get_strict("tx_submitter"))
 
 
 class EventRoundBase(CollectSameUntilThresholdRound):
@@ -388,12 +397,16 @@ class CheckFundsRound(EventRoundBase):
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.NO_FUNDS
 
 
-class FinishedToResetRound(DegenerateRound):
-    """FinishedToResetRound"""
+class PostTxDecisionMakingRound(EventRoundBase):
+    """PostTxDecisionMakingRound"""
 
+    payload_class = PostTxDecisionMakingPayload  # type: ignore
+    synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
 
-class FinishedToSettlementRound(DegenerateRound):
-    """FinishedToSettlementRound"""
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
 
 class CallCheckpointRound(CollectSameUntilThresholdRound):
     """A round for the checkpoint call preparation."""
@@ -440,6 +453,14 @@ class CallCheckpointRound(CollectSameUntilThresholdRound):
         return res
 
 
+class FinishedToResetRound(DegenerateRound):
+    """FinishedToResetRound"""
+
+
+class FinishedToSettlementRound(DegenerateRound):
+    """FinishedToSettlementRound"""
+
+
 class MemeooorrAbciApp(AbciApp[Event]):
     """MemeooorrAbciApp"""
 
@@ -448,6 +469,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         LoadDatabaseRound,
         PullMemesRound,
         ActionPreparationRound,
+        PostTxDecisionMakingRound,
     }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
@@ -497,6 +519,12 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.NO_MAJORITY: CheckFundsRound,
             Event.ROUND_TIMEOUT: CheckFundsRound,
         },
+        PostTxDecisionMakingRound: {
+            Event.DONE: FinishedToResetRound,
+            Event.ACTION: ActionPreparationRound,
+            Event.NO_MAJORITY: PostTxDecisionMakingRound,
+            Event.ROUND_TIMEOUT: PostTxDecisionMakingRound,
+        },
         CallCheckpointRound: {
             Event.DONE: FinishedToSettlementRound,
             Event.SERVICE_NOT_STAKED: FinishedStakingRound,
@@ -515,6 +543,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         LoadDatabaseRound: set(),
         PullMemesRound: set(),
         ActionPreparationRound: set(),
+        PostTxDecisionMakingRound: set(),
     }
     db_post_conditions: Dict[AppState, Set[str]] = {
         FinishedToResetRound: set(),

@@ -28,30 +28,31 @@ from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
+from packages.dvilela.skills.memeooorr_abci.models import StakingParams
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionPreparationPayload,
     ActionPreparationRound,
+    CallCheckpointPayload,
+    CallCheckpointRound,
     CheckFundsPayload,
     CheckFundsRound,
     Event,
+    PostTxDecisionMakingPayload,
+    PostTxDecisionMakingRound,
     PullMemesPayload,
     PullMemesRound,
     StakingState,
-    CallCheckpointPayload,
-    CallCheckpointRound,
-    SynchronizedData
+    SynchronizedData,
 )
-
-from packages.dvilela.skills.memeooorr_abci.models import StakingParams
-
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.protocols.contract_api import ContractApiMessage
 from packages.valory.protocols.ledger_api import LedgerApiMessage
-from packages.valory.skills.abstract_round_abci.base import AbstractRound ,get_name
+from packages.valory.skills.abstract_round_abci.base import AbstractRound, get_name
 from packages.valory.skills.transaction_settlement_abci.payload_tools import (
     hash_payload_to_hex,
 )
 from packages.valory.skills.transaction_settlement_abci.rounds import TX_HASH_LENGTH
+
 
 WaitableConditionType = Generator[None, None, bool]
 
@@ -256,6 +257,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             payload = ActionPreparationPayload(
                 sender=self.context.agent_address,
                 tx_hash=tx_hash,
+                tx_submitter=self.matching_round.auto_round_id(),
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -413,9 +415,44 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         return token_nonce
 
 
-class CallCheckpointBehaviour(
+class PostTxDecisionMakingBehaviour(
     ChainBehaviour
-):  # pylint-disable too-many-ancestors
+):  # pylint: disable=too-many-ancestors
+    """PostTxDecisionMakingBehaviour"""
+
+    matching_round: Type[AbstractRound] = PostTxDecisionMakingRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            event = None
+
+            if (
+                self.synchronized_data.tx_submitter
+                == CallCheckpointBehaviour.matching_round.auto_round_id()
+            ):
+                event = Event.DONE.value
+
+            if (
+                self.synchronized_data.tx_submitter
+                == ActionPreparationBehaviour.matching_round.auto_round_id()
+            ):
+                event = Event.ACTION.value
+
+            payload = PostTxDecisionMakingPayload(
+                sender=self.context.agent_address,
+                event=event,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+
+class CallCheckpointBehaviour(ChainBehaviour):  # pylint-disable too-many-ancestors
     """Behaviour that calls the checkpoint contract function if the service is staked and if it is necessary."""
 
     matching_round = CallCheckpointRound
