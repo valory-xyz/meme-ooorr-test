@@ -133,6 +133,8 @@ def get_store_path(kwargs: dict) -> Path:
         raise ValueError(msg)
 
     return Path(path)
+
+
 class StakingParams(BaseParams):
     """Staking parameters."""
 

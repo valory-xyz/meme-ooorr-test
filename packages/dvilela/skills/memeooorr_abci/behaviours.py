@@ -23,7 +23,9 @@ from typing import Set, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
     ActionPreparationBehaviour,
+    CallCheckpointBehaviour,
     CheckFundsBehaviour,
+    PostTxDecisionMakingBehaviour,
     PullMemesBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.db import (
@@ -58,4 +60,6 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
         ActionPreparationBehaviour,
         ActionTweetBehaviour,
         EngageTwitterBehaviour,
+        PostTxDecisionMakingBehaviour,
+        CallCheckpointBehaviour,
     ]
