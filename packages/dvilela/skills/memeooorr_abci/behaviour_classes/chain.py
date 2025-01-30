@@ -28,7 +28,7 @@ from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.models import StakingParams
+from packages.dvilela.skills.memeooorr_abci.models import Params
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionPreparationPayload,
     ActionPreparationRound,
@@ -467,9 +467,9 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint-disable too-many-ancest
         self._checkpoint_filepath: Path = self.params.store_path / CHECKPOINT_FILENAME
 
     @property
-    def params(self) -> StakingParams:
+    def params(self) -> Params:
         """Return the params."""
-        return cast(StakingParams, self.context.params)
+        return cast(Params, self.context.params)
 
     @property
     def synchronized_data(self) -> SynchronizedData:
