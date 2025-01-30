@@ -1,0 +1,23 @@
+name: staking_activity
+author: dvilela
+version: 0.1.0
+type: contract
+description: Staking activity checker contract
+license: Apache-2.0
+aea_version: '>=1.0.0, <2.0.0'
+fingerprint:
+  __init__.py: bafybeid4hg5rx75ltdjmekmxdddwqzbvblygmvlhws5samjxfirnkp666i
+  build/StakingActivity.json: bafybeiagrufcoljrlo2zklc7kxwh7eyrf67usos2bqnf7hss47hgm6low4
+  contract.py: bafybeihgiwyy5gj5tpyz6wnjlfsywssanrbuzskqctt557f3galofewqse
+fingerprint_ignore_patterns: []
+contracts: []
+class_name: StakingActivityContract
+contract_interface_paths:
+  ethereum: build/StakingActivity.json
+dependencies:
+  open-aea-ledger-ethereum:
+    version: ==1.60.0
+  open-aea-test-autonomy:
+    version: ==0.18.3
+  web3:
+    version: <7,>=6.0.0
