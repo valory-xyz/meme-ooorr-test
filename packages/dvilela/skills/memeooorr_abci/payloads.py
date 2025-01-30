@@ -90,3 +90,18 @@ class CheckFundsPayload(BaseTxPayload):
     """Represent a transaction payload for the CheckFundsRound."""
 
     event: str
+
+@dataclass(frozen=True)
+class MultisigTxPayload(BaseTxPayload):
+    """Represents a transaction payload for preparing an on-chain transaction to be sent via the agents' multisig."""
+
+    tx_submitter: str
+    tx_hash: Optional[str]
+
+@dataclass(frozen=True)
+class CallCheckpointPayload(MultisigTxPayload):
+    """A transaction payload for the checkpoint call."""
+
+    service_staking_state: int
+    ts_checkpoint: int
+    is_checkpoint_reached: bool

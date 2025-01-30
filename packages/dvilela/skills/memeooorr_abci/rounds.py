@@ -32,6 +32,7 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     EngageTwitterPayload,
     LoadDatabasePayload,
     PullMemesPayload,
+    CallCheckpointPayload
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -45,8 +46,15 @@ from packages.valory.skills.abstract_round_abci.base import (
     DeserializedCollection,
     EventToTimeout,
     get_name,
+    NONE_EVENT_ATTRIBUTE
 )
 
+class StakingState(Enum):
+    """Staking state enumeration for the staking."""
+
+    UNSTAKED = 0
+    STAKED = 1
+    EVICTED = 2
 
 class Event(Enum):
     """MemeooorrAbciApp Events"""
@@ -387,6 +395,50 @@ class FinishedToResetRound(DegenerateRound):
 class FinishedToSettlementRound(DegenerateRound):
     """FinishedToSettlementRound"""
 
+class CallCheckpointRound(CollectSameUntilThresholdRound):
+    """A round for the checkpoint call preparation."""
+
+    payload_class = CallCheckpointPayload
+    done_event: Enum = Event.DONE
+    no_majority_event: Enum = Event.NO_MAJORITY
+    selection_key = (
+        get_name(SynchronizedData.tx_submitter),
+        get_name(SynchronizedData.most_voted_tx_hash),
+        get_name(SynchronizedData.service_staking_state),
+        get_name(SynchronizedData.previous_checkpoint),
+        get_name(SynchronizedData.is_checkpoint_reached),
+    )
+    collection_key = get_name(SynchronizedData.participant_to_checkpoint)
+    synchronized_data_class = SynchronizedData
+    # the none event is not required because the `CallCheckpointPayload` payload does not allow for `None` values
+    required_class_attributes = tuple(
+        attribute
+        for attribute in CollectSameUntilThresholdRound.required_class_attributes
+        if attribute != NONE_EVENT_ATTRIBUTE
+    )
+
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Enum]]:
+        """Process the end of the block."""
+        res = super().end_block()
+        if res is None:
+            return None
+
+        synced_data, event = cast(Tuple[SynchronizedData, Enum], res)
+
+        if event != Event.DONE:
+            return res
+
+        if synced_data.service_staking_state == StakingState.UNSTAKED:
+            return synced_data, Event.SERVICE_NOT_STAKED
+
+        if synced_data.service_staking_state == StakingState.EVICTED:
+            return synced_data, Event.SERVICE_EVICTED
+
+        if synced_data.most_voted_tx_hash is None:
+            return synced_data, Event.NEXT_CHECKPOINT_NOT_REACHED_YET
+
+        return res
+
 
 class MemeooorrAbciApp(AbciApp[Event]):
     """MemeooorrAbciApp"""
@@ -434,7 +486,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: ActionPreparationRound,
         },
         ActionTweetRound: {
-            Event.DONE: FinishedToResetRound,
+            Event.DONE: CallCheckpointRound,
             Event.ERROR: ActionTweetRound,
             Event.NO_MAJORITY: ActionTweetRound,
             Event.ROUND_TIMEOUT: ActionTweetRound,
@@ -444,6 +496,14 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.NO_FUNDS: CheckFundsRound,
             Event.NO_MAJORITY: CheckFundsRound,
             Event.ROUND_TIMEOUT: CheckFundsRound,
+        },
+        CallCheckpointRound: {
+            Event.DONE: FinishedToSettlementRound,
+            Event.NO_MAJORITY: CallCheckpointRound,
+            Event.ROUND_TIMEOUT: CallCheckpointRound,
+            Event.SERVICE_NOT_STAKED: CallCheckpointRound,
+            Event.SERVICE_EVICTED: CallCheckpointRound,
+            Event.NEXT_CHECKPOINT_NOT_REACHED_YET: CallCheckpointRound,
         },
         FinishedToResetRound: {},
         FinishedToSettlementRound: {},

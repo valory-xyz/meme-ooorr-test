@@ -21,7 +21,8 @@
 
 import json
 from abc import ABC
-from typing import Generator, Optional, Type, cast
+from pathlib import Path
+from typing import Any, Callable, Generator, Optional, Set, Tuple, Type, Union, cast
 
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
@@ -35,16 +36,32 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     Event,
     PullMemesPayload,
     PullMemesRound,
+    StakingState,
+    CallCheckpointPayload,
+    CallCheckpointRound,
+    SynchronizedData
 )
+
+from packages.dvilela.skills.memeooorr_abci.models import StakingParams
+
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.protocols.contract_api import ContractApiMessage
 from packages.valory.protocols.ledger_api import LedgerApiMessage
-from packages.valory.skills.abstract_round_abci.base import AbstractRound
+from packages.valory.skills.abstract_round_abci.base import AbstractRound ,get_name
 from packages.valory.skills.transaction_settlement_abci.payload_tools import (
     hash_payload_to_hex,
 )
 from packages.valory.skills.transaction_settlement_abci.rounds import TX_HASH_LENGTH
 
+WaitableConditionType = Generator[None, None, bool]
+
+
+ETH_PRICE = 0
+
+NULL_ADDRESS = "0x0000000000000000000000000000000000000000"
+CHECKPOINT_FILENAME = "checkpoint.txt"
+READ_MODE = "r"
+WRITE_MODE = "w"
 
 EMPTY_CALL_DATA = b"0x"
 SAFE_GAS = 0
@@ -394,3 +411,191 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         token_nonce = cast(int, response_msg.state.body.get("token_nonce", None))
         self.context.logger.info(f"Token nonce is {token_nonce}")
         return token_nonce
+
+
+class CallCheckpointBehaviour(
+    ChainBehaviour
+):  # pylint-disable too-many-ancestors
+    """Behaviour that calls the checkpoint contract function if the service is staked and if it is necessary."""
+
+    matching_round = CallCheckpointRound
+
+    def __init__(self, **kwargs: Any) -> None:
+        """Initialize the behaviour."""
+        super().__init__(**kwargs)
+        self._service_staking_state: StakingState = StakingState.UNSTAKED
+        self._next_checkpoint: int = 0
+        self._checkpoint_data: bytes = b""
+        self._safe_tx_hash: str = ""
+        self._checkpoint_filepath: Path = self.params.store_path / CHECKPOINT_FILENAME
+
+    @property
+    def params(self) -> StakingParams:
+        """Return the params."""
+        return cast(StakingParams, self.context.params)
+
+    @property
+    def synchronized_data(self) -> SynchronizedData:
+        """Return the synchronized data."""
+        return SynchronizedData(super().synchronized_data.db)
+
+    @property
+    def is_first_period(self) -> bool:
+        """Return whether it is the first period of the service."""
+        return self.synchronized_data.period_count == 0
+
+    @property
+    def new_checkpoint_detected(self) -> bool:
+        """Whether a new checkpoint has been detected."""
+        previous_checkpoint = self.synchronized_data.previous_checkpoint
+        return bool(previous_checkpoint) and previous_checkpoint != self.ts_checkpoint
+
+    @property
+    def checkpoint_data(self) -> bytes:
+        """Get the checkpoint data."""
+        return self._checkpoint_data
+
+    @checkpoint_data.setter
+    def checkpoint_data(self, data: bytes) -> None:
+        """Set the request data."""
+        self._checkpoint_data = data
+
+    @property
+    def safe_tx_hash(self) -> str:
+        """Get the safe_tx_hash."""
+        return self._safe_tx_hash
+
+    @safe_tx_hash.setter
+    def safe_tx_hash(self, safe_hash: str) -> None:
+        """Set the safe_tx_hash."""
+        length = len(safe_hash)
+        if length != TX_HASH_LENGTH:
+            raise ValueError(
+                f"Incorrect length {length} != {TX_HASH_LENGTH} detected "
+                f"when trying to assign a safe transaction hash: {safe_hash}"
+            )
+        self._safe_tx_hash = safe_hash[2:]
+
+    def read_stored_timestamp(self) -> Optional[int]:
+        """Read the timestamp from the agent's data dir."""
+        try:
+            with open(self._checkpoint_filepath, READ_MODE) as checkpoint_file:
+                try:
+                    return int(checkpoint_file.readline())
+                except (ValueError, TypeError, StopIteration):
+                    err = f"Stored checkpoint timestamp could not be parsed from {self._checkpoint_filepath!r}!"
+        except (FileNotFoundError, PermissionError, OSError):
+            err = f"Error opening file {self._checkpoint_filepath!r} in {READ_MODE!r} mode!"
+
+        self.context.logger.error(err)
+        return None
+
+    def store_timestamp(self) -> int:
+        """Store the timestamp to the agent's data dir."""
+        if self.ts_checkpoint == 0:
+            self.context.logger.warning("No checkpoint timestamp to store!")
+            return 0
+
+        try:
+            with open(self._checkpoint_filepath, WRITE_MODE) as checkpoint_file:
+                try:
+                    return checkpoint_file.write(str(self.ts_checkpoint))
+                except (IOError, OSError):
+                    err = f"Error writing to file {self._checkpoint_filepath!r}!"
+        except (FileNotFoundError, PermissionError, OSError):
+            err = f"Error opening file {self._checkpoint_filepath!r} in {WRITE_MODE!r} mode!"
+
+        self.context.logger.error(err)
+        return 0
+
+    def _build_checkpoint_tx(self) -> WaitableConditionType:
+        """Get the request tx data encoded."""
+        result = yield from self._staking_contract_interact(
+            contract_callable="build_checkpoint_tx",
+            placeholder=get_name(CallCheckpointBehaviour.checkpoint_data),
+        )
+
+        return result
+
+    def _get_safe_tx_hash(self) -> WaitableConditionType:
+        """Prepares and returns the safe tx hash."""
+        status = yield from self.contract_interact(
+            contract_address=self.synchronized_data.safe_contract_address,
+            contract_public_id=GnosisSafeContract.contract_id,
+            contract_callable="get_raw_safe_transaction_hash",
+            data_key="tx_hash",
+            placeholder=get_name(CallCheckpointBehaviour.safe_tx_hash),
+            to_address=self.params.staking_contract_address,
+            value=ETH_PRICE,
+            data=self.checkpoint_data,
+        )
+        return status
+
+    def _prepare_safe_tx(self) -> Generator[None, None, str]:
+        """Prepare the safe transaction for calling the checkpoint and return the hex for the tx settlement skill."""
+        yield from self.wait_for_condition_with_sleep(self._build_checkpoint_tx)
+        yield from self.wait_for_condition_with_sleep(self._get_safe_tx_hash)
+        return hash_payload_to_hex(
+            self.safe_tx_hash,
+            ETH_PRICE,
+            SAFE_GAS,
+            self.params.staking_contract_address,
+            self.checkpoint_data,
+        )
+
+    def check_new_epoch(self) -> Generator[None, None, bool]:
+        """Check if a new epoch has been reached."""
+        yield from self.wait_for_condition_with_sleep(self._get_ts_checkpoint)
+        stored_timestamp_invalidated = False
+
+        # if it is the first period of the service,
+        #     1. check if the stored timestamp is the same as the current checkpoint
+        #     2. if not, update the corresponding flag
+        # That way, we protect from the case in which the user stops their service
+        # before the next checkpoint is reached and restarts it afterward.
+        if self.is_first_period:
+            stored_timestamp = self.read_stored_timestamp()
+            stored_timestamp_invalidated = stored_timestamp != self.ts_checkpoint
+
+        is_checkpoint_reached = (
+            stored_timestamp_invalidated or self.new_checkpoint_detected
+        )
+        if is_checkpoint_reached:
+            self.context.logger.info("An epoch change has been detected.")
+            status = self.store_timestamp()
+            if status:
+                self.context.logger.info(
+                    "Successfully updated the stored checkpoint timestamp."
+                )
+
+        return is_checkpoint_reached
+
+    def async_act(self) -> Generator:
+        """Do the action."""
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            yield from self.wait_for_condition_with_sleep(self._check_service_staked)
+
+            checkpoint_tx_hex = None
+            if self.service_staking_state == StakingState.STAKED:
+                yield from self.wait_for_condition_with_sleep(self._get_next_checkpoint)
+                if self.is_checkpoint_reached:
+                    checkpoint_tx_hex = yield from self._prepare_safe_tx()
+
+            if self.service_staking_state == StakingState.EVICTED:
+                self.context.logger.critical("Service has been evicted!")
+
+            tx_submitter = self.matching_round.auto_round_id()
+            is_checkpoint_reached = yield from self.check_new_epoch()
+            payload = CallCheckpointPayload(
+                self.context.agent_address,
+                tx_submitter,
+                checkpoint_tx_hex,
+                self.service_staking_state.value,
+                self.ts_checkpoint,
+                is_checkpoint_reached,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+            self.set_done()

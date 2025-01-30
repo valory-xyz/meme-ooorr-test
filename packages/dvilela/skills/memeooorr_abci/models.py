@@ -19,7 +19,9 @@
 
 """This module contains the shared state for the abci skill of MemeooorrAbciApp."""
 
-from typing import Any
+import os
+from pathlib import Path
+from typing import Any, Optional
 
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.models import ApiSpecs, BaseParams
@@ -111,4 +113,41 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
             "max_heart_amount_celo", kwargs, float
         )
 
+        super().__init__(*args, **kwargs)
+
+
+def get_store_path(kwargs: dict) -> Path:
+    """Get the path of the store."""
+    path = kwargs.get("store_path", "")
+    if not path:
+        msg = "The path to the store must be provided as a keyword argument."
+        raise ValueError(msg)
+
+    # check if the path exists, and we can write to it
+    if (
+        not os.path.isdir(path)
+        or not os.access(path, os.W_OK)
+        or not os.access(path, os.R_OK)
+    ):
+        msg = f"The store path {path!r} is not a directory or is not writable."
+        raise ValueError(msg)
+
+    return Path(path)
+class StakingParams(BaseParams):
+    """Staking parameters."""
+
+    mech_chain_id: Optional[str]
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize the parameters' object."""
+        self.staking_contract_address: str = self._ensure(
+            "staking_contract_address", kwargs, str
+        )
+        self.staking_interaction_sleep_time: int = self._ensure(
+            "staking_interaction_sleep_time", kwargs, int
+        )
+        self.mech_activity_checker_contract: str = self._ensure(
+            "mech_activity_checker_contract", kwargs, str
+        )
+        self.store_path = get_store_path(kwargs)
         super().__init__(*args, **kwargs)
