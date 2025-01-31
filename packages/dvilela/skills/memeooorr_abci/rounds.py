@@ -551,10 +551,10 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: PostTxDecisionMakingRound,
         },
         CallCheckpointRound: {
-            Event.DONE: FinishedToSettlementRound,
-            Event.SERVICE_NOT_STAKED: FinishedStakingRound,
-            Event.SERVICE_EVICTED: ServiceEvictedRound,
-            Event.NEXT_CHECKPOINT_NOT_REACHED_YET: FinishedStakingRound,
+            Event.DONE: FinishedToSettlementRound, #this means settle 
+            Event.SERVICE_NOT_STAKED: FinishedToResetRound,
+            Event.SERVICE_EVICTED: FinishedToResetRound,
+            Event.NEXT_CHECKPOINT_NOT_REACHED_YET: FinishedToResetRound,
             Event.ROUND_TIMEOUT: CallCheckpointRound,
             Event.NO_MAJORITY: CallCheckpointRound,
         },
