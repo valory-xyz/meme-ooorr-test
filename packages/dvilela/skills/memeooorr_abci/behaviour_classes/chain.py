@@ -24,8 +24,11 @@ from abc import ABC
 from pathlib import Path
 from typing import Any, Generator, Optional, Type, cast
 import math
+from aea.contracts.base import Contract
+
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.contracts.staking_activity.contract import StakingActivityContract
+from packages.dvilela.contracts.staking_token.contract import StakingTokenContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
@@ -629,6 +632,28 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint-disable too-many-ancest
         )
 
         return result
+    
+    def _staking_contract_interact(
+        self,
+        contract_callable: str,
+        placeholder: str,
+        data_key: str = "data",
+        **kwargs: Any,
+    ) -> WaitableConditionType:
+        """Interact with the staking contract."""
+        contract_public_id = cast(
+            Contract,
+            StakingTokenContract  
+        )
+        status = yield from self.contract_interact(
+            contract_address=self.staking_contract_address,
+            contract_public_id=contract_public_id.contract_id,
+            contract_callable=contract_callable,
+            data_key=data_key,
+            placeholder=placeholder,
+            **kwargs,
+        )
+        return status
 
     def _get_safe_tx_hash(self) -> WaitableConditionType:
         """Prepares and returns the safe tx hash."""
@@ -682,6 +707,8 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint-disable too-many-ancest
                 )
 
         return is_checkpoint_reached
+    
+    
 
     def async_act(self) -> Generator:
         """Do the action."""
