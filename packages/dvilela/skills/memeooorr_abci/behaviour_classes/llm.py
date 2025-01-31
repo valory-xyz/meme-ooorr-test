@@ -53,6 +53,8 @@ TOKEN_SUMMARY = (  # nosec
 )
 # fmt: on
 
+MIN_TOKEN_SUPPLY = 10**24  # 1M ETH in wei
+
 
 class ActionDecisionBehaviour(
     MemeooorrBaseBehaviour
@@ -196,6 +198,9 @@ class ActionDecisionBehaviour(
 
             if isinstance(token_supply, str) and token_supply.isdigit():
                 token_supply = int(token_supply)
+
+            if isinstance(token_supply, int):
+                token_supply = max(token_supply, MIN_TOKEN_SUPPLY)
 
             if action_name == "none":
                 self.context.logger.info("Action is none")
