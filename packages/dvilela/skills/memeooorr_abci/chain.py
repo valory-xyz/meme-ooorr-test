@@ -570,6 +570,28 @@ class CallCheckpointBehaviour(
 
         return is_checkpoint_reached
 
+    def _staking_contract_interact(
+        self,
+        contract_callable: str,
+        placeholder: str,
+        data_key: str = "data",
+        **kwargs: Any,
+    ) -> WaitableConditionType:
+        """Interact with the staking contract."""
+        contract_public_id = cast(
+            Contract,
+            StakingTokenContract if self.use_v2 else ServiceStakingTokenContract,
+        )
+        status = yield from self.contract_interact(
+            contract_address=self.staking_contract_address,
+            contract_public_id=contract_public_id.contract_id,
+            contract_callable=contract_callable,
+            data_key=data_key,
+            placeholder=placeholder,
+            **kwargs,
+        )
+        return status
+
     def async_act(self) -> Generator:
         """Do the action."""
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
