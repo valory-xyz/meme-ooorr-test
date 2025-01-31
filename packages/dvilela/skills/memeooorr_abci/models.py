@@ -128,6 +128,16 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         )
         self.store_path = get_store_path(kwargs)
 
+        self.staking_contract_address: str = self._ensure(
+            "staking_contract_address", kwargs, str
+        )
+        self.staking_interaction_sleep_time: int = self._ensure(
+            "staking_interaction_sleep_time", kwargs, int
+        )
+        self.mech_activity_checker_contract: str = self._ensure(
+            "mech_activity_checker_contract", kwargs, str
+        )
+        self.store_path = get_store_path(kwargs)
         super().__init__(*args, **kwargs)
 
 
