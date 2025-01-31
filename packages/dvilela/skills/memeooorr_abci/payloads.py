@@ -33,6 +33,13 @@ class LoadDatabasePayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
+class CheckStakingPayload(BaseTxPayload):
+    """Represent a transaction payload for the CheckStakingRound."""
+
+    activities_needed: int
+
+
+@dataclass(frozen=True)
 class PullMemesPayload(BaseTxPayload):
     """Represent a transaction payload for the PullMemesRound."""
 

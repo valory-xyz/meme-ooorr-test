@@ -22,9 +22,10 @@
 import json
 from abc import ABC
 from pathlib import Path
-from typing import Any, Callable, Generator, Optional, Set, Tuple, Type, Union, cast
-
+from typing import Any, Generator, Optional, Type, cast
+import math
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
+from packages.dvilela.contracts.staking_activity.contract import StakingActivityContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
@@ -35,6 +36,7 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     CallCheckpointPayload,
     CallCheckpointRound,
     CheckFundsPayload,
+    CheckStakingPayload,
     CheckFundsRound,
     Event,
     PostTxDecisionMakingPayload,
@@ -43,6 +45,7 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     PullMemesRound,
     StakingState,
     SynchronizedData,
+    CheckStakingRound
 )
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.protocols.contract_api import ContractApiMessage
@@ -191,6 +194,79 @@ class CheckFundsBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             return Event.NO_FUNDS.value
 
         return Event.DONE.value
+
+
+class CheckStakingBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
+    """CheckStakingBehaviour"""
+
+    matching_round: Type[AbstractRound] = CheckStakingRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            activities_needed = yield from self.get_epoch_activities_needed()
+
+            payload = CheckStakingPayload(
+                sender=self.context.agent_address,
+                activities_needed=activities_needed,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+
+    def get_epoch_activities_needed(self):
+        """Get needed staking activities for this epoch"""
+
+        # Is staked
+        # is_staked = staking_token_contract.functions.getStakingState(service_id).call() == 1
+
+        # Get service info
+        service_info = staking_token_contract.functions.mapServiceInfo(service_id).call()
+
+        # Request count (total)
+        mech_request_count = mech_contract.functions.getRequestsCount(safe_address).call()
+
+        # Request count (last checkpoint)
+        service_info = (staking_token_contract.functions.getServiceInfo(service_id).call())[
+            2
+        ]
+        mech_request_count_on_last_checkpoint = service_info[1] if service_info else None
+
+        # Activities count (current epoch)
+        activities_this_epoch = (
+            (activities_count - activities_count_on_last_checkpoint)
+            if mech_request_count_on_last_checkpoint is not None
+            else 0
+        )
+
+        # Required activities
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
+            contract_address=self.params.activity_contract_address,
+            contract_id=str(StakingActivityContract.contract_id),
+            contract_callable="liveness_ratio",
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.RAW_TRANSACTION:
+            self.context.logger.error(
+                f"Error while getting the liveness ratio: {response_msg}"
+            )
+            return None
+
+        liveness_ratio: Optional[float] = cast(
+            float, response_msg.raw_transaction.body.get("data", None)
+        )
+        required_epoch_activities = math.ceil((liveness_ratio * 60 * 60 * 24) / 10**18)
+
+        needed_activities = required_epoch_activities - activities_this_epoch
+        return needed_activities if needed_activities > 0 else 0
 
 
 class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors

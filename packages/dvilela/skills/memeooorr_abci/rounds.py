@@ -34,6 +34,7 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     LoadDatabasePayload,
     PostTxDecisionMakingPayload,
     PullMemesPayload,
+    CheckStakingPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -136,6 +137,16 @@ class SynchronizedData(BaseSynchronizedData):
         """Get the round that submitted a tx to transaction_settlement_abci."""
         return str(self.db.get_strict("tx_submitter"))
 
+    @property
+    def staking_activities_needed(self) -> str:
+        """Get the staking_activities_needed."""
+        return str(self.db.get_strict("staking_activities_needed"))
+
+    @property
+    def participant_to_staking(self) -> DeserializedCollection:
+        """Get the participants to the staking round."""
+        return self._get_deserialized("participant_to_staking")
+
 
 class EventRoundBase(CollectSameUntilThresholdRound):
     """EventRoundBase"""
@@ -191,6 +202,15 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
         return None
 
     required_class_attributes = ()
+
+
+class CheckStakingRound(CollectSameUntilThresholdRound):
+    """CheckStakingRound"""
+
+    payload_class = CheckStakingPayload
+    synchronized_data_class = SynchronizedData
+    collection_key = get_name(SynchronizedData.participant_to_staking)
+    selection_key = (get_name(SynchronizedData.staking_activities_needed),)
 
 
 class PullMemesRound(CollectSameUntilThresholdRound):
@@ -473,9 +493,14 @@ class MemeooorrAbciApp(AbciApp[Event]):
     }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
-            Event.DONE: PullMemesRound,
+            Event.DONE: CheckStakingRound,
             Event.NO_MAJORITY: LoadDatabaseRound,
             Event.ROUND_TIMEOUT: LoadDatabaseRound,
+        },
+        CheckStakingRound: {
+            Event.DONE: PullMemesRound,
+            Event.NO_MAJORITY: CheckStakingRound,
+            Event.ROUND_TIMEOUT: CheckStakingRound,
         },
         PullMemesRound: {
             Event.DONE: CollectFeedbackRound,
