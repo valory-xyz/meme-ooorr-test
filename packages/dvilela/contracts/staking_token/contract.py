@@ -64,4 +64,3 @@ class StakingTokenContract(Contract):
         contract = cls.get_instance(ledger_api, contract_address)
         ts_checkpoint = contract.functions.tsCheckpoint().call()
         return dict(data=ts_checkpoint)
-

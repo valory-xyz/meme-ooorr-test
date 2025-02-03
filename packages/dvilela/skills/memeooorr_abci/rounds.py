@@ -29,12 +29,12 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     ActionTweetPayload,
     CallCheckpointPayload,
     CheckFundsPayload,
+    CheckStakingPayload,
     CollectFeedbackPayload,
     EngageTwitterPayload,
     LoadDatabasePayload,
     PostTxDecisionMakingPayload,
     PullMemesPayload,
-    CheckStakingPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -76,6 +76,9 @@ class Event(Enum):
     TO_DEPLOY = "to_deploy"
     TO_ACTION_TWEET = "to_action_tweet"
     ACTION = "action"
+    SERVICE_NOT_STAKED = "service_not_staked"
+    SERVICE_EVICTED = "service_evicted"
+    NEXT_CHECKPOINT_NOT_REACHED_YET = "next_checkpoint_not_reached_yet"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -138,9 +141,9 @@ class SynchronizedData(BaseSynchronizedData):
         return str(self.db.get_strict("tx_submitter"))
 
     @property
-    def staking_activities_needed(self) -> str:
-        """Get the staking_activities_needed."""
-        return str(self.db.get_strict("staking_activities_needed"))
+    def is_staking_kpi_met(self) -> bool:
+        """Get the is_staking_kpi_met."""
+        return bool(self.db.get_strict("is_staking_kpi_met"))
 
     @property
     def participant_to_staking(self) -> DeserializedCollection:
@@ -210,7 +213,7 @@ class CheckStakingRound(CollectSameUntilThresholdRound):
     payload_class = CheckStakingPayload
     synchronized_data_class = SynchronizedData
     collection_key = get_name(SynchronizedData.participant_to_staking)
-    selection_key = (get_name(SynchronizedData.staking_activities_needed),)
+    selection_key = (get_name(SynchronizedData.is_staking_kpi_met),)
 
 
 class PullMemesRound(CollectSameUntilThresholdRound):
@@ -551,7 +554,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: PostTxDecisionMakingRound,
         },
         CallCheckpointRound: {
-            Event.DONE: FinishedToSettlementRound, #this means settle 
+            Event.DONE: FinishedToSettlementRound,
             Event.SERVICE_NOT_STAKED: FinishedToResetRound,
             Event.SERVICE_EVICTED: FinishedToResetRound,
             Event.NEXT_CHECKPOINT_NOT_REACHED_YET: FinishedToResetRound,

@@ -36,7 +36,7 @@ class LoadDatabasePayload(BaseTxPayload):
 class CheckStakingPayload(BaseTxPayload):
     """Represent a transaction payload for the CheckStakingRound."""
 
-    activities_needed: int
+    is_staking_kpi_met: Optional[bool]
 
 
 @dataclass(frozen=True)
@@ -119,6 +119,5 @@ class PostTxDecisionMakingPayload(BaseTxPayload):
 class CallCheckpointPayload(MultisigTxPayload):
     """A transaction payload for the checkpoint call."""
 
-    service_staking_state: int
-    ts_checkpoint: int
-    is_checkpoint_reached: bool
+    tx_submitter: str
+    tx_hash: Optional[str]

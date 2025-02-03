@@ -113,9 +113,7 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
             "max_heart_amount_celo", kwargs, float
         )
 
-        self.max_heart_amount_celo = self._ensure(
-            "max_heart_amount_celo", kwargs, str
-        )
+        self.max_heart_amount_celo = self._ensure("max_heart_amount_celo", kwargs, str)
 
         self.staking_contract_address: str = self._ensure(
             "staking_contract_address", kwargs, str

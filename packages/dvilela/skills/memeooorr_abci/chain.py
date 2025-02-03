@@ -28,30 +28,29 @@ from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
+from packages.dvilela.skills.memeooorr_abci.models import Params
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionPreparationPayload,
     ActionPreparationRound,
+    CallCheckpointPayload,
+    CallCheckpointRound,
     CheckFundsPayload,
     CheckFundsRound,
     Event,
     PullMemesPayload,
     PullMemesRound,
     StakingState,
-    CallCheckpointPayload,
-    CallCheckpointRound,
-    SynchronizedData
+    SynchronizedData,
 )
-
-from packages.dvilela.skills.memeooorr_abci.models import Params
-
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.protocols.contract_api import ContractApiMessage
 from packages.valory.protocols.ledger_api import LedgerApiMessage
-from packages.valory.skills.abstract_round_abci.base import AbstractRound ,get_name
+from packages.valory.skills.abstract_round_abci.base import AbstractRound, get_name
 from packages.valory.skills.transaction_settlement_abci.payload_tools import (
     hash_payload_to_hex,
 )
 from packages.valory.skills.transaction_settlement_abci.rounds import TX_HASH_LENGTH
+
 
 WaitableConditionType = Generator[None, None, bool]
 
@@ -413,9 +412,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         return token_nonce
 
 
-class CallCheckpointBehaviour(
-    ChainBehaviour
-):  # pylint-disable too-many-ancestors
+class CallCheckpointBehaviour(ChainBehaviour):  # pylint-disable too-many-ancestors
     """Behaviour that calls the checkpoint contract function if the service is staked and if it is necessary."""
 
     matching_round = CallCheckpointRound
