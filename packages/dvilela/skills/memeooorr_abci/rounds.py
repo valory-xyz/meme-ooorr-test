@@ -76,9 +76,6 @@ class Event(Enum):
     TO_DEPLOY = "to_deploy"
     TO_ACTION_TWEET = "to_action_tweet"
     ACTION = "action"
-    SERVICE_NOT_STAKED = "service_not_staked"
-    SERVICE_EVICTED = "service_evicted"
-    NEXT_CHECKPOINT_NOT_REACHED_YET = "next_checkpoint_not_reached_yet"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -435,45 +432,38 @@ class CallCheckpointRound(CollectSameUntilThresholdRound):
     """A round for the checkpoint call preparation."""
 
     payload_class = CallCheckpointPayload
-    done_event: Enum = Event.DONE
-    no_majority_event: Enum = Event.NO_MAJORITY
-    selection_key = (
-        get_name(SynchronizedData.tx_submitter),
-        get_name(SynchronizedData.most_voted_tx_hash),
-        get_name(SynchronizedData.service_staking_state),
-        get_name(SynchronizedData.previous_checkpoint),
-        get_name(SynchronizedData.is_checkpoint_reached),
-    )
-    collection_key = get_name(SynchronizedData.participant_to_checkpoint)
     synchronized_data_class = SynchronizedData
-    # the none event is not required because the `CallCheckpointPayload` payload does not allow for `None` values
-    required_class_attributes = tuple(
-        attribute
-        for attribute in CollectSameUntilThresholdRound.required_class_attributes
-        if attribute != NONE_EVENT_ATTRIBUTE
-    )
+    required_class_attributes = ()
 
-    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Enum]]:
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
-        res = super().end_block()
-        if res is None:
-            return None
+        if self.threshold_reached:
+            # This needs to be mentioned for static checkers
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+            payload = CallCheckpointPayload(
+                *(("dummy_sender",) + self.most_voted_payload_values)
+            )
 
-        synced_data, event = cast(Tuple[SynchronizedData, Enum], res)
+            # Error preparing the transaction or no need to call the checkpoint
+            if payload.tx_hash is None:
+                return self.synchronized_data, Event.DONE
 
-        if event != Event.DONE:
-            return res
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(SynchronizedData.most_voted_tx_hash): payload.tx_hash,
+                    get_name(SynchronizedData.tx_submitter): payload.tx_submitter,
+                },
+            )
 
-        if synced_data.service_staking_state == StakingState.UNSTAKED:
-            return synced_data, Event.SERVICE_NOT_STAKED
+            # The tx has been prepared
+            return synchronized_data, Event.SETTLE
 
-        if synced_data.service_staking_state == StakingState.EVICTED:
-            return synced_data, Event.SERVICE_EVICTED
-
-        if synced_data.most_voted_tx_hash is None:
-            return synced_data, Event.NEXT_CHECKPOINT_NOT_REACHED_YET
-
-        return res
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+        return None
 
 
 class FinishedToResetRound(DegenerateRound):
@@ -554,10 +544,8 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: PostTxDecisionMakingRound,
         },
         CallCheckpointRound: {
-            Event.DONE: FinishedToSettlementRound,
-            Event.SERVICE_NOT_STAKED: FinishedToResetRound,
-            Event.SERVICE_EVICTED: FinishedToResetRound,
-            Event.NEXT_CHECKPOINT_NOT_REACHED_YET: FinishedToResetRound,
+            Event.DONE: FinishedToResetRound,
+            Event.SETTLE: FinishedToSettlementRound,
             Event.ROUND_TIMEOUT: CallCheckpointRound,
             Event.NO_MAJORITY: CallCheckpointRound,
         },
