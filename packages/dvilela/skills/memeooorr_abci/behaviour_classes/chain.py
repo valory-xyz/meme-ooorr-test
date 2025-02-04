@@ -29,11 +29,6 @@ from aea.configurations.data_types import PublicId
 from aea.contracts.base import Contract
 
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
-from packages.dvilela.contracts.staking_activity.contract import StakingActivityContract
-from packages.dvilela.contracts.staking_activity_checker.contract import (
-    StakingActivityCheckerContract,
-)
-from packages.dvilela.contracts.staking_token.contract import StakingTokenContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
@@ -56,6 +51,10 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     SynchronizedData,
 )
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
+from packages.valory.contracts.staking_activity_checker.contract import (
+    StakingActivityCheckerContract,
+)
+from packages.valory.contracts.staking_token.contract import StakingTokenContract
 from packages.valory.protocols.contract_api import ContractApiMessage
 from packages.valory.protocols.ledger_api import LedgerApiMessage
 from packages.valory.skills.abstract_round_abci.base import AbstractRound, get_name
@@ -292,7 +291,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
         )
 
         last_ts_checkpoint = yield from self._get_ts_checkpoint(
-            chain=self.params.staking_chain
+            chain=self.get_chain_id()
         )
         if last_ts_checkpoint is None:
             return None
@@ -382,6 +381,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
             chain=self.get_chain_id()
         )
         if service_staking_state != StakingState.STAKED.value:
+            self.context.logger.info("Service is not staked")
             return None
 
         min_num_of_safe_tx_required = (
@@ -397,13 +397,14 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         multisig_nonces_since_last_cp = (
             yield from self._get_multisig_nonces_since_last_cp(
-                chain=self.params.staking_chain,
-                multisig=self.params.safe_contract_addresses.get(
-                    self.params.staking_chain
-                ),
+                chain=self.get_chain_id(),
+                multisig=self.params.safe_contract_addresses.get(self.get_chain_id()),
             )
         )
         if multisig_nonces_since_last_cp is None:
+            self.context.logger.info(
+                "Could not get the multisig nonces since last checkpoint"
+            )
             return None
 
         if multisig_nonces_since_last_cp >= min_num_of_safe_tx_required:
@@ -486,6 +487,8 @@ class CheckStakingBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancesto
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             is_staking_kpi_met = yield from self._is_staking_kpi_met()
+
+            self.context.logger.info(f"Is staking KPI met? {is_staking_kpi_met}")
 
             payload = CheckStakingPayload(
                 sender=self.context.agent_address,
@@ -773,7 +776,11 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint-disable too-many-ancest
             )
 
             is_checkpoint_reached = yield from self._check_if_checkpoint_reached(
-                chain=self.params.staking_chain
+                chain=self.get_chain_id()
+            )
+
+            self.context.logger.info(
+                f"Staking state: {staking_state}  is_checkpoint_reached: {is_checkpoint_reached}"
             )
 
             if is_checkpoint_reached and staking_state == StakingState.STAKED:
@@ -781,7 +788,7 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint-disable too-many-ancest
                     "Checkpoint reached! Preparing checkpoint tx.."
                 )
                 checkpoint_tx_hex = yield from self._prepare_checkpoint_tx(
-                    chain=self.params.staking_chain
+                    chain=self.get_chain_id()
                 )
 
             payload = CallCheckpointPayload(

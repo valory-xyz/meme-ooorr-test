@@ -209,8 +209,31 @@ class CheckStakingRound(CollectSameUntilThresholdRound):
 
     payload_class = CheckStakingPayload
     synchronized_data_class = SynchronizedData
-    collection_key = get_name(SynchronizedData.participant_to_staking)
-    selection_key = (get_name(SynchronizedData.is_staking_kpi_met),)
+    required_class_attributes = ()
+
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
+        """Process the end of the block."""
+        if self.threshold_reached:
+            payload = CheckStakingPayload(
+                *(("dummy_sender",) + self.most_voted_payload_values)
+            )
+
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(
+                        SynchronizedData.is_staking_kpi_met
+                    ): payload.is_staking_kpi_met,
+                },
+            )
+
+            return synchronized_data, Event.DONE
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+        return None
 
 
 class PullMemesRound(CollectSameUntilThresholdRound):
@@ -380,6 +403,7 @@ class ActionPreparationRound(CollectSameUntilThresholdRound):
                 synchronized_data_class=SynchronizedData,
                 **{
                     get_name(SynchronizedData.most_voted_tx_hash): payload.tx_hash,
+                    get_name(SynchronizedData.tx_submitter): payload.tx_submitter,
                 },
             )
 
@@ -514,13 +538,13 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         ActionDecisionRound: {
             Event.DONE: ActionPreparationRound,
-            Event.WAIT: FinishedToResetRound,
+            Event.WAIT: CallCheckpointRound,
             Event.NO_MAJORITY: ActionDecisionRound,
             Event.ROUND_TIMEOUT: ActionDecisionRound,
         },
         ActionPreparationRound: {
             Event.DONE: ActionTweetRound,  # This will never happen
-            Event.ERROR: FinishedToResetRound,
+            Event.ERROR: CallCheckpointRound,
             Event.SETTLE: CheckFundsRound,
             Event.NO_MAJORITY: ActionPreparationRound,
             Event.ROUND_TIMEOUT: ActionPreparationRound,

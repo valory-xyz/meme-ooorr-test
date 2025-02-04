@@ -121,9 +121,9 @@ TOKEN_DECISION_PROMPT = (  # nosec
     Take into account the engagement you're getting on twitter and also the existing token's popularity.
 
     You have three options:
-    * Do nothing
     * Summon your own token if the engagement is good enough or if the number of meme coins in the market is low (under 30)
-    * Execute one action from the available actions for one of the already existing tokens. The priority order should be collect > heart > unleash > purge > burn, always subject to availability.
+    * Execute one action from the available actions for one of the already existing tokens.
+    * Do nothing
 
     {extra_command}
 
