@@ -22,17 +22,14 @@
 import json
 import math
 from abc import ABC
-from pathlib import Path
 from typing import Any, Generator, Optional, Tuple, Type, cast
 
 from aea.configurations.data_types import PublicId
-from aea.contracts.base import Contract
 
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.models import Params
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionPreparationPayload,
     ActionPreparationRound,
@@ -48,7 +45,6 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     PullMemesPayload,
     PullMemesRound,
     StakingState,
-    SynchronizedData,
 )
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.contracts.staking_activity_checker.contract import (
@@ -57,14 +53,14 @@ from packages.valory.contracts.staking_activity_checker.contract import (
 from packages.valory.contracts.staking_token.contract import StakingTokenContract
 from packages.valory.protocols.contract_api import ContractApiMessage
 from packages.valory.protocols.ledger_api import LedgerApiMessage
-from packages.valory.skills.abstract_round_abci.base import AbstractRound, get_name
+from packages.valory.skills.abstract_round_abci.base import AbstractRound
 from packages.valory.skills.transaction_settlement_abci.payload_tools import (
     hash_payload_to_hex,
 )
 from packages.valory.skills.transaction_settlement_abci.rounds import TX_HASH_LENGTH
 
 
-WaitableConditionType = Generator[None, None, bool]
+WaitableConditionType = Generator[None, None, Optional[bool]]
 
 
 ETH_PRICE = 0
@@ -191,7 +187,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         self.default_error(contract_id, contract_callable, response_msg)
 
-    def contract_interact(
+    def contract_interact(  # pylint: disable=too-many-arguments
         self,
         performative: ContractApiMessage.Performative,
         contract_address: str,
@@ -199,7 +195,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
         contract_callable: str,
         data_key: str,
         **kwargs: Any,
-    ) -> WaitableConditionType:
+    ) -> Generator[None, None, Optional[Any]]:
         """Interact with a contract."""
         contract_id = str(contract_public_id)
 
@@ -354,8 +350,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
                 "Cannot perform any staking-related operations without a configured on-chain service id. "
                 "Assuming service status 'UNSTAKED'."
             )
-            service_staking_state = StakingState.UNSTAKED
-            return
+            return StakingState.UNSTAKED
 
         service_staking_state = yield from self.contract_interact(
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
@@ -398,7 +393,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
         multisig_nonces_since_last_cp = (
             yield from self._get_multisig_nonces_since_last_cp(
                 chain=self.get_chain_id(),
-                multisig=self.params.safe_contract_addresses.get(self.get_chain_id()),
+                multisig=self.synchronized_data.safe_contract_address,
             )
         )
         if multisig_nonces_since_last_cp is None:
@@ -735,7 +730,7 @@ class PostTxDecisionMakingBehaviour(
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            event = None
+            event = "None"
 
             if (
                 self.synchronized_data.tx_submitter
@@ -761,7 +756,7 @@ class PostTxDecisionMakingBehaviour(
         self.set_done()
 
 
-class CallCheckpointBehaviour(ChainBehaviour):  # pylint-disable too-many-ancestors
+class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
     """Behaviour that calls the checkpoint contract function if the service is staked and if it is necessary."""
 
     matching_round = CallCheckpointRound
@@ -843,7 +838,7 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint-disable too-many-ancest
 
         safe_tx_hash = yield from self._build_safe_tx_hash(
             to_address=self.params.staking_token_contract_address,
-            data=checkpoint_data,
+            data=checkpoint_data,  # type: ignore
         )
 
         return safe_tx_hash

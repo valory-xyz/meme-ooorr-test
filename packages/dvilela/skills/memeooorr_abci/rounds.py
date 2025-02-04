@@ -47,7 +47,6 @@ from packages.valory.skills.abstract_round_abci.base import (
     DegenerateRound,
     DeserializedCollection,
     EventToTimeout,
-    NONE_EVENT_ATTRIBUTE,
     get_name,
 )
 
@@ -213,6 +212,10 @@ class CheckStakingRound(CollectSameUntilThresholdRound):
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
+
+        # This needs to be mentioned for static checkers
+        # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
         if self.threshold_reached:
             payload = CheckStakingPayload(
                 *(("dummy_sender",) + self.most_voted_payload_values)
@@ -449,7 +452,7 @@ class PostTxDecisionMakingRound(EventRoundBase):
     required_class_attributes = ()
 
     # This needs to be mentioned for static checkers
-    # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ACTION
 
 
 class CallCheckpointRound(CollectSameUntilThresholdRound):

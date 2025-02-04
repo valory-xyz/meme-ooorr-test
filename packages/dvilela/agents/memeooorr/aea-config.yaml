@@ -44,8 +44,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeidpzdtevjmqw7swdmk6mtz2ez47fvsit3choh5d4nzgioyfqkzgba
 - valory/registration_abci:0.1.0:bafybeib2qkzymrwklb3lfp6biqllsch4werp7e3wttjpmx4eizefpiwmhi
 - valory/reset_pause_abci:0.1.0:bafybeigmyonotdry7q5uxt55xzcho2byp6u7seshisvrw6hhcgn7mzfti4
-- dvilela/memeooorr_abci:0.1.0:bafybeiaylpp2ec2itmjoo3ukc2qa7gohclauvrgmnkvkgerh37pnbq75xu
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeieix5kknvxsw3yvslxsawulv5v5xxj5kwo67qighxxirbcrpnhbj4
+- dvilela/memeooorr_abci:0.1.0:bafybeidhddbml535fwgyfwwfelkyjcwo7aaft66lxri7wzdenlrcfeozka
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeibcwp753gtljym6nrtfimucvvcluwogqq26tmibgwqgsbplvmh5mu
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -231,7 +231,8 @@ models:
       min_summon_amount_celo: ${float:10.0}
       max_summon_amount_celo: ${float:20.0}
       max_heart_amount_celo: ${float:0.2}
-      staking_token_contract_address: ${str:0x6011e09e7c095e76980b22498d69df18eb62bed8}
+      staking_token_contract_address: ${str:0x0000000000000000000000000000000000000000}
+      staking_activity_checker_contract_address: ${str:0x0000000000000000000000000000000000000000}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

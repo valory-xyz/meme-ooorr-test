@@ -19,9 +19,7 @@
 
 """This module contains the shared state for the abci skill of MemeooorrAbciApp."""
 
-import os
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.models import ApiSpecs, BaseParams
@@ -116,6 +114,9 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
 
         self.staking_token_contract_address: str = self._ensure(
             "staking_token_contract_address", kwargs, str
+        )
+        self.staking_activity_checker_contract_address: str = self._ensure(
+            "staking_activity_checker_contract_address", kwargs, str
         )
 
         super().__init__(*args, **kwargs)
