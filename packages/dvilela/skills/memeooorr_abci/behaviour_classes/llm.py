@@ -27,6 +27,7 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
+    ENFORCE_ACTION_COMMAND,
     TOKEN_DECISION_PROMPT,
     build_token_action_schema,
 )
@@ -52,6 +53,8 @@ TOKEN_SUMMARY = (  # nosec
     """
 )
 # fmt: on
+
+MIN_TOKEN_SUPPLY = 10**24  # 1M ETH in wei
 
 
 class ActionDecisionBehaviour(
@@ -153,6 +156,9 @@ class ActionDecisionBehaviour(
             "tweet_responses": tweet_responses,
             "balance": safe_native_balance,
             "ticker": self.get_native_ticker(),
+            "extra_command": ""
+            if self.synchronized_data.is_staking_kpi_met
+            else ENFORCE_ACTION_COMMAND,
         }
 
         llm_response = yield from self._call_genai(
@@ -181,6 +187,8 @@ class ActionDecisionBehaviour(
             response = json.loads(llm_response)
             action_name = response.get("action_name", "none")
             action = response.get(action_name, {})
+            new_persona = response.get("new_persona", None)
+            tweet = response.get("tweet", None)
 
             token_name = action.get("token_name", None)
             token_ticker = action.get("token_ticker", None)
@@ -188,13 +196,15 @@ class ActionDecisionBehaviour(
             amount = int(action.get("amount", 0))
             token_nonce = action.get("token_nonce", None)
             token_address = action.get("token_address", None)
-            tweet = response.get("tweet", None)
 
             if isinstance(token_nonce, str) and token_nonce.isdigit():
                 token_nonce = int(token_nonce)
 
             if isinstance(token_supply, str) and token_supply.isdigit():
                 token_supply = int(token_supply)
+
+            if isinstance(token_supply, int):
+                token_supply = max(token_supply, MIN_TOKEN_SUPPLY)
 
             if action_name == "none":
                 self.context.logger.info("Action is none")
@@ -250,19 +260,6 @@ class ActionDecisionBehaviour(
                     None,
                     None,
                 )
-
-            if action_name == "summon":
-                token_name = response.get("token_name", None)
-                token_ticker = response.get("token_ticker", None)
-                token_supply = response.get("token_supply", None)
-                if isinstance(token_supply, str) and token_supply.isdigit():
-                    token_supply = int(token_supply)
-            else:
-                token_name = None
-                token_ticker = None
-                token_supply = None
-
-            new_persona = response.get("new_persona", None)
 
             if not tweet:
                 self.context.logger.info("Tweet is none")

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2021-2024 Valory AG
+#   Copyright 2021-2025 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -87,12 +87,14 @@ def _fund_wallet(  # nosec
 
 
 if __name__ == "__main__":
-    for fund_type, amount in FUND_REQUIREMENTS["funds"].items():
-        native_or_token_address = "native" if fund_type == "native" else fund_type
+    for fund_type, _amount in FUND_REQUIREMENTS[
+        "funds"
+    ].items():  # pylint: disable=redefined-outer-name
+        _native_or_token_address = "native" if fund_type == "native" else fund_type
 
         _fund_wallet(
             admin_rpc=TENDERLY_ADMIN_RPC,
             wallet_addresses=list(FUND_REQUIREMENTS["wallets"].values()),
-            amount=amount,
-            native_or_token_address=native_or_token_address,
+            amount=_amount,
+            native_or_token_address=_native_or_token_address,
         )
