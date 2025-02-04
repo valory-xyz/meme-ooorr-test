@@ -221,6 +221,16 @@ class MirrorDBConnection(Connection):
                 srr_message, dialogue, f"Exception while calling backend service:\n{e}"
             )
 
+    async def _raise_for_response(
+        self, response: aiohttp.ClientResponse, action: str
+    ) -> None:
+        """Raise exception with relevant message based on the HTTP status code."""
+        if response.status == 200:
+            return
+        error_content = await response.json()
+        detail = error_content.get("detail", error_content)
+        raise Exception(f"Error {action}: {detail} (HTTP {response.status})")
+
     async def create_agent(self, agent_data: Dict) -> Dict:
         """Create an agent and a Twitter account."""
         async with self.session.post(  # type: ignore
@@ -228,12 +238,12 @@ class MirrorDBConnection(Connection):
             json=agent_data,
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "creating agent")
             agent_response = await response.json()
 
         agent_id = agent_response.get("agent_id")
         if agent_id is None:
             raise ValueError("Failed to create agent, no agent_id returned.")
-
         return agent_response
 
     async def read_agent(self, agent_id: str) -> Dict:
@@ -242,16 +252,19 @@ class MirrorDBConnection(Connection):
             f"{self.base_url}/api/agents/{agent_id}",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "reading agent")
             return await response.json()
 
     async def create_twitter_account(self, agent_id: str, account_data: Dict) -> Dict:
-        """Create a Twitter account."""
+        """Create a Twitter account if not already present."""
         api_key = account_data.get("api_key", self.api_key)
+
         async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/twitter_accounts/",
             json=account_data,
             headers={"access-token": f"{api_key}"},
         ) as response:
+            await self._raise_for_response(response, "creating twitter account")
             return await response.json()
 
     async def get_twitter_account(self, twitter_user_id: str) -> Dict:
@@ -260,13 +273,13 @@ class MirrorDBConnection(Connection):
             f"{self.base_url}/api/twitter_accounts/{twitter_user_id}",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "getting twitter account")
             return await response.json()
 
     async def create_tweet(
         self, agent_id: int, twitter_user_id: str, tweet_data: Dict
     ) -> Dict:
         """Create a tweet."""
-        # check if tweet id is present in the tweet_data if not raise an error
         tweet_id = tweet_data.get("tweet_id")
         if tweet_id is None:
             raise ValueError("Failed to create tweet, no tweet_id provided.")
@@ -276,6 +289,7 @@ class MirrorDBConnection(Connection):
             json=tweet_data,
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "creating tweet")
             return await response.json()
 
     async def read_tweet(self, tweet_id: str) -> Dict:
@@ -284,6 +298,7 @@ class MirrorDBConnection(Connection):
             f"{self.base_url}/api/tweets/{tweet_id}",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "reading tweet")
             return await response.json()
 
     async def create_interaction(
@@ -295,6 +310,7 @@ class MirrorDBConnection(Connection):
             json=interaction_data,
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "creating interaction")
             return await response.json()
 
     async def get_latest_tweets(self, agent_id: int) -> List[Dict]:
@@ -303,4 +319,5 @@ class MirrorDBConnection(Connection):
             f"{self.base_url}/api/agents/{agent_id}/twitter_accounts/tweets/",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "getting latest tweets")
             return await response.json()
