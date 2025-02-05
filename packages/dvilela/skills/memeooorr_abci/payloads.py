@@ -101,14 +101,6 @@ class CheckFundsPayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
-class MultisigTxPayload(BaseTxPayload):
-    """Represents a transaction payload for preparing an on-chain transaction to be sent via the agents' multisig."""
-
-    tx_submitter: str
-    tx_hash: Optional[str]
-
-
-@dataclass(frozen=True)
 class PostTxDecisionMakingPayload(BaseTxPayload):
     """Represent a transaction payload for the PostTxDecisionMakingRound."""
 
@@ -116,7 +108,7 @@ class PostTxDecisionMakingPayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
-class CallCheckpointPayload(MultisigTxPayload):
+class CallCheckpointPayload(BaseTxPayload):
     """A transaction payload for the checkpoint call."""
 
     tx_submitter: str
