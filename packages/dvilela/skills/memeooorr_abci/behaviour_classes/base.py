@@ -145,13 +145,16 @@ class MemeooorrBaseBehaviour(
         self, method: str, **kwargs: Any
     ) -> Generator[None, None, Any]:
         """Send a request message to the Twikit connection and handle MirrorDB interactions."""
-        mirror_db_config_data = yield from self._handle_mirror_db_interactions()
+        mirror_db_config_data = (
+            yield from self._handle_mirror_db_interactions_pre_twikit()
+        )
 
         if mirror_db_config_data is None:
             self.context.logger.error(
                 "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
             )
             return None
+
 
         # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
@@ -186,10 +189,11 @@ class MemeooorrBaseBehaviour(
         yield from self._handle_mirrordb_interaction_post_twikit(
             method, kwargs, response_json, mirror_db_config_data
         )
-
         return response_json["response"]  # type: ignore
 
-    def _handle_mirror_db_interactions(self) -> Generator[None, None, Optional[Dict]]:
+    def _handle_mirror_db_interactions_pre_twikit(
+        self,
+    ) -> Generator[None, None, Optional[Dict]]:
         """Handle MirrorDB interactions."""
         mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
         mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
