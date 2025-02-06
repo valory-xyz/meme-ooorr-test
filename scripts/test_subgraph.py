@@ -22,13 +22,14 @@
 
 
 import re
+import json  # Import the json library for formatted printing
 
 import requests
 
 
 MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr @(\w+)$"
 
-TOKENS_QUERY = """
+UPDATED_TOKENS_QUERY = """
 query Tokens {
   memeTokens {
     items {
@@ -48,6 +49,7 @@ query Tokens {
       memeToken
       name
       symbol
+      hearters # ADDED hearters here
     }
   }
 }
@@ -73,11 +75,11 @@ HTTP_OK = 200
 
 
 def get_meme_coins_from_subgraph():
-    """Get a list of meme coins"""
+    """Get a list of meme coins with formatted output"""
 
-    url = "https://agentsfun-indexer-production.up.railway.app"
+    url = "https://agentsfun-indexer-production.up.railway.app"  
 
-    query = {"query": TOKENS_QUERY}
+    query = {"query": UPDATED_TOKENS_QUERY}  # use UPDATED_TOKENS_QUERY
 
     headers = {"Content-Type": "application/json"}
 
@@ -107,6 +109,9 @@ def get_meme_coins_from_subgraph():
             "meme_nonce": int(t["memeNonce"]),
             "summon_time": int(t["summonTime"]),
             "token_nonce": int(t["memeNonce"]),
+            "hearters": t.get(  # @david we needed to add this field to the query
+                "hearters"
+            ),
         }
         for t in response_json["data"]["memeTokens"]["items"]
         if t["chain"] == "base"  # TODO: adapt to Celo
@@ -157,4 +162,7 @@ def get_memeooorr_handles_from_subgraph():
     return handles
 
 
-print(get_meme_coins_from_subgraph())
+meme_coin_data = get_meme_coins_from_subgraph()
+
+# Print the meme coin data in a formatted JSON output
+print(json.dumps(meme_coin_data, indent=4))
