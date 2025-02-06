@@ -87,7 +87,6 @@ jobs:
               cd $SERVICE || exit 1
               autonomy build-image || exit 1
               autonomy build-image --version $VERSION || exit 1
-              docker tag $AUTHOR/oar-$AGENT:$VERSION $DOCKER_USER/oar-$AGENT:$VERSION
 
       - name: Docker login
         run: |
@@ -95,6 +94,7 @@ jobs:
       - name: Docker Push
         run: |
           source env.sh
+          docker tag $AUTHOR/oar-$AGENT:$VERSION $DOCKER_USER/oar-$AGENT:$VERSION
           echo "Pushing $DOCKER_USER/oar-$AGENT:$VERSION"
           echo "Pushing $DOCKER_USER/oar-$AGENT:$DEFAULT_IMAGE_TAG"
           docker push $DOCKER_USER/oar-$AGENT:$VERSION
