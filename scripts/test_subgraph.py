@@ -21,8 +21,8 @@
 """Test subgraph"""
 
 
-import re
 import json  # Import the json library for formatted printing
+import re
 
 import requests
 
@@ -77,7 +77,7 @@ HTTP_OK = 200
 def get_meme_coins_from_subgraph():
     """Get a list of meme coins with formatted output"""
 
-    url = "https://agentsfun-indexer-production.up.railway.app"  
+    url = "https://agentsfun-indexer-production.up.railway.app"
 
     query = {"query": UPDATED_TOKENS_QUERY}  # use UPDATED_TOKENS_QUERY
 
@@ -109,9 +109,7 @@ def get_meme_coins_from_subgraph():
             "meme_nonce": int(t["memeNonce"]),
             "summon_time": int(t["summonTime"]),
             "token_nonce": int(t["memeNonce"]),
-            "hearters": t.get(  # @david we needed to add this field to the query
-                "hearters"
-            ),
+            "hearters": t.get("hearters"),
         }
         for t in response_json["data"]["memeTokens"]["items"]
         if t["chain"] == "base"  # TODO: adapt to Celo
