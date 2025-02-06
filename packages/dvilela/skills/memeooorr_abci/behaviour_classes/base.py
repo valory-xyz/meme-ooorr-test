@@ -155,7 +155,6 @@ class MemeooorrBaseBehaviour(
             )
             return None
 
-
         # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
         srr_message, srr_dialogue = srr_dialogues.create(
