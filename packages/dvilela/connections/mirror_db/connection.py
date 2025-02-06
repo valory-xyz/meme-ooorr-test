@@ -347,8 +347,9 @@ class MirrorDBConnection(Connection):
 
     async def get_active_twitter_handles(self) -> List[str]:
         """
-        Retrieves a list of active X (Twitter) handles.  This function directly calls the
-        /api/active_usernames/ endpoint and returns the list of usernames.
+        Retrieves a list of active X (Twitter) handles.
+
+        This function directly calls the /api/active_usernames/ endpoint and returns the list of usernames.
         """
         async with self.session.get(  # type: ignore
             f"{self.base_url}/api/active_twitter_handles/",
