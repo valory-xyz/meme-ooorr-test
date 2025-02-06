@@ -8,6 +8,8 @@ htmlcov
 *.egg-info
 packages/open_aea
 packages/valory/contracts/*
+!packages/valory/contracts/staking_token
+!packages/valory/contracts/staking_activity_checker
 packages/valory/protocols/
 packages/valory/skills/
 packages/valory/connections/*

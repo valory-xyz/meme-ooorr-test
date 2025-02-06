@@ -1,4 +1,5 @@
 alphabet_in:
+- ACTION
 - DONE
 - ERROR
 - NO_FUNDS
@@ -14,36 +15,47 @@ label: MemeooorrAbciApp
 start_states:
 - ActionPreparationRound
 - LoadDatabaseRound
+- PostTxDecisionMakingRound
 - PullMemesRound
 states:
 - ActionDecisionRound
 - ActionPreparationRound
 - ActionTweetRound
+- CallCheckpointRound
 - CheckFundsRound
+- CheckStakingRound
 - CollectFeedbackRound
 - EngageTwitterRound
 - FinishedToResetRound
 - FinishedToSettlementRound
 - LoadDatabaseRound
+- PostTxDecisionMakingRound
 - PullMemesRound
 transition_func:
     (ActionDecisionRound, DONE): ActionPreparationRound
     (ActionDecisionRound, NO_MAJORITY): ActionDecisionRound
     (ActionDecisionRound, ROUND_TIMEOUT): ActionDecisionRound
-    (ActionDecisionRound, WAIT): FinishedToResetRound
+    (ActionDecisionRound, WAIT): CallCheckpointRound
     (ActionPreparationRound, DONE): ActionTweetRound
-    (ActionPreparationRound, ERROR): FinishedToResetRound
+    (ActionPreparationRound, ERROR): CallCheckpointRound
     (ActionPreparationRound, NO_MAJORITY): ActionPreparationRound
     (ActionPreparationRound, ROUND_TIMEOUT): ActionPreparationRound
     (ActionPreparationRound, SETTLE): CheckFundsRound
-    (ActionTweetRound, DONE): FinishedToResetRound
+    (ActionTweetRound, DONE): CallCheckpointRound
     (ActionTweetRound, ERROR): ActionTweetRound
     (ActionTweetRound, NO_MAJORITY): ActionTweetRound
     (ActionTweetRound, ROUND_TIMEOUT): ActionTweetRound
+    (CallCheckpointRound, DONE): FinishedToResetRound
+    (CallCheckpointRound, NO_MAJORITY): CallCheckpointRound
+    (CallCheckpointRound, ROUND_TIMEOUT): CallCheckpointRound
+    (CallCheckpointRound, SETTLE): FinishedToSettlementRound
     (CheckFundsRound, DONE): FinishedToSettlementRound
     (CheckFundsRound, NO_FUNDS): CheckFundsRound
     (CheckFundsRound, NO_MAJORITY): CheckFundsRound
     (CheckFundsRound, ROUND_TIMEOUT): CheckFundsRound
+    (CheckStakingRound, DONE): PullMemesRound
+    (CheckStakingRound, NO_MAJORITY): CheckStakingRound
+    (CheckStakingRound, ROUND_TIMEOUT): CheckStakingRound
     (CollectFeedbackRound, DONE): EngageTwitterRound
     (CollectFeedbackRound, ERROR): CollectFeedbackRound
     (CollectFeedbackRound, NO_MAJORITY): CollectFeedbackRound
@@ -52,9 +64,13 @@ transition_func:
     (EngageTwitterRound, ERROR): EngageTwitterRound
     (EngageTwitterRound, NO_MAJORITY): EngageTwitterRound
     (EngageTwitterRound, ROUND_TIMEOUT): EngageTwitterRound
-    (LoadDatabaseRound, DONE): PullMemesRound
+    (LoadDatabaseRound, DONE): CheckStakingRound
     (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
     (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound
+    (PostTxDecisionMakingRound, ACTION): ActionPreparationRound
+    (PostTxDecisionMakingRound, DONE): FinishedToResetRound
+    (PostTxDecisionMakingRound, NO_MAJORITY): PostTxDecisionMakingRound
+    (PostTxDecisionMakingRound, ROUND_TIMEOUT): PostTxDecisionMakingRound
     (PullMemesRound, DONE): CollectFeedbackRound
     (PullMemesRound, NO_MAJORITY): PullMemesRound
     (PullMemesRound, ROUND_TIMEOUT): PullMemesRound

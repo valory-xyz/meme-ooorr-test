@@ -20,8 +20,11 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
+import math
 from abc import ABC
-from typing import Generator, Optional, Type, cast
+from typing import Any, Generator, Optional, Tuple, Type, cast
+
+from aea.configurations.data_types import PublicId
 
 from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
@@ -30,13 +33,24 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionPreparationPayload,
     ActionPreparationRound,
+    CallCheckpointPayload,
+    CallCheckpointRound,
     CheckFundsPayload,
     CheckFundsRound,
+    CheckStakingPayload,
+    CheckStakingRound,
     Event,
+    PostTxDecisionMakingPayload,
+    PostTxDecisionMakingRound,
     PullMemesPayload,
     PullMemesRound,
+    StakingState,
 )
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
+from packages.valory.contracts.staking_activity_checker.contract import (
+    StakingActivityCheckerContract,
+)
+from packages.valory.contracts.staking_token.contract import StakingTokenContract
 from packages.valory.protocols.contract_api import ContractApiMessage
 from packages.valory.protocols.ledger_api import LedgerApiMessage
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
@@ -46,11 +60,28 @@ from packages.valory.skills.transaction_settlement_abci.payload_tools import (
 from packages.valory.skills.transaction_settlement_abci.rounds import TX_HASH_LENGTH
 
 
+WaitableConditionType = Generator[None, None, Optional[bool]]
+
+
+ETH_PRICE = 0
+
+NULL_ADDRESS = "0x0000000000000000000000000000000000000000"
+CHECKPOINT_FILENAME = "checkpoint.txt"
+READ_MODE = "r"
+WRITE_MODE = "w"
+
 EMPTY_CALL_DATA = b"0x"
 SAFE_GAS = 0
 ZERO_VALUE = 0
 TWO_MINUTES = 120
 SUMMON_BLOCK_DELTA = 100000
+
+# Liveness ratio from the staking contract is expressed in calls per 10**18 seconds.
+LIVENESS_RATIO_SCALE_FACTOR = 10**18
+
+# A safety margin in case there is a delay between the moment the KPI condition is
+# satisfied, and the moment where the checkpoint is called.
+REQUIRED_REQUESTS_SAFETY_MARGIN = 1
 
 
 class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-ancestors
@@ -133,6 +164,274 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
         )
         self.context.logger.info("Wrote latest hearted token to db")
 
+    def default_error(
+        self, contract_id: str, contract_callable: str, response_msg: ContractApiMessage
+    ) -> None:
+        """Return a default contract interaction error message."""
+        self.context.logger.error(
+            f"Could not successfully interact with the {contract_id} contract "
+            f"using {contract_callable!r}: {response_msg}"
+        )
+
+    def contract_interaction_error(
+        self, contract_id: str, contract_callable: str, response_msg: ContractApiMessage
+    ) -> None:
+        """Return a contract interaction error message."""
+        # contracts can only return one message, i.e., multiple levels cannot exist.
+        for level in ("info", "warning", "error"):
+            msg = response_msg.raw_transaction.body.get(level, None)
+            logger = getattr(self.context.logger, level)
+            if msg is not None:
+                logger(msg)
+                return
+
+        self.default_error(contract_id, contract_callable, response_msg)
+
+    def contract_interact(  # pylint: disable=too-many-arguments
+        self,
+        performative: ContractApiMessage.Performative,
+        contract_address: str,
+        contract_public_id: PublicId,
+        contract_callable: str,
+        data_key: str,
+        **kwargs: Any,
+    ) -> Generator[None, None, Optional[Any]]:
+        """Interact with a contract."""
+        contract_id = str(contract_public_id)
+
+        self.context.logger.info(
+            f"Interacting with contract {contract_id} at address {contract_address}\n"
+            f"Calling method {contract_callable} with parameters: {kwargs}"
+        )
+
+        response_msg = yield from self.get_contract_api_response(
+            performative,
+            contract_address,
+            contract_id,
+            contract_callable,
+            **kwargs,
+        )
+
+        self.context.logger.info(f"Contract response: {response_msg}")
+
+        if response_msg.performative != ContractApiMessage.Performative.RAW_TRANSACTION:
+            self.default_error(contract_id, contract_callable, response_msg)
+            return None
+
+        data = response_msg.raw_transaction.body.get(data_key, None)
+        if data is None:
+            self.contract_interaction_error(
+                contract_id, contract_callable, response_msg
+            )
+            return None
+
+        return data
+
+    def _get_liveness_ratio(self, chain: str) -> Generator[None, None, Optional[int]]:
+        liveness_ratio = yield from self.contract_interact(
+            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
+            contract_address=self.params.staking_activity_checker_contract_address,
+            contract_public_id=StakingActivityCheckerContract.contract_id,
+            contract_callable="liveness_ratio",
+            data_key="data",
+            chain_id=chain,
+        )
+
+        if liveness_ratio is None or liveness_ratio == 0:
+            self.context.logger.error(
+                f"Invalid value for liveness ratio: {liveness_ratio}"
+            )
+
+        return liveness_ratio
+
+    def _get_liveness_period(self, chain: str) -> Generator[None, None, Optional[int]]:
+        liveness_period = yield from self.contract_interact(
+            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
+            contract_address=self.params.staking_token_contract_address,
+            contract_public_id=StakingTokenContract.contract_id,
+            contract_callable="get_liveness_period",
+            data_key="data",
+            chain_id=chain,
+        )
+
+        if liveness_period is None or liveness_period == 0:
+            self.context.logger.error(
+                f"Invalid value for liveness period: {liveness_period}"
+            )
+
+        return liveness_period
+
+    def _get_ts_checkpoint(self, chain: str) -> Generator[None, None, Optional[int]]:
+        """Get the ts checkpoint"""
+        ts_checkpoint = yield from self.contract_interact(
+            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
+            contract_address=self.params.staking_token_contract_address,
+            contract_public_id=StakingTokenContract.contract_id,
+            contract_callable="ts_checkpoint",
+            data_key="data",
+            chain_id=chain,
+        )
+        return ts_checkpoint
+
+    def _calculate_min_num_of_safe_tx_required(
+        self, chain: str
+    ) -> Generator[None, None, Optional[int]]:
+        """Calculates the minimun number of tx to hit to unlock the staking rewards"""
+        liveness_ratio = yield from self._get_liveness_ratio(chain)
+        liveness_period = yield from self._get_liveness_period(chain)
+        if not liveness_ratio or not liveness_period:
+            return None
+
+        current_timestamp = int(
+            self.round_sequence.last_round_transition_timestamp.timestamp()
+        )
+
+        last_ts_checkpoint = yield from self._get_ts_checkpoint(
+            chain=self.get_chain_id()
+        )
+        if last_ts_checkpoint is None:
+            return None
+
+        min_num_of_safe_tx_required = (
+            math.ceil(
+                max(liveness_period, (current_timestamp - last_ts_checkpoint))
+                * liveness_ratio
+                / LIVENESS_RATIO_SCALE_FACTOR
+            )
+            + REQUIRED_REQUESTS_SAFETY_MARGIN
+        )
+
+        return min_num_of_safe_tx_required
+
+    def _get_multisig_nonces(
+        self, chain: str, multisig: str
+    ) -> Generator[None, None, Optional[int]]:
+        multisig_nonces = yield from self.contract_interact(
+            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
+            contract_address=self.params.staking_activity_checker_contract_address,
+            contract_public_id=StakingActivityCheckerContract.contract_id,
+            contract_callable="get_multisig_nonces",
+            data_key="data",
+            chain_id=chain,
+            multisig=multisig,
+        )
+        if multisig_nonces is None or len(multisig_nonces) == 0:
+            return None
+        return multisig_nonces[0]
+
+    def _get_multisig_nonces_since_last_cp(
+        self, chain: str, multisig: str
+    ) -> Generator[None, None, Optional[int]]:
+        multisig_nonces = yield from self._get_multisig_nonces(chain, multisig)
+        if multisig_nonces is None:
+            return None
+
+        service_info = yield from self._get_service_info(chain)
+        if service_info is None or len(service_info) == 0 or len(service_info[2]) == 0:
+            self.context.logger.error(f"Error fetching service info {service_info}")
+            return None
+
+        multisig_nonces_on_last_checkpoint = service_info[2][0]
+
+        multisig_nonces_since_last_cp = (
+            multisig_nonces - multisig_nonces_on_last_checkpoint
+        )
+        self.context.logger.info(
+            f"Number of safe transactions since last checkpoint: {multisig_nonces_since_last_cp}"
+        )
+        return multisig_nonces_since_last_cp
+
+    def _get_service_staking_state(
+        self, chain: str
+    ) -> Generator[None, None, Optional[StakingState]]:
+        service_id = self.params.on_chain_service_id
+        if service_id is None:
+            self.context.logger.warning(
+                "Cannot perform any staking-related operations without a configured on-chain service id. "
+                "Assuming service status 'UNSTAKED'."
+            )
+            return StakingState.UNSTAKED
+
+        service_staking_state = yield from self.contract_interact(
+            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
+            contract_address=self.params.staking_token_contract_address,
+            contract_public_id=StakingTokenContract.contract_id,
+            contract_callable="get_service_staking_state",
+            data_key="data",
+            service_id=service_id,
+            chain_id=chain,
+        )
+        if service_staking_state is None:
+            self.context.logger.warning(
+                "Error fetching staking state for service."
+                "Assuming service status 'UNSTAKED'."
+            )
+            return StakingState.UNSTAKED
+
+        return StakingState(service_staking_state)
+
+    def _is_staking_kpi_met(self) -> Generator[None, None, Optional[bool]]:
+        """Return whether the staking KPI has been met (only for staked services)."""
+        service_staking_state = yield from self._get_service_staking_state(
+            chain=self.get_chain_id()
+        )
+        if service_staking_state != StakingState.STAKED:
+            self.context.logger.info("Service is not staked")
+            return None
+
+        min_num_of_safe_tx_required = (
+            yield from self._calculate_min_num_of_safe_tx_required(
+                chain=self.get_chain_id()
+            )
+        )
+        if min_num_of_safe_tx_required is None:
+            self.context.logger.error(
+                "Error calculating min number of safe tx required."
+            )
+            return None
+
+        multisig_nonces_since_last_cp = (
+            yield from self._get_multisig_nonces_since_last_cp(
+                chain=self.get_chain_id(),
+                multisig=self.synchronized_data.safe_contract_address,
+            )
+        )
+        if multisig_nonces_since_last_cp is None:
+            self.context.logger.info(
+                "Could not get the multisig nonces since last checkpoint"
+            )
+            return None
+        self.context.logger.info(
+            f"Multisig nonces since last checkpoint: {multisig_nonces_since_last_cp} vs minimum req: {min_num_of_safe_tx_required}"
+        )
+        if multisig_nonces_since_last_cp >= min_num_of_safe_tx_required:
+            return True
+
+        return False
+
+    def _get_service_info(
+        self, chain: str
+    ) -> Generator[None, None, Optional[Tuple[Any, Any, Tuple[Any, Any]]]]:
+        """Get the service info."""
+        service_id = self.params.on_chain_service_id
+        if service_id is None:
+            self.context.logger.warning(
+                "Cannot perform any staking-related operations without a configured on-chain service id. "
+                "Assuming service status 'UNSTAKED'."
+            )
+            return None
+
+        service_info = yield from self.contract_interact(
+            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
+            contract_address=self.params.staking_token_contract_address,
+            contract_public_id=StakingTokenContract.contract_id,
+            contract_callable="get_service_info",
+            data_key="data",
+            service_id=service_id,
+            chain_id=chain,
+        )
+        return service_info
+
 
 class CheckFundsBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
     """CheckFundsBehaviour"""
@@ -173,6 +472,31 @@ class CheckFundsBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
             return Event.NO_FUNDS.value
 
         return Event.DONE.value
+
+
+class CheckStakingBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
+    """CheckStakingBehaviour"""
+
+    matching_round: Type[AbstractRound] = CheckStakingRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            is_staking_kpi_met = yield from self._is_staking_kpi_met()
+
+            self.context.logger.info(f"Is staking KPI met? {is_staking_kpi_met}")
+
+            payload = CheckStakingPayload(
+                sender=self.context.agent_address,
+                is_staking_kpi_met=is_staking_kpi_met,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
 
 
 class PullMemesBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
@@ -239,6 +563,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             payload = ActionPreparationPayload(
                 sender=self.context.agent_address,
                 tx_hash=tx_hash,
+                tx_submitter=self.matching_round.auto_round_id(),
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -394,3 +719,131 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
         token_nonce = cast(int, response_msg.state.body.get("token_nonce", None))
         self.context.logger.info(f"Token nonce is {token_nonce}")
         return token_nonce
+
+
+class PostTxDecisionMakingBehaviour(
+    ChainBehaviour
+):  # pylint: disable=too-many-ancestors
+    """PostTxDecisionMakingBehaviour"""
+
+    matching_round: Type[AbstractRound] = PostTxDecisionMakingRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            event = "None"
+
+            if (
+                self.synchronized_data.tx_submitter
+                == CallCheckpointBehaviour.matching_round.auto_round_id()
+            ):
+                event = Event.DONE.value
+
+            if (
+                self.synchronized_data.tx_submitter
+                == ActionPreparationBehaviour.matching_round.auto_round_id()
+            ):
+                event = Event.ACTION.value
+
+            payload = PostTxDecisionMakingPayload(
+                sender=self.context.agent_address,
+                event=event,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+
+class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ancestors
+    """Behaviour that calls the checkpoint contract function if the service is staked and if it is necessary."""
+
+    matching_round = CallCheckpointRound
+
+    def async_act(self) -> Generator:
+        """Do the action."""
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            checkpoint_tx_hex = None
+
+            staking_state = yield from self._get_service_staking_state(
+                chain=self.get_chain_id()
+            )
+
+            is_checkpoint_reached = yield from self._check_if_checkpoint_reached(
+                chain=self.get_chain_id()
+            )
+
+            self.context.logger.info(
+                f"Staking state: {staking_state}  is_checkpoint_reached: {is_checkpoint_reached}"
+            )
+
+            if is_checkpoint_reached and staking_state == StakingState.STAKED:
+                self.context.logger.info(
+                    "Checkpoint reached! Preparing checkpoint tx.."
+                )
+                checkpoint_tx_hex = yield from self._prepare_checkpoint_tx(
+                    chain=self.get_chain_id()
+                )
+
+            payload = CallCheckpointPayload(
+                sender=self.context.agent_address,
+                tx_submitter=self.matching_round.auto_round_id(),
+                tx_hash=checkpoint_tx_hex,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+            self.set_done()
+
+    def _get_next_checkpoint(self, chain: str) -> Generator[None, None, Optional[int]]:
+        """Get the timestamp in which the next checkpoint is reached."""
+        next_checkpoint = yield from self.contract_interact(
+            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
+            contract_address=self.params.staking_token_contract_address,
+            contract_public_id=StakingTokenContract.contract_id,
+            contract_callable="get_next_checkpoint_ts",
+            data_key="data",
+            chain_id=chain,
+        )
+        return next_checkpoint
+
+    def _check_if_checkpoint_reached(
+        self, chain: str
+    ) -> Generator[None, None, Optional[bool]]:
+        next_checkpoint = yield from self._get_next_checkpoint(chain)
+        if next_checkpoint is None:
+            return False
+
+        if next_checkpoint == 0:
+            return True
+
+        synced_timestamp = int(
+            self.round_sequence.last_round_transition_timestamp.timestamp()
+        )
+        self.context.logger.info(
+            f"Next checkpoint: {next_checkpoint} vs synced timestamp: {synced_timestamp}"
+        )
+        return next_checkpoint <= synced_timestamp
+
+    def _prepare_checkpoint_tx(
+        self, chain: str
+    ) -> Generator[None, None, Optional[str]]:
+        checkpoint_data = yield from self.contract_interact(
+            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
+            contract_address=self.params.staking_token_contract_address,
+            contract_public_id=StakingTokenContract.contract_id,
+            contract_callable="build_checkpoint_tx",
+            data_key="data",
+            chain_id=chain,
+        )
+
+        safe_tx_hash = yield from self._build_safe_tx_hash(
+            to_address=self.params.staking_token_contract_address,
+            data=checkpoint_data,  # type: ignore
+        )
+
+        return safe_tx_hash

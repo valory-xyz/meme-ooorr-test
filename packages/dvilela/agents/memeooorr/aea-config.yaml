@@ -24,6 +24,8 @@ contracts:
 - valory/multisend:0.1.0:bafybeig5byt5urg2d2bsecufxe5ql7f4mezg3mekfleeh32nmuusx66p4y
 - dvilela/meme_factory:0.1.0:bafybeidt244ghzw6pnl3vpdfr4c4tg2lcbgmp7wjsytdppxf4zcyvja6qa
 - dvilela/service_registry:0.1.0:bafybeif5rbqm73ej4l3cgn344dbaxxenw4bcemc2d3akixdf65gfmbjsma
+- valory/staking_token:0.1.0:bafybeifle3qvbbmbaygi3t4lbntyjlzhanwtx35bfhivk6mpiflqchas6q
+- valory/staking_activity_checker:0.1.0:bafybeiapxtujhd32sguswqq7rr4wzr2xjgh2adgkipewd3gv5vuwxoxkry
 protocols:
 - open_aea/signing:1.0.0:bafybeihv62fim3wl2bayavfcg3u5e5cxu3b7brtu4cn5xoxd6lqwachasi
 - valory/abci:0.1.0:bafybeiatodhboj6a3p35x4f4b342lzk6ckxpud23awnqbxwjeon3k5y36u
@@ -229,6 +231,8 @@ models:
       min_summon_amount_celo: ${float:10.0}
       max_summon_amount_celo: ${float:20.0}
       max_heart_amount_celo: ${float:0.2}
+      staking_token_contract_address: ${str:0x0000000000000000000000000000000000000000}
+      staking_activity_checker_contract_address: ${str:0x0000000000000000000000000000000000000000}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

@@ -113,4 +113,16 @@ ROUNDS_INFO = {
         "name": "Validating the transaction",
         "description": "Checks that the transaction was successful",
     },
+    "call_checkpoint_round": {
+        "name": "Calling checkpoint",
+        "description": "Verifies if service is staked and enough time has passed to trigger a checkpoint call",
+    },
+    "check_staking_round": {
+        "name": "Checking staking",
+        "description": "Verifies staking status and KPIs including transaction count and liveness requirements",
+    },
+    "post_tx_decision_making_round": {
+        "name": "Post Transaction Decision Making",
+        "description": "Evaluates transaction outcomes and determines next actions based on success/failure status",
+    },
 }

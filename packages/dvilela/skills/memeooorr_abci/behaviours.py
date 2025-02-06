@@ -23,7 +23,10 @@ from typing import Set, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
     ActionPreparationBehaviour,
+    CallCheckpointBehaviour,
     CheckFundsBehaviour,
+    CheckStakingBehaviour,
+    PostTxDecisionMakingBehaviour,
     PullMemesBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.db import (
@@ -51,11 +54,14 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
     abci_app_cls = MemeooorrAbciApp  # type: ignore
     behaviours: Set[Type[BaseBehaviour]] = [  # type: ignore
         LoadDatabaseBehaviour,
-        CollectFeedbackBehaviour,
-        CheckFundsBehaviour,
+        CheckStakingBehaviour,
         PullMemesBehaviour,
+        CollectFeedbackBehaviour,
+        EngageTwitterBehaviour,
         ActionDecisionBehaviour,
         ActionPreparationBehaviour,
+        CheckFundsBehaviour,
         ActionTweetBehaviour,
-        EngageTwitterBehaviour,
+        PostTxDecisionMakingBehaviour,
+        CallCheckpointBehaviour,
     ]

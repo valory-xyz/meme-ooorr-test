@@ -33,6 +33,13 @@ class LoadDatabasePayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
+class CheckStakingPayload(BaseTxPayload):
+    """Represent a transaction payload for the CheckStakingRound."""
+
+    is_staking_kpi_met: Optional[bool]
+
+
+@dataclass(frozen=True)
 class PullMemesPayload(BaseTxPayload):
     """Represent a transaction payload for the PullMemesRound."""
 
@@ -76,6 +83,7 @@ class ActionPreparationPayload(BaseTxPayload):
     """Represent a transaction payload for the ActionPreparationRound."""
 
     tx_hash: Optional[str]
+    tx_submitter: str
 
 
 @dataclass(frozen=True)
@@ -90,3 +98,18 @@ class CheckFundsPayload(BaseTxPayload):
     """Represent a transaction payload for the CheckFundsRound."""
 
     event: str
+
+
+@dataclass(frozen=True)
+class PostTxDecisionMakingPayload(BaseTxPayload):
+    """Represent a transaction payload for the PostTxDecisionMakingRound."""
+
+    event: str
+
+
+@dataclass(frozen=True)
+class CallCheckpointPayload(BaseTxPayload):
+    """A transaction payload for the checkpoint call."""
+
+    tx_submitter: str
+    tx_hash: Optional[str]
