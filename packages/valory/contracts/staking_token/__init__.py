@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2021-2025 Valory AG
+#   Copyright 2024 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,33 +17,4 @@
 #
 # ------------------------------------------------------------------------------
 
-"""Tenderly time fast forward"""
-
-import os
-
-import requests
-
-
-admin_rpc = os.getenv("TENDERLY_ADMIN_RPC")
-
-seconds = hex(1 * 60 * 60)
-
-json_data = {
-    "jsonrpc": "2.0",
-    "method": "evm_increaseTime",
-    "params": [str(seconds)],
-}
-
-response = requests.post(
-    url=admin_rpc,
-    timeout=300,
-    headers={"Content-Type": "application/json"},
-    json=json_data,
-)
-
-if response.status_code != 200:
-    print(response.status_code)
-    try:
-        print(response.json())
-    except requests.exceptions.JSONDecodeError:
-        pass
+"""This module contains the support resources for the staking contract."""

@@ -9,19 +9,19 @@ fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeieed23mlc6osvjlh3fqfjrjbii22y3233gkwk27oo5jqysdqwchbq
-  behaviour_classes/chain.py: bafybeigjprhsjuwvr66iymvytwnyp6nhgidfmdqp2wned3pgfmwthtotma
+  behaviour_classes/chain.py: bafybeifh3adstz74viblmt26sgowbhv5nkgrmae55rd54emijm2s6wlfuu
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
-  behaviour_classes/llm.py: bafybeid23bg6plmxoc7j4pfqo24c56uodigmygmb6kq4mrgtsk67jtgtay
+  behaviour_classes/llm.py: bafybeieugemvntnqgsd6mqosxkwgqetu26h6ddbqxkyy3jbvsmvnpd6z6u
   behaviour_classes/twitter.py: bafybeibabypmb5s4yqbxyjm75bclkaqwfbkjfkp5cn36xmroi25j2ro46u
-  behaviours.py: bafybeicpq6utktukthmol2y63tdcqzdrrj7qgbi3vw42uad56eyny2bkii
+  behaviours.py: bafybeiatehvcz2go4cx3ipobz4mlrh6wlt2edxde4fpm36ppkhsapv3fpi
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
-  fsm_specification.yaml: bafybeid5mr6fllsguewlan6c2fkxh4rmjl5j4ftn2jzhfofy2muhatksqm
+  fsm_specification.yaml: bafybeigtmsopnsbejewkhxmzig3uhs4xgiikfppv54yqmmdzg6mjo5zwtq
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
-  models.py: bafybeialsojs3npxzv62ewxpjyms4hhdx3r4rjq36jpnbt3yhiynwd3ye4
-  payloads.py: bafybeicm4cvsihp2gxxbiwrhqzjixsatkpm2zhd3pvlem2v36alw52n6bu
-  prompts.py: bafybeihes24xtbyzg3rfwjasnsmcrauzgdn25s46aza36rgrbrzadab2hy
-  rounds.py: bafybeiaqpdohvexyenalnyzngx37ce4tbgfh3fhtlzz4lbyty7akr4jffq
-  rounds_info.py: bafybeibtcdxu46hfoqhtscyn2gdc6zuah5yw6l5anqrs4u6rozvza42j4m
+  models.py: bafybeickoskrkfmrxviqxg6aff6gre3hjf7q4mguriykqe5lyxk6rn22pe
+  payloads.py: bafybeih7kqazpirgmaznee6orwweomrcnxqt5d2s2ldqpaa7patqafp37i
+  prompts.py: bafybeifa7ypi4z6z2ocyxschxwik4rne3cswjyfa3kgo2473rx7mmojkvu
+  rounds.py: bafybeick5kbob4sbavnxw3mjt4m3ixbxqjtdkyyzwupqyawontoehy2zhm
+  rounds_info.py: bafybeib4pnvwsyyak52oznb2eybfhthlphunb4gkykrydbrng47hjykvw4
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
@@ -33,6 +33,8 @@ contracts:
 - valory/gnosis_safe:0.1.0:bafybeign4jqpofu3jxuqkzlt4qgrwdbf4xvjusqezhsojtxrfvv467n62e
 - dvilela/meme_factory:0.1.0:bafybeidt244ghzw6pnl3vpdfr4c4tg2lcbgmp7wjsytdppxf4zcyvja6qa
 - dvilela/service_registry:0.1.0:bafybeif5rbqm73ej4l3cgn344dbaxxenw4bcemc2d3akixdf65gfmbjsma
+- valory/staking_token:0.1.0:bafybeifle3qvbbmbaygi3t4lbntyjlzhanwtx35bfhivk6mpiflqchas6q
+- valory/staking_activity_checker:0.1.0:bafybeiapxtujhd32sguswqq7rr4wzr2xjgh2adgkipewd3gv5vuwxoxkry
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
@@ -173,6 +175,8 @@ models:
       min_summon_amount_celo: 10.0
       max_summon_amount_celo: 20.0
       max_heart_amount_celo: 0.2
+      staking_token_contract_address: '0x0000000000000000000000000000000000000000'
+      staking_activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
     class_name: Params
   requests:
     args: {}
