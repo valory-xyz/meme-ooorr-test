@@ -353,3 +353,16 @@ class MirrorDBConnection(Connection):
         ) as response:
             await self._raise_for_response(response, "getting latest tweets")
             return await response.json()
+
+    @retry_with_exponential_backoff()
+    async def get_active_twitter_handles(self) -> List[str]:
+        """
+        Retrieves a list of active X (Twitter) handles.  This function directly calls the
+        /api/active_usernames/ endpoint and returns the list of usernames.
+        """
+        async with self.session.get(  # type: ignore
+            f"{self.base_url}/api/active_twitter_handles/",
+            headers={"access-token": f"{self.api_key}"},
+        ) as response:
+            await self._raise_for_response(response, "getting active X handles")
+            return await response.json()
