@@ -94,10 +94,17 @@ jobs:
       - name: Docker Push
         run: |
           source env.sh
+
+          echo "Re-tagging $AUTHOR/oar-$AGENT:$VERSION -> $DOCKER_USER/oar-$AGENT:$VERSION"
           docker tag $AUTHOR/oar-$AGENT:$VERSION $DOCKER_USER/oar-$AGENT:$VERSION
+
           echo "Pushing $DOCKER_USER/oar-$AGENT:$VERSION"
-          echo "Pushing $DOCKER_USER/oar-$AGENT:$DEFAULT_IMAGE_TAG"
           docker push $DOCKER_USER/oar-$AGENT:$VERSION
+
+          echo "Re-tagging $AUTHOR/oar-$AGENT:$DEFAULT_IMAGE_TAG -> $DOCKER_USER/oar-$AGENT:$DEFAULT_IMAGE_TAG"
+          docker tag $AUTHOR/oar-$AGENT:$DEFAULT_IMAGE_TAG $DOCKER_USER/oar-$AGENT:$DEFAULT_IMAGE_TAG
+
+          echo "Pushing $DOCKER_USER/oar-$AGENT:$DEFAULT_IMAGE_TAG"
           docker push $DOCKER_USER/oar-$AGENT:$DEFAULT_IMAGE_TAG
 
 
