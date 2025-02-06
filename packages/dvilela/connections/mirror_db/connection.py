@@ -22,7 +22,6 @@
 
 import asyncio
 import json
-import time
 from functools import wraps
 from typing import Any, Dict, List, Optional, Union, cast
 
@@ -42,10 +41,12 @@ from packages.valory.protocols.srr.message import SrrMessage
 PUBLIC_ID = PublicId.from_str("dvilela/mirror_db:0.1.0")
 
 
-def retry_with_exponential_backoff(max_retries=5, initial_delay=1, backoff_factor=2):
-    def decorator(func):
+def retry_with_exponential_backoff(max_retries=5, initial_delay=1, backoff_factor=2):  # type: ignore
+    """Retry a function with exponential backoff."""
+
+    def decorator(func):  # type: ignore
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args, **kwargs):  # type: ignore
             delay = initial_delay
             for attempt in range(max_retries):
                 try:
@@ -57,12 +58,17 @@ def retry_with_exponential_backoff(max_retries=5, initial_delay=1, backoff_facto
                             await asyncio.sleep(delay)
                             delay *= backoff_factor
                         else:
-                            print("Max retries reached. Could not complete the request.")
+                            print(
+                                "Max retries reached. Could not complete the request."
+                            )
                             raise
                     else:
                         raise
+
         return wrapper
+
     return decorator
+
 
 class SrrDialogues(BaseSrrDialogues):
     """A class to keep track of SRR dialogues."""
@@ -357,7 +363,9 @@ class MirrorDBConnection(Connection):
     @retry_with_exponential_backoff()
     async def get_active_twitter_handles(self) -> List[str]:
         """
-        Retrieves a list of active X (Twitter) handles.  This function directly calls the
+        Retrieves a list of active X (Twitter) handles.
+
+        This function directly calls the
         /api/active_usernames/ endpoint and returns the list of usernames.
         """
         async with self.session.get(  # type: ignore
