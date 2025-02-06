@@ -8,9 +8,9 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeiacqbub377oj2uvkw3lu2u43zv5rpdd2z4jx7dailiffqttksds24
   behaviours.py: bafybeidabq5scnvljux2732bdbg7xnpnnz54y6t2kdooltd2jgugkz2voi
-  composition.py: bafybeia7ouj5ahlm253xl6m6swcpo6iozuyapjgnvbpsnnk6rdovw6hfzy
+  composition.py: bafybeic3yxme3kvpuzenftfmjnl5uywlip3drzqqj5dtgciauuptxiq4ni
   dialogues.py: bafybeiawrgmlra5f6o63nhv5kc77wvzoqmcareub3lf4qceuwpjso4pjbe
-  fsm_specification.yaml: bafybeifgusxeiweth26n6ory5nvuttngbp5mimf3xhax2loc6ivzi7sn34
+  fsm_specification.yaml: bafybeihnuxrxfwd33yiyjl67r6ghbt23bynhsjlt2tnsw4innuvam4mpre
   handlers.py: bafybeibw5nfno2scl5qzly3fpvodgoovikl6h3hoiiu6e4sqpbbczbzfim
   models.py: bafybeiggsxlwg3vzl5nnkkzlmrn7akdki7wxcdk6qfulzau25dq6fl45uu
 fingerprint_ignore_patterns: []
@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeigmyonotdry7q5uxt55xzcho2byp6u7seshisvrw6hhcgn7mzfti4
 - valory/transaction_settlement_abci:0.1.0:bafybeidpzdtevjmqw7swdmk6mtz2ez47fvsit3choh5d4nzgioyfqkzgba
 - valory/termination_abci:0.1.0:bafybeifs4vorsmsulzgobr754od2omj6uphylslkrtuadxzludoexld6ny
-- dvilela/memeooorr_abci:0.1.0:bafybeicjjxewel3672k6h2rvstmgbobu2eam2etlbc7sri3e3mqrwu2ccq
+- dvilela/memeooorr_abci:0.1.0:bafybeifpmbogpo54x7m5y6axqj5wsjocyfh5excqzehni5aarovhjvark4
 behaviours:
   main:
     args: {}
@@ -164,6 +164,8 @@ models:
       min_summon_amount_celo: 10.0
       max_summon_amount_celo: 20.0
       max_heart_amount_celo: 0.2
+      staking_token_contract_address: '0x0000000000000000000000000000000000000000'
+      staking_activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
     class_name: Params
   randomness_api:
     args:

@@ -27,6 +27,7 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
+    ENFORCE_ACTION_COMMAND,
     TOKEN_DECISION_PROMPT,
     build_token_action_schema,
 )
@@ -155,6 +156,9 @@ class ActionDecisionBehaviour(
             "tweet_responses": tweet_responses,
             "balance": safe_native_balance,
             "ticker": self.get_native_ticker(),
+            "extra_command": ""
+            if self.synchronized_data.is_staking_kpi_met
+            else ENFORCE_ACTION_COMMAND,
         }
 
         llm_response = yield from self._call_genai(

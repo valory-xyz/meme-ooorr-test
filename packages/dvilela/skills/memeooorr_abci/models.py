@@ -107,8 +107,16 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.max_summon_amount_celo = self._ensure(
             "max_summon_amount_celo", kwargs, float
         )
+
         self.max_heart_amount_celo = self._ensure(
             "max_heart_amount_celo", kwargs, float
+        )
+
+        self.staking_token_contract_address: str = self._ensure(
+            "staking_token_contract_address", kwargs, str
+        )
+        self.staking_activity_checker_contract_address: str = self._ensure(
+            "staking_activity_checker_contract_address", kwargs, str
         )
 
         super().__init__(*args, **kwargs)
