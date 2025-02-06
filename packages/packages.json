@@ -5,12 +5,12 @@
         "contract/valory/staking_token/0.1.0": "bafybeifle3qvbbmbaygi3t4lbntyjlzhanwtx35bfhivk6mpiflqchas6q",
         "contract/valory/staking_activity_checker/0.1.0": "bafybeiapxtujhd32sguswqq7rr4wzr2xjgh2adgkipewd3gv5vuwxoxkry",
         "connection/dvilela/twikit/0.1.0": "bafybeibneg7ugu3mkn6kpgvv3x6fykc3j5kexlbdcuxugiy4rnb6umjuny",
-        "connection/dvilela/mirror_db/0.1.0": "bafybeibjyrgu3wyvjym3qoc766k2xuu4km3lrgkt6bgftmpkclyqxq2usu",
+        "connection/dvilela/mirror_db/0.1.0": "bafybeih4weq3a2oifzkuvpxy7ocerulrnyvzzrqefvlmfwrga6tr4qvzv4",
         "connection/dvilela/genai/0.1.0": "bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty",
-        "skill/dvilela/memeooorr_abci/0.1.0": "bafybeifpmbogpo54x7m5y6axqj5wsjocyfh5excqzehni5aarovhjvark4",
-        "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeigsghg5f2tuc2n6cxfdemkf45pujjy4rqov7us6uyjjrq5bmyhmxq",
-        "agent/dvilela/memeooorr/0.1.0": "bafybeid5zrwxoqzeciwa5uo7lubcew3nt3dzh7qjlexfjuvpblgvv66x5e",
-        "service/dvilela/memeooorr/0.1.0": "bafybeid6hkq7xgvwtx3temw3ilsoo75j5ygxqyttwtw33jy4lwdxs6aiqe"
+        "skill/dvilela/memeooorr_abci/0.1.0": "bafybeigw2dvo5zlkhkcs5vxwsdb5ly2yk32l3ap37ypp5aye3bheitp7nu",
+        "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeief6bhzuuyy6l2nmsxrsdicx3ju5tcqhzje63vry3yj64acdxpry4",
+        "agent/dvilela/memeooorr/0.1.0": "bafybeicsyaiexk6cvkdxi6m2ttpzdjxrqyxfpwumx5srxqwxmcl2szngnq",
+        "service/dvilela/memeooorr/0.1.0": "bafybeiegtjtnzgffl4uwv4xyx3mw5tpiosq5hgrgdcblpgkot62fd4piry"
     },
     "third_party": {
         "protocol/open_aea/signing/1.0.0": "bafybeihv62fim3wl2bayavfcg3u5e5cxu3b7brtu4cn5xoxd6lqwachasi",

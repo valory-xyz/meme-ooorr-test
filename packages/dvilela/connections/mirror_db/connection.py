@@ -22,6 +22,7 @@
 
 import asyncio
 import json
+from functools import wraps
 from typing import Any, Dict, List, Optional, Union, cast
 
 import aiohttp
@@ -38,6 +39,35 @@ from packages.valory.protocols.srr.message import SrrMessage
 
 
 PUBLIC_ID = PublicId.from_str("dvilela/mirror_db:0.1.0")
+
+
+def retry_with_exponential_backoff(max_retries=5, initial_delay=1, backoff_factor=2):  # type: ignore
+    """Retry a function with exponential backoff."""
+
+    def decorator(func):  # type: ignore
+        @wraps(func)
+        async def wrapper(*args, **kwargs):  # type: ignore
+            delay = initial_delay
+            for attempt in range(max_retries):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    if "rate limit exceeded" in str(e).lower():
+                        if attempt < max_retries - 1:
+                            print(f"Retrying in {delay} seconds due to rate limit...")
+                            await asyncio.sleep(delay)
+                            delay *= backoff_factor
+                        else:
+                            print(
+                                "Max retries reached. Could not complete the request."
+                            )
+                            raise
+                    else:
+                        raise
+
+        return wrapper
+
+    return decorator
 
 
 class SrrDialogues(BaseSrrDialogues):
@@ -231,6 +261,7 @@ class MirrorDBConnection(Connection):
         detail = error_content.get("detail", error_content)
         raise Exception(f"Error {action}: {detail} (HTTP {response.status})")
 
+    @retry_with_exponential_backoff()
     async def create_agent(self, agent_data: Dict) -> Dict:
         """Create an agent and a Twitter account."""
         async with self.session.post(  # type: ignore
@@ -246,6 +277,7 @@ class MirrorDBConnection(Connection):
             raise ValueError("Failed to create agent, no agent_id returned.")
         return agent_response
 
+    @retry_with_exponential_backoff()
     async def read_agent(self, agent_id: str) -> Dict:
         """Read an agent."""
         async with self.session.get(  # type: ignore
@@ -255,6 +287,7 @@ class MirrorDBConnection(Connection):
             await self._raise_for_response(response, "reading agent")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def create_twitter_account(self, agent_id: str, account_data: Dict) -> Dict:
         """Create a Twitter account if not already present."""
         api_key = account_data.get("api_key", self.api_key)
@@ -267,6 +300,7 @@ class MirrorDBConnection(Connection):
             await self._raise_for_response(response, "creating twitter account")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def get_twitter_account(self, twitter_user_id: str) -> Dict:
         """Get a Twitter account."""
         async with self.session.get(  # type: ignore
@@ -276,6 +310,7 @@ class MirrorDBConnection(Connection):
             await self._raise_for_response(response, "getting twitter account")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def create_tweet(
         self, agent_id: int, twitter_user_id: str, tweet_data: Dict
     ) -> Dict:
@@ -292,6 +327,7 @@ class MirrorDBConnection(Connection):
             await self._raise_for_response(response, "creating tweet")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def read_tweet(self, tweet_id: str) -> Dict:
         """Read a tweet."""
         async with self.session.get(  # type: ignore
@@ -301,6 +337,7 @@ class MirrorDBConnection(Connection):
             await self._raise_for_response(response, "reading tweet")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def create_interaction(
         self, agent_id: int, twitter_user_id: str, interaction_data: Dict
     ) -> Dict:
@@ -313,6 +350,7 @@ class MirrorDBConnection(Connection):
             await self._raise_for_response(response, "creating interaction")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def get_latest_tweets(self, agent_id: int) -> List[Dict]:
         """Get the latest tweets for a given agent."""
         async with self.session.get(  # type: ignore
@@ -320,4 +358,19 @@ class MirrorDBConnection(Connection):
             headers={"access-token": f"{self.api_key}"},
         ) as response:
             await self._raise_for_response(response, "getting latest tweets")
+            return await response.json()
+
+    @retry_with_exponential_backoff()
+    async def get_active_twitter_handles(self) -> List[str]:
+        """
+        Retrieves a list of active X (Twitter) handles.
+
+        This function directly calls the
+        /api/active_usernames/ endpoint and returns the list of usernames.
+        """
+        async with self.session.get(  # type: ignore
+            f"{self.base_url}/api/active_twitter_handles/",
+            headers={"access-token": f"{self.api_key}"},
+        ) as response:
+            await self._raise_for_response(response, "getting active X handles")
             return await response.json()
