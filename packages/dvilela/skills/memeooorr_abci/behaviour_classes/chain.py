@@ -375,7 +375,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
         service_staking_state = yield from self._get_service_staking_state(
             chain=self.get_chain_id()
         )
-        if service_staking_state != StakingState.STAKED.value:
+        if service_staking_state != StakingState.STAKED:
             self.context.logger.info("Service is not staked")
             return None
 
@@ -401,7 +401,9 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
                 "Could not get the multisig nonces since last checkpoint"
             )
             return None
-
+        self.context.logger.info(
+            f"Multisig nonces since last checkpoint: {multisig_nonces_since_last_cp} vs minimum req: {min_num_of_safe_tx_required}"
+        )
         if multisig_nonces_since_last_cp >= min_num_of_safe_tx_required:
             return True
 
@@ -821,6 +823,9 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ances
 
         synced_timestamp = int(
             self.round_sequence.last_round_transition_timestamp.timestamp()
+        )
+        self.context.logger.info(
+            f"Next checkpoint: {next_checkpoint} vs synced timestamp: {synced_timestamp}"
         )
         return next_checkpoint <= synced_timestamp
 
