@@ -300,13 +300,13 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             return Event.DONE.value
 
         # Get other memeooorr handles
-        agent_handles = yield from self.get_memeooorr_handles_from_subgraph()
-
-        # Filter out suspended accounts
-        agent_handles = yield from self._call_twikit(
-            method="filter_suspended_users",
-            user_names=agent_handles,
-        )
+        agent_handles = yield from self.get_memeooorr_handles_from_mirror_db()
+        if agent_handles:
+            # Filter out suspended accounts
+            agent_handles = yield from self._call_twikit(
+                method="filter_suspended_users",
+                user_names=agent_handles,
+            )
 
         self.context.logger.info(f"Not suspended users: {agent_handles}")
 
