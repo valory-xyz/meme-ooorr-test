@@ -458,14 +458,14 @@ class TwikitConnection(Connection):
     async def get_twitter_user_id(self) -> str:
         """Returns Twitter ID for the instance Twitter account."""
 
-        if not self.cookies:
-            raise ValueError("Cookies are not set.")
+        with open(self.cookies_path, "r", encoding="utf-8") as cookies_file:
+            cookies = json.loads(cookies_file)
 
-        twid = self.cookies.get("twid", "").strip('"')
-        if not twid:
-            raise ValueError("Twitter ID (twid) not found in cookies.")
+            twid = cookies.get("twid", "").strip('"')
+            if not twid:
+                raise ValueError("Twitter ID (twid) not found in cookies.")
 
-        return twid
+            return twid
 
 
 def tweet_to_json(tweet: Any, user_id: Optional[str] = None) -> Dict:
