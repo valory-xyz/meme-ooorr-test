@@ -48,6 +48,7 @@ query Tokens {
       memeToken
       name
       symbol
+      hearters
     }
   }
 }
@@ -107,6 +108,7 @@ def get_meme_coins_from_subgraph():
             "meme_nonce": int(t["memeNonce"]),
             "summon_time": int(t["summonTime"]),
             "token_nonce": int(t["memeNonce"]),
+            "hearters": t["hearters"],
         }
         for t in response_json["data"]["memeTokens"]["items"]
         if t["chain"] == "base"  # TODO: adapt to Celo

@@ -146,24 +146,6 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         return safe_tx_hash
 
-    def store_heart(self, token_nonce: int) -> Generator[None, None, None]:
-        """Store a new hearted token to the db"""
-        # Load previously hearted memes
-        db_data = yield from self._read_kv(keys=("hearted_memes",))
-
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            hearted_memes = []
-        else:
-            hearted_memes = json.loads(db_data["hearted_memes"] or "[]")
-
-        # Write the new hearted token
-        hearted_memes.append(token_nonce)
-        yield from self._write_kv(
-            {"hearted_memes": json.dumps(hearted_memes, sort_keys=True)}
-        )
-        self.context.logger.info("Wrote latest hearted token to db")
-
     def default_error(
         self, contract_id: str, contract_callable: str, response_msg: ContractApiMessage
     ) -> None:
@@ -691,10 +673,6 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
                 {"summoned_tokens": json.dumps(tokens, sort_keys=True)}
             )
             self.context.logger.info("Wrote latest token to db")
-
-        if token_action in ["summon", "heart"]:
-            self.store_heart(token_nonce)
-            self.context.logger.info("Stored hearted token")
 
     def get_token_nonce(
         self,
