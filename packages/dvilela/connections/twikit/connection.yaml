@@ -18,7 +18,6 @@ config:
   twikit_username: null
   twikit_email: null
   twikit_password: null
-  twikit_cookies: null
   twikit_cookies_path: /tmp/twikit_cookies.json
   twikit_disable_tweets: false
   twikit_skip_connection: false

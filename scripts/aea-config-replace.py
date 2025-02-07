@@ -56,7 +56,6 @@ PATH_TO_VAR = {
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",
     "config/twikit_password": "TWIKIT_PASSWORD",
-    "config/twikit_cookies": "TWIKIT_COOKIES",
     "config/twikit_cookies_path": "TWIKIT_COOKIES_PATH",
     "config/twikit_disable_tweets": "TWIKIT_DISABLE_TWEETS",
     "config/twikit_skip_connection": "TWIKIT_SKIP_CONNECTION",

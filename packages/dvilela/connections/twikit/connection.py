@@ -106,13 +106,11 @@ class TwikitConnection(Connection):
         self.username = self.configuration.config.get("twikit_username")
         self.email = self.configuration.config.get("twikit_email")
         self.password = self.configuration.config.get("twikit_password")
-        cookies_str = self.configuration.config.get("twikit_cookies")
         self.cookies_path = Path(
             self.configuration.config.get(
                 "twikit_cookies_path", "/tmp/twikit_cookies.json"  # nosec
             )
         )
-        self.cookies = json.loads(cookies_str) if cookies_str else None
         self.disable_tweets = self.configuration.config.get("twikit_disable_tweets")
         self.skip_connection = self.configuration.config.get("twikit_skip_connection")
         if not self.skip_connection:
@@ -306,26 +304,13 @@ class TwikitConnection(Connection):
 
     async def twikit_login(self) -> None:
         """Login into Twitter"""
-        if not self.cookies and self.cookies_path.exists():
-            self.logger.info(f"Loading Twitter cookies from {self.cookies_path}")
-            with open(self.cookies_path, "r", encoding="utf-8") as cookies_file:
-                self.cookies = json.load(cookies_file)
+        await self.client.login(
+            auth_info_1=self.username,
+            auth_info_2=self.email,
+            password=self.password,
+            cookies_file=self.cookies_path,
+        )
 
-        if self.cookies:
-            self.logger.info("Set cookies")
-            self.client.set_cookies(self.cookies)
-        else:
-            self.logger.info("Logging into Twitter with username and password")
-            await self.client.login(
-                auth_info_1=self.username,
-                auth_info_2=self.email,
-                password=self.password,
-            )
-
-        if not self.cookies_path.parent.exists():
-            self.cookies_path.parent.mkdir(parents=True)
-
-        self.client.save_cookies(self.cookies_path)
         self.logged_in = True
 
     async def search(
