@@ -869,6 +869,35 @@ class MemeooorrBaseBehaviour(
         self.context.logger.info(f"Got Twitter handles: {handles}")
         return handles
 
+    def get_memeooorr_handles_from_mirror_db(
+        self,
+    ) -> Generator[None, None, List[str]]:
+        """Get Memeooorr service handles from MirrorDB."""
+        yield from self._mirrorDB_registration_check()
+
+        handles: List[str] = []
+        try:
+            active_handles = yield from self._call_mirrordb(
+                "get_active_twitter_handles"
+            )
+            if active_handles is None:
+                self.context.logger.warning(
+                    "Could not retrieve active Twitter handles from MirrorDB."
+                )
+                return handles
+
+            handles = [
+                handle
+                for handle in active_handles
+                if handle != self.params.twitter_username
+            ]
+            self.context.logger.info(f"Got Twitter handles from MirrorDB: {handles}")
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(
+                f"Error while fetching active Twitter handles from MirrorDB: {e}"
+            )
+        return handles
+
     def get_service_registry_address(self) -> str:
         """Get the service registry address"""
         return (
@@ -1188,3 +1217,17 @@ class MemeooorrBaseBehaviour(
             "mirror_db_config_data is not a dictionary. failed to update new twitter_user_id."
         )
         return False
+
+    def _mirrorDB_registration_check(self) -> Generator[None, None, None]:
+        """Check if the agent_id is registered in the mirrorDB, if not then register with mirrorDB."""
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        self.context.logger.info(f"MirrorDB config data: {mirror_db_config_data}")
+        if mirror_db_config_data is None:
+            self.context.logger.info("Registering with MirrorDB")
+            yield from self._register_with_mirror_db()
