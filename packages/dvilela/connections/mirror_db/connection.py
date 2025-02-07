@@ -211,6 +211,21 @@ class MirrorDBConnection(Connection):
 
         self.response_envelopes.put_nowait(response_envelope)
 
+    _ALLOWED_METHODS = {
+        "create_agent",
+        "read_agent",
+        "create_twitter_account",
+        "get_twitter_account",
+        "create_tweet",
+        "read_tweet",
+        "create_interaction",
+        "get_latest_tweets",
+        "get_active_twitter_handles",
+        "update_twitter_user_id",
+        "update_agent_id",
+        "update_api_key",
+    }
+
     async def _get_response(
         self, srr_message: SrrMessage, dialogue: Optional[BaseDialogue]
     ) -> SrrMessage:
@@ -224,6 +239,14 @@ class MirrorDBConnection(Connection):
 
         payload = json.loads(srr_message.payload)
         method_name = payload.get("method")
+
+        if method_name not in self._ALLOWED_METHODS:
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                f"Method {method_name} is not allowed or present.",
+            )
+
         method = getattr(self, method_name, None)
 
         if method is None:
