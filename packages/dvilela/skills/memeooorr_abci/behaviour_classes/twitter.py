@@ -301,9 +301,6 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         # Get other memeooorr handles
         agent_handles = yield from self.get_memeooorr_handles_from_mirror_db()
-
-        self.context.logger.info(f"AXAT Got Twitter handles: {agent_handles}")
-
         if agent_handles:
             # Filter out suspended accounts
             agent_handles = yield from self._call_twikit(
