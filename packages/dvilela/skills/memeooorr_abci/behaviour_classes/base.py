@@ -1227,5 +1227,8 @@ class MemeooorrBaseBehaviour(
             self.context.logger.error(
                 "MirrorDB config data not found. even after registration ! registration failed"
             )
+            return None
 
-        return mirror_db_config_data
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+            return mirror_db_config_data
