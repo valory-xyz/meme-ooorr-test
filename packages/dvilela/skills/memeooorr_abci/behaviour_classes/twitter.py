@@ -157,42 +157,46 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         """
         # Try to get tweets from MirrorDB
         self.context.logger.info("Trying to get latest tweets from MirrorDB for agent")
-        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+        mirror_db_config_data = yield from self._mirror_db_registration_check()
 
-        if isinstance(mirror_db_config_data, str):
+        if mirror_db_config_data:
             mirror_db_config_data = json.loads(mirror_db_config_data)
+            self.context.logger.info(f"Mirror Db config = {mirror_db_config_data}")
 
-        agent_id = mirror_db_config_data.get("agent_id")  # type: ignore 
+            agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
 
-        if agent_id:
-            try:
-                mirror_db_response = yield from self._call_mirrordb(
-                    method="get_latest_tweets",
-                    agent_id=agent_id,
-                )
-                self.context.logger.info(f"MirrorDB response: {mirror_db_response}")
+            if agent_id:
+                try:
+                    mirror_db_response = yield from self._call_mirrordb(
+                        method="get_latest_tweets",
+                        agent_id=agent_id,
+                    )
+                    self.context.logger.info(f"MirrorDB response: {mirror_db_response}")
 
-                if (
-                    "detail" in mirror_db_response
-                    and mirror_db_response["detail"]
-                    == "No tweets found for the associated Twitter accounts"
-                ):
-                    mirror_db_response = None
+                    if (
+                        "detail" in mirror_db_response
+                        and mirror_db_response["detail"]
+                        == "No tweets found for the associated Twitter accounts"
+                    ):
+                        mirror_db_response = None
 
-                if mirror_db_response:
-                    for tweet in mirror_db_response:
-                        created_at = tweet.get("created_at")
-                        if created_at:
-                            tweet["timestamp"] = datetime.fromisoformat(
-                                created_at
-                            ).timestamp()
-                    return mirror_db_response[:limit]
-            except Exception as e:  # pylint: disable=broad-except
-                self.context.logger.error(f"Error getting tweets from MirrorDB: {e}")
+                    if mirror_db_response:
+                        for tweet in mirror_db_response:
+                            created_at = tweet.get("created_at")
+                            if created_at:
+                                tweet["timestamp"] = datetime.fromisoformat(
+                                    created_at
+                                ).timestamp()
+                        return mirror_db_response[:limit]
+                except Exception as e:  # pylint: disable=broad-except
+                    self.context.logger.error(
+                        f"Error getting tweets from MirrorDB: {e}"
+                    )
 
         # Fallback to get_tweets_from_db if MirrorDB fails or returns no results
-        self.context.logger.info(f"Getting latest {limit} tweets from local DB")
+        self.context.logger.info(
+            f"Couldn't fetch tweets from MirrorDB Getting latest {limit} tweets from local DB as fallback"
+        )
         tweets = yield from self.get_tweets_from_db()
 
         if tweets:
