@@ -149,6 +149,11 @@ class MemeooorrBaseBehaviour(
             yield from self._handle_mirror_db_interactions_pre_twikit()
         )
 
+        if mirror_db_config_data is None:
+            self.context.logger.error(
+                "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
+            )
+
         # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
         srr_message, srr_dialogue = srr_dialogues.create(

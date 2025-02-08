@@ -163,7 +163,7 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         if isinstance(mirror_db_config_data, str):
             mirror_db_config_data = json.loads(mirror_db_config_data)
 
-        agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
+        agent_id = mirror_db_config_data.get("agent_id")  # type: ignore 
 
         if agent_id:
             try:
@@ -309,6 +309,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
 
         self.context.logger.info(f"Not suspended users: {agent_handles}")
+
+        agent_handles = ["elonmusk", "jack", "vitalikbuterin"]
 
         if not agent_handles:
             self.context.logger.error("No valid Twitter handles")
