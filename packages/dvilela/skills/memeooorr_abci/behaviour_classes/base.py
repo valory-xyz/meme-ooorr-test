@@ -149,12 +149,6 @@ class MemeooorrBaseBehaviour(
             yield from self._handle_mirror_db_interactions_pre_twikit()
         )
 
-        if mirror_db_config_data is None:
-            self.context.logger.error(
-                "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
-            )
-            return None
-
         # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
         srr_message, srr_dialogue = srr_dialogues.create(
@@ -196,10 +190,7 @@ class MemeooorrBaseBehaviour(
         """Handle MirrorDB interactions."""
 
         # registartion check for mirrorDB
-        yield from self._mirror_db_registration_check()
-
-        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+        mirror_db_config_data = yield from self._mirror_db_registration_check()
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
@@ -1223,3 +1214,13 @@ class MemeooorrBaseBehaviour(
         if mirror_db_config_data is None:
             self.context.logger.info("Registering with MirrorDB")
             yield from self._register_with_mirror_db()
+
+        # check if registeration was successful
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")
+        if mirror_db_config_data is None:
+            self.context.logger.error(
+                "MirrorDB config data not found. even after registration ! registration failed"
+            )
+
+        return mirror_db_config_data
