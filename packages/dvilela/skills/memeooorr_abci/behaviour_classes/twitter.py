@@ -160,7 +160,6 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         mirror_db_config_data = yield from self._mirror_db_registration_check()
 
         if mirror_db_config_data:
-            mirror_db_config_data = json.loads(mirror_db_config_data)
             self.context.logger.info(f"Mirror Db config = {mirror_db_config_data}")
 
             agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
