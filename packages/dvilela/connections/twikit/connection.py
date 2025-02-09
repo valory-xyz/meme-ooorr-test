@@ -277,7 +277,8 @@ class TwikitConnection(Connection):
 
         try:
             # Add random delay
-            await time.sleep(delay=secrets.randbelow(5))
+            delay = secrets.randbelow(5)
+            time.sleep(delay)
 
             response = await method(**payload.get("kwargs", {}))
             self.logger.info(f"Twikit response: {response}")
@@ -371,8 +372,10 @@ class TwikitConnection(Connection):
 
                 if not tweet_id:
                     continue
-                
-                time.sleep(secrets.randbelow(5))
+
+                # Add random delay
+                delay = secrets.randbelow(5)
+                time.sleep(delay)
                 await self.delete_tweet(tweet_id)
 
             return [None] * len(tweet_ids)
@@ -463,7 +466,9 @@ class TwikitConnection(Connection):
         not_suspendend_users = []
         for user_name in user_names:
             try:
-                time.sleep(secrets.randbelow(5))
+                # Add random delay
+                delay = secrets.randbelow(5)
+                time.sleep(delay)
                 await self.client.get_user_by_screen_name(user_name)
                 not_suspendend_users.append(user_name)
             except twikit.errors.TwitterException:
