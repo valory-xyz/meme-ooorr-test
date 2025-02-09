@@ -311,9 +311,19 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 user_names=agent_handles,
             )
 
-        self.context.logger.info(f"Not suspended users: {agent_handles}")
+        else:
+            # using subgraph to get memeooorr handles as a fallback
+            self.context.logger.info(
+                "No memeooorr handles from MirrorDB , Now trying subgraph"
+            )
+            agent_handles = yield from self.get_memeooorr_handles_from_subgraph()
+            # filter out suspended accounts
+            agent_handles = yield from self._call_twikit(
+                method="filter_suspended_users",
+                user_names=agent_handles,
+            )
 
-        agent_handles = ["elonmusk", "jack", "vitalikbuterin"]
+        self.context.logger.info(f"Not suspended users: {agent_handles}")
 
         if not agent_handles:
             self.context.logger.error("No valid Twitter handles")
