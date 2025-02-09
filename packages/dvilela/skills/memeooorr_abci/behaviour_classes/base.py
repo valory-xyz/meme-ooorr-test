@@ -185,7 +185,7 @@ class MemeooorrBaseBehaviour(
 
         # Handle MirrorDB interaction if applicable
         yield from self._handle_mirrordb_interaction_post_twikit(
-            method, kwargs, response_json, mirror_db_config_data
+            method, kwargs, response_json, mirror_db_config_data  # type: ignore
         )
         return response_json["response"]  # type: ignore
 
@@ -195,7 +195,7 @@ class MemeooorrBaseBehaviour(
         """Handle MirrorDB interactions."""
 
         # registartion check for mirrorDB
-        mirror_db_config_data = yield from self._mirror_db_registration_check()
+        mirror_db_config_data = yield from self._mirror_db_registration_check()  # type: ignore
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
@@ -1206,29 +1206,29 @@ class MemeooorrBaseBehaviour(
         )
         return False
 
-    def _mirror_db_registration_check(self) -> Generator[None, None, None]:
+    def _mirror_db_registration_check(
+        self,
+    ) -> Generator[None, None, Optional[Dict[str, Any]]]:
         """Check if the agent_id is registered in the mirrorDB, if not then register with mirrorDB."""
-        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
-
-        # Ensure mirror_db_config_data is parsed as JSON if it is a string
-        if isinstance(mirror_db_config_data, str):
-            mirror_db_config_data = json.loads(mirror_db_config_data)
-
-        self.context.logger.info(f"MirrorDB config data: {mirror_db_config_data}")
-        if mirror_db_config_data is None:
+        db_response = yield from self._read_kv(keys=("mirrod_db_config",))
+        if db_response is None:
             self.context.logger.info("Registering with MirrorDB")
             yield from self._register_with_mirror_db()
+            # Fetch updated config after registration
+            db_response = yield from self._read_kv(keys=("mirrod_db_config",))
 
-        # check if registeration was successful
-        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")
-        if mirror_db_config_data is None:
+        if db_response is None:
             self.context.logger.error(
-                "MirrorDB config data not found. even after registration ! registration failed"
+                "MirrorDB config data not found even after registration! Registration failed"
             )
             return None
 
+        mirror_db_config_data = db_response.get("mirrod_db_config")
+        if mirror_db_config_data is None:
+            return None
+
+        # Parse JSON if string
         if isinstance(mirror_db_config_data, str):
             mirror_db_config_data = json.loads(mirror_db_config_data)
-            return mirror_db_config_data
+
+        return mirror_db_config_data
