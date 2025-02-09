@@ -159,7 +159,7 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         self.context.logger.info("Trying to get latest tweets from MirrorDB for agent")
         mirror_db_config_data = yield from self._mirror_db_registration_check()
 
-        if mirror_db_config_data:
+        if mirror_db_config_data:  # pylint: disable=too-many-nested-blocks
             self.context.logger.info(f"Mirror Db config = {mirror_db_config_data}")
 
             agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
