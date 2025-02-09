@@ -23,6 +23,7 @@
 import asyncio
 import json
 import time
+import random
 from asyncio import Task
 from datetime import datetime, timezone
 from pathlib import Path
@@ -275,6 +276,9 @@ class TwikitConnection(Connection):
         self.logger.info(f"Calling twikit: {payload}")
 
         try:
+            # Add random delay
+            await asyncio.sleep(random.uniform(1, 5))
+
             response = await method(**payload.get("kwargs", {}))
             self.logger.info(f"Twikit response: {response}")
             response_message = cast(
