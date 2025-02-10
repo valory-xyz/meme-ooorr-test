@@ -22,6 +22,7 @@
 
 import asyncio
 import json
+import secrets
 import time
 from asyncio import Task
 from datetime import datetime, timezone
@@ -273,6 +274,10 @@ class TwikitConnection(Connection):
         self.logger.info(f"Calling twikit: {payload}")
 
         try:
+            # Add random delay
+            delay = secrets.randbelow(5)
+            time.sleep(delay)
+
             response = await method(**payload.get("kwargs", {}))
             self.logger.info(f"Twikit response: {response}")
             response_message = cast(
@@ -349,8 +354,13 @@ class TwikitConnection(Connection):
         if None in tweet_ids:
             for tweet_id in tweet_ids:
                 # Skip tweets that failed
+
                 if not tweet_id:
                     continue
+
+                # Add random delay
+                delay = secrets.randbelow(5)
+                time.sleep(delay)
                 await self.delete_tweet(tweet_id)
 
             return [None] * len(tweet_ids)
@@ -441,6 +451,9 @@ class TwikitConnection(Connection):
         not_suspendend_users = []
         for user_name in user_names:
             try:
+                # Add random delay
+                delay = secrets.randbelow(5)
+                time.sleep(delay)
                 await self.client.get_user_by_screen_name(user_name)
                 not_suspendend_users.append(user_name)
             except twikit.errors.TwitterException:
