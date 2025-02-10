@@ -868,6 +868,7 @@ class MemeooorrBaseBehaviour(
             active_handles = yield from self._call_mirrordb(
                 "get_active_twitter_handles"
             )
+
             if active_handles is None:
                 self.context.logger.warning(
                     "Could not retrieve active Twitter handles from MirrorDB."
@@ -1224,5 +1225,21 @@ class MemeooorrBaseBehaviour(
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
             mirror_db_config_data = json.loads(mirror_db_config_data)
+
+        # updating the instance variables agent_id, twitter_user_id and api_key
+        agent_id = mirror_db_config_data.get("agent_id")
+        twitter_user_id = mirror_db_config_data.get("twitter_user_id")
+        api_key = mirror_db_config_data.get("api_key")
+
+        if agent_id is None or twitter_user_id is None or api_key is None:
+            self.context.logger.error(
+                "agent_id, twitter_user_id or api_key is None, which is not expected."
+            )
+        # updating class vars
+        yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
+        yield from self._call_mirrordb(
+            "update_twitter_user_id", twitter_user_id=twitter_user_id
+        )
+        yield from self._call_mirrordb("update_api_key", api_key=api_key)
 
         return mirror_db_config_data
