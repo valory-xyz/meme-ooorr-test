@@ -20,14 +20,18 @@
 
 """Test prompts"""
 
-import pickle
 import json
 import os
+import pickle
 import random
+
 import dotenv
 import google.generativeai as genai  # type: ignore
 
-from packages.dvilela.skills.memeooorr_abci.prompts import TOKEN_DECISION_PROMPT, build_token_action_schema
+from packages.dvilela.skills.memeooorr_abci.prompts import (
+    TOKEN_DECISION_PROMPT,
+    build_token_action_schema,
+)
 
 
 dotenv.load_dotenv(override=True)
@@ -43,15 +47,43 @@ timestamp: 2025-01-17 15:29:00
 """
 
 OTHER_TWEETS = [
-    {"tweet_id": 2, "user_id": 20, "tweet_text": "Hahahaha!"},
-    {"tweet_id": 3, "user_id": 30, "tweet_text": "Pizza is the best food ever!"},
-    {"tweet_id": 4, "user_id": 40, "tweet_text": "Stop coding! AI is the future :)"},
-    {"tweet_id": 5, "user_id": 50, "tweet_text": "memecoins! memecoins everywhere!"},
+    {
+        "tweet_id": 2,
+        "user_id": 20,
+        "tweet_text": "Hahahaha!",
+        "view_count": 1000000,
+        "quote_count": 1000000,
+        "retweet_count": 1000000,
+    },
+    {
+        "tweet_id": 3,
+        "user_id": 30,
+        "tweet_text": "Pizza is the best food ever!",
+        "view_count": 1000000,
+        "quote_count": 1000000,
+        "retweet_count": 1000000,
+    },
+    {
+        "tweet_id": 4,
+        "user_id": 40,
+        "tweet_text": "Stop coding! AI is the future :)",
+        "view_count": 1000000,
+        "quote_count": 1000000,
+        "retweet_count": 1000000,
+    },
+    {
+        "tweet_id": 5,
+        "user_id": 50,
+        "tweet_text": "memecoins! memecoins everywhere!",
+        "view_count": 1000000,
+        "quote_count": 1000000,
+        "retweet_count": 1000000,
+    },
 ]
 
-other_tweets_str = "\n\n".join(
+tweet_responses_str = "\n\n".join(
     [
-        f"tweet_id: {t['tweet_id']}\ntweet_text: {t['tweet_text']}\nuser_id: {t['user_id']}"
+        f"tweet_id: {t['tweet_id']}\ntweet_text: {t['tweet_text']}\nuser_id: {t['user_id']}\nviews: {t['view_count']}\nquotes: {t['quote_count']}\nretweets: {t['retweet_count']}"
         for t in OTHER_TWEETS
     ]
 )
@@ -71,7 +103,9 @@ TOKENS = [
         "is_unleashed": False,
         "meme_nonce": 4,
         "token_nonce": 4,
-        "available_actions": random.sample(AVAILABLE_ACTIONS, random.randint(len(AVAILABLE_ACTIONS))),
+        "available_actions": random.sample(
+            AVAILABLE_ACTIONS, random.randint(0, len(AVAILABLE_ACTIONS))
+        ),
     },
     {
         "token_name": "Meme",
@@ -81,7 +115,9 @@ TOKENS = [
         "is_unleashed": True,
         "meme_nonce": 5,
         "token_nonce": 5,
-        "available_actions": ["collect"],
+        "available_actions": random.sample(
+            AVAILABLE_ACTIONS, random.randint(0, len(AVAILABLE_ACTIONS))
+        ),
     },
     {
         "token_name": "Flow",
@@ -91,7 +127,9 @@ TOKENS = [
         "is_unleashed": True,
         "meme_nonce": 6,
         "token_nonce": 6,
-        "available_actions": ["purge"],
+        "available_actions": random.sample(
+            AVAILABLE_ACTIONS, random.randint(0, len(AVAILABLE_ACTIONS))
+        ),
     },
 ]
 random.shuffle(TOKENS)
@@ -122,15 +160,17 @@ meme_coins = "\n".join(
 schema = build_token_action_schema()
 schema_class = pickle.loads(bytes.fromhex(schema["class"]))
 
+prompt = TOKEN_DECISION_PROMPT.format(
+    meme_coins=meme_coins,
+    latest_tweet=PREVIOUS_TWEETS,
+    tweet_responses=tweet_responses_str,
+    balance=0.1,
+    extra_command="",
+    ticker="ETH",
+)
+
 response = model.generate_content(
-    TOKEN_DECISION_PROMPT.format(
-        meme_coins=meme_coins,
-        latest_tweet=PREVIOUS_TWEETS,
-        tweet_responses=other_tweets_str,
-        balance=0.1,
-        extra_command="",
-        ticker="ETH",
-    ),
+    prompt,
     generation_config=genai.types.GenerationConfig(
         temperature=2.0,
         response_mime_type="application/json",
