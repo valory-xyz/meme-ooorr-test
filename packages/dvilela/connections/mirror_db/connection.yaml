@@ -22,5 +22,7 @@ restricted_to_protocols: []
 dependencies:
   aiohttp:
     version: '>=3.7.4'
+  certify:
+    version: '>=2025.1.31'
 is_abstract: false
 cert_requests: []
