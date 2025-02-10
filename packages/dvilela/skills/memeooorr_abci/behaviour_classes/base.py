@@ -1233,9 +1233,9 @@ class MemeooorrBaseBehaviour(
             mirror_db_config_data = json.loads(mirror_db_config_data)
 
             # updating the instance variables agent_id, twitter_user_id and api_key
-            agent_id = mirror_db_config_data.get("agent_id")
-            twitter_user_id = mirror_db_config_data.get("twitter_user_id")
-            api_key = mirror_db_config_data.get("api_key")
+            agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
+            twitter_user_id = mirror_db_config_data.get("twitter_user_id")  # type: ignore
+            api_key = mirror_db_config_data.get("api_key")  # type: ignore
 
             if agent_id is None or twitter_user_id is None or api_key is None:
                 self.context.logger.error(
