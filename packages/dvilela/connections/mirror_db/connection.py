@@ -392,7 +392,7 @@ class MirrorDBConnection(Connection):
         /api/active_usernames/ endpoint and returns the list of usernames.
         """
         async with self.session.get(  # type: ignore
-            f"{self.base_url}/api/active_twitter_handles/",
+            f"{self.base_url}/api/active_usernames/",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
             await self._raise_for_response(response, "getting active X handles")
