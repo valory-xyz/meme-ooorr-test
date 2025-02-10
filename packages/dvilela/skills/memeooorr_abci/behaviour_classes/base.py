@@ -1210,24 +1210,18 @@ class MemeooorrBaseBehaviour(
         self,
     ) -> Generator[None, None, Optional[Dict[str, Any]]]:
         """Check if the agent_id is registered in the mirrorDB, if not then register with mirrorDB."""
-        db_response = yield from self._read_kv(keys=("mirrod_db_config",))
-        if db_response is None:
-            self.context.logger.info("Registering with MirrorDB")
-            yield from self._register_with_mirror_db()
-            # Fetch updated config after registration
-            db_response = yield from self._read_kv(keys=("mirrod_db_config",))
+        # Read the current configuration
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
-        if db_response is None:
-            self.context.logger.error(
-                "MirrorDB config data not found even after registration! Registration failed"
-            )
-            return None
-
-        mirror_db_config_data = db_response.get("mirrod_db_config")
         if mirror_db_config_data is None:
-            return None
+            self.context.logger.info("No MirrorDB configuration found. Registering...")
+            yield from self._register_with_mirror_db()
 
-        # Parse JSON if string
+            mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+            mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
             mirror_db_config_data = json.loads(mirror_db_config_data)
 
