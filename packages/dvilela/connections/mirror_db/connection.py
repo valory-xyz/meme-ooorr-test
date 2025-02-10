@@ -23,7 +23,7 @@
 import asyncio
 import json
 from functools import wraps
-from typing import Any, Dict, Generator, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import aiohttp
 from aea.configurations.base import PublicId

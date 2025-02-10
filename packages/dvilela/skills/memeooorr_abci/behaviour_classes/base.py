@@ -861,7 +861,13 @@ class MemeooorrBaseBehaviour(
         self,
     ) -> Generator[None, None, List[str]]:
         """Get Memeooorr service handles from MirrorDB."""
-        yield from self._mirror_db_registration_check()
+        mirror_db_config_data = yield from self._mirror_db_registration_check()
+
+        if mirror_db_config_data is None:
+            self.context.logger.error(
+                "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
+            )
+            return None
 
         handles: List[str] = []
         try:
@@ -1226,20 +1232,29 @@ class MemeooorrBaseBehaviour(
         if isinstance(mirror_db_config_data, str):
             mirror_db_config_data = json.loads(mirror_db_config_data)
 
-        # updating the instance variables agent_id, twitter_user_id and api_key
-        agent_id = mirror_db_config_data.get("agent_id")
-        twitter_user_id = mirror_db_config_data.get("twitter_user_id")
-        api_key = mirror_db_config_data.get("api_key")
+            # updating the instance variables agent_id, twitter_user_id and api_key
+            agent_id = mirror_db_config_data.get("agent_id")
+            twitter_user_id = mirror_db_config_data.get("twitter_user_id")
+            api_key = mirror_db_config_data.get("api_key")
 
-        if agent_id is None or twitter_user_id is None or api_key is None:
-            self.context.logger.error(
-                "agent_id, twitter_user_id or api_key is None, which is not expected."
+            if agent_id is None or twitter_user_id is None or api_key is None:
+                self.context.logger.error(
+                    "agent_id, twitter_user_id or api_key is None, which is not expected."
+                )
+            # updating class vars
+            yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
+            yield from self._call_mirrordb(
+                "update_twitter_user_id", twitter_user_id=twitter_user_id
             )
-        # updating class vars
-        yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
-        yield from self._call_mirrordb(
-            "update_twitter_user_id", twitter_user_id=twitter_user_id
-        )
-        yield from self._call_mirrordb("update_api_key", api_key=api_key)
+            yield from self._call_mirrordb("update_api_key", api_key=api_key)
+
+        else:
+            self.context.logger.error(
+                "mirror_db_config_data is not a dictionary. failed to update new twitter_user_id."
+            )
+            self.context.logger.info(
+                f"MirrorDB config data is : {mirror_db_config_data} setting it to None"
+            )
+            mirror_db_config_data = None
 
         return mirror_db_config_data
