@@ -867,7 +867,7 @@ class MemeooorrBaseBehaviour(
             self.context.logger.error(
                 "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
             )
-            return None
+            return []
 
         handles: List[str] = []
         try:
