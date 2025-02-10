@@ -19,7 +19,7 @@ fingerprint:
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeickoskrkfmrxviqxg6aff6gre3hjf7q4mguriykqe5lyxk6rn22pe
   payloads.py: bafybeih7kqazpirgmaznee6orwweomrcnxqt5d2s2ldqpaa7patqafp37i
-  prompts.py: bafybeicd2krcjjtrevohaqhqm7qqujwypnbwna4uensj5fowknsaxsdbja
+  prompts.py: bafybeihueyvgqll4fdv2phwyyidbn4ptay7arfwgmn2anuwes4e4vo6owq
   rounds.py: bafybeick5kbob4sbavnxw3mjt4m3ixbxqjtdkyyzwupqyawontoehy2zhm
   rounds_info.py: bafybeib4pnvwsyyak52oznb2eybfhthlphunb4gkykrydbrng47hjykvw4
 fingerprint_ignore_patterns: []
