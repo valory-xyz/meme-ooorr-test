@@ -119,7 +119,8 @@ push-image:
 
 .PHONY: publish
 publish:
-	bash build_image.sh
+	autonomy push-all  && \
+	bash build_image.sh  && \
 	make push-image
 
 .PHONY: deploy-contracts

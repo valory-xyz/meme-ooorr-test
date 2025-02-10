@@ -21,7 +21,7 @@
 """Test subgraph"""
 
 
-import json  # Import the json library for formatted printing
+import json
 import re
 
 import requests
@@ -29,7 +29,7 @@ import requests
 
 MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr @(\w+)$"
 
-UPDATED_TOKENS_QUERY = """
+TOKENS_QUERY = """
 query Tokens {
   memeTokens {
     items {
@@ -79,7 +79,7 @@ def get_meme_coins_from_subgraph():
 
     url = "https://agentsfun-indexer-production.up.railway.app"
 
-    query = {"query": UPDATED_TOKENS_QUERY}  # use UPDATED_TOKENS_QUERY
+    query = {"query": TOKENS_QUERY}
 
     headers = {"Content-Type": "application/json"}
 
