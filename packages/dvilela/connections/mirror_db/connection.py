@@ -392,35 +392,8 @@ class MirrorDBConnection(Connection):
         /api/active_usernames/ endpoint and returns the list of usernames.
         """
         async with self.session.get(  # type: ignore
-            f"{self.base_url}/api/active_twitter_handles/",
+            f"{self.base_url}/api/active_usernames/",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
             await self._raise_for_response(response, "getting active X handles")
             return await response.json()
-
-    def _mirror_db_registration_check(
-        self,
-    ) -> Generator[None, None, Optional[Dict[str, Any]]]:
-        """Check if the agent_id is registered in the mirrorDB, if not then register with mirrorDB."""
-        db_response = yield from self._read_kv(keys=("mirrod_db_config",))
-        if db_response is None or db_response.get("mirrod_db_config") is None:
-            self.context.logger.info("Registering with MirrorDB")
-            yield from self._register_with_mirror_db()
-            # Fetch updated config after registration
-            db_response = yield from self._read_kv(keys=("mirrod_db_config",))
-
-        if db_response is None or db_response.get("mirrod_db_config") is None:
-            self.context.logger.error(
-                "MirrorDB config data not found even after registration! Registration failed"
-            )
-            return None
-
-        mirror_db_config_data = db_response.get("mirrod_db_config")
-        if mirror_db_config_data is None:
-            return None
-
-        # Parse JSON if string
-        if isinstance(mirror_db_config_data, str):
-            mirror_db_config_data = json.loads(mirror_db_config_data)
-
-        return mirror_db_config_data
