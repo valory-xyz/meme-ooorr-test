@@ -26,6 +26,6 @@ excluded_protocols: []
 restricted_to_protocols: []
 dependencies:
   twikit:
-    version: ==2.2.0
+    version: ==2.3.2
 is_abstract: false
 cert_requests: []
