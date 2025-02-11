@@ -107,10 +107,10 @@ class TwikitConnection(Connection):
         self.username = self.configuration.config.get("twikit_username")
         self.email = self.configuration.config.get("twikit_email")
         self.password = self.configuration.config.get("twikit_password")
-        self.cookies_path = Path(
-            self.configuration.config.get(
-                "twikit_cookies_path", "/tmp/twikit_cookies.json"  # nosec
-            )
+        self.cookies = self.configuration.config.get("twikit_cookies")
+        self.cookies_path = (
+            Path(self.configuration.config.get("store_path", "/tmp"))
+            / f"twikit_cookies_{self.username}.json"
         )
         self.disable_tweets = self.configuration.config.get("twikit_disable_tweets")
         self.skip_connection = self.configuration.config.get("twikit_skip_connection")
@@ -124,6 +124,12 @@ class TwikitConnection(Connection):
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
         self._response_envelopes: Optional[asyncio.Queue] = None
         self.task_to_request: Dict[asyncio.Future, Envelope] = {}
+        self.logged_in = False
+
+        # Write cookies to file if there is no cookies file
+        if not self.cookies_path.exists() and self.cookies:
+            with open(self.cookies_path, "w", encoding="utf-8") as cookies_file:
+                json.dump(self.cookies, cookies_file, indent=4)
 
     @property
     def response_envelopes(self) -> asyncio.Queue:
@@ -273,6 +279,13 @@ class TwikitConnection(Connection):
 
         self.logger.info(f"Calling twikit: {payload}")
 
+        if not self.logged_in:
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                "Twitter account is locked or suspended.",
+            )
+
         try:
             # Add random delay
             delay = secrets.randbelow(5)
@@ -299,7 +312,7 @@ class TwikitConnection(Connection):
             return self.prepare_error_message(
                 srr_message,
                 dialogue,
-                "Twitter account is locked, suspended or unauthorized.",
+                "Twitter account is locked or suspended.",
             )
 
         except Exception as e:
@@ -307,16 +320,51 @@ class TwikitConnection(Connection):
                 srr_message, dialogue, f"Exception while calling Twikit:\n{e}"
             )
 
+    async def validate_login(self) -> bool:
+        """Validate login"""
+        user = await self.client.user()
+        valid_login = user.screen_name == self.username
+        if not valid_login:
+            self.logger.error("Could not validate the cookies")
+        return valid_login
+
     async def twikit_login(self) -> None:
         """Login into Twitter"""
-        await self.client.login(
-            auth_info_1=self.username,
-            auth_info_2=self.email,
-            password=self.password,
-            cookies_file=self.cookies_path,
-        )
 
-        self.logged_in = True
+        try:
+            # Try to login via cookies
+            await self.client.login(
+                auth_info_1=self.username,
+                auth_info_2=self.email,
+                password=self.password,
+                cookies_file=str(self.cookies_path),
+            )
+
+            valid_login = await self.validate_login()
+            if valid_login:
+                self.logged_in = True
+
+        except twikit.errors.Unauthorized:
+            self.logger.error("Twitter cookies are not valid. Regenerating...")
+            self.cookies_path.unlink()
+
+            try:
+                await self.client.login(
+                    auth_info_1=self.username,
+                    auth_info_2=self.email,
+                    password=self.password,
+                    cookies_file=str(self.cookies_path),
+                )
+
+                valid_login = await self.validate_login()
+                if valid_login:
+                    self.logged_in = True
+
+            except Exception as e:
+                self.logger.error(f"Exception while trying to login via password: {e}")
+
+        except twikit.errors.AccountLocked:
+            self.logger.error("Twitter account is locked")
 
     async def search(
         self, query: str, product: str = "Top", count: int = 10

@@ -164,14 +164,15 @@ config:
   twikit_username: ${TWIKIT_USERNAME:str:null}
   twikit_email: ${TWIKIT_EMAIL:str:null}
   twikit_password: ${TWIKIT_PASSWORD:str:null}
-  twikit_cookies_path: ${TWIKIT_COOKIES_PATH:str:/tmp/twikit_cookies.json}
+  twikit_cookies: ${TWIKIT_COOKIES:str:null}
   twikit_disable_tweets: ${TWIKIT_DISABLE_TWEETS:bool:false}
   twikit_skip_connection: ${TWIKIT_SKIP_CONNECTION:bool:false}
+  store_path: ${STORE_PATH:str:null}
 ---
 public_id: dvilela/kv_store:0.1.0
 type: connection
 config:
-  db_path: ${DB_PATH:str:/logs/memeooorr.db}
+  store_path: ${STORE_PATH:str:null}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

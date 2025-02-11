@@ -63,7 +63,7 @@ async def password_login():
 
 
 async def cookie_login():
-    """Login via password"""
+    """Login via cookie"""
     with open(
         Path(os.getenv("TWIKIT_COOKIES_PATH")), "r", encoding="utf-8"
     ) as cookie_file:

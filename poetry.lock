@@ -2045,6 +2045,22 @@ files = [
 ]
 
 [[package]]
+name = "js2py"
+version = "0.74"
+description = "JavaScript to Python Translator & JavaScript interpreter written in 100% pure Python."
+optional = false
+python-versions = "*"
+files = [
+    {file = "Js2Py-0.74-py3-none-any.whl", hash = "sha256:40a508a79e2f8d624e3f2e604f90a1e6f46ac75b416d7f4745939ff4a2e95e09"},
+    {file = "Js2Py-0.74.tar.gz", hash = "sha256:39f3a6aa8469180efba3c8677271df27c31332fd1b471df1af2af58b87b8972f"},
+]
+
+[package.dependencies]
+pyjsparser = ">=2.5.1"
+six = ">=1.10"
+tzlocal = ">=1.2"
+
+[[package]]
 name = "js2py-3-13"
 version = "0.74"
 description = "JavaScript to Python Translator & JavaScript interpreter written in 100% pure Python."
@@ -4805,4 +4821,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.13,>=3.10"
-content-hash = "e379622bd96c0f32fc6ec6028547953f18dbc752c9623a42d90a32f5e4f101e8"
+content-hash = "c36815d8fcd3ddd210b45a16373f4b8da4903a5ce51bf87eddbd24fa89ce343e"
