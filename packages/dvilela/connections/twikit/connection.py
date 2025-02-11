@@ -324,8 +324,19 @@ class TwikitConnection(Connection):
 
     async def validate_login(self) -> bool:
         """Validate login"""
-        user = await self.client.user()
-        valid_login = user.screen_name == self.username
+        valid_login = False
+        retries = 0
+        while retries < 3:
+            try:
+                user = await self.client.user()
+                valid_login = user.screen_name == self.username
+                break
+            except twikit.errors.NotFound:
+                self.logger.error(
+                    f"Could not validate the cookies [{retries} / 3 retries]"
+                )
+                retries += 1
+                continue
         if not valid_login:
             self.logger.error("Could not validate the cookies")
         return valid_login
