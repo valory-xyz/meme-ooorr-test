@@ -22,10 +22,12 @@
 
 import asyncio
 import json
+import ssl
 from functools import wraps
 from typing import Any, Dict, List, Optional, Union, cast
 
 import aiohttp
+import certifi
 from aea.configurations.base import PublicId
 from aea.connections.base import Connection, ConnectionStates
 from aea.mail.base import Envelope
@@ -115,6 +117,7 @@ class MirrorDBConnection(Connection):
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
         self._response_envelopes: Optional[asyncio.Queue] = None
         self.task_to_request: Dict[asyncio.Future, Envelope] = {}
+        self.ssl_context = ssl.create_default_context(cafile=certifi.where())
 
     async def update_api_key(self, api_key: str) -> None:
         """Update the API key."""
@@ -140,7 +143,9 @@ class MirrorDBConnection(Connection):
     async def connect(self) -> None:
         """Connect to the backend service."""
         self._response_envelopes = asyncio.Queue()
-        self.session = aiohttp.ClientSession()
+        self.session = aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=self.ssl_context)
+        )
         self.state = ConnectionStates.connected
 
     async def disconnect(self) -> None:
@@ -392,7 +397,7 @@ class MirrorDBConnection(Connection):
         /api/active_usernames/ endpoint and returns the list of usernames.
         """
         async with self.session.get(  # type: ignore
-            f"{self.base_url}/api/active_twitter_handles/",
+            f"{self.base_url}/api/active_usernames/",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
             await self._raise_for_response(response, "getting active X handles")

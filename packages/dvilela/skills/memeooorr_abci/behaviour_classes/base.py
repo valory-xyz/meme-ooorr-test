@@ -841,13 +841,20 @@ class MemeooorrBaseBehaviour(
         self,
     ) -> Generator[None, None, List[str]]:
         """Get Memeooorr service handles from MirrorDB."""
-        yield from self._mirror_db_registration_check()
+        mirror_db_config_data = yield from self._mirror_db_registration_check()
+
+        if mirror_db_config_data is None:
+            self.context.logger.error(
+                "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
+            )
+            return []
 
         handles: List[str] = []
         try:
             active_handles = yield from self._call_mirrordb(
                 "get_active_twitter_handles"
             )
+
             if active_handles is None:
                 self.context.logger.warning(
                     "Could not retrieve active Twitter handles from MirrorDB."
@@ -1188,25 +1195,44 @@ class MemeooorrBaseBehaviour(
         self,
     ) -> Generator[None, None, Optional[Dict[str, Any]]]:
         """Check if the agent_id is registered in the mirrorDB, if not then register with mirrorDB."""
-        db_response = yield from self._read_kv(keys=("mirrod_db_config",))
-        if db_response is None:
-            self.context.logger.info("Registering with MirrorDB")
-            yield from self._register_with_mirror_db()
-            # Fetch updated config after registration
-            db_response = yield from self._read_kv(keys=("mirrod_db_config",))
+        # Read the current configuration
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
-        if db_response is None:
-            self.context.logger.error(
-                "MirrorDB config data not found even after registration! Registration failed"
-            )
-            return None
-
-        mirror_db_config_data = db_response.get("mirrod_db_config")
         if mirror_db_config_data is None:
-            return None
+            self.context.logger.info("No MirrorDB configuration found. Registering...")
+            yield from self._register_with_mirror_db()
 
-        # Parse JSON if string
+            mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+            mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
             mirror_db_config_data = json.loads(mirror_db_config_data)
+
+            # updating the instance variables agent_id, twitter_user_id and api_key
+            agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
+            twitter_user_id = mirror_db_config_data.get("twitter_user_id")  # type: ignore
+            api_key = mirror_db_config_data.get("api_key")  # type: ignore
+
+            if agent_id is None or twitter_user_id is None or api_key is None:
+                self.context.logger.error(
+                    "agent_id, twitter_user_id or api_key is None, which is not expected."
+                )
+            # updating class vars
+            yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
+            yield from self._call_mirrordb(
+                "update_twitter_user_id", twitter_user_id=twitter_user_id
+            )
+            yield from self._call_mirrordb("update_api_key", api_key=api_key)
+
+        else:
+            self.context.logger.error(
+                "mirror_db_config_data is not a dictionary. failed to update new twitter_user_id."
+            )
+            self.context.logger.info(
+                f"MirrorDB config data is : {mirror_db_config_data} setting it to None"
+            )
+            mirror_db_config_data = None
 
         return mirror_db_config_data
