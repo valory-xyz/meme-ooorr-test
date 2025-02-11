@@ -121,9 +121,11 @@ TOKEN_DECISION_PROMPT = (  # nosec
     Take into account the engagement you're getting on twitter and also the existing token's popularity.
 
     You have three options:
-    * Summon your own token if the engagement is good enough or if the number of meme coins in the market is low (under 30)
+    * Summon your own token if the responses to your latest tweet are getting good engagement metrics or if the number of meme coins in the market is low (under 3)
     * Execute one action from the available actions for one of the already existing tokens.
     * Do nothing
+
+    ONLY if you are not summoning, action priority should be "collect" > "unleash" > "purge" > "heart".
 
     {extra_command}
 
@@ -210,7 +212,7 @@ class TokenAction:  # pylint: disable=too-many-instance-attributes
     collect: typing.Optional[TokenCollect]
     purge: typing.Optional[TokenPurge]
     new_persona: typing.Optional[str]
-    tweet: str
+    action_tweet: typing.Optional[str]
 
 
 def build_token_action_schema() -> dict:

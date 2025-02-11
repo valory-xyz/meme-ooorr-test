@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeib7g4qeyurmk26lqqnpugc23of7nfbxsa4xulhocbkreqodzntxne
+agent: dvilela/memeooorr:0.1.0:bafybeidz4ubec7iwi4tbsvjsqsdyiuzxg7k5eodynyssmwglinmka3g7uq
 number_of_agents: 1
 deployment:
   agent:
@@ -165,14 +165,14 @@ config:
   twikit_email: ${TWIKIT_EMAIL:str:null}
   twikit_password: ${TWIKIT_PASSWORD:str:null}
   twikit_cookies: ${TWIKIT_COOKIES:str:null}
-  twikit_cookies_path: ${TWIKIT_COOKIES_PATH:str:/tmp/twikit_cookies.json}
   twikit_disable_tweets: ${TWIKIT_DISABLE_TWEETS:bool:false}
   twikit_skip_connection: ${TWIKIT_SKIP_CONNECTION:bool:false}
+  store_path: ${STORE_PATH:str:null}
 ---
 public_id: dvilela/kv_store:0.1.0
 type: connection
 config:
-  db_path: ${DB_PATH:str:/logs/memeooorr.db}
+  store_path: ${STORE_PATH:str:null}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

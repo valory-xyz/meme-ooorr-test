@@ -150,15 +150,16 @@ class ActionDecisionBehaviour(
             ]
         )
 
+        is_staking_kpi_met = self.synchronized_data.is_staking_kpi_met
+        extra_command = ENFORCE_ACTION_COMMAND if is_staking_kpi_met is False else ""
+
         prompt_data = {
             "meme_coins": meme_coins_str,
             "latest_tweet": latest_tweet,
             "tweet_responses": tweet_responses,
             "balance": safe_native_balance,
             "ticker": self.get_native_ticker(),
-            "extra_command": ""
-            if self.synchronized_data.is_staking_kpi_met
-            else ENFORCE_ACTION_COMMAND,
+            "extra_command": extra_command,
         }
 
         llm_response = yield from self._call_genai(
@@ -188,7 +189,7 @@ class ActionDecisionBehaviour(
             action_name = response.get("action_name", "none")
             action = response.get(action_name, {})
             new_persona = response.get("new_persona", None)
-            tweet = response.get("tweet", None)
+            tweet = response.get("action_tweet", None)
 
             token_name = action.get("token_name", None)
             token_ticker = action.get("token_ticker", None)
@@ -248,21 +249,6 @@ class ActionDecisionBehaviour(
                 self.context.logger.info(
                     f"Action [{action_name}] is not in available_actions={available_actions}"
                 )
-                return (
-                    Event.WAIT.value,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-
-            if not tweet:
-                self.context.logger.info("Tweet is none")
                 return (
                     Event.WAIT.value,
                     None,

@@ -146,24 +146,6 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         return safe_tx_hash
 
-    def store_heart(self, token_nonce: int) -> Generator[None, None, None]:
-        """Store a new hearted token to the db"""
-        # Load previously hearted memes
-        db_data = yield from self._read_kv(keys=("hearted_memes",))
-
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            hearted_memes = []
-        else:
-            hearted_memes = json.loads(db_data["hearted_memes"] or "[]")
-
-        # Write the new hearted token
-        hearted_memes.append(token_nonce)
-        yield from self._write_kv(
-            {"hearted_memes": json.dumps(hearted_memes, sort_keys=True)}
-        )
-        self.context.logger.info("Wrote latest hearted token to db")
-
     def default_error(
         self, contract_id: str, contract_callable: str, response_msg: ContractApiMessage
     ) -> None:
@@ -352,9 +334,14 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
             )
             return StakingState.UNSTAKED
 
+        staking_token_contract_address = self.params.staking_token_contract_address
+        if staking_token_contract_address == NULL_ADDRESS:
+            self.context.logger.warning("The staking contract has not been configured")
+            return StakingState.UNSTAKED
+
         service_staking_state = yield from self.contract_interact(
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
-            contract_address=self.params.staking_token_contract_address,
+            contract_address=staking_token_contract_address,
             contract_public_id=StakingTokenContract.contract_id,
             contract_callable="get_service_staking_state",
             data_key="data",
@@ -404,10 +391,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
         self.context.logger.info(
             f"Multisig nonces since last checkpoint: {multisig_nonces_since_last_cp} vs minimum req: {min_num_of_safe_tx_required}"
         )
-        if multisig_nonces_since_last_cp >= min_num_of_safe_tx_required:
-            return True
-
-        return False
+        return multisig_nonces_since_last_cp >= min_num_of_safe_tx_required
 
     def _get_service_info(
         self, chain: str
@@ -692,10 +676,6 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             )
             self.context.logger.info("Wrote latest token to db")
 
-        if token_action in ["summon", "heart"]:
-            self.store_heart(token_nonce)
-            self.context.logger.info("Stored hearted token")
-
     def get_token_nonce(
         self,
     ) -> Generator[None, None, Optional[int]]:
@@ -766,27 +746,7 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ances
     def async_act(self) -> Generator:
         """Do the action."""
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            checkpoint_tx_hex = None
-
-            staking_state = yield from self._get_service_staking_state(
-                chain=self.get_chain_id()
-            )
-
-            is_checkpoint_reached = yield from self._check_if_checkpoint_reached(
-                chain=self.get_chain_id()
-            )
-
-            self.context.logger.info(
-                f"Staking state: {staking_state}  is_checkpoint_reached: {is_checkpoint_reached}"
-            )
-
-            if is_checkpoint_reached and staking_state == StakingState.STAKED:
-                self.context.logger.info(
-                    "Checkpoint reached! Preparing checkpoint tx.."
-                )
-                checkpoint_tx_hex = yield from self._prepare_checkpoint_tx(
-                    chain=self.get_chain_id()
-                )
+            checkpoint_tx_hex = yield from self.get_checkpoint_tx_hash()
 
             payload = CallCheckpointPayload(
                 sender=self.context.agent_address,
@@ -798,6 +758,33 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ances
             yield from self.send_a2a_transaction(payload)
             yield from self.wait_until_round_end()
             self.set_done()
+
+    def get_checkpoint_tx_hash(self) -> Generator[None, None, Optional[str]]:
+        """Get the checkpoint tx hash"""
+        checkpoint_tx_hex = None
+
+        staking_state = yield from self._get_service_staking_state(
+            chain=self.get_chain_id()
+        )
+
+        if staking_state == StakingState.UNSTAKED:
+            return checkpoint_tx_hex
+
+        is_checkpoint_reached = yield from self._check_if_checkpoint_reached(
+            chain=self.get_chain_id()
+        )
+
+        self.context.logger.info(
+            f"Staking state: {staking_state}  is_checkpoint_reached: {is_checkpoint_reached}"
+        )
+
+        if is_checkpoint_reached and staking_state == StakingState.STAKED:
+            self.context.logger.info("Checkpoint reached! Preparing checkpoint tx..")
+            checkpoint_tx_hex = yield from self._prepare_checkpoint_tx(
+                chain=self.get_chain_id()
+            )
+
+        return checkpoint_tx_hex
 
     def _get_next_checkpoint(self, chain: str) -> Generator[None, None, Optional[int]]:
         """Get the timestamp in which the next checkpoint is reached."""

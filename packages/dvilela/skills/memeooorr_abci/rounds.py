@@ -75,6 +75,7 @@ class Event(Enum):
     TO_DEPLOY = "to_deploy"
     TO_ACTION_TWEET = "to_action_tweet"
     ACTION = "action"
+    MISSING_TWEET = "missing_tweet"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -137,9 +138,9 @@ class SynchronizedData(BaseSynchronizedData):
         return str(self.db.get_strict("tx_submitter"))
 
     @property
-    def is_staking_kpi_met(self) -> bool:
+    def is_staking_kpi_met(self) -> Optional[bool]:
         """Get the is_staking_kpi_met."""
-        return bool(self.db.get_strict("is_staking_kpi_met"))
+        return bool(self.db.get("is_staking_kpi_met", None))
 
     @property
     def participant_to_staking(self) -> DeserializedCollection:
@@ -432,7 +433,7 @@ class ActionTweetRound(EventRoundBase):
     required_class_attributes = ()
 
     # This needs to be mentioned for static checkers
-    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR, Event.MISSING_TWEET
 
 
 class CheckFundsRound(EventRoundBase):
@@ -529,7 +530,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         CollectFeedbackRound: {
             Event.DONE: EngageTwitterRound,
-            Event.ERROR: CollectFeedbackRound,
+            Event.ERROR: EngageTwitterRound,
             Event.NO_MAJORITY: CollectFeedbackRound,
             Event.ROUND_TIMEOUT: CollectFeedbackRound,
         },
@@ -555,6 +556,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         ActionTweetRound: {
             Event.DONE: CallCheckpointRound,
             Event.ERROR: ActionTweetRound,
+            Event.MISSING_TWEET: CallCheckpointRound,
             Event.NO_MAJORITY: ActionTweetRound,
             Event.ROUND_TIMEOUT: ActionTweetRound,
         },

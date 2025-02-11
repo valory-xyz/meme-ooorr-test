@@ -117,9 +117,14 @@ push-image:
 	docker tag $$IMAGE_ID valory/oar-memeooorr:$$AGENT_HASH && \
 	docker push valory/oar-memeooorr:$$AGENT_HASH
 
+.PHONY: push-packages
+push-packages:
+	make clean  && \
+	autonomy push-all
+
 .PHONY: publish
 publish:
-	bash build_image.sh
+	make push-packages  && \
 	make push-image
 
 .PHONY: deploy-contracts

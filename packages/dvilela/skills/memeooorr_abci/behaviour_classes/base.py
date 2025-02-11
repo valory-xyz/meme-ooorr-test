@@ -83,6 +83,7 @@ query Tokens {
       memeToken
       name
       symbol
+      hearters
     }
   }
 }
@@ -168,7 +169,10 @@ class MemeooorrBaseBehaviour(
         response_json = json.loads(response.payload)  # type: ignore
 
         if "error" in response_json:
-            if "locked, suspended or unauthorized" in response_json["error"]:
+            if (
+                "Twitter account is locked or suspended" in response_json["error"]
+                or "Twitter account is not logged in" in response_json["error"]
+            ):
                 self.context.state.env_var_status["needs_update"] = True
                 self.context.state.env_var_status["env_vars"][
                     "TWIKIT_USERNAME"
@@ -701,30 +705,9 @@ class MemeooorrBaseBehaviour(
 
         return {"safe": safe_balance, "agent": agent_balance}
 
-    def get_heart_and_burn_data(
-        self,
-    ) -> Generator[None, None, Tuple[List[str], int]]:
-        """Get heart, burn and purge data"""
-        # Load previously hearted memes
-        db_data = yield from self._read_kv(keys=("hearted_memes",))
-
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            hearted_memes_str = "[]"
-        else:
-            hearted_memes_str = db_data["hearted_memes"] or "[]"
-
-        hearted_memes = json.loads(hearted_memes_str)
-
-        # Get burnable amount
-        burnable_amount = yield from self.get_burnable_amount()
-
-        return hearted_memes, burnable_amount
-
     def get_meme_available_actions(  # pylint: disable=too-many-arguments
         self,
         meme_data: Dict,
-        hearted_memes: List[str],
         burnable_amount: int,
         maga_launched: bool,
     ) -> List[str]:
@@ -738,15 +721,15 @@ class MemeooorrBaseBehaviour(
         seconds_since_unleash = (now - unleash_time).total_seconds()
         is_unleashed = meme_data.get("unleash_time", 0) != 0
         is_purged = meme_data.get("is_purged")
+        is_hearted = (
+            self.synchronized_data.safe_contract_address
+            in meme_data.get("hearters", {}).keys()
+        )
 
         available_actions: List[str] = []
 
         # Heart
-        if (
-            not is_unleashed
-            and meme_data.get("token_nonce", None) not in hearted_memes
-            and meme_data.get("token_nonce", None) != 1
-        ):
+        if not is_unleashed and meme_data.get("token_nonce", None) != 1:
             available_actions.append("heart")
 
         # Unleash
@@ -758,11 +741,7 @@ class MemeooorrBaseBehaviour(
             available_actions.append("unleash")
 
         # Collect
-        if (
-            is_unleashed
-            and seconds_since_unleash < 24 * 3600
-            and meme_data.get("token_nonce", None) in hearted_memes
-        ):
+        if is_unleashed and seconds_since_unleash < 24 * 3600 and is_hearted:
             available_actions.append("collect")
 
         # Purge
@@ -1025,10 +1004,7 @@ class MemeooorrBaseBehaviour(
                 if token["token_nonce"] == event["token_nonce"]:
                     token["token_address"] = event["token_address"]
 
-        (
-            hearted_memes,
-            burnable_amount,
-        ) = yield from self.get_heart_and_burn_data()
+        burnable_amount = yield from self.get_burnable_amount()
 
         maga_launched = False
         for token in tokens:
@@ -1037,7 +1013,7 @@ class MemeooorrBaseBehaviour(
 
         for token in tokens:
             token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes, burnable_amount, maga_launched
+                token, burnable_amount, maga_launched
             )
 
         return tokens
@@ -1084,6 +1060,7 @@ class MemeooorrBaseBehaviour(
                 "summon_time": int(t["summonTime"]),
                 "unleash_time": int(t["unleashTime"]),
                 "token_nonce": int(t["memeNonce"]),
+                "hearters": t["hearters"],
             }
             for t in response_json["data"]["memeTokens"]["items"]
             if t["chain"] == self.get_chain_id()
@@ -1091,10 +1068,7 @@ class MemeooorrBaseBehaviour(
             and int(t["memeNonce"]) > 0
         ]
 
-        (
-            hearted_memes,
-            burnable_amount,
-        ) = yield from self.get_heart_and_burn_data()
+        burnable_amount = yield from self.get_burnable_amount()
 
         # We can only burn when the AG3NT token (nonce=1) has been unleashed
         maga_launched = False
@@ -1104,7 +1078,7 @@ class MemeooorrBaseBehaviour(
 
         for token in tokens:
             token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes, burnable_amount, maga_launched
+                token, burnable_amount, maga_launched
             )
 
         return tokens

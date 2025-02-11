@@ -9,6 +9,7 @@ alphabet_in:
 - FINALIZE_TIMEOUT
 - INCORRECT_SERIALIZATION
 - INSUFFICIENT_FUNDS
+- MISSING_TWEET
 - NEGATIVE
 - NONE
 - NO_FUNDS
@@ -64,6 +65,7 @@ transition_func:
     (ActionPreparationRound, SETTLE): CheckFundsRound
     (ActionTweetRound, DONE): CallCheckpointRound
     (ActionTweetRound, ERROR): ActionTweetRound
+    (ActionTweetRound, MISSING_TWEET): CallCheckpointRound
     (ActionTweetRound, NO_MAJORITY): ActionTweetRound
     (ActionTweetRound, ROUND_TIMEOUT): ActionTweetRound
     (CallCheckpointRound, DONE): ResetAndPauseRound
@@ -90,7 +92,7 @@ transition_func:
     (CheckTransactionHistoryRound, NONE): RandomnessTransactionSubmissionRound
     (CheckTransactionHistoryRound, NO_MAJORITY): CheckTransactionHistoryRound
     (CollectFeedbackRound, DONE): EngageTwitterRound
-    (CollectFeedbackRound, ERROR): CollectFeedbackRound
+    (CollectFeedbackRound, ERROR): EngageTwitterRound
     (CollectFeedbackRound, NO_MAJORITY): CollectFeedbackRound
     (CollectFeedbackRound, ROUND_TIMEOUT): CollectFeedbackRound
     (CollectSignatureRound, DONE): FinalizationRound

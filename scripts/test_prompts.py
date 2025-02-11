@@ -20,16 +20,18 @@
 
 """Test prompts"""
 
-import enum
 import json
 import os
-from typing import Optional
+import pickle  # nosec
+import random
 
 import dotenv
 import google.generativeai as genai  # type: ignore
-import typing_extensions as typing
 
-from packages.dvilela.skills.memeooorr_abci.prompts import TOKEN_DECISION_PROMPT
+from packages.dvilela.skills.memeooorr_abci.prompts import (
+    TOKEN_DECISION_PROMPT,
+    build_token_action_schema,
+)
 
 
 dotenv.load_dotenv(override=True)
@@ -45,15 +47,43 @@ timestamp: 2025-01-17 15:29:00
 """
 
 OTHER_TWEETS = [
-    {"tweet_id": 2, "user_id": 20, "tweet_text": "Hahahaha!"},
-    {"tweet_id": 3, "user_id": 30, "tweet_text": "Pizza is the best food ever!"},
-    {"tweet_id": 4, "user_id": 40, "tweet_text": "Stop coding! AI is the future :)"},
-    {"tweet_id": 5, "user_id": 50, "tweet_text": "memecoins! memecoins everywhere!"},
+    {
+        "tweet_id": 2,
+        "user_id": 20,
+        "tweet_text": "Hahahaha!",
+        "view_count": 1000000,
+        "quote_count": 1000000,
+        "retweet_count": 1000000,
+    },
+    {
+        "tweet_id": 3,
+        "user_id": 30,
+        "tweet_text": "Pizza is the best food ever!",
+        "view_count": 1000000,
+        "quote_count": 1000000,
+        "retweet_count": 1000000,
+    },
+    {
+        "tweet_id": 4,
+        "user_id": 40,
+        "tweet_text": "Stop coding! AI is the future :)",
+        "view_count": 1000000,
+        "quote_count": 1000000,
+        "retweet_count": 1000000,
+    },
+    {
+        "tweet_id": 5,
+        "user_id": 50,
+        "tweet_text": "memecoins! memecoins everywhere!",
+        "view_count": 1000000,
+        "quote_count": 1000000,
+        "retweet_count": 1000000,
+    },
 ]
 
-other_tweets_str = "\n\n".join(
+tweet_responses_str = "\n\n".join(
     [
-        f"tweet_id: {t['tweet_id']}\ntweet_text: {t['tweet_text']}\nuser_id: {t['user_id']}"
+        f"tweet_id: {t['tweet_id']}\ntweet_text: {t['tweet_text']}\nuser_id: {t['user_id']}\nviews: {t['view_count']}\nquotes: {t['quote_count']}\nretweets: {t['retweet_count']}"
         for t in OTHER_TWEETS
     ]
 )
@@ -62,17 +92,9 @@ TIME = """
 2025-01-17 16:29:00
 """
 
+AVAILABLE_ACTIONS = ["heart", "unleash", "collect", "purge"]
+
 TOKENS = [
-    {
-        "token_name": None,
-        "token_ticker": None,
-        "token_address": None,
-        "heart_count": None,
-        "is_unleashed": None,
-        "meme_nonce": None,
-        "token_nonce": None,
-        "available_actions": None,
-    },
     {
         "token_name": "Wave",
         "token_ticker": "WAVE",
@@ -81,7 +103,9 @@ TOKENS = [
         "is_unleashed": False,
         "meme_nonce": 4,
         "token_nonce": 4,
-        "available_actions": ["heart"],
+        "available_actions": random.sample(  # nosec
+            AVAILABLE_ACTIONS, random.randint(0, len(AVAILABLE_ACTIONS))
+        ),
     },
     {
         "token_name": "Meme",
@@ -91,7 +115,9 @@ TOKENS = [
         "is_unleashed": True,
         "meme_nonce": 5,
         "token_nonce": 5,
-        "available_actions": ["collect"],
+        "available_actions": random.sample(  # nosec
+            AVAILABLE_ACTIONS, random.randint(0, len(AVAILABLE_ACTIONS))
+        ),
     },
     {
         "token_name": "Flow",
@@ -101,120 +127,16 @@ TOKENS = [
         "is_unleashed": True,
         "meme_nonce": 6,
         "token_nonce": 6,
-        "available_actions": ["purge"],
+        "available_actions": random.sample(  # nosec
+            AVAILABLE_ACTIONS, random.randint(0, len(AVAILABLE_ACTIONS))
+        ),
     },
 ]
-
-
-class TwitterActionChoice(enum.Enum):
-    """TwitterActionChoice"""
-
-    NONE = "none"
-    TWEET = "tweet"
-    LIKE = "like"
-    RETWEET = "retweet"
-    REPLY = "reply"
-    QUOTE = "quote"
-    FOLLOW = "follow"
-
-
-# Dynamically build the tweet id enum
-TweetID = enum.Enum(
-    "TweetID",
-    {f"TWEET_ID_{tweet['tweet_id']}": str(tweet["tweet_id"]) for tweet in OTHER_TWEETS},
-)
-
-
-class TwitterAction(typing.TypedDict):
-    """TwitterAction"""
-
-    action: TwitterActionChoice
-    selected_tweet_id: TweetID
-    text: str
-
-
-# Dynamically build the addresses
-ValidNonce = enum.Enum(
-    "ValidNonce",
-    {f"NONCE_{token['token_nonce']}": str(token["token_nonce"]) for token in TOKENS},
-)
-
-
-class TokenSummon(typing.TypedDict):
-    """TokenSummon"""
-
-    token_name: str
-    token_ticker: str
-    token_supply: int
-    amount: int
-
-
-class TokenHeart(typing.TypedDict):
-    """TokenSummon"""
-
-    token_nonce: ValidNonce
-    amount: int
-
-
-class TokenUnleash(typing.TypedDict):
-    """TokenSummon"""
-
-    token_nonce: ValidNonce
-
-
-class TokenCollect(typing.TypedDict):
-    """TokenSummon"""
-
-    token_nonce: ValidNonce
-
-
-class TokenPurge(typing.TypedDict):
-    """TokenSummon"""
-
-    token_nonce: ValidNonce
-
-
-class ValidActionName(enum.Enum):
-    """ValidAction"""
-
-    NONE = "none"
-    SUMMON = "summon"
-    HEART = "heart"
-    UNLEASH = "unleash"
-    COLLECT = "collect"
-    PURGE = "purge"
-    BURN = "burn"
-
-
-class TokenAction(typing.TypedDict):
-    """TokenAction"""
-
-    action_name: ValidActionName
-    summon: Optional[TokenSummon]
-    heart: Optional[TokenHeart]
-    unleash: Optional[TokenUnleash]
-    collect: Optional[TokenCollect]
-    purge: Optional[TokenPurge]
-    new_persona: Optional[str]
-
+random.shuffle(TOKENS)
 
 genai.configure(api_key=os.getenv("GENAI_API_KEY"))
 
 model = genai.GenerativeModel("gemini-2.0-flash-exp")
-
-# response = model.generate_content(
-#     TWITTER_DECISION_PROMPT.format(
-#         persona=PERSONA,
-#         previous_tweets=PREVIOUS_TWEETS,
-#         other_tweets=other_tweets_str,
-#         time=TIME,
-#     ),
-#     generation_config=genai.types.GenerationConfig(
-#         temperature=2.0,
-#         response_mime_type="application/json",
-#         response_schema=list[TwitterAction],
-#     ),
-# )
 
 # fmt: off
 TOKEN_SUMMARY = (  # nosec
@@ -235,17 +157,24 @@ meme_coins = "\n".join(
     if meme_coin["available_actions"]  # Filter out tokens with no available actions
 )
 
+schema = build_token_action_schema()
+schema_class = pickle.loads(bytes.fromhex(schema["class"]))  # nosec
+
+prompt = TOKEN_DECISION_PROMPT.format(
+    meme_coins=meme_coins,
+    latest_tweet=PREVIOUS_TWEETS,
+    tweet_responses=tweet_responses_str,
+    balance=0.1,
+    extra_command="",
+    ticker="ETH",
+)
+
 response = model.generate_content(
-    TOKEN_DECISION_PROMPT.format(
-        meme_coins=meme_coins,
-        latest_tweet=PREVIOUS_TWEETS,
-        tweet_responses=other_tweets_str,
-        balance=0.1,
-    ),
+    prompt,
     generation_config=genai.types.GenerationConfig(
         temperature=2.0,
         response_mime_type="application/json",
-        response_schema=TokenAction,
+        response_schema=schema_class,
     ),
 )
 

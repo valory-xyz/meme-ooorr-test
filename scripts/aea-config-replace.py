@@ -32,8 +32,6 @@ AGENT_NAME = "memeooorr"
 
 PATH_TO_VAR = {
     # Chains
-    # "config/ledger_apis/ethereum/address": "ETHEREUM_LEDGER_RPC",
-    # "config/ledger_apis/ethereum/chain_id": "ETHEREUM_LEDGER_CHAIN_ID",
     "config/ledger_apis/base/address": "BASE_LEDGER_RPC",
     "config/ledger_apis/base/chain_id": "BASE_LEDGER_CHAIN_ID",
     # Params
@@ -57,13 +55,12 @@ PATH_TO_VAR = {
     "config/twikit_email": "TWIKIT_EMAIL",
     "config/twikit_password": "TWIKIT_PASSWORD",
     "config/twikit_cookies": "TWIKIT_COOKIES",
-    "config/twikit_cookies_path": "TWIKIT_COOKIES_PATH",
     "config/twikit_disable_tweets": "TWIKIT_DISABLE_TWEETS",
     "config/twikit_skip_connection": "TWIKIT_SKIP_CONNECTION",
     # Genai connection
     "config/genai_api_key": "GENAI_API_KEY",
-    # DB
-    "config/db_path": "DB_PATH",
+    # Store
+    "config/store_path": "STORE_PATH",
     # Mirror DB
     "config/mirror_db_base_url": "MIRROR_DB_BASE_URL",
 }
@@ -75,35 +72,36 @@ def find_and_replace(config, path, new_value):
     """Find and replace a variable"""
 
     # Find the correct section where this variable fits
-    section_index = None
+    section_indexes = []
     for i, section in enumerate(config):
         value = section
         try:
             for part in path:
                 value = value[part]
-            section_index = i
+            section_indexes.append(i)
         except KeyError:
             continue
 
-    if section_index is None:
+    if not section_indexes:
         raise ValueError(f"Could not update {path}")
 
     # To persist the changes in the config variable,
     # access iterating the path parts but the last part
-    sub_dic = config[section_index]
-    for part in path[:-1]:
-        sub_dic = sub_dic[part]
+    for section_index in section_indexes:
+        sub_dic = config[section_index]
+        for part in path[:-1]:
+            sub_dic = sub_dic[part]
 
-    # Now, get the whole string value
-    old_str_value = sub_dic[path[-1]]
+        # Now, get the whole string value
+        old_str_value = sub_dic[path[-1]]
 
-    # Extract the old variable value
-    match = re.match(CONFIG_REGEX, old_str_value)
-    old_var_value = match.groups()[0]
+        # Extract the old variable value
+        match = re.match(CONFIG_REGEX, old_str_value)
+        old_var_value = match.groups()[0]
 
-    # Replace the old variable with the secret value in the complete string
-    new_str_value = old_str_value.replace(old_var_value, new_value)
-    sub_dic[path[-1]] = new_str_value
+        # Replace the old variable with the secret value in the complete string
+        new_str_value = old_str_value.replace(old_var_value, new_value)
+        sub_dic[path[-1]] = new_str_value
 
     return config
 
