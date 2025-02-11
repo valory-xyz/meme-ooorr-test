@@ -4,13 +4,14 @@
         "contract/dvilela/service_registry/0.1.0": "bafybeif5rbqm73ej4l3cgn344dbaxxenw4bcemc2d3akixdf65gfmbjsma",
         "contract/valory/staking_token/0.1.0": "bafybeifle3qvbbmbaygi3t4lbntyjlzhanwtx35bfhivk6mpiflqchas6q",
         "contract/valory/staking_activity_checker/0.1.0": "bafybeiapxtujhd32sguswqq7rr4wzr2xjgh2adgkipewd3gv5vuwxoxkry",
-        "connection/dvilela/twikit/0.1.0": "bafybeigeik3qy2ybczkcfo5un2jnklspieeuyg7j3cncb77wifngueivae",
+        "connection/dvilela/twikit/0.1.0": "bafybeie3banwazeqnj4lqramkdf35hxjrxfjp6snhyezk26cntj2hv2tu4",
         "connection/dvilela/mirror_db/0.1.0": "bafybeifhl7e5odr53pbz2bog3tysyyfnimrz2acksgnal4yza4faxam6pa",
         "connection/dvilela/genai/0.1.0": "bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty",
-        "skill/dvilela/memeooorr_abci/0.1.0": "bafybeiezoxzw5aojnayyd3qyqlifzoaubxeajm6mbznnow7socg4i543pi",
-        "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeibc2jekavpjnei5mmxxjfolnw5kblbbnen2kxksslgptdy4dcbpji",
-        "agent/dvilela/memeooorr/0.1.0": "bafybeib7g4qeyurmk26lqqnpugc23of7nfbxsa4xulhocbkreqodzntxne",
-        "service/dvilela/memeooorr/0.1.0": "bafybeif7r3n5jy56xni6bmlqz7tmsptkariodxzir3hyjv3ov3lre4n24q"
+        "connection/dvilela/kv_store/0.1.0": "bafybeiagxe6t6impos27eubqsocs6oosi5pq4cxq4bhdoyx4mfpkarss2u",
+        "skill/dvilela/memeooorr_abci/0.1.0": "bafybeiaog556k2rnfvk46wm5f2ktbrmruspgxf75ku2xq3uzsjc4sybt4y",
+        "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeiag4lhvwgfhn345dqpdcl6jsdotdexl7ttdwdpt2zqujan4zbmuge",
+        "agent/dvilela/memeooorr/0.1.0": "bafybeiepxhoulyve7y4wnow4qa5sgnproupxbhvphme53mb2abh35ni76u",
+        "service/dvilela/memeooorr/0.1.0": "bafybeic5idkbnx5e2ddf773rcmbltfivr7olrlk6nvl4jbw52erp2u6sj4"
     },
     "third_party": {
         "protocol/open_aea/signing/1.0.0": "bafybeihv62fim3wl2bayavfcg3u5e5cxu3b7brtu4cn5xoxd6lqwachasi",
@@ -35,7 +36,6 @@
         "connection/valory/ledger/0.19.0": "bafybeigntoericenpzvwejqfuc3kqzo2pscs76qoygg5dbj6f4zxusru5e",
         "connection/valory/p2p_libp2p_client/0.1.0": "bafybeihs5zlwa5wlozct3rjlxsirm3ve3e4buse5nfehiky6ymnnfrobne",
         "connection/valory/http_server/0.22.0": "bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m",
-        "connection/dvilela/kv_store/0.1.0": "bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4",
         "skill/valory/abstract_abci/0.1.0": "bafybeigygqg63cr4sboxz7xfakcfpz55id7ihmj434v5iz3r26t7q6qwie",
         "skill/valory/reset_pause_abci/0.1.0": "bafybeigmyonotdry7q5uxt55xzcho2byp6u7seshisvrw6hhcgn7mzfti4",
         "skill/valory/registration_abci/0.1.0": "bafybeib2qkzymrwklb3lfp6biqllsch4werp7e3wttjpmx4eizefpiwmhi",
