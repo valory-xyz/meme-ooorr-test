@@ -738,11 +738,7 @@ class MemeooorrBaseBehaviour(
             available_actions.append("unleash")
 
         # Collect
-        if (
-            is_unleashed
-            and seconds_since_unleash < 24 * 3600
-            and meme_data.get("token_nonce", None) in hearted_memes
-        ):
+        if is_unleashed and seconds_since_unleash < 24 * 3600 and is_hearted:
             available_actions.append("collect")
 
         # Purge
@@ -1069,10 +1065,7 @@ class MemeooorrBaseBehaviour(
             and int(t["memeNonce"]) > 0
         ]
 
-        (
-            hearted_memes,
-            burnable_amount,
-        ) = yield from self.get_burn_data()
+        burnable_amount = yield from self.get_burnable_amount()
 
         # We can only burn when the AG3NT token (nonce=1) has been unleashed
         maga_launched = False
@@ -1082,7 +1075,7 @@ class MemeooorrBaseBehaviour(
 
         for token in tokens:
             token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes, burnable_amount, maga_launched
+                token, burnable_amount, maga_launched
             )
 
         return tokens

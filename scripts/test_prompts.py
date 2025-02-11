@@ -22,7 +22,7 @@
 
 import json
 import os
-import pickle
+import pickle  # nosec
 import random
 
 import dotenv
@@ -103,7 +103,7 @@ TOKENS = [
         "is_unleashed": False,
         "meme_nonce": 4,
         "token_nonce": 4,
-        "available_actions": random.sample(
+        "available_actions": random.sample(  # nosec
             AVAILABLE_ACTIONS, random.randint(0, len(AVAILABLE_ACTIONS))
         ),
     },
@@ -115,7 +115,7 @@ TOKENS = [
         "is_unleashed": True,
         "meme_nonce": 5,
         "token_nonce": 5,
-        "available_actions": random.sample(
+        "available_actions": random.sample(  # nosec
             AVAILABLE_ACTIONS, random.randint(0, len(AVAILABLE_ACTIONS))
         ),
     },
@@ -127,7 +127,7 @@ TOKENS = [
         "is_unleashed": True,
         "meme_nonce": 6,
         "token_nonce": 6,
-        "available_actions": random.sample(
+        "available_actions": random.sample(  # nosec
             AVAILABLE_ACTIONS, random.randint(0, len(AVAILABLE_ACTIONS))
         ),
     },
@@ -158,7 +158,7 @@ meme_coins = "\n".join(
 )
 
 schema = build_token_action_schema()
-schema_class = pickle.loads(bytes.fromhex(schema["class"]))
+schema_class = pickle.loads(bytes.fromhex(schema["class"]))  # nosec
 
 prompt = TOKEN_DECISION_PROMPT.format(
     meme_coins=meme_coins,

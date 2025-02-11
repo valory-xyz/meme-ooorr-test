@@ -108,9 +108,10 @@ class TwikitConnection(Connection):
         self.email = self.configuration.config.get("twikit_email")
         self.password = self.configuration.config.get("twikit_password")
         self.cookies = self.configuration.config.get("twikit_cookies")
-        self.cookies_path = (
-            Path(self.configuration.config.get("store_path", "/tmp"))
-            / f"twikit_cookies_{self.username}.json"
+        self.cookies_path = (  # nosec
+            Path(self.configuration.config.get("store_path", "/tmp"))  # type: ignore
+            / self.username
+            / "twikit_cookies.json"
         )
         self.disable_tweets = self.configuration.config.get("twikit_disable_tweets")
         self.skip_connection = self.configuration.config.get("twikit_skip_connection")
@@ -128,6 +129,7 @@ class TwikitConnection(Connection):
 
         # Write cookies to file if there is no cookies file
         if not self.cookies_path.exists() and self.cookies:
+            self.cookies_path.parent.mkdir(parents=True, exist_ok=True)
             with open(self.cookies_path, "w", encoding="utf-8") as cookies_file:
                 json.dump(self.cookies, cookies_file, indent=4)
 
@@ -520,7 +522,7 @@ class TwikitConnection(Connection):
         """Returns Twitter ID for the instance Twitter account."""
 
         with open(self.cookies_path, "r", encoding="utf-8") as cookies_file:
-            cookies = json.loads(cookies_file)
+            cookies = json.load(cookies_file)
 
             twid = cookies.get("twid", "").strip('"')
             if not twid:

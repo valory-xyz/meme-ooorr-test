@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """Key-value connection and channel."""
+from pathlib import Path
 from typing import Any, Callable, cast
 
 from aea.configurations.base import PublicId
@@ -16,7 +17,7 @@ from packages.dvilela.protocols.kv_store.dialogues import (
     KvStoreDialogues as BaseKvStoreDialogues,
 )
 from packages.dvilela.protocols.kv_store.message import KvStoreMessage
-from pathlib import Path
+
 
 PUBLIC_ID = PublicId.from_str("dvilela/kv_store:0.1.0")
 
@@ -96,7 +97,9 @@ class KvStoreConnection(BaseSyncConnection):
         """
         super().__init__(*args, **kwargs)
         self.dialogues = KvStoreDialogues(connection_id=PUBLIC_ID)
-        self.db_path = str(Path(self.configuration.config.get("store_path", "/tmp")) / "memeooorr.db")
+        self.db_path = str(  # nosec
+            Path(self.configuration.config.get("store_path", "/tmp")) / "memeooorr.db"
+        )
 
     def main(self) -> None:
         """
