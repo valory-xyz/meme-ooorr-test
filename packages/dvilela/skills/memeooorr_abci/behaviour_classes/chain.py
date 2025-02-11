@@ -784,6 +784,8 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ances
                 chain=self.get_chain_id()
             )
 
+        return checkpoint_tx_hex
+
     def _get_next_checkpoint(self, chain: str) -> Generator[None, None, Optional[int]]:
         """Get the timestamp in which the next checkpoint is reached."""
         next_checkpoint = yield from self.contract_interact(
