@@ -2,6 +2,7 @@ alphabet_in:
 - ACTION
 - DONE
 - ERROR
+- MISSING_TWEET
 - NO_FUNDS
 - NO_MAJORITY
 - ROUND_TIMEOUT
@@ -43,6 +44,7 @@ transition_func:
     (ActionPreparationRound, SETTLE): CheckFundsRound
     (ActionTweetRound, DONE): CallCheckpointRound
     (ActionTweetRound, ERROR): ActionTweetRound
+    (ActionTweetRound, MISSING_TWEET): CallCheckpointRound
     (ActionTweetRound, NO_MAJORITY): ActionTweetRound
     (ActionTweetRound, ROUND_TIMEOUT): ActionTweetRound
     (CallCheckpointRound, DONE): FinishedToResetRound

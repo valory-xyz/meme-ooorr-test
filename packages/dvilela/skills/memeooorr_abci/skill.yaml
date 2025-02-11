@@ -8,24 +8,24 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeicjcjra4r6t6r6own2cyw6iawmvnvpu3zzoglm4zyhphriocsonym
-  behaviour_classes/chain.py: bafybeif4hioyfikayodjh6iubl4gdcabkayh7jdy6ttaz24p7mdobitcgq
+  behaviour_classes/base.py: bafybeiguxbgb76ytxhclp52l5aq66sltjk4sj26wivyuhqpnrt5pxjqwc4
+  behaviour_classes/chain.py: bafybeid7b55tzj6zy7epgyuym4iblirc2hzr4o5t75qryndytppeq5vzc4
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
-  behaviour_classes/llm.py: bafybeiao6pcesay3sicbyivbaf7prhowsbjzolszrcw54bgdarvxhieieu
+  behaviour_classes/llm.py: bafybeicbnh4ntpwjm67nlpljksm3sbvxgyl3mgcal7oyd4grrihzffxpyu
   behaviour_classes/twitter.py: bafybeidw2zhg5gblp5ppnximz24ws4tzh4ph4scfjg775adjqfsu2lk6q4
   behaviours.py: bafybeiatehvcz2go4cx3ipobz4mlrh6wlt2edxde4fpm36ppkhsapv3fpi
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
-  fsm_specification.yaml: bafybeigtmsopnsbejewkhxmzig3uhs4xgiikfppv54yqmmdzg6mjo5zwtq
+  fsm_specification.yaml: bafybeihjg5qaimzodwksexrwcdqwmd6rapbxol7xijmvqw24bebdqdfkzq
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeickoskrkfmrxviqxg6aff6gre3hjf7q4mguriykqe5lyxk6rn22pe
   payloads.py: bafybeih7kqazpirgmaznee6orwweomrcnxqt5d2s2ldqpaa7patqafp37i
-  prompts.py: bafybeihueyvgqll4fdv2phwyyidbn4ptay7arfwgmn2anuwes4e4vo6owq
-  rounds.py: bafybeigyg4aspintzqmyg6wsrnhlpvrtgjowzdppcor54aekvd7eb4wvj4
+  prompts.py: bafybeidgmuhy46jw3ce4oontyhj2nu3onwdfm5vvp3h27l3elxd5w4oyha
+  rounds.py: bafybeia4ju4rdsp5ezceze5mwxnke75hu7viubmlelj4naba5rfsgk4qp4
   rounds_info.py: bafybeib4pnvwsyyak52oznb2eybfhthlphunb4gkykrydbrng47hjykvw4
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiecnl7yc5qx6x4q7467i66ehmfw4qydnnry7tjs7plqeytb6ueyvu
-- dvilela/twikit:0.1.0:bafybeic3mqxxd3to6del3olk2xl33vq2mha7s426gpvvgapqh7wa4hig4y
+- dvilela/twikit:0.1.0:bafybeihtdam5ztcwytwg6t4uq7evap5fsqyldjxfsg2thrdkw2byq6eu2y
 - dvilela/mirror_db:0.1.0:bafybeifhl7e5odr53pbz2bog3tysyyfnimrz2acksgnal4yza4faxam6pa
 - dvilela/genai:0.1.0:bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty
 - valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m

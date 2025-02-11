@@ -285,7 +285,7 @@ class TwikitConnection(Connection):
             return self.prepare_error_message(
                 srr_message,
                 dialogue,
-                "Twitter account is locked or suspended.",
+                "Twitter account is not logged in.",
             )
 
         try:
