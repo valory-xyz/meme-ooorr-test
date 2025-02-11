@@ -59,7 +59,7 @@ transition_func:
     (CheckStakingRound, NO_MAJORITY): CheckStakingRound
     (CheckStakingRound, ROUND_TIMEOUT): CheckStakingRound
     (CollectFeedbackRound, DONE): EngageTwitterRound
-    (CollectFeedbackRound, ERROR): CollectFeedbackRound
+    (CollectFeedbackRound, ERROR): EngageTwitterRound
     (CollectFeedbackRound, NO_MAJORITY): CollectFeedbackRound
     (CollectFeedbackRound, ROUND_TIMEOUT): CollectFeedbackRound
     (EngageTwitterRound, DONE): ActionDecisionRound

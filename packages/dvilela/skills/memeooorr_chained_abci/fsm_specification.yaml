@@ -92,7 +92,7 @@ transition_func:
     (CheckTransactionHistoryRound, NONE): RandomnessTransactionSubmissionRound
     (CheckTransactionHistoryRound, NO_MAJORITY): CheckTransactionHistoryRound
     (CollectFeedbackRound, DONE): EngageTwitterRound
-    (CollectFeedbackRound, ERROR): CollectFeedbackRound
+    (CollectFeedbackRound, ERROR): EngageTwitterRound
     (CollectFeedbackRound, NO_MAJORITY): CollectFeedbackRound
     (CollectFeedbackRound, ROUND_TIMEOUT): CollectFeedbackRound
     (CollectSignatureRound, DONE): FinalizationRound
