@@ -131,7 +131,7 @@ class TwikitConnection(Connection):
         if not self.cookies_path.exists() and self.cookies:
             self.cookies_path.parent.mkdir(parents=True, exist_ok=True)
             with open(self.cookies_path, "w", encoding="utf-8") as cookies_file:
-                json.dump(self.cookies, cookies_file, indent=4)
+                json.dump(json.loads(self.cookies), cookies_file, indent=4)
 
     @property
     def response_envelopes(self) -> asyncio.Queue:
