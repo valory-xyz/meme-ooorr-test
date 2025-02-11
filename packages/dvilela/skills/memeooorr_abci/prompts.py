@@ -212,7 +212,7 @@ class TokenAction:  # pylint: disable=too-many-instance-attributes
     collect: typing.Optional[TokenCollect]
     purge: typing.Optional[TokenPurge]
     new_persona: typing.Optional[str]
-    tweet: str
+    action_tweet: typing.Optional[str]
 
 
 def build_token_action_schema() -> dict:

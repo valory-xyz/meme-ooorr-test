@@ -168,9 +168,6 @@ class ActionDecisionBehaviour(
         )
         self.context.logger.info(f"LLM response: {llm_response}")
 
-        import pdb
-
-        pdb.set_trace()
         # We didnt get a response
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
@@ -192,7 +189,7 @@ class ActionDecisionBehaviour(
             action_name = response.get("action_name", "none")
             action = response.get(action_name, {})
             new_persona = response.get("new_persona", None)
-            tweet = response.get("tweet", None)
+            tweet = response.get("action_tweet", None)
 
             token_name = action.get("token_name", None)
             token_ticker = action.get("token_ticker", None)

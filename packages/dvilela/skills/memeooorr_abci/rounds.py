@@ -433,7 +433,7 @@ class ActionTweetRound(EventRoundBase):
     required_class_attributes = ()
 
     # This needs to be mentioned for static checkers
-    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR, Event.MISSING_TWEET
 
 
 class CheckFundsRound(EventRoundBase):
@@ -530,7 +530,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         CollectFeedbackRound: {
             Event.DONE: EngageTwitterRound,
-            Event.ERROR: CollectFeedbackRound,
+            Event.ERROR: EngageTwitterRound,
             Event.NO_MAJORITY: CollectFeedbackRound,
             Event.ROUND_TIMEOUT: CollectFeedbackRound,
         },

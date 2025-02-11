@@ -169,7 +169,10 @@ class MemeooorrBaseBehaviour(
         response_json = json.loads(response.payload)  # type: ignore
 
         if "error" in response_json:
-            if "Twitter account is locked or suspended" in response_json["error"]:
+            if (
+                "Twitter account is locked or suspended" in response_json["error"]
+                or "Twitter account is not logged in" in response_json["error"]
+            ):
                 self.context.state.env_var_status["needs_update"] = True
                 self.context.state.env_var_status["env_vars"][
                     "TWIKIT_USERNAME"

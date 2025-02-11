@@ -391,10 +391,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
         self.context.logger.info(
             f"Multisig nonces since last checkpoint: {multisig_nonces_since_last_cp} vs minimum req: {min_num_of_safe_tx_required}"
         )
-        if multisig_nonces_since_last_cp >= min_num_of_safe_tx_required:
-            return True
-
-        return False
+        return multisig_nonces_since_last_cp >= min_num_of_safe_tx_required
 
     def _get_service_info(
         self, chain: str
