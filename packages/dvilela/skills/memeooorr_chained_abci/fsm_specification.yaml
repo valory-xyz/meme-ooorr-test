@@ -64,7 +64,7 @@ transition_func:
     (ActionPreparationRound, ROUND_TIMEOUT): ActionPreparationRound
     (ActionPreparationRound, SETTLE): CheckFundsRound
     (ActionTweetRound, DONE): CallCheckpointRound
-    (ActionTweetRound, ERROR): ActionTweetRound
+    (ActionTweetRound, ERROR): CallCheckpointRound
     (ActionTweetRound, MISSING_TWEET): CallCheckpointRound
     (ActionTweetRound, NO_MAJORITY): ActionTweetRound
     (ActionTweetRound, ROUND_TIMEOUT): ActionTweetRound
