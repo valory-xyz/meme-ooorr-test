@@ -1274,7 +1274,7 @@ class MemeooorrBaseBehaviour(
         # Handle HTTP errors
         if response.status_code != HTTP_OK:
             self.context.logger.error(
-                f"Error while pulling the price from Fireworks: {response.body}"
+                f"Error while pulling the price from Fireworks: {response}"
             )
 
         # Load the response
@@ -1288,7 +1288,7 @@ class MemeooorrBaseBehaviour(
 
         try:
             tweet = api_data["choices"][0]["message"]["content"]
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             self.context.logger.error(
                 f"The alternative model response is not valid: {api_data}"
             )

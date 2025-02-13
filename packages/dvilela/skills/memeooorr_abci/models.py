@@ -48,7 +48,7 @@ class RandomnessApi(ApiSpecs):
 
 
 @dataclass(frozen=True)
-class AlternativeModelForTweets:
+class AlternativeModelForTweets:  # pylint: disable=too-many-instance-attributes
     """The configuration for the alternative LLM models."""
 
     use: bool
