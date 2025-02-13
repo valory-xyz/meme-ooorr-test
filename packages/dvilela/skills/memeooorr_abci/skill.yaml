@@ -8,18 +8,18 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeiguxbgb76ytxhclp52l5aq66sltjk4sj26wivyuhqpnrt5pxjqwc4
+  behaviour_classes/base.py: bafybeidgdczrscongpibxabeovqj4mxxegu6u3sxcy7bqyionee4nfceoi
   behaviour_classes/chain.py: bafybeia5mf4n7rbswrdes3qm6p3kauaf67ro5ig7r5dvpav4idaf5htsui
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
-  behaviour_classes/llm.py: bafybeicbnh4ntpwjm67nlpljksm3sbvxgyl3mgcal7oyd4grrihzffxpyu
-  behaviour_classes/twitter.py: bafybeidw2zhg5gblp5ppnximz24ws4tzh4ph4scfjg775adjqfsu2lk6q4
+  behaviour_classes/llm.py: bafybeiayanrjve5jfuyya57j6b7bdwbzxqod2eg22fjsomz35h3iieyktu
+  behaviour_classes/twitter.py: bafybeielvxyrdghm5te6eqxaysrnx4seo7g7y7gt3esnqrsiqgfhcd2vau
   behaviours.py: bafybeiatehvcz2go4cx3ipobz4mlrh6wlt2edxde4fpm36ppkhsapv3fpi
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeidtbbb6mirnlljxa5jw76g2h7dy646ocy3pguz7wn73jvnzbxjdoy
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
-  models.py: bafybeickoskrkfmrxviqxg6aff6gre3hjf7q4mguriykqe5lyxk6rn22pe
+  models.py: bafybeib36jrxqfny6rsdwl4znj7mpamfcxrusjltusic3njypoipnxdhqi
   payloads.py: bafybeih7kqazpirgmaznee6orwweomrcnxqt5d2s2ldqpaa7patqafp37i
-  prompts.py: bafybeidgmuhy46jw3ce4oontyhj2nu3onwdfm5vvp3h27l3elxd5w4oyha
+  prompts.py: bafybeih2aazny2huauynt3dn2oh5aqohsshssi3v2gjg6i3gwrtyyhe7my
   rounds.py: bafybeia4ju4rdsp5ezceze5mwxnke75hu7viubmlelj4naba5rfsgk4qp4
   rounds_info.py: bafybeib4pnvwsyyak52oznb2eybfhthlphunb4gkykrydbrng47hjykvw4
 fingerprint_ignore_patterns: []
