@@ -153,7 +153,7 @@ class EventRoundBase(CollectSameUntilThresholdRound):
 
     synchronized_data_class = SynchronizedData
     payload_class = BaseTxPayload  # will be overwritten
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -201,7 +201,7 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
 
         return None
 
-    required_class_attributes = ()
+    extended_requirements = ()
 
 
 class CheckStakingRound(CollectSameUntilThresholdRound):
@@ -209,7 +209,7 @@ class CheckStakingRound(CollectSameUntilThresholdRound):
 
     payload_class = CheckStakingPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -245,7 +245,7 @@ class PullMemesRound(CollectSameUntilThresholdRound):
 
     payload_class = PullMemesPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -284,7 +284,7 @@ class CollectFeedbackRound(CollectSameUntilThresholdRound):
 
     payload_class = CollectFeedbackPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -319,7 +319,7 @@ class EngageTwitterRound(EventRoundBase):
 
     payload_class = EngageTwitterPayload  # type: ignore
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
@@ -330,7 +330,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
 
     payload_class = ActionDecisionPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -388,7 +388,7 @@ class ActionPreparationRound(CollectSameUntilThresholdRound):
 
     payload_class = ActionPreparationPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -430,7 +430,7 @@ class ActionTweetRound(EventRoundBase):
 
     payload_class = ActionTweetPayload  # type: ignore
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR, Event.MISSING_TWEET
@@ -440,7 +440,7 @@ class CheckFundsRound(EventRoundBase):
     """CheckFundsRound"""
 
     payload_class = CheckFundsPayload  # type: ignore
-    required_class_attributes = ()
+    extended_requirements = ()
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.NO_FUNDS
 
@@ -450,7 +450,7 @@ class PostTxDecisionMakingRound(EventRoundBase):
 
     payload_class = PostTxDecisionMakingPayload  # type: ignore
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ACTION
@@ -461,7 +461,7 @@ class CallCheckpointRound(CollectSameUntilThresholdRound):
 
     payload_class = CallCheckpointPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -555,7 +555,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         ActionTweetRound: {
             Event.DONE: CallCheckpointRound,
-            Event.ERROR: ActionTweetRound,
+            Event.ERROR: CallCheckpointRound,
             Event.MISSING_TWEET: CallCheckpointRound,
             Event.NO_MAJORITY: ActionTweetRound,
             Event.ROUND_TIMEOUT: ActionTweetRound,

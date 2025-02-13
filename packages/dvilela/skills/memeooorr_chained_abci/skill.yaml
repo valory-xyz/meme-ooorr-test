@@ -10,7 +10,7 @@ fingerprint:
   behaviours.py: bafybeidabq5scnvljux2732bdbg7xnpnnz54y6t2kdooltd2jgugkz2voi
   composition.py: bafybeic3yxme3kvpuzenftfmjnl5uywlip3drzqqj5dtgciauuptxiq4ni
   dialogues.py: bafybeiawrgmlra5f6o63nhv5kc77wvzoqmcareub3lf4qceuwpjso4pjbe
-  fsm_specification.yaml: bafybeiaurhj7o5rasvjh74e5hbiehxqg2ogyx3a4q5rqiya6eairnpomva
+  fsm_specification.yaml: bafybeigmv2vdp77vjgmwewrnuwzmd4xhrk4dth4egqhoidqvvtpnrqwjda
   handlers.py: bafybeibw5nfno2scl5qzly3fpvodgoovikl6h3hoiiu6e4sqpbbczbzfim
   models.py: bafybeiggsxlwg3vzl5nnkkzlmrn7akdki7wxcdk6qfulzau25dq6fl45uu
 fingerprint_ignore_patterns: []
@@ -18,12 +18,12 @@ connections: []
 contracts: []
 protocols: []
 skills:
-- valory/abstract_round_abci:0.1.0:bafybeihyaubqrndsjkrplx4e2tn45jgddt52cxzuhb5iwiznz7qlhrbdbe
-- valory/registration_abci:0.1.0:bafybeib2qkzymrwklb3lfp6biqllsch4werp7e3wttjpmx4eizefpiwmhi
-- valory/reset_pause_abci:0.1.0:bafybeigmyonotdry7q5uxt55xzcho2byp6u7seshisvrw6hhcgn7mzfti4
-- valory/transaction_settlement_abci:0.1.0:bafybeidpzdtevjmqw7swdmk6mtz2ez47fvsit3choh5d4nzgioyfqkzgba
-- valory/termination_abci:0.1.0:bafybeifs4vorsmsulzgobr754od2omj6uphylslkrtuadxzludoexld6ny
-- dvilela/memeooorr_abci:0.1.0:bafybeie5ju37mbiqytje6onj622h2wgex5t6qil2guzkzlz2l4c5secpqa
+- valory/abstract_round_abci:0.1.0:bafybeigyuls35k6rc2x5j5pcnrghfyojzqzjshhfoaco47ctfm3wjiapce
+- valory/registration_abci:0.1.0:bafybeifurpc5kko5tq5bc2bwfgdvwpbhzytk2vhj56cb2d6lhdnm7irnhu
+- valory/reset_pause_abci:0.1.0:bafybeiavtmbqziu3i55t2clj2ih242vuq2nw4xp47heaxyusddggl664ya
+- valory/transaction_settlement_abci:0.1.0:bafybeibil7cfzuuyxge5rayxwqxvq467hhv73pngj3muqo7x6zkkjzlgs4
+- valory/termination_abci:0.1.0:bafybeigpodcqf4vtk4pwj2d3fn2hbvv6fnwgqllowxwx3e76wonxen4zu4
+- dvilela/memeooorr_abci:0.1.0:bafybeihr3lgil35ee3xdwswab7xu33uf4kdbvjf4gq7hahxf5vmdiahnmq
 behaviours:
   main:
     args: {}
@@ -166,6 +166,17 @@ models:
       max_heart_amount_celo: 0.2
       staking_token_contract_address: '0x0000000000000000000000000000000000000000'
       staking_activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
+      alternative_model_for_tweets:
+        use: false
+        url: https://api.fireworks.ai/inference/v1/chat/completions
+        api_key: null
+        model: accounts/sentientfoundation/models/dobby-mini-unhinged-llama-3-1-8b
+        max_tokens: 16384
+        top_p: 1
+        top_k: 40
+        presence_penalty: 0
+        frequency_penalty: 0
+        temperature": 0.6
     class_name: Params
   randomness_api:
     args:

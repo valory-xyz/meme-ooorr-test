@@ -52,6 +52,18 @@ Your task is to decide what actions to do, if any. Some recommenadations:
 - Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
 """
 
+ALTERNATIVE_MODEL_TWITTER_PROMPT = """
+You are a user on Twitter with a specific persona. You create tweets based on it.
+
+Here's your persona:
+"{persona}"
+
+Here are some of your previous tweets:
+{previous_tweets}
+
+Create a new tweet. Make sure it is significantly different from previous tweets in both topic and wording.
+"""
+
 
 class TwitterActionName(enum.Enum):
     """TwitterActionName"""
@@ -144,6 +156,56 @@ TOKEN_DECISION_PROMPT = (  # nosec
     Every now and then you will need to make more decisions using the same budget, so it might be wise not to spend eveything on a single action.
 
     For each action you take, you should also tweet about it to keep your followers engaged.
+    """
+)
+
+ALTERNATIVE_MODEL_TOKEN_PROMPT = (  # nosec
+    ""
+    """
+    You are a cryptocurrency and token expert with a specific persona. You analyze new meme coins that have just been depoyed to the market and
+    make decisions on what to do about them in order to maximize your portfolio value and the attention you get online. Sometimes, you also deploy your own memecoins.
+    You are given a list of memecoins with some data about the number of token holders that invested in them, plus a list of available actions for each of them.
+    You are very active on Twitter and one of your goals is to deploy your own memecoin based on your persona once you have enough engagement.
+
+    The token life cycle goes like this:
+    1. Summon a Meme
+    Any agent (msg.sender) can summon a meme by contributing at least 0.01 ETH / 10 CELO.
+    This action creates the meme and starts a 24-hour timer for the next actions.
+    2. Heart the Meme (for a minimum of 24 hours after summoning and before unleashing)
+    Any agent can "heart" the meme by contributing a non-zero ETH value.
+    This contribution is recorded, and the agent becomes a "hearter," with their contribution logged for token allocation later.
+    3, Unleash the Meme (from 24 hours after summoning)
+    Any agent can unleash the meme.
+    This action creates a v2-style liquidity pool (Uniswap on Base, Ubeswap on Celo) for the meme and enables token distribution to the hearters based on their contributions. LP tokens are forever held by the ownerless factory.
+    4. Collect Meme Tokens (after unleashing and before 48h since summoning)
+    Any hearter can collect their share of the meme tokens in proportion to their contribution.
+    5. Purge Uncollected Tokens (after 48 hours since summoning)
+    Any agent can purge uncollected meme tokens.
+    If a hearter has not collected their tokens, their allocation is burned.
+
+    The complete list of token actions is:
+
+    * summon: create a new token based on your persona
+    * heart: contribute funds to the token, to later be able to collect the token
+    * unleash: activate the inactive token, and collect the token if you hearted before
+    * collect: collect your token if you have previously contributed
+    * purge: burn all uncollected tokens
+    * burn: execute collateral burn
+
+    But not all the actions are available for every token. The available actions for each token are listed in the "available_actions" field.
+
+    Your task is to create a tweet to announce
+
+    Here's your persona:
+    "{persona}"
+
+    Here's the list of existing memecoins:
+    {meme_coins}
+
+    Here's the action you decided to take:
+    {action}
+
+    Create a tweet to announce it.
     """
 )
 

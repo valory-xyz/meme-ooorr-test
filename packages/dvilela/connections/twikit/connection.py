@@ -129,9 +129,13 @@ class TwikitConnection(Connection):
 
         # Write cookies to file if there is no cookies file
         if not self.cookies_path.exists() and self.cookies:
+            self.logger.info(f"Removing previous cookie file at {self.cookies_path}")
             self.cookies_path.parent.mkdir(parents=True, exist_ok=True)
             with open(self.cookies_path, "w", encoding="utf-8") as cookies_file:
                 json.dump(json.loads(self.cookies), cookies_file, indent=4)
+                self.logger.info(f"Wrote cookies from config to {self.cookies_path}")
+        else:
+            self.logger.info(f"Using cookies from {self.cookies_path}")
 
     @property
     def response_envelopes(self) -> asyncio.Queue:
@@ -328,14 +332,21 @@ class TwikitConnection(Connection):
         retries = 0
         while retries < 3:
             try:
-                user = await self.client.user()
-                valid_login = user.screen_name == self.username
-                break
-            except twikit.errors.NotFound:
+                # Check we can recover one example user
+                user = await self.client.get_user_by_screen_name("autonolas")
+                valid_login = user.id == "1450081635559428107"
+                if valid_login:
+                    self.logger.info(
+                        f"Cookies have succesfully been validated for user {self.username}"
+                    )
+                    break
+                raise ValueError("Could not test the cookies")
+            except Exception:
                 self.logger.error(
                     f"Could not validate the cookies [{retries} / 3 retries]"
                 )
                 retries += 1
+                time.sleep(3)
                 continue
         if not valid_login:
             self.logger.error("Could not validate the cookies")
