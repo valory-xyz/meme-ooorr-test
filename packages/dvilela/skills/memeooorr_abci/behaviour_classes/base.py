@@ -705,7 +705,7 @@ class MemeooorrBaseBehaviour(
 
         return {"safe": safe_balance, "agent": agent_balance}
 
-    def get_meme_available_actions(  # pylint: disable=too-many-arguments
+    def get_meme_available_actions(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         meme_data: Dict,
         burnable_amount: int,
@@ -726,7 +726,9 @@ class MemeooorrBaseBehaviour(
             in meme_data.get("hearters", {}).keys()
         )
         token_nonce = meme_data.get("token_nonce")
-        collectable_amount = yield from self.get_collectable_amount(token_nonce)
+        collectable_amount = yield from self.get_collectable_amount(
+            cast(int, token_nonce)
+        )
         is_collectable = collectable_amount > 0
 
         available_actions: List[str] = []
@@ -1147,7 +1149,7 @@ class MemeooorrBaseBehaviour(
         burnable_amount = cast(int, response_msg.state.body.get("burnable_amount", 0))
         return burnable_amount
 
-    def get_collectable_amount(self, token_nonce) -> Generator[None, None, int]:
+    def get_collectable_amount(self, token_nonce: int) -> Generator[None, None, int]:
         """Get collectable amount"""
         response_msg = yield from self.get_contract_api_response(
             performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
