@@ -555,7 +555,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         ActionTweetRound: {
             Event.DONE: CallCheckpointRound,
-            Event.ERROR: ActionTweetRound,
+            Event.ERROR: CallCheckpointRound,
             Event.MISSING_TWEET: CallCheckpointRound,
             Event.NO_MAJORITY: ActionTweetRound,
             Event.ROUND_TIMEOUT: ActionTweetRound,
