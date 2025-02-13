@@ -1,17 +1,17 @@
 {
     "dev": {
-        "contract/dvilela/meme_factory/0.1.0": "bafybeib4mlf7d4sk5hiuiznk56mo5tuj7h27ptu6rfhfyq7z35cskhfhxm",
+        "contract/dvilela/meme_factory/0.1.0": "bafybeialf42ioeo5pcwfsqguv2bjgd6qkj53kmprxdzicgp7aki5zkhdvq",
         "contract/dvilela/service_registry/0.1.0": "bafybeias6xxdi764btjv7x6i5neye7albf4lwdygjz3kwl7vttpl3gcp2e",
         "contract/valory/staking_token/0.1.0": "bafybeicxr7xynkt36xyumhx7gmvzuroqww36k4xybvip6t7me5iqn4i7vu",
         "contract/valory/staking_activity_checker/0.1.0": "bafybeifbzznj6snxmoetkqhmwzo4nwuski6kylydkg5td5qdslin32tpae",
-        "connection/dvilela/twikit/0.1.0": "bafybeifglz7sqky6dctruxfmiux3uohoo4rm5534qj5olfgpjumro27tey",
+        "connection/dvilela/twikit/0.1.0": "bafybeih6webq6mpg7ovhkmzuy3gnmzoadgbdm66xrepxmzjjb3zom4rqla",
         "connection/dvilela/mirror_db/0.1.0": "bafybeifhl7e5odr53pbz2bog3tysyyfnimrz2acksgnal4yza4faxam6pa",
         "connection/dvilela/genai/0.1.0": "bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty",
         "connection/dvilela/kv_store/0.1.0": "bafybeiecnl7yc5qx6x4q7467i66ehmfw4qydnnry7tjs7plqeytb6ueyvu",
-        "skill/dvilela/memeooorr_abci/0.1.0": "bafybeigytojvs6fblek2tskn7u6g755fmrb53aj43grx3u7x647ikvniq4",
-        "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeidikqinwtdbss73djtq5iaca3ti2uyvnb3x5d52et72i2a3rbeqkm",
-        "agent/dvilela/memeooorr/0.1.0": "bafybeic5xsris7thdk553yzduvhnezccvzrhgp5m4r55yudhbage57sir4",
-        "service/dvilela/memeooorr/0.1.0": "bafybeifeiav525iresl6hcfa2xi7piip3xbjuokhilhepqltw5wlshvjcu"
+        "skill/dvilela/memeooorr_abci/0.1.0": "bafybeiaqfuiyhmto7wdzmug4wacxhklcqsgrfhykhiyxggjfeu377ke3mi",
+        "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeiglqkttdt75wmgidyunufiwkcdwqehi2a3gtufwfp4w6afeq2usbe",
+        "agent/dvilela/memeooorr/0.1.0": "bafybeieyerj3ggzeklvd2xifkhrvqkyzu2rpghtp5nzptp7pcgjtimatxa",
+        "service/dvilela/memeooorr/0.1.0": "bafybeibhgbmzx53arbzvho3goluqdjyliqbuumyjetwutu6zyitjlrlimm"
     },
     "third_party": {
         "protocol/open_aea/signing/1.0.0": "bafybeig2d36zxy65vd7fwhs7scotuktydcarm74aprmrb5nioiymr3yixm",

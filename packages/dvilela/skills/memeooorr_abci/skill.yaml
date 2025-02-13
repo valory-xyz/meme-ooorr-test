@@ -8,7 +8,7 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeiesoha6amql4xf6t3e3i52lv3dfkoyfecn3qs7v3qlmbwid4rt2oa
+  behaviour_classes/base.py: bafybeiclbqgi6x3cafmejpwasum2iqsyhntlikwceijkpm3chcty4kuoqe
   behaviour_classes/chain.py: bafybeia5mf4n7rbswrdes3qm6p3kauaf67ro5ig7r5dvpav4idaf5htsui
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
   behaviour_classes/llm.py: bafybeiayanrjve5jfuyya57j6b7bdwbzxqod2eg22fjsomz35h3iieyktu
@@ -20,18 +20,18 @@ fingerprint:
   models.py: bafybeife6wu5gk7uveazrvwohc4fo3issieutkwvoxrpvfwgjmljnnwxci
   payloads.py: bafybeih7kqazpirgmaznee6orwweomrcnxqt5d2s2ldqpaa7patqafp37i
   prompts.py: bafybeibg36snp55jvidrkxrk252glflisgrjkmjeq6t5suuljjc264z4lq
-  rounds.py: bafybeigngkiz6fsotk3q6dpaqaa5wngj7yoda7dvmux6fjb472lvtma6c4
+  rounds.py: bafybeid7jhbi7b43iqgn5q3nxycgnaxclmiuzknqx7in36ekn3stxmzgv4
   rounds_info.py: bafybeib4pnvwsyyak52oznb2eybfhthlphunb4gkykrydbrng47hjykvw4
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiecnl7yc5qx6x4q7467i66ehmfw4qydnnry7tjs7plqeytb6ueyvu
-- dvilela/twikit:0.1.0:bafybeifglz7sqky6dctruxfmiux3uohoo4rm5534qj5olfgpjumro27tey
+- dvilela/twikit:0.1.0:bafybeih6webq6mpg7ovhkmzuy3gnmzoadgbdm66xrepxmzjjb3zom4rqla
 - dvilela/mirror_db:0.1.0:bafybeifhl7e5odr53pbz2bog3tysyyfnimrz2acksgnal4yza4faxam6pa
 - dvilela/genai:0.1.0:bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty
 - valory/http_server:0.22.0:bafybeic3jpkum7g6qo6x6vdrmvvhj7vqw7ec2op72uc3yfhmnlp5hn3joy
 contracts:
 - valory/gnosis_safe:0.1.0:bafybeif3uivl3jjb3c2tyctu6jagp2mwizgmdnxb4x7otrxavifdk4t3je
-- dvilela/meme_factory:0.1.0:bafybeib4mlf7d4sk5hiuiznk56mo5tuj7h27ptu6rfhfyq7z35cskhfhxm
+- dvilela/meme_factory:0.1.0:bafybeialf42ioeo5pcwfsqguv2bjgd6qkj53kmprxdzicgp7aki5zkhdvq
 - dvilela/service_registry:0.1.0:bafybeias6xxdi764btjv7x6i5neye7albf4lwdygjz3kwl7vttpl3gcp2e
 - valory/staking_token:0.1.0:bafybeicxr7xynkt36xyumhx7gmvzuroqww36k4xybvip6t7me5iqn4i7vu
 - valory/staking_activity_checker:0.1.0:bafybeifbzznj6snxmoetkqhmwzo4nwuski6kylydkg5td5qdslin32tpae

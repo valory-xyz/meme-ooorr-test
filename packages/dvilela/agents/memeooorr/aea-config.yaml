@@ -13,7 +13,7 @@ connections:
 - valory/http_client:0.23.0:bafybeid5ffvg76ejjoese7brj5ji3lx66cu7p2ixfwflpo6rgofkypfd7y
 - valory/ledger:0.19.0:bafybeibiayfscw4badpr545f47hsvc2r5lgfpgzib5q4h4u6kkosdsytby
 - valory/p2p_libp2p_client:0.1.0:bafybeic6ayusdwy4dks75njwk32ac7ur7salgllwf4fdc34ue5z2k5iz4q
-- dvilela/twikit:0.1.0:bafybeifglz7sqky6dctruxfmiux3uohoo4rm5534qj5olfgpjumro27tey
+- dvilela/twikit:0.1.0:bafybeih6webq6mpg7ovhkmzuy3gnmzoadgbdm66xrepxmzjjb3zom4rqla
 - dvilela/mirror_db:0.1.0:bafybeifhl7e5odr53pbz2bog3tysyyfnimrz2acksgnal4yza4faxam6pa
 - dvilela/kv_store:0.1.0:bafybeiecnl7yc5qx6x4q7467i66ehmfw4qydnnry7tjs7plqeytb6ueyvu
 - valory/http_server:0.22.0:bafybeic3jpkum7g6qo6x6vdrmvvhj7vqw7ec2op72uc3yfhmnlp5hn3joy
@@ -22,7 +22,7 @@ contracts:
 - valory/gnosis_safe:0.1.0:bafybeif3uivl3jjb3c2tyctu6jagp2mwizgmdnxb4x7otrxavifdk4t3je
 - valory/gnosis_safe_proxy_factory:0.1.0:bafybeif76vmeg6ri4vqgkopjk7azsuuo5arnfi6fsytu6xur2emejjan34
 - valory/multisend:0.1.0:bafybeig5byt5urg2d2bsecufxe5ql7f4mezg3mekfleeh32nmuusx66p4y
-- dvilela/meme_factory:0.1.0:bafybeib4mlf7d4sk5hiuiznk56mo5tuj7h27ptu6rfhfyq7z35cskhfhxm
+- dvilela/meme_factory:0.1.0:bafybeialf42ioeo5pcwfsqguv2bjgd6qkj53kmprxdzicgp7aki5zkhdvq
 - dvilela/service_registry:0.1.0:bafybeias6xxdi764btjv7x6i5neye7albf4lwdygjz3kwl7vttpl3gcp2e
 - valory/staking_token:0.1.0:bafybeicxr7xynkt36xyumhx7gmvzuroqww36k4xybvip6t7me5iqn4i7vu
 - valory/staking_activity_checker:0.1.0:bafybeifbzznj6snxmoetkqhmwzo4nwuski6kylydkg5td5qdslin32tpae
@@ -44,8 +44,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeibil7cfzuuyxge5rayxwqxvq467hhv73pngj3muqo7x6zkkjzlgs4
 - valory/registration_abci:0.1.0:bafybeifurpc5kko5tq5bc2bwfgdvwpbhzytk2vhj56cb2d6lhdnm7irnhu
 - valory/reset_pause_abci:0.1.0:bafybeiavtmbqziu3i55t2clj2ih242vuq2nw4xp47heaxyusddggl664ya
-- dvilela/memeooorr_abci:0.1.0:bafybeigytojvs6fblek2tskn7u6g755fmrb53aj43grx3u7x647ikvniq4
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeidikqinwtdbss73djtq5iaca3ti2uyvnb3x5d52et72i2a3rbeqkm
+- dvilela/memeooorr_abci:0.1.0:bafybeiaqfuiyhmto7wdzmug4wacxhklcqsgrfhykhiyxggjfeu377ke3mi
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeiglqkttdt75wmgidyunufiwkcdwqehi2a3gtufwfp4w6afeq2usbe
 default_ledger: ethereum
 required_ledgers:
 - ethereum
