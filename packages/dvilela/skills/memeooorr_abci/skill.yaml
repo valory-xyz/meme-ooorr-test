@@ -11,16 +11,16 @@ fingerprint:
   behaviour_classes/base.py: bafybeiguxbgb76ytxhclp52l5aq66sltjk4sj26wivyuhqpnrt5pxjqwc4
   behaviour_classes/chain.py: bafybeia5mf4n7rbswrdes3qm6p3kauaf67ro5ig7r5dvpav4idaf5htsui
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
-  behaviour_classes/llm.py: bafybeicbnh4ntpwjm67nlpljksm3sbvxgyl3mgcal7oyd4grrihzffxpyu
-  behaviour_classes/twitter.py: bafybeidw2zhg5gblp5ppnximz24ws4tzh4ph4scfjg775adjqfsu2lk6q4
+  behaviour_classes/llm.py: bafybeicpmkmlen2zpn576wylpo7xgudfs3usjr5xkc4a2ynvos3lirq7dq
+  behaviour_classes/twitter.py: bafybeicy5hguuomfyapcmxwjowqdvkinwvyph2thit3epl6o2mayjts6ca
   behaviours.py: bafybeiatehvcz2go4cx3ipobz4mlrh6wlt2edxde4fpm36ppkhsapv3fpi
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeidtbbb6mirnlljxa5jw76g2h7dy646ocy3pguz7wn73jvnzbxjdoy
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
-  models.py: bafybeickoskrkfmrxviqxg6aff6gre3hjf7q4mguriykqe5lyxk6rn22pe
+  models.py: bafybeigv7qcteejj5poqnqvt7whl4it4mtceopmj764lyrnu5yy4oa3pmi
   payloads.py: bafybeih7kqazpirgmaznee6orwweomrcnxqt5d2s2ldqpaa7patqafp37i
-  prompts.py: bafybeidgmuhy46jw3ce4oontyhj2nu3onwdfm5vvp3h27l3elxd5w4oyha
-  rounds.py: bafybeia4ju4rdsp5ezceze5mwxnke75hu7viubmlelj4naba5rfsgk4qp4
+  prompts.py: bafybeifq5ivux65cf4mosupt5lgzvvftbh5m5iyaif6bvxgmgzxqsuwl7e
+  rounds.py: bafybeiduuorponzw6m3nzlekapbeeqqd3hintcckbprwteqgekkj53eqba
   rounds_info.py: bafybeib4pnvwsyyak52oznb2eybfhthlphunb4gkykrydbrng47hjykvw4
 fingerprint_ignore_patterns: []
 connections:
@@ -33,7 +33,7 @@ contracts:
 - valory/gnosis_safe:0.1.0:bafybeign4jqpofu3jxuqkzlt4qgrwdbf4xvjusqezhsojtxrfvv467n62e
 - dvilela/meme_factory:0.1.0:bafybeidt244ghzw6pnl3vpdfr4c4tg2lcbgmp7wjsytdppxf4zcyvja6qa
 - dvilela/service_registry:0.1.0:bafybeif5rbqm73ej4l3cgn344dbaxxenw4bcemc2d3akixdf65gfmbjsma
-- valory/staking_token:0.1.0:bafybeifle3qvbbmbaygi3t4lbntyjlzhanwtx35bfhivk6mpiflqchas6q
+- valory/staking_token:0.1.0:bafybeiea6cyzeltrqmah3gq5fhxucaboggdasjgbjzl6upmvpvurt26iva
 - valory/staking_activity_checker:0.1.0:bafybeiapxtujhd32sguswqq7rr4wzr2xjgh2adgkipewd3gv5vuwxoxkry
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
@@ -44,6 +44,7 @@ protocols:
 skills:
 - valory/abstract_round_abci:0.1.0:bafybeihyaubqrndsjkrplx4e2tn45jgddt52cxzuhb5iwiznz7qlhrbdbe
 - valory/transaction_settlement_abci:0.1.0:bafybeidpzdtevjmqw7swdmk6mtz2ez47fvsit3choh5d4nzgioyfqkzgba
+- valory/mech_interact_abci:0.1.0:bafybeibktzpi5odiefivrm3aycg76il4raonqqohltqxlc2q4rcvhb2rxe
 behaviours:
   main:
     args: {}
@@ -177,6 +178,8 @@ models:
       max_heart_amount_celo: 0.2
       staking_token_contract_address: '0x0000000000000000000000000000000000000000'
       staking_activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
+      tools_to_description:
+        dummy_tool: A tool that does nothing, and provides no info.
     class_name: Params
   requests:
     args: {}

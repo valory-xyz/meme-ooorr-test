@@ -160,6 +160,7 @@ class ActionDecisionBehaviour(
             "balance": safe_native_balance,
             "ticker": self.get_native_ticker(),
             "extra_command": extra_command,
+            "tools": "google trends, twitter trends",
         }
 
         llm_response = yield from self._call_genai(
@@ -221,6 +222,24 @@ class ActionDecisionBehaviour(
                     None,
                     None,
                 )
+
+            if action_name == "tool":
+                self.context.logger.info("AXAT : LLM has requested to use a tool.")
+                # Add your logic here to handle the tool request.
+                # This might involve calling another behaviour,
+                # sending a message to another agent, etc.
+                return (
+                    Event.DONE.value,
+                    action_name,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )  # Or another event
 
             if action_name in ["heart", "unleash"] and token_nonce not in valid_nonces:
                 self.context.logger.info(

@@ -50,6 +50,11 @@ from packages.valory.skills.abstract_round_abci.base import (
     get_name,
 )
 
+from packages.valory.skills.mech_interact_abci.states.base import (
+    MechMetadata,
+    MechInteractionResponse,
+)
+
 
 class StakingState(Enum):
     """Staking state enumeration for the staking."""
@@ -76,6 +81,7 @@ class Event(Enum):
     TO_ACTION_TWEET = "to_action_tweet"
     ACTION = "action"
     MISSING_TWEET = "missing_tweet"
+    MECH_REQUEST = "mech_request"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -146,6 +152,24 @@ class SynchronizedData(BaseSynchronizedData):
     def participant_to_staking(self) -> DeserializedCollection:
         """Get the participants to the staking round."""
         return self._get_deserialized("participant_to_staking")
+    
+    @property
+    def mech_requests(self) -> List[MechMetadata]:
+        """Get the mech requests."""
+        serialized = self.db.get("mech_requests", "[]")
+        if serialized is None:
+            serialized = "[]"
+        requests = json.loads(serialized)
+        return [MechMetadata(**metadata_item) for metadata_item in requests]
+
+    @property
+    def mech_responses(self) -> List[MechInteractionResponse]:
+        """Get the mech responses."""
+        responses = self.db.get("mech_responses", "[]")
+        if isinstance(responses, str):
+            responses = json.loads(responses)
+        return [MechInteractionResponse(**response_item) for response_item in responses]
+
 
 
 class EventRoundBase(CollectSameUntilThresholdRound):

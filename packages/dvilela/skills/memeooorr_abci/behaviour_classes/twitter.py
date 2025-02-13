@@ -32,6 +32,7 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
     TWITTER_DECISION_PROMPT,
+    TWITTER_DECISION_PROMPT_WITH_TOOLS,
     build_twitter_action_schema,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
@@ -411,10 +412,11 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         else:
             previous_tweets = "No previous tweets"
 
-        prompt = TWITTER_DECISION_PROMPT.format(
+        prompt = TWITTER_DECISION_PROMPT_WITH_TOOLS.format(
             persona=persona,
             previous_tweets=previous_tweets,
             other_tweets=other_tweets,
+            tools="TOOL 1 : GOOGLE SEARCH",
             time=self.get_sync_time_str(),
         )
 
@@ -438,6 +440,10 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
             if action == "none":
                 self.context.logger.error("Action is none")
+                continue
+
+            if action == "Tool":
+                self.context.logger.error("Action is Tool")
                 continue
 
             if action != "tweet" and str(tweet_id) not in pending_tweets.keys():

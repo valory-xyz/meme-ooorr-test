@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeidz4ubec7iwi4tbsvjsqsdyiuzxg7k5eodynyssmwglinmka3g7uq
+agent: dvilela/memeooorr:0.1.0:bafybeiha3szzkcjtdizacazw4qa5o3xojatrwm4liqtewawdgtsaruqnxe
 number_of_agents: 1
 deployment:
   agent:
@@ -107,6 +107,8 @@ extra:
         max_heart_amount_celo: ${MAX_HEART_AMOUNT_CELO:float:0.2}
         staking_token_contract_address: ${STAKING_CONTRACT_ADDRESS:str:0x0000000000000000000000000000000000000000}
         staking_activity_checker_contract_address: ${ACTIVITY_CHECKER_CONTRACT_ADDRESS:str:0x0000000000000000000000000000000000000000}
+        tools_to_description:
+          dummy_tool: A tool that does nothing, and provides no info.
 ---
 public_id: valory/ledger:0.19.0
 type: connection

@@ -118,5 +118,6 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.staking_activity_checker_contract_address: str = self._ensure(
             "staking_activity_checker_contract_address", kwargs, str
         )
+        self.tools_to_description = self._ensure("tools_to_description", kwargs, dict)
 
         super().__init__(*args, **kwargs)
