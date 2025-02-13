@@ -73,6 +73,16 @@ async def cookie_login():
     return client
 
 
+async def validate_login() -> None:
+    """Stress test"""
+    client = await cookie_login()
+    user = await client.get_user_by_screen_name("autonolas")
+    if user.id != "1450081635559428107":
+        print("Error")
+    else:
+        print("OK")
+
+
 async def get_tweets(client) -> None:
     """Get tweets"""
 
@@ -124,4 +134,4 @@ async def search_tweet() -> None:
     return tweets
 
 
-print(asyncio.run(search_tweet()))
+print(asyncio.run(validate_login()))
