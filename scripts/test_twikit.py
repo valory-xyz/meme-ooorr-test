@@ -64,13 +64,15 @@ async def password_login():
 
 async def cookie_login():
     """Login via cookie"""
-    with open(
-        Path(os.getenv("TWIKIT_COOKIES_PATH")), "r", encoding="utf-8"
-    ) as cookie_file:
-        cookies = json.load(cookie_file)
-        client = twikit.Client(language="en-US")
-        client.set_cookies(cookies)
-        return client
+
+    client = twikit.Client(language="en-US")
+    await client.login(
+        auth_info_1=os.getenv("TWIKIT_USERNAME"),
+        auth_info_2=os.getenv("TWIKIT_EMAIL"),
+        password=os.getenv("TWIKIT_PASSWORD"),
+        cookies_file=os.getenv("TWIKIT_COOKIES_PATH"),
+    )
+    return client
 
 
 async def get_tweets(client) -> None:
@@ -120,7 +122,8 @@ async def is_suspended() -> None:
 async def search_tweet() -> None:
     """Search tweet"""
     client = await cookie_login()
-    await client.search_tweet(query="$OLAS", product="Top", count=5)
+    tweets = await client.search_tweet(query="$OLAS", product="Top", count=5)
+    return tweets
 
 
 print(asyncio.run(search_tweet()))

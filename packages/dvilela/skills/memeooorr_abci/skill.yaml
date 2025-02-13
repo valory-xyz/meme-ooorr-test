@@ -177,6 +177,17 @@ models:
       max_heart_amount_celo: 0.2
       staking_token_contract_address: '0x0000000000000000000000000000000000000000'
       staking_activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
+      alternative_model_for_tweets:
+        use: false
+        url: https://api.fireworks.ai/inference/v1/chat/completions
+        api_key: null
+        model: accounts/sentientfoundation/models/dobby-mini-unhinged-llama-3-1-8b
+        max_tokens: 16384
+        top_p: 1
+        top_k: 40
+        presence_penalty: 0
+        frequency_penalty: 0
+        temperature": 0.6
     class_name: Params
   requests:
     args: {}
