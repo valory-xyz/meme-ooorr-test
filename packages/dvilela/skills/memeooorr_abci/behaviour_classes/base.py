@@ -705,12 +705,12 @@ class MemeooorrBaseBehaviour(
 
         return {"safe": safe_balance, "agent": agent_balance}
 
-    def get_meme_available_actions(  # pylint: disable=too-many-arguments
+    def get_meme_available_actions(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         meme_data: Dict,
         burnable_amount: int,
         maga_launched: bool,
-    ) -> List[str]:
+    ) -> Generator[None, None, List[str]]:
         """Get the available actions"""
 
         # Get the times
@@ -725,6 +725,11 @@ class MemeooorrBaseBehaviour(
             self.synchronized_data.safe_contract_address
             in meme_data.get("hearters", {}).keys()
         )
+        token_nonce = meme_data.get("token_nonce")
+        collectable_amount = yield from self.get_collectable_amount(
+            cast(int, token_nonce)
+        )
+        is_collectable = collectable_amount > 0
 
         available_actions: List[str] = []
 
@@ -741,7 +746,12 @@ class MemeooorrBaseBehaviour(
             available_actions.append("unleash")
 
         # Collect
-        if is_unleashed and seconds_since_unleash < 24 * 3600 and is_hearted:
+        if (
+            is_unleashed
+            and seconds_since_unleash < 24 * 3600
+            and is_hearted
+            and not is_collectable
+        ):
             available_actions.append("collect")
 
         # Purge
@@ -1012,9 +1022,10 @@ class MemeooorrBaseBehaviour(
                 maga_launched = True
 
         for token in tokens:
-            token["available_actions"] = self.get_meme_available_actions(
+            available_actions = yield from self.get_meme_available_actions(
                 token, burnable_amount, maga_launched
             )
+            token["available_actions"] = available_actions
 
         return tokens
 
@@ -1077,9 +1088,10 @@ class MemeooorrBaseBehaviour(
                 maga_launched = True
 
         for token in tokens:
-            token["available_actions"] = self.get_meme_available_actions(
+            available_actions = yield from self.get_meme_available_actions(
                 token, burnable_amount, maga_launched
             )
+            token["available_actions"] = available_actions
 
         return tokens
 
@@ -1136,6 +1148,33 @@ class MemeooorrBaseBehaviour(
 
         burnable_amount = cast(int, response_msg.state.body.get("burnable_amount", 0))
         return burnable_amount
+
+    def get_collectable_amount(self, token_nonce: int) -> Generator[None, None, int]:
+        """Get collectable amount"""
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.get_meme_factory_address(),
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_collectable_amount",
+            token_nonce=token_nonce,
+            wallet_address=self.synchronized_data.safe_contract_address,
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the collectable amount: {response_msg}"
+            )
+            return 0
+
+        collectable_amount = cast(
+            int, response_msg.state.body.get("collectable_amount", 0)
+        )
+        self.context.logger.info(
+            f"Collectable amount for token {token_nonce}: {collectable_amount}"
+        )
+        return collectable_amount
 
     def get_purged_memes_from_chain(self) -> Generator[None, None, List]:
         """Get purged memes"""

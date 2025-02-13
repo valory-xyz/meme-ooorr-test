@@ -340,7 +340,7 @@ class TwikitConnection(Connection):
                         f"Cookies have succesfully been validated for user {self.username}"
                     )
                     break
-                raise ValueError("")
+                raise ValueError("Could not test the cookies")
             except Exception:
                 self.logger.error(
                     f"Could not validate the cookies [{retries} / 3 retries]"
