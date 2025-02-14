@@ -62,6 +62,7 @@ Here are some of your previous tweets:
 {previous_tweets}
 
 Create a new tweet. Make sure it is significantly different from previous tweets in both topic and wording.
+Respond only with the tweet, nothing else, and keep your tweets short.
 """
 
 
@@ -205,7 +206,7 @@ ALTERNATIVE_MODEL_TOKEN_PROMPT = (  # nosec
     Here's the action you decided to take:
     {action}
 
-    Create a tweet to announce it.
+    Create a tweet to announce it. Respond only with the tweet, nothing else, and keep your tweets short.
     """
 )
 
