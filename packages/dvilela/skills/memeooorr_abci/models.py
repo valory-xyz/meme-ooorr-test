@@ -106,12 +106,6 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
             "service_registry_address_celo", kwargs, str
         )
         self.persona = self._ensure("persona", kwargs, str)
-        self.feedback_period_min_hours = self._ensure(
-            "feedback_period_min_hours", kwargs, int
-        )
-        self.feedback_period_max_hours = self._ensure(
-            "feedback_period_max_hours", kwargs, int
-        )
         self.home_chain_id = self._ensure("home_chain_id", kwargs, str)
         self.twitter_username = self._ensure("twitter_username", kwargs, str)
 
