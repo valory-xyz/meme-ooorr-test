@@ -19,7 +19,7 @@ fingerprint:
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeife6wu5gk7uveazrvwohc4fo3issieutkwvoxrpvfwgjmljnnwxci
   payloads.py: bafybeih7kqazpirgmaznee6orwweomrcnxqt5d2s2ldqpaa7patqafp37i
-  prompts.py: bafybeibg36snp55jvidrkxrk252glflisgrjkmjeq6t5suuljjc264z4lq
+  prompts.py: bafybeid6h4i2rgutxlhtvegtpwxrkvfrd5ivlq6i4il36wcx6tq7uyrg2a
   rounds.py: bafybeid7jhbi7b43iqgn5q3nxycgnaxclmiuzknqx7in36ekn3stxmzgv4
   rounds_info.py: bafybeib4pnvwsyyak52oznb2eybfhthlphunb4gkykrydbrng47hjykvw4
 fingerprint_ignore_patterns: []
@@ -161,8 +161,6 @@ models:
       olas_token_address_base: '0x54330d28ca3357F294334BDC454a032e7f353416'
       olas_token_address_celo: '0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51'
       persona: a cat lover that is crazy about all-things cats.
-      feedback_period_min_hours: 1
-      feedback_period_max_hours: 2
       home_chain_id: BASE
       twitter_username: dummy_twitter_name
       service_registry_address_base: '0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE'
