@@ -471,9 +471,6 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                         previous_tweets=previous_tweets,
                     )
                 )
-                if not is_tweet_valid(new_text):
-                    self.context.logger.error("The tweet is too long.")
-                    new_text = None
                 text = new_text or text
                 yield from self.post_tweet(tweet=[text], store=True)
                 continue

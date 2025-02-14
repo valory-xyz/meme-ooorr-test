@@ -26,6 +26,7 @@ from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Tuple, cast
 
 from aea.protocols.base import Message
+from twitter_text import parse_tweet  # type: ignore
 
 from packages.dvilela.connections.genai.connection import (
     PUBLIC_ID as GENAI_CONNECTION_PUBLIC_ID,
@@ -61,6 +62,7 @@ CELO_CHAIN_ID = "celo"
 HTTP_OK = 200
 MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr @(\w+)$"
 IPFS_ENDPOINT = "https://gateway.autonolas.tech/ipfs/{ipfs_hash}"
+MAX_TWEET_CHARS = 280
 
 
 TOKENS_QUERY = """
@@ -104,6 +106,11 @@ query getPackages($package_type: String!) {
     }
 }
 """
+
+
+def is_tweet_valid(tweet: str) -> bool:
+    """Checks a tweet length"""
+    return parse_tweet(tweet).asdict()["weightedLength"] <= MAX_TWEET_CHARS
 
 
 class MemeooorrBaseBehaviour(
@@ -1333,6 +1340,10 @@ class MemeooorrBaseBehaviour(
             )
             return None
 
-        self.context.logger.info(f"Got new tweet from Fireworks: {tweet}")
+        if not is_tweet_valid(tweet):
+            self.context.logger.error("The alternative tweet is too long.")
+            return None
+
+        self.context.logger.info(f"Got new tweet from Fireworks API: {tweet}")
 
         return tweet

@@ -23,8 +23,6 @@ import json
 import random
 from typing import Generator, Optional, Tuple, Type
 
-from twitter_text import parse_tweet  # type: ignore
-
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
@@ -43,7 +41,6 @@ from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
 JSON_RESPONSE_REGEX = r"json.?({.*})"
-MAX_TWEET_CHARS = 280
 
 # fmt: off
 TOKEN_SUMMARY = (  # nosec
@@ -59,11 +56,6 @@ TOKEN_SUMMARY = (  # nosec
 # fmt: on
 
 MIN_TOKEN_SUPPLY = 10**24  # 1M ETH in wei
-
-
-def is_tweet_valid(tweet: str) -> bool:
-    """Checks a tweet length"""
-    return parse_tweet(tweet).asdict()["weightedLength"] <= MAX_TWEET_CHARS
 
 
 class ActionDecisionBehaviour(
@@ -207,9 +199,6 @@ class ActionDecisionBehaviour(
                     persona=current_persona, meme_coins=meme_coins_str, action=action
                 )
             )
-            if not is_tweet_valid(new_tweet):
-                self.context.logger.error("The tweet is too long.")
-                new_tweet = None
             tweet = new_tweet or tweet
 
             token_name = action.get("token_name", None)
