@@ -212,7 +212,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
     def _get_liveness_ratio(self, chain: str) -> Generator[None, None, Optional[int]]:
         liveness_ratio = yield from self.contract_interact(
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
-            contract_address=self.params.staking_activity_checker_contract_address,
+            contract_address=self.params.activity_checker_contract_address,
             contract_public_id=StakingActivityCheckerContract.contract_id,
             contract_callable="liveness_ratio",
             data_key="data",
@@ -290,7 +290,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
     ) -> Generator[None, None, Optional[int]]:
         multisig_nonces = yield from self.contract_interact(
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
-            contract_address=self.params.staking_activity_checker_contract_address,
+            contract_address=self.params.activity_checker_contract_address,
             contract_public_id=StakingActivityCheckerContract.contract_id,
             contract_callable="get_multisig_nonces",
             data_key="data",

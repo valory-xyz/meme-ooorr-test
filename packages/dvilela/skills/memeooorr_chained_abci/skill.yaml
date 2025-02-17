@@ -163,7 +163,7 @@ models:
       max_summon_amount_celo: 20.0
       max_heart_amount_celo: 0.2
       staking_token_contract_address: '0x0000000000000000000000000000000000000000'
-      staking_activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
+      activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
       alternative_model_for_tweets:
         use: false
         url: https://api.fireworks.ai/inference/v1/chat/completions
