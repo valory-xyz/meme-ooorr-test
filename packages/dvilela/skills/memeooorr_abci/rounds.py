@@ -374,23 +374,38 @@ class CollectFeedbackRound(CollectSameUntilThresholdRound):
         return None
 
 
-class EngageTwitterRound(EventRoundBase):
+class EngageTwitterRound(CollectSameUntilThresholdRound):
     """EngageTwitterRound"""
 
     payload_class = EngageTwitterPayload  # type: ignore
     synchronized_data_class = SynchronizedData
     required_class_attributes = ()
 
-    # This needs to be mentioned for static checkers
-    # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Enum]]:
+        """Process the end of the block."""
+        if self.threshold_reached:
+            payload = json.loads(self.most_voted_payload)
+            new_mech_requests = payload["new_mech_requests"]
 
+            self.context.logger.info(
+                f"new_mech_requests EngageTwitterRound: {new_mech_requests}"
+            )
 
-class PreMechRequestRound(EventRoundBase):
-    """PreMechRequestRound"""
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(SynchronizedData.mech_requests): json.dumps(
+                        new_mech_requests
+                    ),
+                },
+            )
+            return synchronized_data, Event.DONE
 
-    payload_class = PreMechRequestPayload  # type: ignore
-    synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+        return None
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
@@ -582,8 +597,9 @@ class FinishedToResetRound(DegenerateRound):
 class FinishedToSettlementRound(DegenerateRound):
     """FinishedToSettlementRound"""
 
-class FinshedMechRound(DegenerateRound):
-    """FinishedMechRound"""
+
+class FinishedEnagageTwitterForMechRound(DegenerateRound):
+    """FinishedForMechRound"""
 
 
 class MemeooorrAbciApp(AbciApp[Event]):
@@ -595,6 +611,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         PullMemesRound,
         ActionPreparationRound,
         PostTxDecisionMakingRound,
+        PostMechRequestRound,
     }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
@@ -620,10 +637,10 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         EngageTwitterRound: {
             Event.DONE: ActionDecisionRound,
+            Event.MECH: FinishedEnagageTwitterForMechRound,
             Event.ERROR: EngageTwitterRound,
             Event.NO_MAJORITY: EngageTwitterRound,
             Event.ROUND_TIMEOUT: EngageTwitterRound,
-            Event.MECH: 
         },
         ActionDecisionRound: {
             Event.DONE: ActionPreparationRound,
@@ -662,6 +679,11 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.SETTLE: FinishedToSettlementRound,
             Event.ROUND_TIMEOUT: CallCheckpointRound,
             Event.NO_MAJORITY: CallCheckpointRound,
+        },
+        PostMechRequestRound: {
+            Event.DONE: EngageTwitterRound,
+            Event.NO_MAJORITY: PostMechRequestRound,
+            Event.ROUND_TIMEOUT: PostMechRequestRound,
         },
         FinishedToResetRound: {},
         FinishedToSettlementRound: {},
