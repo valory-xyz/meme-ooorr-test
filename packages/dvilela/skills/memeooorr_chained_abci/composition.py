@@ -46,6 +46,9 @@ abci_app_transition_mapping: AbciAppTransitionMapping = {
     TransactionSettlementAbci.FailedRound: TransactionSettlementAbci.RandomnessTransactionSubmissionRound,
     ResetAndPauseAbci.FinishedResetAndPauseRound: MemeooorrAbci.PullMemesRound,
     ResetAndPauseAbci.FinishedResetAndPauseErrorRound: ResetAndPauseAbci.ResetAndPauseRound,
+    mydegenround : mechinteractround
+    ,
+
 }
 
 termination_config = BackgroundAppConfig(

@@ -579,9 +579,11 @@ class CallCheckpointRound(CollectSameUntilThresholdRound):
 class FinishedToResetRound(DegenerateRound):
     """FinishedToResetRound"""
 
-
 class FinishedToSettlementRound(DegenerateRound):
     """FinishedToSettlementRound"""
+
+class FinshedMechRound(DegenerateRound):
+    """FinishedMechRound"""
 
 
 class MemeooorrAbciApp(AbciApp[Event]):
@@ -621,6 +623,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ERROR: EngageTwitterRound,
             Event.NO_MAJORITY: EngageTwitterRound,
             Event.ROUND_TIMEOUT: EngageTwitterRound,
+            Event.MECH: 
         },
         ActionDecisionRound: {
             Event.DONE: ActionPreparationRound,
