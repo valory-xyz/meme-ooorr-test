@@ -38,53 +38,52 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
 
 from packages.dvilela.skills.memeooorr_abci.payloads import (
     PostMechRequestPayload,
-    PreMechRequestPayload,
-)
+    )
 
-class PreMechRequestBehaviour(MemeooorrBaseBehaviour):
-    """PreMechRequestBehaviour"""
+# class PreMechRequestBehaviour(MemeooorrBaseBehaviour):
+#     """PreMechRequestBehaviour"""
 
-    matching_round: Type[AbstractRound] = PreMechRequestRound
+#     matching_round: Type[AbstractRound] = PreMechRequestRound
 
-    def async_act(self) -> Generator:
-        """Do the act, supporting asynchronous execution."""
+#     def async_act(self) -> Generator:
+#         """Do the act, supporting asynchronous execution."""
 
-        with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            new_mech_requests = []
+#         with self.context.benchmark_tool.measure(self.behaviour_id).local():
+#             new_mech_requests = []
 
-            mech_responses = self.synchronized_data.mech_responses
-            pending_tweet_ids = [r.nonce for r in mech_responses]
+#             mech_responses = self.synchronized_data.mech_responses
+#             pending_tweet_ids = [r.nonce for r in mech_responses]
 
-            self.context.logger.info(f"PreMech: mech_responses = {mech_responses}")
-            self.context.logger.info(f"pending_tweet_ids = {pending_tweet_ids}")
+#             self.context.logger.info(f"PreMech: mech_responses = {mech_responses}")
+#             self.context.logger.info(f"pending_tweet_ids = {pending_tweet_ids}")
 
-            new_mech_requests.append(
-                    asdict(
-                        MechMetadata(
-                            nonce=nonce,
-                            tool="openai-gpt-3.5-turbo",
-                            prompt=Prompt,
-                            ),
-                        )
-                    )
+#             new_mech_requests.append(
+#                     asdict(
+#                         MechMetadata(
+#                             nonce=nonce,
+#                             tool="openai-gpt-3.5-turbo",
+#                             prompt=Prompt,
+#                             ),
+#                         )
+#                     )
                 
 
-            if not new_mech_requests:
-                self.context.logger.info("No new mech requests. Skipping evaluation...")
+#             if not new_mech_requests:
+#                 self.context.logger.info("No new mech requests. Skipping evaluation...")
 
-            sender = self.context.agent_address
-            payload = PreMechRequestPayload(
-                sender=sender,
-                content=json.dumps(
-                    {"new_mech_requests": new_mech_requests}, sort_keys=True
-                ),
-            )
+#             sender = self.context.agent_address
+#             payload = PreMechRequestPayload(
+#                 sender=sender,
+#                 content=json.dumps(
+#                     {"new_mech_requests": new_mech_requests}, sort_keys=True
+#                 ),
+#             )
 
-        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
-            yield from self.send_a2a_transaction(payload)
-            yield from self.wait_until_round_end()
+#         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+#             yield from self.send_a2a_transaction(payload)
+#             yield from self.wait_until_round_end()
 
-        self.set_done()
+#         self.set_done()
 
 
 class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
