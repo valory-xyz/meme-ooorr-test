@@ -420,6 +420,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             time=self.get_sync_time_str(),
         )
 
+        self.context.logger.info(f"Prompting the LLM for a decision : {prompt}")
+
         llm_response = yield from self._call_genai(
             prompt=prompt,
             schema=build_twitter_action_schema(),
@@ -442,7 +444,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 self.context.logger.error("Action is none")
                 continue
 
-            if action == "Tool":
+            if action == "tool":
                 self.context.logger.error("Action is Tool")
                 continue
 
