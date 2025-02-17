@@ -113,3 +113,17 @@ class CallCheckpointPayload(BaseTxPayload):
 
     tx_submitter: str
     tx_hash: Optional[str]
+
+
+@dataclass(frozen=True)
+class PreMechRequestPayload(BaseTxPayload):
+    """Represent a transaction payload for the PreMechRequestRound."""
+
+    content: str
+
+
+@dataclass(frozen=True)
+class PostMechRequestPayload(BaseTxPayload):
+    """Represent a transaction payload for the PostMechRequestRound."""
+
+    content: str

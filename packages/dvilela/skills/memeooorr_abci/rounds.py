@@ -19,9 +19,10 @@
 
 """This package contains the rounds of MemeooorrAbciApp."""
 
+from dataclasses import dataclass
 import json
 from enum import Enum
-from typing import Dict, FrozenSet, List, Optional, Set, Tuple, cast
+from typing import Any, Dict, FrozenSet, List, Optional, Set, Tuple, cast
 
 from packages.dvilela.skills.memeooorr_abci.payloads import (
     ActionDecisionPayload,
@@ -35,6 +36,8 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     LoadDatabasePayload,
     PostTxDecisionMakingPayload,
     PullMemesPayload,
+    PreMechRequestPayload,
+    PostMechRequestPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -81,7 +84,7 @@ class Event(Enum):
     TO_ACTION_TWEET = "to_action_tweet"
     ACTION = "action"
     MISSING_TWEET = "missing_tweet"
-    MECH_REQUEST = "mech_request"
+    MECH = "mech"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -152,7 +155,7 @@ class SynchronizedData(BaseSynchronizedData):
     def participant_to_staking(self) -> DeserializedCollection:
         """Get the participants to the staking round."""
         return self._get_deserialized("participant_to_staking")
-    
+
     @property
     def mech_requests(self) -> List[MechMetadata]:
         """Get the mech requests."""
@@ -169,7 +172,6 @@ class SynchronizedData(BaseSynchronizedData):
         if isinstance(responses, str):
             responses = json.loads(responses)
         return [MechInteractionResponse(**response_item) for response_item in responses]
-
 
 
 class EventRoundBase(CollectSameUntilThresholdRound):
@@ -303,6 +305,40 @@ class PullMemesRound(CollectSameUntilThresholdRound):
     # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
 
 
+@dataclass
+class MechMetadata:
+    """A Mech's metadata."""
+
+    prompt: str
+    tool: str
+    nonce: str
+
+
+@dataclass
+class MechRequest:
+    """A Mech's request."""
+
+    data: str = ""
+    requestId: int = 0
+
+
+@dataclass
+class MechInteractionResponse(MechRequest):
+    """A structure for the response of a mech interaction task."""
+
+    nonce: str = ""
+    result: Optional[str] = None
+    error: str = "Unknown"
+
+    def retries_exceeded(self) -> None:
+        """Set an incorrect format response."""
+        self.error = "Retries were exceeded while trying to get the mech's response."
+
+    def incorrect_format(self, res: Any) -> None:
+        """Set an incorrect format response."""
+        self.error = f"The response's format was unexpected: {res}"
+
+
 class CollectFeedbackRound(CollectSameUntilThresholdRound):
     """CollectFeedbackRound"""
 
@@ -342,6 +378,28 @@ class EngageTwitterRound(EventRoundBase):
     """EngageTwitterRound"""
 
     payload_class = EngageTwitterPayload  # type: ignore
+    synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
+
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
+
+class PreMechRequestRound(EventRoundBase):
+    """PreMechRequestRound"""
+
+    payload_class = PreMechRequestPayload  # type: ignore
+    synchronized_data_class = SynchronizedData
+    required_class_attributes = ()
+
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
+
+class PostMechRequestRound(EventRoundBase):
+    """PostMechRequestRound"""
+
+    payload_class = PostMechRequestPayload  # type: ignore
     synchronized_data_class = SynchronizedData
     required_class_attributes = ()
 
