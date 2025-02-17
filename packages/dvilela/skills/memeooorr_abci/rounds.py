@@ -19,7 +19,7 @@
 
 """This package contains the rounds of MemeooorrAbciApp."""
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 import json
 from enum import Enum
 from typing import Any, Dict, FrozenSet, List, Optional, Set, Tuple, cast
@@ -192,6 +192,16 @@ class EventRoundBase(CollectSameUntilThresholdRound):
         ):
             return self.synchronized_data, Event.NO_MAJORITY
         return None
+
+
+class DataclassEncoder(json.JSONEncoder):
+    """A custom JSON encoder for dataclasses."""
+
+    def default(self, o: Any) -> Any:
+        """The default JSON encoder."""
+        if is_dataclass(o):
+            return asdict(o)
+        return super().default(o)
 
 
 class LoadDatabaseRound(CollectSameUntilThresholdRound):
@@ -411,15 +421,43 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
     # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
 
-class PostMechRequestRound(EventRoundBase):
+class PostMechRequestRound(CollectSameUntilThresholdRound):
     """PostMechRequestRound"""
 
-    payload_class = PostMechRequestPayload  # type: ignore
+    payload_class = PostMechRequestPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
-    # This needs to be mentioned for static checkers
-    # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Enum]]:
+        """Process the end of the block."""
+        if self.threshold_reached:
+            payload = json.loads(self.most_voted_payload)
+
+            # Remove already used responses
+            mech_responses = cast(
+                SynchronizedData, self.synchronized_data
+            ).mech_responses
+            mech_responses = [
+                r
+                for r in mech_responses
+                if r.nonce not in payload["responses_to_remove"]
+            ]
+
+            serialized_responses = json.dumps(mech_responses, cls=DataclassEncoder)
+
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(SynchronizedData.mech_responses): serialized_responses,
+                },
+            )
+            return synchronized_data, Event.DONE
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+        return None
 
 
 class ActionDecisionRound(CollectSameUntilThresholdRound):
