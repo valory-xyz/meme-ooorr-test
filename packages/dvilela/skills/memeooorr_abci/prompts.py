@@ -54,14 +54,13 @@ Your task is to decide what actions to do, if any. Some recommenadations:
 
 TWITTER_DECISION_PROMPT_WITH_TOOLS = """
 You are a user on Twitter with a specific persona. You create tweets and also analyze tweets from other users and decide whether to interact with them or not.
-You need to decide what actions on Twitter you want to perform. The available actions are:
 
 You have the possibility to use a tool to help you decide what to do. The tool will provide you with a decision based on the feedback you received.
 The following contains the available tools, together with their descriptions:
 
-For now make sure to use the tool provided !!!
-
 {tools}
+
+You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform. The available actions are:
 
 - Tweet
 - Reply
@@ -69,7 +68,7 @@ For now make sure to use the tool provided !!!
 - Like
 - Retweet
 - Follow
-- Tool
+- Tool (to use a tool)
 
 Here's your persona:
 "{persona}"
@@ -99,6 +98,7 @@ class TwitterActionName(enum.Enum):
     REPLY = "reply"
     QUOTE = "quote"
     FOLLOW = "follow"
+    TOOL = "tool"
 
 
 @dataclass(frozen=True)
@@ -126,13 +126,6 @@ TOKEN_DECISION_PROMPT = (  # nosec
     You are given a list of memecoins with some data about the number of token holders that invested in them, plus a list of available actions for each of them.
     You are very active on Twitter and one of your goals is to deploy your own memecoin based on your persona once you have enough engagement.
 
-    You have the possibility to use a tool to help you decide what to do. The tool will provide you with a decision based on the feedback you received.
-    The following contains the available tools, together with their descriptions:
-    {tools}
-
-    For now make sure to use the tool provided google trend !!! AS IT IS MANDATORY
-
-
     The token life cycle goes like this:
     1. Summon a Meme
     Any agent (msg.sender) can summon a meme by contributing at least 0.01 ETH / 10 CELO.
@@ -157,7 +150,6 @@ TOKEN_DECISION_PROMPT = (  # nosec
     * collect: collect your token if you have previously contributed
     * purge: burn all uncollected tokens
     * burn: execute collateral burn
-    * tool: use the tool to help you decide what to do [MANDATORY]
 
     But not all the actions are available for every token. The available actions for each token are listed in the "available_actions" field.
 
@@ -167,7 +159,6 @@ TOKEN_DECISION_PROMPT = (  # nosec
     You have three options:
     * Summon your own token if the responses to your latest tweet are getting good engagement metrics or if the number of meme coins in the market is low (under 3)
     * Execute one action from the available actions for one of the already existing tokens.
-    * Use the tool to help you decide what to do.
     * Do nothing
 
 
@@ -235,14 +226,6 @@ class TokenPurge:
     token_address: str
 
 
-@dataclass(frozen=True)
-class TokenTool:
-    """TokenTool"""
-
-    tool_name: str
-    tool_input: str
-
-
 class ValidActionName(enum.Enum):
     """ValidAction"""
 
@@ -253,7 +236,6 @@ class ValidActionName(enum.Enum):
     COLLECT = "collect"
     PURGE = "purge"
     BURN = "burn"
-    TOOL = "tool"
 
 
 @dataclass(frozen=True)
@@ -266,7 +248,6 @@ class TokenAction:  # pylint: disable=too-many-instance-attributes
     unleash: typing.Optional[TokenUnleash]
     collect: typing.Optional[TokenCollect]
     purge: typing.Optional[TokenPurge]
-    tool: typing.Optional[TokenTool]
     new_persona: typing.Optional[str]
     action_tweet: typing.Optional[str]
 
