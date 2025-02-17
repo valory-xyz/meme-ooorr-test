@@ -45,6 +45,8 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     PullMemesPayload,
     PullMemesRound,
     StakingState,
+    TransactionLoopCheckRound,
+    TransactionLoopCheckPayload,
 )
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.contracts.staking_activity_checker.contract import (
@@ -834,3 +836,32 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ances
         )
 
         return safe_tx_hash
+
+
+class TransactionLoopCheckBehaviour(
+    ChainBehaviour
+):  # pylint: disable=too-many-ancestors
+    """Behaviour that checks if the transaction loop is still running."""
+
+    matching_round = TransactionLoopCheckRound
+
+    # this round checks if the transaction is in  a loop if a trnsaction is in infinite loop it will stop the transaction by sending to next round
+    # we have a param tx_loop_breaker_count which is the maximum number of transaction that can be tried before stopping the transaction
+    # we will store the count of transaction in the db and check if it is greater than the tx_loop_breaker_count
+    # each time this round is called we will increment the count by 1
+    # if the count is greater than the tx_loop_breaker_count we will stop the transaction
+
+    def async_act(self) -> Generator:
+        """Do the action."""
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+
+            payload = TransactionLoopCheckPayload(
+                sender=self.context.agent_address,
+                counter=self.synchronized_data.tx_loop_counter + 1,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()

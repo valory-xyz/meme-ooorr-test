@@ -8,19 +8,19 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeidwdmmayzt3jtyt4qmrrw3cy4qfktbyxp4t2qwoigt3cd2zpu6fna
-  behaviour_classes/chain.py: bafybeia5mf4n7rbswrdes3qm6p3kauaf67ro5ig7r5dvpav4idaf5htsui
+  behaviour_classes/base.py: bafybeibswxt2zxlseake4wy4kg5tqvv4nrzuw45ictvxhvez5jrlpnqtsa
+  behaviour_classes/chain.py: bafybeihw4jblnjvydvwrncfuzlki65kuhddcoym4p2xwnitm23zprzbdly
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
   behaviour_classes/llm.py: bafybeiayanrjve5jfuyya57j6b7bdwbzxqod2eg22fjsomz35h3iieyktu
   behaviour_classes/twitter.py: bafybeielvxyrdghm5te6eqxaysrnx4seo7g7y7gt3esnqrsiqgfhcd2vau
-  behaviours.py: bafybeiatehvcz2go4cx3ipobz4mlrh6wlt2edxde4fpm36ppkhsapv3fpi
+  behaviours.py: bafybeie23h7ggztm3e2khjfvvmeswcab5w527ybnfmieb7sr6sho5u4cd4
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeie2zodnpxuyi3nj2buw2zaeyy25bbkvz27lscfwzqtjdhdezmcfyi
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeic4ggbvmqfxplfwywhfisgtjxlruhrrmd2adu2matzllex7x6e7pm
-  payloads.py: bafybeih7kqazpirgmaznee6orwweomrcnxqt5d2s2ldqpaa7patqafp37i
+  payloads.py: bafybeibtzy35ce64gzcign3aectjwjinflmjfge6kokkofqvwmsdoqrjtu
   prompts.py: bafybeihrvohskftnwznj5etflsqo2jm74qvtmsybn276c63eoiao2tdb3q
-  rounds.py: bafybeid7jhbi7b43iqgn5q3nxycgnaxclmiuzknqx7in36ekn3stxmzgv4
+  rounds.py: bafybeigfmlh2suomo7l32btdxyik3y25vp25nngcdiykubsjdoenzieukm
   rounds_info.py: bafybeib4pnvwsyyak52oznb2eybfhthlphunb4gkykrydbrng47hjykvw4
 fingerprint_ignore_patterns: []
 connections:
@@ -28,9 +28,9 @@ connections:
 - dvilela/twikit:0.1.0:bafybeih6webq6mpg7ovhkmzuy3gnmzoadgbdm66xrepxmzjjb3zom4rqla
 - dvilela/mirror_db:0.1.0:bafybeifhl7e5odr53pbz2bog3tysyyfnimrz2acksgnal4yza4faxam6pa
 - dvilela/genai:0.1.0:bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty
-- valory/http_server:0.22.0:bafybeic3jpkum7g6qo6x6vdrmvvhj7vqw7ec2op72uc3yfhmnlp5hn3joy
+- valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
 contracts:
-- valory/gnosis_safe:0.1.0:bafybeif3uivl3jjb3c2tyctu6jagp2mwizgmdnxb4x7otrxavifdk4t3je
+- valory/gnosis_safe:0.1.0:bafybeib7uza2zqjuffju2sdttw2u4h6fihmqhhazcd5wvd6e3dscohwrbi
 - dvilela/meme_factory:0.1.0:bafybeialf42ioeo5pcwfsqguv2bjgd6qkj53kmprxdzicgp7aki5zkhdvq
 - dvilela/service_registry:0.1.0:bafybeias6xxdi764btjv7x6i5neye7albf4lwdygjz3kwl7vttpl3gcp2e
 - valory/staking_token:0.1.0:bafybeicxr7xynkt36xyumhx7gmvzuroqww36k4xybvip6t7me5iqn4i7vu
@@ -38,12 +38,12 @@ contracts:
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
-- valory/http:1.0.0:bafybeih4azmfwtamdbkhztkm4xitep3gx6tfdnoz6tvllmaqnhu3klejfa
-- valory/ledger_api:1.0.0:bafybeihmqzcbj6t7vxz2aehd5726ofnzsfjs5cwlf42ro4tn6i34cbfrc4
-- valory/contract_api:1.0.0:bafybeid247uig2ekykdumh7ewhp2cdq7rchaeqjj6e7urx35zfpdl5zrn4
+- valory/http:1.0.0:bafybeifugzl63kfdmwrxwphrnrhj7bn6iruxieme3a4ntzejf6kmtuwmae
+- valory/ledger_api:1.0.0:bafybeihdk6psr4guxmbcrc26jr2cbgzpd5aljkqvpwo64bvaz7tdti2oni
+- valory/contract_api:1.0.0:bafybeidgu7o5llh26xp3u3ebq3yluull5lupiyeu6iooi2xyymdrgnzq5i
 skills:
-- valory/abstract_round_abci:0.1.0:bafybeigyuls35k6rc2x5j5pcnrghfyojzqzjshhfoaco47ctfm3wjiapce
-- valory/transaction_settlement_abci:0.1.0:bafybeibil7cfzuuyxge5rayxwqxvq467hhv73pngj3muqo7x6zkkjzlgs4
+- valory/abstract_round_abci:0.1.0:bafybeiedcostevnhueekenqvvo6kgfiuvzhbt5fv52gewp2uvio5sy3miu
+- valory/transaction_settlement_abci:0.1.0:bafybeid3ujaystlxodlgakaogio4g6onb3nrv6tpeol5muxi3gtqodwfli
 behaviours:
   main:
     args: {}
@@ -186,6 +186,7 @@ models:
         presence_penalty: 0
         frequency_penalty: 0
         temperature": 0.6
+      tx_loop_breaker_count: 3
     class_name: Params
   requests:
     args: {}
