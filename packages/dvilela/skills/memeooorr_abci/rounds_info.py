@@ -125,4 +125,8 @@ ROUNDS_INFO = {
         "name": "Post Transaction Decision Making",
         "description": "Evaluates transaction outcomes and determines next actions based on success/failure status",
     },
+    "transaction_loop_check_round": {
+        "name": "Transaction Loop Check",
+        "description": "Checks if the transaction settlement ABCI is in an infinite loop and breaks it if it is",
+    },
 }

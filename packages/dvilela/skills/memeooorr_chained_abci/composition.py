@@ -42,7 +42,7 @@ abci_app_transition_mapping: AbciAppTransitionMapping = {
     MemeooorrAbci.FinishedToResetRound: ResetAndPauseAbci.ResetAndPauseRound,
     MemeooorrAbci.FinishedToSettlementRound: TransactionSettlementAbci.RandomnessTransactionSubmissionRound,
     TransactionSettlementAbci.FinishedTransactionSubmissionRound: MemeooorrAbci.PostTxDecisionMakingRound,
-    TransactionSettlementAbci.FailedRound: TransactionSettlementAbci.RandomnessTransactionSubmissionRound,
+    TransactionSettlementAbci.FailedRound: MemeooorrAbci.TransactionLoopCheckRound,
     ResetAndPauseAbci.FinishedResetAndPauseRound: MemeooorrAbci.PullMemesRound,
     ResetAndPauseAbci.FinishedResetAndPauseErrorRound: ResetAndPauseAbci.ResetAndPauseRound,
 }

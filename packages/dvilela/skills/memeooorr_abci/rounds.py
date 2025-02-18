@@ -35,6 +35,7 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     LoadDatabasePayload,
     PostTxDecisionMakingPayload,
     PullMemesPayload,
+    TransactionLoopCheckPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -76,6 +77,7 @@ class Event(Enum):
     TO_ACTION_TWEET = "to_action_tweet"
     ACTION = "action"
     MISSING_TWEET = "missing_tweet"
+    RETRY = "retry"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -146,6 +148,11 @@ class SynchronizedData(BaseSynchronizedData):
     def participant_to_staking(self) -> DeserializedCollection:
         """Get the participants to the staking round."""
         return self._get_deserialized("participant_to_staking")
+
+    @property
+    def tx_loop_count(self) -> int:
+        """Get the loop count for retrying transaction."""
+        return int(self.db.get("tx_loop_count", 0))  # type: ignore
 
 
 class EventRoundBase(CollectSameUntilThresholdRound):
@@ -494,6 +501,50 @@ class CallCheckpointRound(CollectSameUntilThresholdRound):
         return None
 
 
+class TransactionLoopCheckRound(CollectSameUntilThresholdRound):
+    """TransactionLoopCheckRound"""
+
+    payload_class = TransactionLoopCheckPayload
+    synchronized_data_class = SynchronizedData
+
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
+        """Process the end of the block."""
+
+        # This needs to be mentioned for static checkers
+        # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
+        if self.threshold_reached:
+            payload = TransactionLoopCheckPayload(
+                *(("dummy_sender",) + self.most_voted_payload_values)
+            )
+
+            max_count = self.context.params.tx_loop_breaker_count
+
+            if payload.counter >= max_count:
+                self.context.logger.info(
+                    f"Transaction loop breaker reached: {max_count}"
+                )
+                return self.synchronized_data, Event.DONE
+
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(SynchronizedData.tx_loop_count): payload.counter,
+                },
+            )
+
+            return synchronized_data, Event.RETRY
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+
+        return None
+
+    extended_requirements = ()
+
+
 class FinishedToResetRound(DegenerateRound):
     """FinishedToResetRound"""
 
@@ -511,6 +562,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         PullMemesRound,
         ActionPreparationRound,
         PostTxDecisionMakingRound,
+        TransactionLoopCheckRound,
     }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
@@ -578,6 +630,12 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: CallCheckpointRound,
             Event.NO_MAJORITY: CallCheckpointRound,
         },
+        TransactionLoopCheckRound: {
+            Event.DONE: FinishedToResetRound,
+            Event.RETRY: FinishedToSettlementRound,
+            Event.NO_MAJORITY: TransactionLoopCheckRound,
+            Event.ROUND_TIMEOUT: TransactionLoopCheckRound,
+        },
         FinishedToResetRound: {},
         FinishedToSettlementRound: {},
     }
@@ -589,6 +647,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         PullMemesRound: set(),
         ActionPreparationRound: set(),
         PostTxDecisionMakingRound: set(),
+        TransactionLoopCheckRound: set(),
     }
     db_post_conditions: Dict[AppState, Set[str]] = {
         FinishedToResetRound: set(),

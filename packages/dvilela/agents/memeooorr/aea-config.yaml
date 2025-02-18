@@ -44,8 +44,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeibil7cfzuuyxge5rayxwqxvq467hhv73pngj3muqo7x6zkkjzlgs4
 - valory/registration_abci:0.1.0:bafybeifurpc5kko5tq5bc2bwfgdvwpbhzytk2vhj56cb2d6lhdnm7irnhu
 - valory/reset_pause_abci:0.1.0:bafybeiavtmbqziu3i55t2clj2ih242vuq2nw4xp47heaxyusddggl664ya
-- dvilela/memeooorr_abci:0.1.0:bafybeictdiwyezr4gvvkpuewah43ntzgzxswz6hr2tjadixqdcrj77otb4
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeic6e2dcuhxpvd3zy5uaurmmm2vxpnbbhrzgy7nhothn37tten4deq
+- dvilela/memeooorr_abci:0.1.0:bafybeigvu2kxdmdk3gfyxn6c2ral7dxy3ooczysaulserhwocyfsqspzdm
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeiggsuiqmeh6g2q523mgpji3awgjyt2ilcgxaqz2onaeajmgwh3ud4
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -232,6 +232,7 @@ models:
       staking_token_contract_address: ${str:0x0000000000000000000000000000000000000000}
       activity_checker_contract_address: ${str:0x0000000000000000000000000000000000000000}
       alternative_model_for_tweets: ${dict:{"use":false,"url":"https://api.fireworks.ai/inference/v1/chat/completions","api_key":null,"model":"accounts/sentientfoundation/models/dobby-mini-unhinged-llama-3-1-8b","max_tokens":16384,"top_p":1,"top_k":40,"presence_penalty":0,"frequency_penalty":0,"temperature":0.6}}
+      tx_loop_breaker_count: 3
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

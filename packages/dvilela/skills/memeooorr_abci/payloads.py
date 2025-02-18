@@ -113,3 +113,10 @@ class CallCheckpointPayload(BaseTxPayload):
 
     tx_submitter: str
     tx_hash: Optional[str]
+
+
+@dataclass(frozen=True)
+class TransactionLoopCheckPayload(BaseTxPayload):
+    """A transaction payload for the checkpoint call."""
+
+    counter: int

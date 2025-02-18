@@ -9,19 +9,19 @@ fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeidwdmmayzt3jtyt4qmrrw3cy4qfktbyxp4t2qwoigt3cd2zpu6fna
-  behaviour_classes/chain.py: bafybeigwxvbrse5tjeit5ky67wkh7dflui5reltw6fxueuhfdmxcq6q7m4
+  behaviour_classes/chain.py: bafybeianlgx76tkdoyx3giz2bs5oreb5duietjw4bnwnw5ob76ul4klt5m
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
   behaviour_classes/llm.py: bafybeih4dvsmiglzbtduei2gbwmoxmbhsfjsgxafjlmujqk3d2zxvqec24
   behaviour_classes/twitter.py: bafybeielvxyrdghm5te6eqxaysrnx4seo7g7y7gt3esnqrsiqgfhcd2vau
-  behaviours.py: bafybeiatehvcz2go4cx3ipobz4mlrh6wlt2edxde4fpm36ppkhsapv3fpi
+  behaviours.py: bafybeigzehjvjeriroh7ucal7s7szdrebkwcispyi7iznwnbzq2gcok6zi
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
-  fsm_specification.yaml: bafybeie2zodnpxuyi3nj2buw2zaeyy25bbkvz27lscfwzqtjdhdezmcfyi
+  fsm_specification.yaml: bafybeif7ywyws7xm3dtf3ijxozhwerjebo6ejlx42ujtpehizlqfgtci4i
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
-  models.py: bafybeicssfxjvqzevcq4aiyn4ak4pismocdwd6conw2zjw5tkcn2xmhhei
-  payloads.py: bafybeih7kqazpirgmaznee6orwweomrcnxqt5d2s2ldqpaa7patqafp37i
+  models.py: bafybeifav5caslkom5avkw4ypreml6czx5yibq7xe3myesaitjviqflkau
+  payloads.py: bafybeibtzy35ce64gzcign3aectjwjinflmjfge6kokkofqvwmsdoqrjtu
   prompts.py: bafybeihrvohskftnwznj5etflsqo2jm74qvtmsybn276c63eoiao2tdb3q
-  rounds.py: bafybeid7jhbi7b43iqgn5q3nxycgnaxclmiuzknqx7in36ekn3stxmzgv4
-  rounds_info.py: bafybeib4pnvwsyyak52oznb2eybfhthlphunb4gkykrydbrng47hjykvw4
+  rounds.py: bafybeiecehvzqy4qj3q25shli7a2emrru2r7x7x57l2343jv7foeinokue
+  rounds_info.py: bafybeiepdyp3r4a7f535w5yxizauvedaine7hfbqeaj5gnx5y5bi4z6fzu
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiecnl7yc5qx6x4q7467i66ehmfw4qydnnry7tjs7plqeytb6ueyvu
@@ -175,6 +175,7 @@ models:
       max_heart_amount_celo: 0.2
       staking_token_contract_address: '0x0000000000000000000000000000000000000000'
       activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
+      tx_loop_breaker_count: 3
       alternative_model_for_tweets:
         use: false
         url: https://api.fireworks.ai/inference/v1/chat/completions

@@ -45,6 +45,8 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     PullMemesPayload,
     PullMemesRound,
     StakingState,
+    TransactionLoopCheckPayload,
+    TransactionLoopCheckRound,
 )
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.contracts.staking_activity_checker.contract import (
@@ -834,3 +836,29 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ances
         )
 
         return safe_tx_hash
+
+
+class TransactionLoopCheckBehaviour(
+    ChainBehaviour
+):  # pylint: disable=too-many-ancestors
+    """Behaviour that checks if the transaction loop is still running."""
+
+    matching_round = TransactionLoopCheckRound
+
+    def async_act(self) -> Generator:
+        """Do the action."""
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            self.context.logger.info(
+                f"Checking if the transaction loop is still running. Counter: {self.synchronized_data.tx_loop_count} and increasing it by 1"
+            )
+
+            payload = TransactionLoopCheckPayload(
+                sender=self.context.agent_address,
+                counter=self.synchronized_data.tx_loop_count + 1,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
