@@ -401,6 +401,9 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
                 f"new_mech_requests EngageTwitterRound: {new_mech_requests}"
             )
 
+            if payload["mech_request"] is None:
+                return self.synchronized_data, Event.DONE
+
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
@@ -409,7 +412,8 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
                     ),
                 },
             )
-            return synchronized_data, Event.DONE
+
+            return synchronized_data, Event.MECH
 
         if not self.is_majority_possible(
             self.collection, self.synchronized_data.nb_participants
@@ -428,36 +432,35 @@ class PostMechRequestRound(CollectSameUntilThresholdRound):
     synchronized_data_class = SynchronizedData
     extended_requirements = ()
 
-    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Enum]]:
-        """Process the end of the block."""
-        if self.threshold_reached:
-            payload = json.loads(self.most_voted_payload)
+    # def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Enum]]:
+    #     """Process the end of the block."""
+    #     if self.threshold_reached:
+    #         payload = json.loads(self.most_voted_payload)
 
-            # Remove already used responses
-            mech_responses = cast(
-                SynchronizedData, self.synchronized_data
-            ).mech_responses
-            mech_responses = [
-                r
-                for r in mech_responses
-                if r.nonce not in payload["responses_to_remove"]
-            ]
+    #         # check if there are any responses
+    #         if not payload["mech_responses"]:
+    #             return self.synchronized_data, Event.DONE
 
-            serialized_responses = json.dumps(mech_responses, cls=DataclassEncoder)
+    #         # Remove already used responses
+    #         mech_responses = cast(
+    #             SynchronizedData, self.synchronized_data
+    #         ).mech_responses
 
-            synchronized_data = self.synchronized_data.update(
-                synchronized_data_class=SynchronizedData,
-                **{
-                    get_name(SynchronizedData.mech_responses): serialized_responses,
-                },
-            )
-            return synchronized_data, Event.DONE
+    #         serialized_responses = json.dumps(mech_responses, cls=DataclassEncoder)
 
-        if not self.is_majority_possible(
-            self.collection, self.synchronized_data.nb_participants
-        ):
-            return self.synchronized_data, Event.NO_MAJORITY
-        return None
+    #         synchronized_data = self.synchronized_data.update(
+    #             synchronized_data_class=SynchronizedData,
+    #             **{
+    #                 get_name(SynchronizedData.mech_responses): serialized_responses,
+    #             },
+    #         )
+    #         return synchronized_data, Event.DONE
+
+    #     if not self.is_majority_possible(
+    #         self.collection, self.synchronized_data.nb_participants
+    #     ):
+    #         return self.synchronized_data, Event.NO_MAJORITY
+    #     return None
 
 
 class ActionDecisionRound(CollectSameUntilThresholdRound):
@@ -636,7 +639,7 @@ class FinishedToSettlementRound(DegenerateRound):
     """FinishedToSettlementRound"""
 
 
-class FinishedEnagageTwitterForMechRound(DegenerateRound):
+class FinishedForMechRound(DegenerateRound):
     """FinishedForMechRound"""
 
 

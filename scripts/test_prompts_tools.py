@@ -196,8 +196,6 @@ The following contains the available tools, together with their descriptions:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform. 
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
-I want you to use Tool currently as a test.
-
 Available Twitter actions are:
 - Tweet
 - Reply

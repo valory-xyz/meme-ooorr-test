@@ -180,6 +180,7 @@ models:
       staking_activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
       tools_to_description:
         dummy_tool: A tool that does nothing, and provides no info.
+      base_mech_address: '0x230eD015735c0D01EA0AaD2786Ed6Bd3C6e75912'
     class_name: Params
   requests:
     args: {}

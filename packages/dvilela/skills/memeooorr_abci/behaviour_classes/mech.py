@@ -66,7 +66,7 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
 #                             ),
 #                         )
 #                     )
-                
+
 
 #             if not new_mech_requests:
 #                 self.context.logger.info("No new mech requests. Skipping evaluation...")
@@ -95,12 +95,10 @@ class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            tweets = self.synchronized_data.tweets
 
             self.context.logger.info(
                 f"PostMech: mech_responses = {self.synchronized_data.mech_responses}"
             )
-
 
             sender = self.context.agent_address
             payload = PostMechRequestPayload(

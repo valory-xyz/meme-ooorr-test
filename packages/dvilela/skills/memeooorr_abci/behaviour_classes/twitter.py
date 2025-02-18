@@ -440,6 +440,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         )
         self.context.logger.info(f"LLM response for twitter decision: {llm_response}")
 
+        #i need to check for previous mech responses over here 
+
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
             return Event.ERROR.value, new_interacted_tweet_ids
