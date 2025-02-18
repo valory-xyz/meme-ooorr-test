@@ -16,6 +16,7 @@ alphabet_in:
 - NO_MAJORITY
 - RESET_AND_PAUSE_TIMEOUT
 - RESET_TIMEOUT
+- RETRY
 - ROUND_TIMEOUT
 - SETTLE
 - SUSPICIOUS_ACTIVITY
@@ -52,6 +53,7 @@ states:
 - SelectKeeperTransactionSubmissionBAfterTimeoutRound
 - SelectKeeperTransactionSubmissionBRound
 - SynchronizeLateMessagesRound
+- TransactionLoopCheckRound
 - ValidateTransactionRound
 transition_func:
     (ActionDecisionRound, DONE): ActionPreparationRound
@@ -64,7 +66,7 @@ transition_func:
     (ActionPreparationRound, ROUND_TIMEOUT): ActionPreparationRound
     (ActionPreparationRound, SETTLE): CheckFundsRound
     (ActionTweetRound, DONE): CallCheckpointRound
-    (ActionTweetRound, ERROR): ActionTweetRound
+    (ActionTweetRound, ERROR): CallCheckpointRound
     (ActionTweetRound, MISSING_TWEET): CallCheckpointRound
     (ActionTweetRound, NO_MAJORITY): ActionTweetRound
     (ActionTweetRound, ROUND_TIMEOUT): ActionTweetRound
@@ -79,9 +81,9 @@ transition_func:
     (CheckLateTxHashesRound, CHECK_LATE_ARRIVING_MESSAGE): SynchronizeLateMessagesRound
     (CheckLateTxHashesRound, CHECK_TIMEOUT): CheckLateTxHashesRound
     (CheckLateTxHashesRound, DONE): PostTxDecisionMakingRound
-    (CheckLateTxHashesRound, NEGATIVE): RandomnessTransactionSubmissionRound
-    (CheckLateTxHashesRound, NONE): RandomnessTransactionSubmissionRound
-    (CheckLateTxHashesRound, NO_MAJORITY): RandomnessTransactionSubmissionRound
+    (CheckLateTxHashesRound, NEGATIVE): TransactionLoopCheckRound
+    (CheckLateTxHashesRound, NONE): TransactionLoopCheckRound
+    (CheckLateTxHashesRound, NO_MAJORITY): TransactionLoopCheckRound
     (CheckStakingRound, DONE): PullMemesRound
     (CheckStakingRound, NO_MAJORITY): CheckStakingRound
     (CheckStakingRound, ROUND_TIMEOUT): CheckStakingRound
@@ -89,7 +91,7 @@ transition_func:
     (CheckTransactionHistoryRound, CHECK_TIMEOUT): CheckTransactionHistoryRound
     (CheckTransactionHistoryRound, DONE): PostTxDecisionMakingRound
     (CheckTransactionHistoryRound, NEGATIVE): SelectKeeperTransactionSubmissionBRound
-    (CheckTransactionHistoryRound, NONE): RandomnessTransactionSubmissionRound
+    (CheckTransactionHistoryRound, NONE): TransactionLoopCheckRound
     (CheckTransactionHistoryRound, NO_MAJORITY): CheckTransactionHistoryRound
     (CollectFeedbackRound, DONE): EngageTwitterRound
     (CollectFeedbackRound, ERROR): EngageTwitterRound
@@ -129,26 +131,30 @@ transition_func:
     (ResetAndPauseRound, NO_MAJORITY): ResetAndPauseRound
     (ResetAndPauseRound, RESET_AND_PAUSE_TIMEOUT): ResetAndPauseRound
     (ResetRound, DONE): RandomnessTransactionSubmissionRound
-    (ResetRound, NO_MAJORITY): RandomnessTransactionSubmissionRound
-    (ResetRound, RESET_TIMEOUT): RandomnessTransactionSubmissionRound
+    (ResetRound, NO_MAJORITY): TransactionLoopCheckRound
+    (ResetRound, RESET_TIMEOUT): TransactionLoopCheckRound
     (SelectKeeperTransactionSubmissionARound, DONE): CollectSignatureRound
-    (SelectKeeperTransactionSubmissionARound, INCORRECT_SERIALIZATION): RandomnessTransactionSubmissionRound
+    (SelectKeeperTransactionSubmissionARound, INCORRECT_SERIALIZATION): TransactionLoopCheckRound
     (SelectKeeperTransactionSubmissionARound, NO_MAJORITY): ResetRound
     (SelectKeeperTransactionSubmissionARound, ROUND_TIMEOUT): SelectKeeperTransactionSubmissionARound
     (SelectKeeperTransactionSubmissionBAfterTimeoutRound, CHECK_HISTORY): CheckTransactionHistoryRound
     (SelectKeeperTransactionSubmissionBAfterTimeoutRound, CHECK_LATE_ARRIVING_MESSAGE): SynchronizeLateMessagesRound
     (SelectKeeperTransactionSubmissionBAfterTimeoutRound, DONE): FinalizationRound
-    (SelectKeeperTransactionSubmissionBAfterTimeoutRound, INCORRECT_SERIALIZATION): RandomnessTransactionSubmissionRound
+    (SelectKeeperTransactionSubmissionBAfterTimeoutRound, INCORRECT_SERIALIZATION): TransactionLoopCheckRound
     (SelectKeeperTransactionSubmissionBAfterTimeoutRound, NO_MAJORITY): ResetRound
     (SelectKeeperTransactionSubmissionBAfterTimeoutRound, ROUND_TIMEOUT): SelectKeeperTransactionSubmissionBAfterTimeoutRound
     (SelectKeeperTransactionSubmissionBRound, DONE): FinalizationRound
-    (SelectKeeperTransactionSubmissionBRound, INCORRECT_SERIALIZATION): RandomnessTransactionSubmissionRound
+    (SelectKeeperTransactionSubmissionBRound, INCORRECT_SERIALIZATION): TransactionLoopCheckRound
     (SelectKeeperTransactionSubmissionBRound, NO_MAJORITY): ResetRound
     (SelectKeeperTransactionSubmissionBRound, ROUND_TIMEOUT): SelectKeeperTransactionSubmissionBRound
     (SynchronizeLateMessagesRound, DONE): CheckLateTxHashesRound
     (SynchronizeLateMessagesRound, NONE): SelectKeeperTransactionSubmissionBRound
     (SynchronizeLateMessagesRound, ROUND_TIMEOUT): SynchronizeLateMessagesRound
-    (SynchronizeLateMessagesRound, SUSPICIOUS_ACTIVITY): RandomnessTransactionSubmissionRound
+    (SynchronizeLateMessagesRound, SUSPICIOUS_ACTIVITY): TransactionLoopCheckRound
+    (TransactionLoopCheckRound, DONE): ResetAndPauseRound
+    (TransactionLoopCheckRound, NO_MAJORITY): TransactionLoopCheckRound
+    (TransactionLoopCheckRound, RETRY): RandomnessTransactionSubmissionRound
+    (TransactionLoopCheckRound, ROUND_TIMEOUT): TransactionLoopCheckRound
     (ValidateTransactionRound, DONE): PostTxDecisionMakingRound
     (ValidateTransactionRound, NEGATIVE): CheckTransactionHistoryRound
     (ValidateTransactionRound, NONE): SelectKeeperTransactionSubmissionBRound

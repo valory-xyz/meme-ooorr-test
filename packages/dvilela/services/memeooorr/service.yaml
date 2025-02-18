@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeiha3szzkcjtdizacazw4qa5o3xojatrwm4liqtewawdgtsaruqnxe
+agent: dvilela/memeooorr:0.1.0:bafybeianxsco5hvwioqoetmxgr4h33pp4iyudqtlnpoc6hju2huuf2paqi
 number_of_agents: 1
 deployment:
   agent:
@@ -91,8 +91,6 @@ extra:
         olas_token_address_base: ${OLAS_TOKEN_ADDRESS_BASE:str:0x54330d28ca3357F294334BDC454a032e7f353416}
         olas_token_address_celo: ${OLAS_TOKEN_ADDRESS_CELO:str:0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51}
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
-        feedback_period_min_hours: ${FEEDBACK_PERIOD_MIN_HOURS:int:1}
-        feedback_period_max_hours: ${FEEDBACK_PERIOD_MAX_HOURS:int:2}
         home_chain_id: ${HOME_CHAIN_ID:str:BASE}
         twitter_username: ${TWIKIT_USERNAME:str:null}
         service_registry_address_base: ${SERVICE_REGISTRY_ADDRESS_BASE:str:0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE}
@@ -105,10 +103,12 @@ extra:
         min_summon_amount_celo: ${MIN_SUMMON_AMOUNT_CELO:float:10.0}
         max_summon_amount_celo: ${MAX_SUMMON_AMOUNT_CELO:float:20.0}
         max_heart_amount_celo: ${MAX_HEART_AMOUNT_CELO:float:0.2}
-        staking_token_contract_address: ${STAKING_CONTRACT_ADDRESS:str:0x0000000000000000000000000000000000000000}
-        staking_activity_checker_contract_address: ${ACTIVITY_CHECKER_CONTRACT_ADDRESS:str:0x0000000000000000000000000000000000000000}
+        staking_token_contract_address: ${STAKING_TOKEN_CONTRACT_ADDRESS:str:0x0000000000000000000000000000000000000000}
+        activity_checker_contract_address: ${ACTIVITY_CHECKER_CONTRACT_ADDRESS:str:0x0000000000000000000000000000000000000000}
         tools_to_description:
           dummy_tool: A tool that does nothing, and provides no info.
+        alternative_model_for_tweets: ${ALTERNATIVE_MODEL_FOR_TWEETS:dict:{"use":false,"url":"https://api.fireworks.ai/inference/v1/chat/completions","api_key":null,"model":"accounts/sentientfoundation/models/dobby-mini-unhinged-llama-3-1-8b","max_tokens":16384,"top_p":1,"top_k":40,"presence_penalty":0,"frequency_penalty":0,"temperature":0.6}}
+        tx_loop_breaker_count: 3
 ---
 public_id: valory/ledger:0.19.0
 type: connection

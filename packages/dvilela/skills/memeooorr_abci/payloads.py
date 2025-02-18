@@ -121,3 +121,10 @@ class PostMechRequestPayload(BaseTxPayload):
     """Represent a transaction payload for the PostMechRequestRound."""
 
     content: str
+
+
+@dataclass(frozen=True)
+class TransactionLoopCheckPayload(BaseTxPayload):
+    """A transaction payload for the checkpoint call."""
+
+    counter: int

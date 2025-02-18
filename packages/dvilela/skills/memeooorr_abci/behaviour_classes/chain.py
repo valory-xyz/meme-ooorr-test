@@ -45,6 +45,8 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     PullMemesPayload,
     PullMemesRound,
     StakingState,
+    TransactionLoopCheckPayload,
+    TransactionLoopCheckRound,
 )
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.contracts.staking_activity_checker.contract import (
@@ -212,7 +214,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
     def _get_liveness_ratio(self, chain: str) -> Generator[None, None, Optional[int]]:
         liveness_ratio = yield from self.contract_interact(
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
-            contract_address=self.params.staking_activity_checker_contract_address,
+            contract_address=self.params.activity_checker_contract_address,
             contract_public_id=StakingActivityCheckerContract.contract_id,
             contract_callable="liveness_ratio",
             data_key="data",
@@ -290,7 +292,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
     ) -> Generator[None, None, Optional[int]]:
         multisig_nonces = yield from self.contract_interact(
             performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
-            contract_address=self.params.staking_activity_checker_contract_address,
+            contract_address=self.params.activity_checker_contract_address,
             contract_public_id=StakingActivityCheckerContract.contract_id,
             contract_callable="get_multisig_nonces",
             data_key="data",
@@ -834,3 +836,29 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ances
         )
 
         return safe_tx_hash
+
+
+class TransactionLoopCheckBehaviour(
+    ChainBehaviour
+):  # pylint: disable=too-many-ancestors
+    """Behaviour that checks if the transaction loop is still running."""
+
+    matching_round = TransactionLoopCheckRound
+
+    def async_act(self) -> Generator:
+        """Do the action."""
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            self.context.logger.info(
+                f"Checking if the transaction loop is still running. Counter: {self.synchronized_data.tx_loop_count} and increasing it by 1"
+            )
+
+            payload = TransactionLoopCheckPayload(
+                sender=self.context.agent_address,
+                counter=self.synchronized_data.tx_loop_count + 1,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()

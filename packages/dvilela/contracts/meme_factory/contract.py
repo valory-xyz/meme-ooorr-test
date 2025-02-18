@@ -355,3 +355,18 @@ class MemeFactoryContract(Contract):
         contract_instance = cls.get_instance(ledger_api, contract_address)
         burnable_amount = contract_instance.functions.scheduledForAscendance().call()
         return {"burnable_amount": burnable_amount}
+
+    @classmethod
+    def get_collectable_amount(
+        cls,
+        ledger_api: EthereumApi,
+        contract_address: str,
+        token_nonce: int,
+        wallet_address: str,
+    ) -> Dict[str, Any]:
+        """Get the collectable amount."""
+        contract_instance = cls.get_instance(ledger_api, contract_address)
+        collectable_amount = contract_instance.functions.memeHearters(
+            token_nonce, wallet_address
+        ).call()
+        return {"collectable_amount": collectable_amount}

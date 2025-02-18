@@ -125,6 +125,7 @@ push-packages:
 .PHONY: publish
 publish:
 	make push-packages  && \
+	bash build_image.sh && \
 	make push-image
 
 .PHONY: deploy-contracts

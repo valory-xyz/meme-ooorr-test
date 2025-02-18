@@ -43,13 +43,11 @@ PATH_TO_VAR = {
     "models/params/args/minimum_gas_balance": "MINIMUM_GAS_BALANCE",
     "models/params/args/min_feedback_replies": "MIN_FEEDBACK_REPLIES",
     "models/params/args/setup/safe_contract_address": "SAFE_CONTRACT_ADDRESS",
-    "models/params/args/feedback_period_min_hours": "FEEDBACK_PERIOD_MIN_HOURS",
-    "models/params/args/feedback_period_max_hours": "FEEDBACK_PERIOD_MAX_HOURS",
     "models/params/args/twitter_username": "TWIKIT_USERNAME",
     "models/params/args/persona": "PERSONA",
     "models/params/args/skip_engagement": "SKIP_ENGAGEMENT",
-    "models/params/args/staking_token_contract_address": "STAKING_CONTRACT_ADDRESS",
-    "models/params/args/staking_activity_checker_contract_address": "ACTIVITY_CHECKER_CONTRACT_ADDRESS",
+    "models/params/args/staking_token_contract_address": "STAKING_TOKEN_CONTRACT_ADDRESS",
+    "models/params/args/activity_checker_contract_address": "ACTIVITY_CHECKER_CONTRACT_ADDRESS",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",
@@ -63,6 +61,8 @@ PATH_TO_VAR = {
     "config/store_path": "STORE_PATH",
     # Mirror DB
     "config/mirror_db_base_url": "MIRROR_DB_BASE_URL",
+    # Fireworks API
+    "models/params/args/alternative_model_for_tweets": "ALTERNATIVE_MODEL_FOR_TWEETS",
 }
 
 CONFIG_REGEX = r"\${.*?:(.*)}"

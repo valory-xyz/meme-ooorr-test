@@ -38,6 +38,7 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     PullMemesPayload,
     PreMechRequestPayload,
     PostMechRequestPayload,
+    TransactionLoopCheckPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -85,6 +86,7 @@ class Event(Enum):
     ACTION = "action"
     MISSING_TWEET = "missing_tweet"
     MECH = "mech"
+    RETRY = "retry"
 
 
 class SynchronizedData(BaseSynchronizedData):
@@ -173,13 +175,18 @@ class SynchronizedData(BaseSynchronizedData):
             responses = json.loads(responses)
         return [MechInteractionResponse(**response_item) for response_item in responses]
 
+    @property
+    def tx_loop_count(self) -> int:
+        """Get the loop count for retrying transaction."""
+        return int(self.db.get("tx_loop_count", 0))  # type: ignore
+
 
 class EventRoundBase(CollectSameUntilThresholdRound):
     """EventRoundBase"""
 
     synchronized_data_class = SynchronizedData
     payload_class = BaseTxPayload  # will be overwritten
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -237,7 +244,7 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
 
         return None
 
-    required_class_attributes = ()
+    extended_requirements = ()
 
 
 class CheckStakingRound(CollectSameUntilThresholdRound):
@@ -245,7 +252,7 @@ class CheckStakingRound(CollectSameUntilThresholdRound):
 
     payload_class = CheckStakingPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -281,7 +288,7 @@ class PullMemesRound(CollectSameUntilThresholdRound):
 
     payload_class = PullMemesPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -354,7 +361,7 @@ class CollectFeedbackRound(CollectSameUntilThresholdRound):
 
     payload_class = CollectFeedbackPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -468,7 +475,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
 
     payload_class = ActionDecisionPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -526,7 +533,7 @@ class ActionPreparationRound(CollectSameUntilThresholdRound):
 
     payload_class = ActionPreparationPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -568,7 +575,7 @@ class ActionTweetRound(EventRoundBase):
 
     payload_class = ActionTweetPayload  # type: ignore
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR, Event.MISSING_TWEET
@@ -578,7 +585,7 @@ class CheckFundsRound(EventRoundBase):
     """CheckFundsRound"""
 
     payload_class = CheckFundsPayload  # type: ignore
-    required_class_attributes = ()
+    extended_requirements = ()
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.NO_FUNDS
 
@@ -588,7 +595,7 @@ class PostTxDecisionMakingRound(EventRoundBase):
 
     payload_class = PostTxDecisionMakingPayload  # type: ignore
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ACTION
@@ -599,7 +606,7 @@ class CallCheckpointRound(CollectSameUntilThresholdRound):
 
     payload_class = CallCheckpointPayload
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -632,6 +639,50 @@ class CallCheckpointRound(CollectSameUntilThresholdRound):
         return None
 
 
+class TransactionLoopCheckRound(CollectSameUntilThresholdRound):
+    """TransactionLoopCheckRound"""
+
+    payload_class = TransactionLoopCheckPayload
+    synchronized_data_class = SynchronizedData
+
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
+        """Process the end of the block."""
+
+        # This needs to be mentioned for static checkers
+        # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
+        if self.threshold_reached:
+            payload = TransactionLoopCheckPayload(
+                *(("dummy_sender",) + self.most_voted_payload_values)
+            )
+
+            max_count = self.context.params.tx_loop_breaker_count
+
+            if payload.counter >= max_count:
+                self.context.logger.info(
+                    f"Transaction loop breaker reached: {max_count}"
+                )
+                return self.synchronized_data, Event.DONE
+
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(SynchronizedData.tx_loop_count): payload.counter,
+                },
+            )
+
+            return synchronized_data, Event.RETRY
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+
+        return None
+
+    extended_requirements = ()
+
+
 class FinishedToResetRound(DegenerateRound):
     """FinishedToResetRound"""
 
@@ -653,6 +704,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         ActionPreparationRound,
         PostTxDecisionMakingRound,
         PostMechRequestRound,
+        TransactionLoopCheckRound,
     }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
@@ -698,7 +750,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         ActionTweetRound: {
             Event.DONE: CallCheckpointRound,
-            Event.ERROR: ActionTweetRound,
+            Event.ERROR: CallCheckpointRound,
             Event.MISSING_TWEET: CallCheckpointRound,
             Event.NO_MAJORITY: ActionTweetRound,
             Event.ROUND_TIMEOUT: ActionTweetRound,
@@ -726,6 +778,12 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.NO_MAJORITY: PostMechRequestRound,
             Event.ROUND_TIMEOUT: PostMechRequestRound,
         },
+        TransactionLoopCheckRound: {
+            Event.DONE: FinishedToResetRound,
+            Event.RETRY: FinishedToSettlementRound,
+            Event.NO_MAJORITY: TransactionLoopCheckRound,
+            Event.ROUND_TIMEOUT: TransactionLoopCheckRound,
+        },
         FinishedToResetRound: {},
         FinishedToSettlementRound: {},
     }
@@ -737,6 +795,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         PullMemesRound: set(),
         ActionPreparationRound: set(),
         PostTxDecisionMakingRound: set(),
+        TransactionLoopCheckRound: set(),
     }
     db_post_conditions: Dict[AppState, Set[str]] = {
         FinishedToResetRound: set(),

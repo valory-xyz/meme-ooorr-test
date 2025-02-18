@@ -19,7 +19,8 @@
 
 """This module contains the shared state for the abci skill of MemeooorrAbciApp."""
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Dict
 
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.models import ApiSpecs, BaseParams
@@ -44,6 +45,38 @@ BenchmarkTool = BaseBenchmarkTool
 
 class RandomnessApi(ApiSpecs):
     """A model that wraps ApiSpecs for randomness api specifications."""
+
+
+@dataclass(frozen=True)
+class AlternativeModelForTweets:  # pylint: disable=too-many-instance-attributes
+    """The configuration for the alternative LLM models."""
+
+    use: bool
+    url: str
+    api_key: str
+    model: str
+    max_tokens: int
+    top_p: int
+    top_k: int
+    presence_penalty: int
+    frequency_penalty: int
+    temperature: float
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AlternativeModelForTweets":
+        """Create an instance from a dictionary."""
+        return cls(
+            use=data["use"],
+            url=data["url"],
+            api_key=data["api_key"],
+            model=data["model"],
+            max_tokens=data["max_tokens"],
+            top_p=data["top_p"],
+            top_k=data["top_k"],
+            presence_penalty=data["presence_penalty"],
+            frequency_penalty=data["frequency_penalty"],
+            temperature=data["temperature"],
+        )
 
 
 class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
@@ -73,12 +106,6 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
             "service_registry_address_celo", kwargs, str
         )
         self.persona = self._ensure("persona", kwargs, str)
-        self.feedback_period_min_hours = self._ensure(
-            "feedback_period_min_hours", kwargs, int
-        )
-        self.feedback_period_max_hours = self._ensure(
-            "feedback_period_max_hours", kwargs, int
-        )
         self.home_chain_id = self._ensure("home_chain_id", kwargs, str)
         self.twitter_username = self._ensure("twitter_username", kwargs, str)
 
@@ -115,9 +142,13 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.staking_token_contract_address: str = self._ensure(
             "staking_token_contract_address", kwargs, str
         )
-        self.staking_activity_checker_contract_address: str = self._ensure(
-            "staking_activity_checker_contract_address", kwargs, str
+        self.activity_checker_contract_address: str = self._ensure(
+            "activity_checker_contract_address", kwargs, str
         )
         self.tools_to_description = self._ensure("tools_to_description", kwargs, dict)
+        self.alternative_model_for_tweets: AlternativeModelForTweets = (
+            AlternativeModelForTweets.from_dict(kwargs["alternative_model_for_tweets"])
+        )
+        self.tx_loop_breaker_count = self._ensure("tx_loop_breaker_count", kwargs, int)
 
         super().__init__(*args, **kwargs)
