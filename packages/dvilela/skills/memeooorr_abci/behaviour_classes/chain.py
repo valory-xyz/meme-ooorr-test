@@ -845,15 +845,13 @@ class TransactionLoopCheckBehaviour(
 
     matching_round = TransactionLoopCheckRound
 
-    # this round checks if the transaction is in  a loop if a trnsaction is in infinite loop it will stop the transaction by sending to next round
-    # we have a param tx_loop_breaker_count which is the maximum number of transaction that can be tried before stopping the transaction
-    # we will store the count of transaction in the db and check if it is greater than the tx_loop_breaker_count
-    # each time this round is called we will increment the count by 1
-    # if the count is greater than the tx_loop_breaker_count we will stop the transaction
-
     def async_act(self) -> Generator:
         """Do the action."""
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
+
+            self.context.logger.info(
+                f"Checking if the transaction loop is still running. Counter: {self.synchronized_data.tx_loop_counter} and increasing it by 1"
+            )
 
             payload = TransactionLoopCheckPayload(
                 sender=self.context.agent_address,

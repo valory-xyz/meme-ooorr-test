@@ -518,6 +518,9 @@ class TransactionLoopCheckRound(CollectionRound):
             max_count = self.params.tx_loop_breaker_count
 
             if payload["counter"] >= max_count:
+                self.context.logger.info(
+                    f"Transaction loop breaker reached: {max_count}"
+                )
                 return self.synchronized_data, Event.DONE
 
             synchronized_data = self.synchronized_data.update(
