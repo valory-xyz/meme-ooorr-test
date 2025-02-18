@@ -501,7 +501,7 @@ class CallCheckpointRound(CollectSameUntilThresholdRound):
         return None
 
 
-class TransactionLoopCheckRound(CollectionRound):
+class TransactionLoopCheckRound(CollectSameUntilThresholdRound):
     """TransactionLoopCheckRound"""
 
     payload_class = TransactionLoopCheckPayload
@@ -514,10 +514,13 @@ class TransactionLoopCheckRound(CollectionRound):
         # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
         if self.threshold_reached:
-            payload = dict(zip(self.selection_key, self.most_voted_payload_values))
-            max_count = self.params.tx_loop_breaker_count
+            payload = TransactionLoopCheckPayload(
+                *(("dummy_sender",) + self.most_voted_payload_values)
+            )
 
-            if payload["counter"] >= max_count:
+            max_count = self.context.params.tx_loop_breaker_count
+
+            if payload.counter >= max_count:
                 self.context.logger.info(
                     f"Transaction loop breaker reached: {max_count}"
                 )
@@ -526,7 +529,7 @@ class TransactionLoopCheckRound(CollectionRound):
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
-                    get_name(SynchronizedData.tx_loop_count): payload["counter"],
+                    get_name(SynchronizedData.tx_loop_count): payload.counter,
                 },
             )
 
