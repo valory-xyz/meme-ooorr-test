@@ -288,5 +288,5 @@ twitter_response = model.generate_content(
         # response_schema=twitter_schema_class,
     ),
 )
-
+print("Twitter response:")
 print(json.loads(twitter_response.text))
