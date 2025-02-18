@@ -148,5 +148,8 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.alternative_model_for_tweets: AlternativeModelForTweets = (
             AlternativeModelForTweets.from_dict(kwargs["alternative_model_for_tweets"])
         )
+        self.tx_loop_breaker_count = self._ensure(
+            "tx_loop_breaker_count", kwargs, int
+        )
 
         super().__init__(*args, **kwargs)
