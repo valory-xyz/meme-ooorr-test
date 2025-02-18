@@ -142,8 +142,8 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.staking_token_contract_address: str = self._ensure(
             "staking_token_contract_address", kwargs, str
         )
-        self.staking_activity_checker_contract_address: str = self._ensure(
-            "staking_activity_checker_contract_address", kwargs, str
+        self.activity_checker_contract_address: str = self._ensure(
+            "activity_checker_contract_address", kwargs, str
         )
         self.alternative_model_for_tweets: AlternativeModelForTweets = (
             AlternativeModelForTweets.from_dict(kwargs["alternative_model_for_tweets"])

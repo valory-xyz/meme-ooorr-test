@@ -47,7 +47,7 @@ PATH_TO_VAR = {
     "models/params/args/persona": "PERSONA",
     "models/params/args/skip_engagement": "SKIP_ENGAGEMENT",
     "models/params/args/staking_token_contract_address": "STAKING_TOKEN_CONTRACT_ADDRESS",
-    "models/params/args/staking_activity_checker_contract_address": "ACTIVITY_CHECKER_CONTRACT_ADDRESS",
+    "models/params/args/activity_checker_contract_address": "ACTIVITY_CHECKER_CONTRACT_ADDRESS",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",

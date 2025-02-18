@@ -285,6 +285,9 @@ class ActionDecisionBehaviour(
                     int(getattr(self.params, f"max_summon_amount_{chain_id}") * 1e18),
                 )
 
+                if token_name.lower() in ["olas"]:
+                    raise ValueError(f"Cannot summon token with name {token_name}")
+
             if action_name == "heart":
                 chain_id = self.get_chain_id()
 
