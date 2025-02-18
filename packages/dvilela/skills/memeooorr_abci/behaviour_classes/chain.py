@@ -850,12 +850,12 @@ class TransactionLoopCheckBehaviour(
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
 
             self.context.logger.info(
-                f"Checking if the transaction loop is still running. Counter: {self.synchronized_data.tx_loop_counter} and increasing it by 1"
+                f"Checking if the transaction loop is still running. Counter: {self.synchronized_data.tx_loop_count} and increasing it by 1"
             )
 
             payload = TransactionLoopCheckPayload(
                 sender=self.context.agent_address,
-                counter=self.synchronized_data.tx_loop_counter + 1,
+                counter=self.synchronized_data.tx_loop_count + 1,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
