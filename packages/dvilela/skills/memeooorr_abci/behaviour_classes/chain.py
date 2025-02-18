@@ -45,8 +45,8 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     PullMemesPayload,
     PullMemesRound,
     StakingState,
-    TransactionLoopCheckRound,
     TransactionLoopCheckPayload,
+    TransactionLoopCheckRound,
 )
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
 from packages.valory.contracts.staking_activity_checker.contract import (
@@ -848,7 +848,6 @@ class TransactionLoopCheckBehaviour(
     def async_act(self) -> Generator:
         """Do the action."""
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-
             self.context.logger.info(
                 f"Checking if the transaction loop is still running. Counter: {self.synchronized_data.tx_loop_count} and increasing it by 1"
             )

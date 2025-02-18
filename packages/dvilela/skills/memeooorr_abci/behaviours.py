@@ -28,7 +28,7 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
     CheckStakingBehaviour,
     PostTxDecisionMakingBehaviour,
     PullMemesBehaviour,
-    TransactionLoopCheckBehaviour
+    TransactionLoopCheckBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.db import (
     LoadDatabaseBehaviour,
@@ -65,5 +65,5 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
         ActionTweetBehaviour,
         PostTxDecisionMakingBehaviour,
         CallCheckpointBehaviour,
-        TransactionLoopCheckBehaviour
+        TransactionLoopCheckBehaviour,
     ]

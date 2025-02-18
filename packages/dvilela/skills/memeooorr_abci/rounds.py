@@ -152,7 +152,7 @@ class SynchronizedData(BaseSynchronizedData):
     @property
     def tx_loop_count(self) -> int:
         """Get the loop count for retrying transaction."""
-        return int(self.db.get("tx_loop_count", 0))
+        return int(self.db.get("tx_loop_count", 0))  # type: ignore
 
 
 class EventRoundBase(CollectSameUntilThresholdRound):
