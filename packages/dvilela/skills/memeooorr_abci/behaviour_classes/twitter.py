@@ -139,7 +139,7 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
                 )
                 return False
             return response["success"]
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             self.context.logger.error(f"Exception liking tweet with ID {tweet_id}: {e}")
             return False
 
@@ -156,7 +156,7 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
                 )
                 return False
             return response["success"]
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             self.context.logger.error(
                 f"Exception retweeting tweet with ID {tweet_id}: {e}"
             )
@@ -172,11 +172,11 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             if response is None or not response.get("success", False):
                 error_message = response.get("error", "Unknown error occurred.")
                 self.context.logger.error(
-                    f"Error retweeting tweet with ID {tweet_id}: {error_message}"
+                    f"Error Following user with ID {user_id}: {error_message}"
                 )
                 return False
             return response["success"]
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             self.context.logger.error(
                 f"Exception following user with ID {user_id}: {e}"
             )
