@@ -63,6 +63,7 @@ PATH_TO_VAR = {
     "config/mirror_db_base_url": "MIRROR_DB_BASE_URL",
     # Fireworks API
     "models/params/args/alternative_model_for_tweets": "ALTERNATIVE_MODEL_FOR_TWEETS",
+    "models/params/args/fireworks_api_key": "FIREWORKS_API_KEY",
 }
 
 CONFIG_REGEX = r"\${.*?:(.*)}"
