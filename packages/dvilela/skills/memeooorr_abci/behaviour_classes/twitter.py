@@ -128,22 +128,59 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         """Like a tweet"""
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
 
-        response = yield from self._call_twikit(method="like_tweet", tweet_id=tweet_id)
-        return response["success"]
+        try:
+            response = yield from self._call_twikit(
+                method="like_tweet", tweet_id=tweet_id
+            )
+            if response is None or not response.get("success", False):
+                error_message = response.get("error", "Unknown error occurred.")
+                self.context.logger.error(
+                    f"Error liking tweet with ID {tweet_id}: {error_message}"
+                )
+                return False
+            return response["success"]
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(f"Exception liking tweet with ID {tweet_id}: {e}")
+            return False
 
     def retweet(self, tweet_id: str) -> Generator[None, None, bool]:
-        """Reweet"""
+        """Retweet"""
         self.context.logger.info(f"Retweeting tweet with ID: {tweet_id}")
 
-        response = yield from self._call_twikit(method="retweet", tweet_id=tweet_id)
-        return response["success"]
+        try:
+            response = yield from self._call_twikit(method="retweet", tweet_id=tweet_id)
+            if response is None or not response.get("success", False):
+                error_message = response.get("error", "Unknown error occurred.")
+                self.context.logger.error(
+                    f"Error retweeting tweet with ID {tweet_id}: {error_message}"
+                )
+                return False
+            return response["success"]
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(
+                f"Exception retweeting tweet with ID {tweet_id}: {e}"
+            )
+            return False
 
     def follow_user(self, user_id: str) -> Generator[None, None, bool]:
         """Follow user"""
         self.context.logger.info(f"Following user with ID: {user_id}")
-
-        response = yield from self._call_twikit(method="follow_user", user_id=user_id)
-        return response["success"]
+        try:
+            response = yield from self._call_twikit(
+                method="follow_user", user_id=user_id
+            )
+            if response is None or not response.get("success", False):
+                error_message = response.get("error", "Unknown error occurred.")
+                self.context.logger.error(
+                    f"Error Following user with ID {user_id}: {error_message}"
+                )
+                return False
+            return response["success"]
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(
+                f"Exception following user with ID {user_id}: {e}"
+            )
+            return False
 
     def get_previous_tweets(
         self, limit: int = 5
