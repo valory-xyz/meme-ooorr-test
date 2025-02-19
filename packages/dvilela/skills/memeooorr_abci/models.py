@@ -66,7 +66,7 @@ class AlternativeModelForTweets:  # pylint: disable=too-many-instance-attributes
     def from_dict(cls, data: Dict[str, Any]) -> "AlternativeModelForTweets":
         """Create an instance from a dictionary."""
         return cls(
-            use=data["use"],
+            use=data["api_key"] is not None,
             url=data["url"],
             api_key=data["api_key"],
             model=data["model"],
@@ -145,8 +145,11 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         self.activity_checker_contract_address: str = self._ensure(
             "activity_checker_contract_address", kwargs, str
         )
+        self.fireworks_api_key: str = self._ensure("fireworks_api_key", kwargs, str)
+        alternative_model_kwargs = kwargs["alternative_model_for_tweets"]
+        alternative_model_kwargs["api_key"] = self.fireworks_api_key
         self.alternative_model_for_tweets: AlternativeModelForTweets = (
-            AlternativeModelForTweets.from_dict(kwargs["alternative_model_for_tweets"])
+            AlternativeModelForTweets.from_dict(alternative_model_kwargs)
         )
         self.tx_loop_breaker_count = self._ensure("tx_loop_breaker_count", kwargs, int)
 
