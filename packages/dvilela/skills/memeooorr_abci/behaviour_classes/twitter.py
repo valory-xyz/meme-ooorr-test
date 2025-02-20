@@ -21,6 +21,7 @@
 
 from dataclasses import asdict
 import json
+import pdb
 import random
 import secrets
 from datetime import datetime
@@ -36,6 +37,7 @@ from packages.dvilela.skills.memeooorr_abci.prompts import (
     TWITTER_DECISION_PROMPT,
     TWITTER_DECISION_PROMPT_WITH_TOOLS,
     build_twitter_action_schema,
+    build_decision_schema,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionTweetPayload,
@@ -45,6 +47,7 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     EngageTwitterPayload,
     EngageTwitterRound,
     Event,
+    MechMetadata,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 from uuid import uuid4
@@ -291,6 +294,10 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             event, new_mech_requests = yield from self.get_event()
 
+            self.context.logger.info(f"before payload creation")
+            self.context.logger.info(f"Event: {event}")
+            self.context.logger.info(f"Mech Requests: {new_mech_requests}")
+
             if event == Event.MECH.value:
                 payload = EngageTwitterPayload(
                     sender=self.context.agent_address,
@@ -302,6 +309,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                     sender=self.context.agent_address,
                     event=event,
                 )
+
+            self.context.logger.info(f"Payload FROM EngageTW: {payload}")
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
             yield from self.send_a2a_transaction(payload)
@@ -437,12 +446,16 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             print(self.synchronized_data.mech_responses)
             print("CURENTLY NOT IMPLEMENTED USING SAME PROMPT")
 
-            prompt = prompt = TWITTER_DECISION_PROMPT_WITH_TOOLS.format(
+            prompt = prompt = TWITTER_DECISION_PROMPT.format(
                 persona=persona,
                 previous_tweets=previous_tweets,
                 other_tweets=other_tweets,
-                tools=TEMP_TOOLS_LIST,  # temp setup
                 time=self.get_sync_time_str(),
+            )
+
+            llm_response = yield from self._call_genai(
+                prompt=prompt,
+                schema=build_twitter_action_schema(),
             )
 
         else:
@@ -454,22 +467,29 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 tools=TEMP_TOOLS_LIST,  # temp setup
                 time=self.get_sync_time_str(),
             )
+            llm_response = yield from self._call_genai(
+                prompt=prompt,
+                schema=build_decision_schema(),
+            )
 
         self.context.logger.info(f"Prompting the LLM for a decision : {prompt}")
 
-        llm_response = yield from self._call_genai(
-            prompt=prompt,
-            schema=build_twitter_action_schema(),
-        )
         self.context.logger.info(f"LLM response for twitter decision: {llm_response}")
 
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
             return Event.ERROR.value, new_interacted_tweet_ids
 
-        json_response = json.loads(llm_response)
+        try:
+            json_response = json.loads(llm_response)
+            self.context.logger.info(f"LLM response afterJSON: {json_response}")
+        except json.JSONDecodeError as e:
+            self.context.logger.error(f"Error decoding LLM response: {e}")
+            self.context.logger.error(f"LLM Response: {llm_response}")
+            return Event.ERROR.value, new_interacted_tweet_ids
 
         if "tool_action" in json_response:
+            print("Tool action detected YAY ! - AXAT")
             self.context.logger.info("Tool action detected")
 
             new_mech_requests = []
@@ -478,11 +498,14 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             nonce = str(uuid4())
             tool_name = json_response["tool_action"]["tool_name"]
             tool_input = json_response["tool_action"]["tool_input"]
+
             new_mech_requests.append(
-                asdict(  # temp setup
-                    nonce=nonce,
-                    tool=tool_name,
-                    prompt=tool_input,
+                asdict(
+                    MechMetadata(  # temp setup
+                        nonce=nonce,
+                        tool=tool_name,
+                        prompt=tool_input,
+                    )
                 )
             )
             self.context.logger.info(f"new_mech_requests: {new_mech_requests}")

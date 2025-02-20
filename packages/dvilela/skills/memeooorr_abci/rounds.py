@@ -391,44 +391,56 @@ class CollectFeedbackRound(CollectSameUntilThresholdRound):
 
 
 class EngageTwitterRound(CollectSameUntilThresholdRound):
-    """EngageTwitterRound"""
+    """EngageTwitterRound handles Twitter engagement decisions and mech requests"""
 
-    payload_class = EngageTwitterPayload  # type: ignore
+    payload_class = EngageTwitterPayload
     synchronized_data_class = SynchronizedData
     extended_requirements = ()
 
-    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Enum]]:
+    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            payload = json.loads(self.most_voted_payload)
-            new_mech_requests = payload["new_mech_requests"]
+            payload = self.most_voted_payload
 
-            self.context.logger.info(
-                f"new_mech_requests EngageTwitterRound: {new_mech_requests}"
-            )
+            # Handle mech requests if present
+            if hasattr(payload, "mech_request") and payload.mech_request:
+                try:
+                    mech_requests = json.loads(payload.mech_request)
 
-            if payload["mech_request"] is None:
-                return self.synchronized_data, Event.DONE
+                    # Validate mech requests format
+                    if not isinstance(mech_requests, list):
+                        self.context.logger.error("Invalid mech_requests format")
+                        return self.synchronized_data, Event.ERROR
 
-            synchronized_data = self.synchronized_data.update(
-                synchronized_data_class=SynchronizedData,
-                **{
-                    get_name(SynchronizedData.mech_requests): json.dumps(
-                        new_mech_requests
-                    ),
-                },
-            )
+                    # Update synchronized data with new mech requests
+                    synchronized_data = self.synchronized_data.update(
+                        synchronized_data_class=SynchronizedData,
+                        **{
+                            get_name(SynchronizedData.mech_requests): json.dumps(
+                                mech_requests, cls=DataclassEncoder
+                            ),
+                        },
+                    )
+                    return synchronized_data, Event.MECH
+                except json.JSONDecodeError as e:
+                    self.context.logger.error(f"Failed to parse mech_request: {e}")
+                    return self.synchronized_data, Event.ERROR
 
-            return synchronized_data, Event.MECH
+            # If no mech requests, proceed with normal flow
+            try:
+                # Handle any other payload data updates here
+                synchronized_data = self.synchronized_data
+                return synchronized_data, Event.DONE
+            except Exception as e:
+                self.context.logger.error(f"Error processing payload: {e}")
+                return self.synchronized_data, Event.ERROR
 
         if not self.is_majority_possible(
             self.collection, self.synchronized_data.nb_participants
         ):
             return self.synchronized_data, Event.NO_MAJORITY
-        return None
 
-    # This needs to be mentioned for static checkers
-    # Event.DONE, Event.ERROR, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+        return None
 
 
 class PostMechRequestRound(CollectSameUntilThresholdRound):

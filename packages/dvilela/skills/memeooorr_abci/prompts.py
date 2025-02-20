@@ -63,6 +63,8 @@ The following contains the available tools, together with their descriptions:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform. 
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
+I'M TESTING THIS PROMPT PLEASE USE THE TOOLS FOR NOW
+
 Available Twitter actions are:
 - Tweet
 - Reply
@@ -93,6 +95,7 @@ Your task is to decide what actions to do, if any. Some recommenadations:
 You must return a JSON object with either a "twitter_action" or a "tool_action" key, but not both.
 """
 
+
 ALTERNATIVE_MODEL_TWITTER_PROMPT = """
 You are a user on Twitter with a specific persona. You create tweets based on it.
 
@@ -117,7 +120,12 @@ class TwitterActionName(enum.Enum):
     REPLY = "reply"
     QUOTE = "quote"
     FOLLOW = "follow"
-    TOOL = "tool"
+
+
+class ToolActionName(enum.Enum):
+    """ToolActionName"""
+
+    SENTIMENT_ANALYSIS = "sentiment_analysis"
 
 
 @dataclass(frozen=True)
@@ -130,9 +138,35 @@ class TwitterAction:
     text: str
 
 
+@dataclass(frozen=True)
+class ToolAction:
+    """ToolAction"""
+
+    tool_name: ToolActionName
+    tool_input: str
+
+
 def build_twitter_action_schema() -> dict:
     """Build a schema for Twitter action response"""
     return {"class": pickle.dumps(TwitterAction).hex(), "is_list": True}
+
+
+def build_tool_action_schema() -> dict:
+    """Build a schema for Tool action response"""
+    return {"class": pickle.dumps(ToolAction).hex(), "is_list": False}
+
+
+@dataclass(frozen=True)
+class Decision:
+    """Decision"""
+
+    tool_action: typing.Optional[ToolAction]
+    tweet_action: typing.Optional[TwitterAction]
+
+
+def build_decision_schema() -> dict:
+    """Build a schema for the decision response"""
+    return {"class": pickle.dumps(Decision).hex(), "is_list": False}
 
 
 ENFORCE_ACTION_COMMAND = "Please take some action, as you are required to meet some action KPIs and you have not met them yet."

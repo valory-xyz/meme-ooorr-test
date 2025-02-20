@@ -43,7 +43,9 @@ from packages.valory.skills.termination_abci.behaviours import (
 from packages.valory.skills.transaction_settlement_abci.behaviours import (
     TransactionSettlementRoundBehaviour,
 )
-
+from packages.valory.skills.mech_interact_abci.behaviours.round_behaviour import (
+    MechInteractRoundBehaviour,
+)
 
 class MemeooorrChainedConsensusBehaviour(AbstractRoundBehaviour):
     """Class to define the behaviours this AbciApp has."""
@@ -56,5 +58,6 @@ class MemeooorrChainedConsensusBehaviour(AbstractRoundBehaviour):
         *MemeooorrRoundBehaviour.behaviours,
         *TerminationAbciBehaviours.behaviours,
         *TransactionSettlementRoundBehaviour.behaviours,
+        *MechInteractRoundBehaviour.behaviours,
     }
     background_behaviours_cls = {BackgroundBehaviour}

@@ -27,6 +27,7 @@ import random
 import enum
 from dataclasses import dataclass, field
 from typing import Union, Literal
+import typing
 
 import dotenv
 import google.generativeai as genai  # type: ignore
@@ -196,7 +197,7 @@ The following contains the available tools, together with their descriptions:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform. 
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
-I'M TESTING THIS PROMPT PLEASe USE THE TOOLS FOR NOW    
+I'M TESTING THIS PROMPT PLEASE USE THE TOOLS FOR NOW    
 
 Available Twitter actions are:
 - Tweet
@@ -271,6 +272,21 @@ TOOLS = """
 Sentiment Analysis: This tool analyzes the sentiment of a given tweet and returns a score indicating whether the tweet is positive, negative, or neutral.
 """
 
+
+class ToolActionName(enum.Enum):
+    """ToolActionName"""
+
+    SENTIMENT_ANALYSIS = "sentiment_analysis"
+
+
+@dataclass(frozen=True)
+class ToolAction:
+    """ToolAction"""
+
+    tool_name: ToolActionName
+    tool_input: str
+
+
 twitter_prompt = TWITTER_DECISION_PROMPT_WITH_TOOLS.format(
     persona=PERSONA,
     previous_tweets=PREVIOUS_TWEETS,
@@ -279,7 +295,26 @@ twitter_prompt = TWITTER_DECISION_PROMPT_WITH_TOOLS.format(
     tools=TOOLS,
 )
 
-twitter_schema = build_twitter_action_schema()
+
+def build_tool_action_schema() -> dict:
+    """Build a schema for Tool action response"""
+    return {"class": pickle.dumps(ToolAction).hex(), "is_list": False}
+
+
+@dataclass(frozen=True)
+class Decision:
+    """Decision"""
+
+    tool_action: typing.Optional[ToolAction]
+    tweet_action: typing.Optional[TwitterAction]
+
+
+def build_decision_schema() -> dict:
+    """Build a schema for the decision response"""
+    return {"class": pickle.dumps(Decision).hex(), "is_list": False}
+
+
+twitter_schema = build_decision_schema()
 twitter_schema_class = pickle.loads(bytes.fromhex(twitter_schema["class"]))  # nosec
 print("twitter:schema", twitter_schema_class)
 
@@ -288,7 +323,7 @@ twitter_response = model.generate_content(
     generation_config=genai.types.GenerationConfig(
         temperature=2.0,
         response_mime_type="application/json",
-        # response_schema=twitter_schema_class,
+        response_schema=twitter_schema_class,
     ),
 )
 print("Twitter response:")
