@@ -36,7 +36,6 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     LoadDatabasePayload,
     PostTxDecisionMakingPayload,
     PullMemesPayload,
-    PreMechRequestPayload,
     PostMechRequestPayload,
     TransactionLoopCheckPayload,
 )
@@ -396,7 +395,7 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
 
     payload_class = EngageTwitterPayload  # type: ignore
     synchronized_data_class = SynchronizedData
-    required_class_attributes = ()
+    extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Enum]]:
         """Process the end of the block."""
@@ -438,6 +437,9 @@ class PostMechRequestRound(CollectSameUntilThresholdRound):
     payload_class = PostMechRequestPayload
     synchronized_data_class = SynchronizedData
     extended_requirements = ()
+
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR, Event.MISSING_TWEET
 
     # def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Enum]]:
     #     """Process the end of the block."""
@@ -730,7 +732,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         EngageTwitterRound: {
             Event.DONE: ActionDecisionRound,
-            Event.MECH: FinishedEnagageTwitterForMechRound,
+            Event.MECH: FinishedForMechRound,
             Event.ERROR: EngageTwitterRound,
             Event.NO_MAJORITY: EngageTwitterRound,
             Event.ROUND_TIMEOUT: EngageTwitterRound,
