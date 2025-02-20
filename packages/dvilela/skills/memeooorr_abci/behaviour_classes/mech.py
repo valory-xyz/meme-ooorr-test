@@ -31,7 +31,6 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     PostMechRequestRound,
-    PreMechRequestRound,
     MechMetadata,
 
 )

@@ -60,14 +60,18 @@ The following contains the available tools, together with their descriptions:
 
 {tools}
 
-You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform. The available actions are:
+You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform. 
+You must choose **either** a Twitter action **or** a Tool action, but not both.
 
+Available Twitter actions are:
 - Tweet
 - Reply
 - Quote
 - Like
 - Retweet
 - Follow
+
+Available Tool actions are:
 - Tool (to use a tool)
 
 Here's your persona:
@@ -85,6 +89,8 @@ Your task is to decide what actions to do, if any. Some recommenadations:
 - If you decide to reply or quote, make sure it is relevant to the tweet you are replying to.
 - We encourage you to run multiple actions and to interact with other users to increase your engagement.
 - Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
+
+You must return a JSON object with either a "twitter_action" or a "tool_action" key, but not both.
 """
 
 ALTERNATIVE_MODEL_TWITTER_PROMPT = """

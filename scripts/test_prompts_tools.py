@@ -196,6 +196,8 @@ The following contains the available tools, together with their descriptions:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform. 
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
+I'M TESTING THIS PROMPT PLEASe USE THE TOOLS FOR NOW    
+
 Available Twitter actions are:
 - Tweet
 - Reply
@@ -279,6 +281,7 @@ twitter_prompt = TWITTER_DECISION_PROMPT_WITH_TOOLS.format(
 
 twitter_schema = build_twitter_action_schema()
 twitter_schema_class = pickle.loads(bytes.fromhex(twitter_schema["class"]))  # nosec
+print("twitter:schema", twitter_schema_class)
 
 twitter_response = model.generate_content(
     twitter_prompt,

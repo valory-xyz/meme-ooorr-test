@@ -41,6 +41,9 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     CollectFeedbackBehaviour,
     EngageTwitterBehaviour,
 )
+from packages.dvilela.skills.memeooorr_abci.behaviour_classes.mech import (
+    PostMechRequestBehaviour,
+)
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.behaviours import (
     AbstractRoundBehaviour,
@@ -66,4 +69,5 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
         PostTxDecisionMakingBehaviour,
         CallCheckpointBehaviour,
         TransactionLoopCheckBehaviour,
+        PostMechRequestBehaviour,
     ]

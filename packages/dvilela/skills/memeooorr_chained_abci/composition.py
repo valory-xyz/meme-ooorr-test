@@ -23,6 +23,9 @@ import packages.dvilela.skills.memeooorr_abci.rounds as MemeooorrAbci
 import packages.valory.skills.registration_abci.rounds as RegistrationAbci
 import packages.valory.skills.reset_pause_abci.rounds as ResetAndPauseAbci
 import packages.valory.skills.mech_interact_abci.rounds as MechInteractAbci
+import packages.valory.skills.mech_interact_abci.states.final_states as MechFinalStates
+import packages.valory.skills.mech_interact_abci.states.request as MechRequestStates
+import packages.valory.skills.mech_interact_abci.states.response as MechResponseStates
 import packages.valory.skills.transaction_settlement_abci.rounds as TransactionSettlementAbci
 from packages.valory.skills.abstract_round_abci.abci_app_chain import (
     AbciAppTransitionMapping,
@@ -46,13 +49,14 @@ abci_app_transition_mapping: AbciAppTransitionMapping = {
     TransactionSettlementAbci.FailedRound: MemeooorrAbci.TransactionLoopCheckRound,
     ResetAndPauseAbci.FinishedResetAndPauseRound: MemeooorrAbci.PullMemesRound,
     ResetAndPauseAbci.FinishedResetAndPauseErrorRound: ResetAndPauseAbci.ResetAndPauseRound,
-    MemeooorrAbci.FinishedForMechRound: MechInteractAbci.MechRequestRound,
-    MechInteractAbci.FinishedMechRequestRound: TransactionSettlementAbci.RandomnessTransactionSubmissionRound,
-    MechInteractAbci.FinishedMechResponseRound: MemeooorrAbci.PostMechRequestRound,
+    MemeooorrAbci.FinishedForMechRound: MechRequestStates.MechRequestRound,
+    MechFinalStates.FinishedMechRequestRound: TransactionSettlementAbci.RandomnessTransactionSubmissionRound,
+    MechFinalStates.FinishedMechResponseRound: MemeooorrAbci.PostMechRequestRound,
     # need to do somehthing about failed states
-    MechInteractAbci.FinishedMechRequestSkipRound: MemeooorrAbci.PostMechRequestRound,
-    MechInteractAbci.FinishedMechResponseTimeoutRound: MemeooorrAbci.PostMechRequestRound,
+    MechFinalStates.FinishedMechRequestSkipRound: MemeooorrAbci.PostMechRequestRound,
+    MechFinalStates.FinishedMechResponseTimeoutRound: MemeooorrAbci.PostMechRequestRound,
 }
+
 
 termination_config = BackgroundAppConfig(
     round_cls=BackgroundRound,
