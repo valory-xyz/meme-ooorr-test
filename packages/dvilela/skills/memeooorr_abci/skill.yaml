@@ -11,16 +11,17 @@ fingerprint:
   behaviour_classes/base.py: bafybeidwdmmayzt3jtyt4qmrrw3cy4qfktbyxp4t2qwoigt3cd2zpu6fna
   behaviour_classes/chain.py: bafybeianlgx76tkdoyx3giz2bs5oreb5duietjw4bnwnw5ob76ul4klt5m
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
-  behaviour_classes/llm.py: bafybeia6pr7dzvrx4hdns2xhfz3s323oz5jfboy3x2f7tnbch6pnafihwy
-  behaviour_classes/twitter.py: bafybeielvxyrdghm5te6eqxaysrnx4seo7g7y7gt3esnqrsiqgfhcd2vau
+  behaviour_classes/llm.py: bafybeih4dvsmiglzbtduei2gbwmoxmbhsfjsgxafjlmujqk3d2zxvqec24
+  behaviour_classes/mech.py: bafybeifq7vedbl34l77kcfebwxv4zadw3v5iuuckpic7ybyl6eb7ana7i4
+  behaviour_classes/twitter.py: bafybeiduhourmxbhef6bmvdijeuj4opt36g7i4ni6scrt7oj5sx2c4f5jq
   behaviours.py: bafybeigzehjvjeriroh7ucal7s7szdrebkwcispyi7iznwnbzq2gcok6zi
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeif7ywyws7xm3dtf3ijxozhwerjebo6ejlx42ujtpehizlqfgtci4i
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
-  models.py: bafybeifav5caslkom5avkw4ypreml6czx5yibq7xe3myesaitjviqflkau
-  payloads.py: bafybeibtzy35ce64gzcign3aectjwjinflmjfge6kokkofqvwmsdoqrjtu
-  prompts.py: bafybeihrvohskftnwznj5etflsqo2jm74qvtmsybn276c63eoiao2tdb3q
-  rounds.py: bafybeiecehvzqy4qj3q25shli7a2emrru2r7x7x57l2343jv7foeinokue
+  models.py: bafybeiawczpsn4tisate5xc2jm7ukuqqr724ezyzny3kly5wyfgsgp7564
+  payloads.py: bafybeiczpm76zncxcz4vp4kgpieppbbzcw2zhqx6jsjcwy7vqg5pumyuqa
+  prompts.py: bafybeicia2icodpofiqnfg5rjiceqwyt3qzum2ah2t6uwdkh73rlcfiu7e
+  rounds.py: bafybeie5t4pxwsven42xyvikaquist2yfdexrushhzufcbpsllk33ean64
   rounds_info.py: bafybeiepdyp3r4a7f535w5yxizauvedaine7hfbqeaj5gnx5y5bi4z6fzu
 fingerprint_ignore_patterns: []
 connections:
@@ -44,6 +45,7 @@ protocols:
 skills:
 - valory/abstract_round_abci:0.1.0:bafybeia27qmw6w5ds5fcrpj2475brnz742aampe3sgochloijs2l7jovai
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
+- valory/mech_interact_abci:0.1.0:bafybeif2tpz2zet6p4z4vi3b254oxzyyzoe5tehj3me3znzt7h7otkpd54
 behaviours:
   main:
     args: {}
