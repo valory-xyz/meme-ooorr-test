@@ -592,7 +592,7 @@ class CheckFundsRound(EventRoundBase):
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.NO_FUNDS
 
 
-class PostTxDecisionMakingRound(EventRoundBase):
+class PostTxDecisionMakingRound(CollectSameUntilThresholdRound):
     """PostTxDecisionMakingRound"""
 
     payload_class = PostTxDecisionMakingPayload  # type: ignore
@@ -788,8 +788,13 @@ class MemeooorrAbciApp(AbciApp[Event]):
         },
         FinishedToResetRound: {},
         FinishedToSettlementRound: {},
+        FinishedForMechRound: {},
     }
-    final_states: Set[AppState] = {FinishedToResetRound, FinishedToSettlementRound}
+    final_states: Set[AppState] = {
+        FinishedToResetRound,
+        FinishedToSettlementRound,
+        FinishedForMechRound,
+    }
     event_to_timeout: EventToTimeout = {}
     cross_period_persisted_keys: FrozenSet[str] = frozenset(["persona"])
     db_pre_conditions: Dict[AppState, Set[str]] = {
@@ -798,8 +803,10 @@ class MemeooorrAbciApp(AbciApp[Event]):
         ActionPreparationRound: set(),
         PostTxDecisionMakingRound: set(),
         TransactionLoopCheckRound: set(),
+        PostMechRequestRound: set(),
     }
     db_post_conditions: Dict[AppState, Set[str]] = {
         FinishedToResetRound: set(),
+        FinishedForMechRound: set(),
         FinishedToSettlementRound: {"most_voted_tx_hash"},
     }
