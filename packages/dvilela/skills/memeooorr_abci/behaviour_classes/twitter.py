@@ -297,6 +297,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             self.context.logger.info(f"before payload creation")
             self.context.logger.info(f"Event: {event}")
             self.context.logger.info(f"Mech Requests: {new_mech_requests}")
+            mech_requests = json.dumps(new_mech_requests, sort_keys=True)
+            self.context.logger.info(f"Mech Requests JSON: {mech_requests}")
 
             if event == Event.MECH.value:
                 payload = EngageTwitterPayload(
@@ -310,7 +312,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                     event=event,
                 )
 
-            self.context.logger.info(f"Payload FROM EngageTW: {payload}")
+            self.context.logger.info(f"Payload FROM EngageTW before sending: {payload}")
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
             yield from self.send_a2a_transaction(payload)
@@ -318,12 +320,13 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         self.set_done()
 
-    def get_event(self) -> Generator[None, None, Union[str, Tuple[str, List]]]:
+    def get_event(self) -> Generator[None, None, Tuple[str, List]]:
         """Get the next event"""
+        new_mech_requests = []
 
         if self.params.skip_engagement:
             self.context.logger.info("Skipping engagement on Twitter")
-            return Event.DONE.value
+            return Event.DONE.value, new_mech_requests
 
         # Get other memeooorr handles
         agent_handles = yield from self.get_memeooorr_handles_from_mirror_db()
@@ -350,7 +353,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         if not agent_handles:
             self.context.logger.error("No valid Twitter handles")
-            return Event.DONE.value
+            return Event.DONE.value, new_mech_requests
 
         # Load previously responded tweets
         db_data = yield from self._read_kv(keys=("interacted_tweet_ids",))
@@ -405,7 +408,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
             self.context.logger.info("Wrote latest tweet to db")
 
-        return event
+        return event, new_mech_requests
 
     def interact_twitter(  # pylint: disable=too-many-locals,too-many-statements
         self, pending_tweets: dict
