@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeigebq46oqz2mx2iajupr6p5pgm6z5pvfye5w6zypsseuqtvta7b4a
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
 - valory/termination_abci:0.1.0:bafybeieurwmfernodqyczj5ertsgfbjtjnrlgvte7sli4sajnbopty7inu
-- dvilela/memeooorr_abci:0.1.0:bafybeibowdvxdudafhsizuqpw2lgasmtgomb4ohugy5v5j5w27dagy5ipq
+- dvilela/memeooorr_abci:0.1.0:bafybeihbck3vz4jteeuoosrb2l42c3nttwfdtaoye5yva3ad2hsxlj7n7y
 - valory/mech_interact_abci:0.1.0:bafybeif2tpz2zet6p4z4vi3b254oxzyyzoe5tehj3me3znzt7h7otkpd54
 behaviours:
   main:
@@ -166,6 +166,11 @@ models:
       staking_token_contract_address: '0x0000000000000000000000000000000000000000'
       activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
       tx_loop_breaker_count: 3
+      mech_request_price: null
+      mech_contract_address: ${str:0x111D7DB1B752AB4D2cC0286983D9bd73a49bac6c}
+      mech_chain_id: base
+      mech_interaction_sleep_time: 10
+      use_mech_marketplace: false
       alternative_model_for_tweets:
         use: false
         url: https://api.fireworks.ai/inference/v1/chat/completions

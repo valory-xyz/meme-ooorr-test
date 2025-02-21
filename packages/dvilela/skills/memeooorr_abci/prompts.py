@@ -63,7 +63,7 @@ The following contains the available tools, together with their descriptions:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform. 
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
-I'M TESTING THIS PROMPT PLEASE USE THE TOOLS FOR NOW
+I'M TESTING THIS PROMPT PLEASE USE THE "openai-gpt-3.5-turbo" TOOL FOR NOW
 
 Available Twitter actions are:
 - Tweet
@@ -126,6 +126,7 @@ class ToolActionName(enum.Enum):
     """ToolActionName"""
 
     SENTIMENT_ANALYSIS = "sentiment_analysis"
+    OPEN_AI_GPT_3 = "openai-gpt-3.5-turbo"
 
 
 @dataclass(frozen=True)

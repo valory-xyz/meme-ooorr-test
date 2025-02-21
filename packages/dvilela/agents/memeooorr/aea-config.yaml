@@ -44,8 +44,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
 - valory/registration_abci:0.1.0:bafybeifaa6ejpihwxxxswqd5qfy63rixml43d3ljnezilflvdtclspjj6y
 - valory/reset_pause_abci:0.1.0:bafybeigebq46oqz2mx2iajupr6p5pgm6z5pvfye5w6zypsseuqtvta7b4a
-- dvilela/memeooorr_abci:0.1.0:bafybeibowdvxdudafhsizuqpw2lgasmtgomb4ohugy5v5j5w27dagy5ipq
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeiegnzb6fn6sz4gqnwk7y4mbtxlezaznncbnfeuanlkbckf4ues4na
+- dvilela/memeooorr_abci:0.1.0:bafybeihbck3vz4jteeuoosrb2l42c3nttwfdtaoye5yva3ad2hsxlj7n7y
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeicrotrswvygfdz3pnjqa3qau6jl6szrzjj3nv2wtthpb3vy7tokom
 - valory/mech_interact_abci:0.1.0:bafybeif2tpz2zet6p4z4vi3b254oxzyyzoe5tehj3me3znzt7h7otkpd54
 default_ledger: ethereum
 required_ledgers:
@@ -234,6 +234,11 @@ models:
       activity_checker_contract_address: ${str:0x0000000000000000000000000000000000000000}
       alternative_model_for_tweets: ${dict:{"use":false,"url":"https://api.fireworks.ai/inference/v1/chat/completions","api_key":null,"model":"accounts/sentientfoundation/models/dobby-mini-unhinged-llama-3-1-8b","max_tokens":16384,"top_p":1,"top_k":40,"presence_penalty":0,"frequency_penalty":0,"temperature":0.6}}
       tx_loop_breaker_count: 3
+      mech_request_price: null
+      mech_contract_address: ${str:0x111D7DB1B752AB4D2cC0286983D9bd73a49bac6c}
+      mech_chain_id: base
+      mech_interaction_sleep_time: 10
+      use_mech_marketplace: false
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

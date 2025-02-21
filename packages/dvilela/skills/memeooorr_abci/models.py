@@ -20,7 +20,7 @@
 """This module contains the shared state for the abci skill of MemeooorrAbciApp."""
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.models import ApiSpecs, BaseParams
@@ -81,6 +81,12 @@ class AlternativeModelForTweets:  # pylint: disable=too-many-instance-attributes
 
 class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
     """Parameters."""
+    @property
+    def ipfs_address(self) -> str:
+        """Get the IPFS address."""
+        if self._ipfs_address.endswith("/"):
+            return self._ipfs_address
+        return f"{self._ipfs_address}/"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the parameters object."""
@@ -149,5 +155,26 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
             AlternativeModelForTweets.from_dict(kwargs["alternative_model_for_tweets"])
         )
         self.tx_loop_breaker_count = self._ensure("tx_loop_breaker_count", kwargs, int)
+
+        self.multisend_batch_size: int = self._ensure(
+            "multisend_batch_size", kwargs, int
+        )
+
+        self.mech_contract_address: str = self._ensure(
+            "mech_contract_address", kwargs, str
+        )
+
+        self.mech_request_price: Optional[int] = kwargs.get("mech_request_price", None)
+
+        self.mech_chain_id: Optional[str] = kwargs.get("mech_chain_id", "gnosis")
+        self.mech_wrapped_native_token_address: Optional[str] = kwargs.get(
+            "mech_wrapped_native_token_address", None
+        )
+        self.mech_interaction_sleep_time: int = self._ensure(
+            "mech_interaction_sleep_time", kwargs, int
+        )
+        self.use_mech_marketplace = self._ensure("use_mech_marketplace", kwargs, bool)
+
+        self._ipfs_address: str = self._ensure("ipfs_address", kwargs, str)
 
         super().__init__(*args, **kwargs)

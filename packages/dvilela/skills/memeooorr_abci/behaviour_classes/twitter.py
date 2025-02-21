@@ -54,6 +54,7 @@ from uuid import uuid4
 
 TEMP_TOOLS_LIST = """
 Sentiment Analysis: This tool analyzes the sentiment of a given tweet and returns a score indicating whether the tweet is positive, negative, or neutral.
+openai-gpt-3.5-turbo: This tool generates a tweet based on a given prompt using the OpenAI GPT-3.5-turbo model.
 """
 
 MAX_TWEET_CHARS = 280
@@ -511,8 +512,6 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                     )
                 )
             )
-            self.context.logger.info(f"new_mech_requests: {new_mech_requests}")
-
             return Event.MECH.value, new_interacted_tweet_ids, new_mech_requests
 
         elif "tweet_action" in json_response:

@@ -611,7 +611,7 @@ class CheckFundsRound(EventRoundBase):
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.NO_FUNDS
 
 
-class PostTxDecisionMakingRound(CollectSameUntilThresholdRound):
+class PostTxDecisionMakingRound(EventRoundBase):
     """PostTxDecisionMakingRound"""
 
     payload_class = PostTxDecisionMakingPayload  # type: ignore
