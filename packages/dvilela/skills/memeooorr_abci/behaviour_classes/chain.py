@@ -728,12 +728,12 @@ class PostTxDecisionMakingBehaviour(
             ):
                 event = Event.ACTION.value
 
-            #check for 
-            if (
-                self.synchronized_data.tx_submitter
-                == .matching_round.auto_round_id()
-            ):
-                event = Event.MECH.value
+            # #check for 
+            # if (
+            #     self.synchronized_data.tx_submitter
+            #     == .matching_round.auto_round_id() #The round should be the one from mech_interact_abci 
+            # ):
+            #     event = Event.MECH.value
 
             payload = PostTxDecisionMakingPayload(
                 sender=self.context.agent_address,

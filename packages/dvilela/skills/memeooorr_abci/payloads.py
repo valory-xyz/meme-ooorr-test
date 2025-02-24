@@ -59,6 +59,7 @@ class EngageTwitterPayload(BaseTxPayload):
 
     event: str
     mech_request: Optional[str]
+    tx_submitter: str
 
 
 @dataclass(frozen=True)

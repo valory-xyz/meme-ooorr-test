@@ -51,7 +51,7 @@ abci_app_transition_mapping: AbciAppTransitionMapping = {
     ResetAndPauseAbci.FinishedResetAndPauseErrorRound: ResetAndPauseAbci.ResetAndPauseRound,
     MemeooorrAbci.FinishedForMechRound: MechRequestStates.MechRequestRound,
     MechFinalStates.FinishedMechRequestRound: TransactionSettlementAbci.RandomnessTransactionSubmissionRound,
-    MechFinalStates.FinishedMechResponseRound: MemeooorrAbci.PostMechRequestRound,
+    MechFinalStates.FinishedMechResponseRound: MemeooorrAbci.PostMechRequestRound, #Happy path
     # need to do somehthing about failed states
     MechFinalStates.FinishedMechRequestSkipRound: MemeooorrAbci.PostMechRequestRound,
     MechFinalStates.FinishedMechResponseTimeoutRound: MemeooorrAbci.PostMechRequestRound,

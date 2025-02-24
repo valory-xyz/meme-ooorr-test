@@ -44,8 +44,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
 - valory/registration_abci:0.1.0:bafybeifaa6ejpihwxxxswqd5qfy63rixml43d3ljnezilflvdtclspjj6y
 - valory/reset_pause_abci:0.1.0:bafybeigebq46oqz2mx2iajupr6p5pgm6z5pvfye5w6zypsseuqtvta7b4a
-- dvilela/memeooorr_abci:0.1.0:bafybeihbck3vz4jteeuoosrb2l42c3nttwfdtaoye5yva3ad2hsxlj7n7y
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeicrotrswvygfdz3pnjqa3qau6jl6szrzjj3nv2wtthpb3vy7tokom
+- dvilela/memeooorr_abci:0.1.0:bafybeiezt3dpi7672e5fzesz77cfmmdykmy2vw4uqwybjc4umxmck6z2si
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeif6clughr5cslu7vtzlh6jth3ihejykhuvqwbavzgvpa5fxsbedwm
 - valory/mech_interact_abci:0.1.0:bafybeif2tpz2zet6p4z4vi3b254oxzyyzoe5tehj3me3znzt7h7otkpd54
 default_ledger: ethereum
 required_ledgers:
@@ -170,8 +170,7 @@ models:
       keeper_timeout: 30.0
       max_attempts: 10
       max_healthcheck: 120
-      multisend_address: ${str:0x0000000000000000000000000000000000000000}
-      termination_sleep: ${int:900}
+      multisend_address: ${MULTISEND_ADDRESS:str:0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761}
       init_fallback_gas: 0
       keeper_allowed_retries: 3
       reset_pause_duration: ${int:30}
