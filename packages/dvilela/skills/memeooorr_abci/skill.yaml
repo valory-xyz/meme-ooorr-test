@@ -9,19 +9,19 @@ fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeidwdmmayzt3jtyt4qmrrw3cy4qfktbyxp4t2qwoigt3cd2zpu6fna
-  behaviour_classes/chain.py: bafybeiffyzqgfse7ye2zn3hzqkebqmq64kiupslmunsemonve57rfghgke
+  behaviour_classes/chain.py: bafybeienxmurt6fu3bncasmelqrxnhl7n5abnytylc7nydp2ysap2dnccq
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
   behaviour_classes/llm.py: bafybeia6pr7dzvrx4hdns2xhfz3s323oz5jfboy3x2f7tnbch6pnafihwy
-  behaviour_classes/mech.py: bafybeidmqdu3ctidwza6kre4xevcby7xlpropuopstzlzqc2st4e77wcri
-  behaviour_classes/twitter.py: bafybeickjrs2pr3huzmb6bnwzxz77xdowpv6omdx6bmrhddqnu2kb24fiq
-  behaviours.py: bafybeibak33nvp5c3u3dxddlho36xy6cqzgkjxvoztzznzwxjnagg7q7ee
+  behaviour_classes/mech.py: bafybeidxr6u5y2zuvfnvl7vdp3vu2bhb2mpqininpuf32guspxxii6dxxa
+  behaviour_classes/twitter.py: bafybeibdaggmjmua2lxyft3i5doefn2ybcnve4tv2uj53tgxyu4j32t2ii
+  behaviours.py: bafybeih7llnpa4lb76v7pttjlnaxrwn2wuegrbnivua6nswqu7jucvm5um
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeif7ywyws7xm3dtf3ijxozhwerjebo6ejlx42ujtpehizlqfgtci4i
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeiffmhluzfqiy3ytvetlxr4ogao57usu3iwippbnca72xs4a7ox4ci
-  payloads.py: bafybeiczpm76zncxcz4vp4kgpieppbbzcw2zhqx6jsjcwy7vqg5pumyuqa
+  payloads.py: bafybeibdr5qoyhqkbj4ziidrcymm32squclxphqe6idrhemmcdbdyek3gi
   prompts.py: bafybeifo3eijbvtyjjnmeqm4fp44z6zn6n2xt4zs4vqsnrsppz35vz45iu
-  rounds.py: bafybeigllb2gxdl5kszcfrdx2en72k2kmezmnp7chtwd4ov4wkcwppj7p4
+  rounds.py: bafybeifsihow2b6aqhbs43yxgh6l6k5gwzxjb4m3o4dezaz2aatvbmvuvy
   rounds_info.py: bafybeiepdyp3r4a7f535w5yxizauvedaine7hfbqeaj5gnx5y5bi4z6fzu
 fingerprint_ignore_patterns: []
 connections:
@@ -184,6 +184,7 @@ models:
       mech_chain_id: base
       mech_interaction_sleep_time: 10
       use_mech_marketplace: false
+      use_acn_for_delivers: false
       alternative_model_for_tweets:
         use: false
         url: https://api.fireworks.ai/inference/v1/chat/completions

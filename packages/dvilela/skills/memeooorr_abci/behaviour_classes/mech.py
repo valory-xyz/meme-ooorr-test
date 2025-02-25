@@ -31,58 +31,15 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     PostMechRequestRound,
-    MechMetadata,
-
+    FailedMechRequestRound,
+    FailedMechResponseRound,
 )
 
 from packages.dvilela.skills.memeooorr_abci.payloads import (
     PostMechRequestPayload,
-    )
-
-# class PreMechRequestBehaviour(MemeooorrBaseBehaviour):
-#     """PreMechRequestBehaviour"""
-
-#     matching_round: Type[AbstractRound] = PreMechRequestRound
-
-#     def async_act(self) -> Generator:
-#         """Do the act, supporting asynchronous execution."""
-
-#         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-#             new_mech_requests = []
-
-#             mech_responses = self.synchronized_data.mech_responses
-#             pending_tweet_ids = [r.nonce for r in mech_responses]
-
-#             self.context.logger.info(f"PreMech: mech_responses = {mech_responses}")
-#             self.context.logger.info(f"pending_tweet_ids = {pending_tweet_ids}")
-
-#             new_mech_requests.append(
-#                     asdict(
-#                         MechMetadata(
-#                             nonce=nonce,
-#                             tool="openai-gpt-3.5-turbo",
-#                             prompt=Prompt,
-#                             ),
-#                         )
-#                     )
-
-
-#             if not new_mech_requests:
-#                 self.context.logger.info("No new mech requests. Skipping evaluation...")
-
-#             sender = self.context.agent_address
-#             payload = PreMechRequestPayload(
-#                 sender=sender,
-#                 content=json.dumps(
-#                     {"new_mech_requests": new_mech_requests}, sort_keys=True
-#                 ),
-#             )
-
-#         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
-#             yield from self.send_a2a_transaction(payload)
-#             yield from self.wait_until_round_end()
-
-#         self.set_done()
+    FailedMechRequestPayload,
+    FailedMechResponsePayload,
+)
 
 
 class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
@@ -96,13 +53,67 @@ class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
 
             self.context.logger.info(
-                f"PostMech: mech_responses = {self.synchronized_data.mech_responses}"
+                f"Mech request was successful, response = {self.synchronized_data.mech_responses}"
             )
 
             sender = self.context.agent_address
             payload = PostMechRequestPayload(
                 sender=sender,
-                content="", #content to add here 
+                content="",  # content to add here
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+
+class FailedMechRequestBehaviour(MemeooorrBaseBehaviour):
+    """FailedMechRequestBehaviour"""
+
+    matching_round: Type[AbstractRound] = FailedMechRequestRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+
+            self.context.logger.info(
+                f"FailedMechRequest: mech_responses = {self.synchronized_data.mech_responses}"
+            )
+
+            sender = self.context.agent_address
+            payload = FailedMechRequestPayload(
+                sender=sender,
+                mech_for_twitter=False,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+
+class FailedMechResponseBehaviour(MemeooorrBaseBehaviour):
+    """FailedMechResponseBehaviour"""
+
+    matching_round: Type[AbstractRound] = FailedMechResponseRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+
+            self.context.logger.info(
+                f"FailedMechResponse: mech_responses = {self.synchronized_data.mech_responses}"
+            )
+
+            sender = self.context.agent_address
+            payload = FailedMechResponsePayload(
+                sender=sender,
+                mech_for_twitter=False,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():

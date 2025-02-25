@@ -44,8 +44,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
 - valory/registration_abci:0.1.0:bafybeifaa6ejpihwxxxswqd5qfy63rixml43d3ljnezilflvdtclspjj6y
 - valory/reset_pause_abci:0.1.0:bafybeigebq46oqz2mx2iajupr6p5pgm6z5pvfye5w6zypsseuqtvta7b4a
-- dvilela/memeooorr_abci:0.1.0:bafybeiezt3dpi7672e5fzesz77cfmmdykmy2vw4uqwybjc4umxmck6z2si
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeif6clughr5cslu7vtzlh6jth3ihejykhuvqwbavzgvpa5fxsbedwm
+- dvilela/memeooorr_abci:0.1.0:bafybeihoxne3r7jpicrrczlg75wq45ioyl2di2jqfkw533243236r2ghbu
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeiglrbo4w6cyghpcjexssg6w2dpfbfy5zisjrvm5rdnxgnaobpdqga
 - valory/mech_interact_abci:0.1.0:bafybeif2tpz2zet6p4z4vi3b254oxzyyzoe5tehj3me3znzt7h7otkpd54
 default_ledger: ethereum
 required_ledgers:
@@ -238,6 +238,7 @@ models:
       mech_chain_id: base
       mech_interaction_sleep_time: 10
       use_mech_marketplace: false
+      use_acn_for_delivers: false
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeihjnu4vgcgxqvryfoouaxrlgbokho4dj2qrrox3mh4cy4hhtlwcsq
+agent: dvilela/memeooorr:0.1.0:bafybeicqx53zcpf63v23adlseasad2z4ttzthmw2uku7znfugizis2lbde
 number_of_agents: 1
 deployment:
   agent:
@@ -107,6 +107,7 @@ extra:
         activity_checker_contract_address: ${ACTIVITY_CHECKER_CONTRACT_ADDRESS:str:0x0000000000000000000000000000000000000000}
         alternative_model_for_tweets: ${ALTERNATIVE_MODEL_FOR_TWEETS:dict:{"use":false,"url":"https://api.fireworks.ai/inference/v1/chat/completions","api_key":null,"model":"accounts/sentientfoundation/models/dobby-mini-unhinged-llama-3-1-8b","max_tokens":16384,"top_p":1,"top_k":40,"presence_penalty":0,"frequency_penalty":0,"temperature":0.6}}
         tx_loop_breaker_count: 3
+        use_acn_for_delivers: false
 ---
 public_id: valory/ledger:0.19.0
 type: connection

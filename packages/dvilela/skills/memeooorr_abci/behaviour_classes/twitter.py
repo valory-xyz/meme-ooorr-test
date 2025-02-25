@@ -300,17 +300,20 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             self.context.logger.info(f"Mech Requests: {new_mech_requests}")
             mech_requests = json.dumps(new_mech_requests, sort_keys=True)
             self.context.logger.info(f"Mech Requests JSON: {mech_requests}")
-            #add new prop to payload for tx_submitter and check for it in posttxround
+
+            # add new prop to payload for tx_submitter and check for it in posttxround
             if event == Event.MECH.value:
                 payload = EngageTwitterPayload(
                     sender=self.context.agent_address,
                     event=event,
                     mech_request=json.dumps(new_mech_requests, sort_keys=True),
+                    tx_submitter=self.matching_round.auto_round_id(),
                 )
             else:
                 payload = EngageTwitterPayload(
                     sender=self.context.agent_address,
                     event=event,
+                    tx_submitter=self.matching_round.auto_round_id(),
                 )
 
             self.context.logger.info(f"Payload FROM EngageTW before sending: {payload}")

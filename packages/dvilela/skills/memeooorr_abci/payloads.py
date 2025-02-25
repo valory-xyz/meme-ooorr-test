@@ -123,6 +123,19 @@ class PostMechRequestPayload(BaseTxPayload):
 
     content: str
 
+@dataclass(frozen=True)
+class FailedMechResponsePayload(BaseTxPayload):
+    """Represent a transaction payload for the PostMechResponseRound."""
+
+    mech_for_twitter: bool
+
+
+@dataclass(frozen=True)
+class FailedMechRequestPayload(BaseTxPayload):
+    """Represent a transaction payload for the PostMechResponseRound."""
+
+    mech_for_twitter: bool
+
 
 @dataclass(frozen=True)
 class TransactionLoopCheckPayload(BaseTxPayload):

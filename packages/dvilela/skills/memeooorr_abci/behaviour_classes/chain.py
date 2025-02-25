@@ -30,6 +30,14 @@ from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
+from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
+    EngageTwitterBehaviour,
+)
+
+from packages.valory.skills.mech_interact_abci.behaviours.round_behaviour import (
+    MechRequestBehaviour,
+)
+
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionPreparationPayload,
     ActionPreparationRound,
@@ -716,6 +724,10 @@ class PostTxDecisionMakingBehaviour(
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             event = "None"
 
+            self.context.logger.info(
+                f"Checking the tx submitter is the current round: {self.synchronized_data.tx_submitter}"
+            )
+
             if (
                 self.synchronized_data.tx_submitter
                 == CallCheckpointBehaviour.matching_round.auto_round_id()
@@ -728,12 +740,12 @@ class PostTxDecisionMakingBehaviour(
             ):
                 event = Event.ACTION.value
 
-            # #check for 
-            # if (
-            #     self.synchronized_data.tx_submitter
-            #     == .matching_round.auto_round_id() #The round should be the one from mech_interact_abci 
-            # ):
-            #     event = Event.MECH.value
+            # check for
+            if (
+                self.synchronized_data.tx_submitter
+                == MechRequestBehaviour.matching_round.auto_round_id()
+            ):
+                event = Event.MECH.value
 
             payload = PostTxDecisionMakingPayload(
                 sender=self.context.agent_address,

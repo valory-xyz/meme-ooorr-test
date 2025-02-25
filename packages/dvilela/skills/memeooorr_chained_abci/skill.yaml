@@ -8,7 +8,7 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeiacqbub377oj2uvkw3lu2u43zv5rpdd2z4jx7dailiffqttksds24
   behaviours.py: bafybeia2wvgr3d4wmmr22gtvlqrmtxzlj3phywhaxntwsel6tqnpmfbyam
-  composition.py: bafybeiepgkrbrtr2zl7rkmkcvtx4dss5ufr6jnckht6dqgoyoqyf36gx7e
+  composition.py: bafybeiahp4iqs3rg4vity4epnhs7ljlz4oowwkmgwfmsy7yoqpf4oisvw4
   dialogues.py: bafybeiawrgmlra5f6o63nhv5kc77wvzoqmcareub3lf4qceuwpjso4pjbe
   fsm_specification.yaml: bafybeigyvy6by6sztwpjbtnuw7ekv2jzjdnxejutcereeqaz4r5yolz4my
   handlers.py: bafybeibw5nfno2scl5qzly3fpvodgoovikl6h3hoiiu6e4sqpbbczbzfim
@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeigebq46oqz2mx2iajupr6p5pgm6z5pvfye5w6zypsseuqtvta7b4a
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
 - valory/termination_abci:0.1.0:bafybeieurwmfernodqyczj5ertsgfbjtjnrlgvte7sli4sajnbopty7inu
-- dvilela/memeooorr_abci:0.1.0:bafybeiezt3dpi7672e5fzesz77cfmmdykmy2vw4uqwybjc4umxmck6z2si
+- dvilela/memeooorr_abci:0.1.0:bafybeihoxne3r7jpicrrczlg75wq45ioyl2di2jqfkw533243236r2ghbu
 - valory/mech_interact_abci:0.1.0:bafybeif2tpz2zet6p4z4vi3b254oxzyyzoe5tehj3me3znzt7h7otkpd54
 behaviours:
   main:
@@ -171,6 +171,7 @@ models:
       mech_chain_id: base
       mech_interaction_sleep_time: 10
       use_mech_marketplace: false
+      use_acn_for_delivers: false
       alternative_model_for_tweets:
         use: false
         url: https://api.fireworks.ai/inference/v1/chat/completions
