@@ -74,7 +74,7 @@ Available Twitter actions are:
 - Follow
 
 Available Tool actions are:
-- Tool (to use a tool)
+{tools} (to use a tool)
 
 Here's your persona:
 "{persona}"
