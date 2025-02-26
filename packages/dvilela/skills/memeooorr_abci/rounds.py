@@ -354,6 +354,8 @@ class MechInteractionResponse(MechRequest):
     nonce: str = ""
     result: Optional[str] = None
     error: str = "Unknown"
+    response_data: Optional[bytes] = None
+    sender_address: Optional[str] = None
 
     def retries_exceeded(self) -> None:
         """Set an incorrect format response."""

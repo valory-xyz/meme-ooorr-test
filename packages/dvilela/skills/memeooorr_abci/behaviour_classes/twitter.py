@@ -36,6 +36,7 @@ from packages.dvilela.skills.memeooorr_abci.prompts import (
     ALTERNATIVE_MODEL_TWITTER_PROMPT,
     TWITTER_DECISION_PROMPT,
     TWITTER_DECISION_PROMPT_WITH_TOOLS,
+    TWITTER_DECISION_PROMPT_WITH_MECH_RESPONSE,
     build_twitter_action_schema,
     build_decision_schema,
 )
@@ -445,18 +446,23 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             previous_tweets = "No previous tweets"
 
         # i need to check for previous mech responses over here
-        if self.synchronized_data.mech_responses:
+        if self.synchronized_data.mech_for_twitter:
             self.context.logger.info(
-                "Previous mech responses found providing LLM with response"
+                "Mech for twitter detected, using Mech response for decision"
             )
 
             print(self.synchronized_data.mech_responses)
             print("CURENTLY NOT IMPLEMENTED USING SAME PROMPT")
 
-            prompt = prompt = TWITTER_DECISION_PROMPT.format(
+            if not self.synchronized_data.mech_responses:
+                self.context.logger.error("No mech responses found")
+                mech_responses = []
+
+            prompt = TWITTER_DECISION_PROMPT_WITH_MECH_RESPONSE.format(
                 persona=persona,
                 previous_tweets=previous_tweets,
                 other_tweets=other_tweets,
+                mech_responses=self.synchronized_data.mech_responses,
                 time=self.get_sync_time_str(),
             )
 
@@ -466,7 +472,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
 
         else:
-
+            self.context.logger.info(
+                "No Mech for twitter detected , using prompt for decision and introducing tools to LLM"
+            )
             prompt = TWITTER_DECISION_PROMPT_WITH_TOOLS.format(
                 persona=persona,
                 previous_tweets=previous_tweets,

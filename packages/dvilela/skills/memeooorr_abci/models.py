@@ -21,6 +21,7 @@
 
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
+from aea.exceptions import enforce
 
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
 from packages.valory.skills.abstract_round_abci.models import ApiSpecs, BaseParams
@@ -31,6 +32,7 @@ from packages.valory.skills.abstract_round_abci.models import Requests as BaseRe
 from packages.valory.skills.abstract_round_abci.models import (
     SharedState as BaseSharedState,
 )
+from packages.valory.skills.mech_interact_abci.models import MechParams
 
 
 class SharedState(BaseSharedState):
@@ -79,7 +81,7 @@ class AlternativeModelForTweets:  # pylint: disable=too-many-instance-attributes
         )
 
 
-class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
+class Params(MechParams):  # pylint: disable=too-many-instance-attributes
     """Parameters."""
     @property
     def ipfs_address(self) -> str:
@@ -156,25 +158,54 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
         )
         self.tx_loop_breaker_count = self._ensure("tx_loop_breaker_count", kwargs, int)
 
-        self.multisend_batch_size: int = self._ensure(
-            "multisend_batch_size", kwargs, int
-        )
+        multisend_batch_size = kwargs.get("multisend_batch_size", None)
+        enforce(multisend_batch_size is not None, "multisend_batch_size not specified!")
+        self.multisend_address: str = multisend_batch_size
 
-        self.mech_contract_address: str = self._ensure(
-            "mech_contract_address", kwargs, str
-        )
+        # self.multisend_batch_size: int = self._ensure(
+        #     "multisend_batch_size", kwargs, int
+        # )
 
-        self.mech_request_price: Optional[int] = kwargs.get("mech_request_price", None)
+        # mech_contract_address = kwargs.get("mech_contract_address", None)
+        # enforce(
+        #     mech_contract_address is not None, "mech_contract_address not specified!"
+        # )
+        # self.mech_contract_address: str = mech_contract_address
 
-        self.mech_chain_id: Optional[str] = kwargs.get("mech_chain_id", "gnosis")
-        self.mech_wrapped_native_token_address: Optional[str] = kwargs.get(
-            "mech_wrapped_native_token_address", None
-        )
-        self.mech_interaction_sleep_time: int = self._ensure(
-            "mech_interaction_sleep_time", kwargs, int
-        )
-        self.use_mech_marketplace = self._ensure("use_mech_marketplace", kwargs, bool)
+        # # self.mech_contract_address: str = self._ensure(
+        # #     "mech_contract_address", kwargs, str
+        # # )
 
-        self._ipfs_address: str = self._ensure("ipfs_address", kwargs, str)
+        # self.mech_request_price: Optional[int] = kwargs.get("mech_request_price", None)
+
+        # self.mech_chain_id: Optional[str] = kwargs.get("mech_chain_id", "gnosis")
+        # self.mech_wrapped_native_token_address: Optional[str] = kwargs.get(
+        #     "mech_wrapped_native_token_address", None
+        # )
+
+        # mech_interaction_sleep_time = kwargs.get("mech_interaction_sleep_time", None)
+        # enforce(
+        #     mech_interaction_sleep_time is not None,
+        #     "mech_interaction_sleep_time not specified!",
+        # )
+        # self.mech_interaction_sleep_time: str = mech_interaction_sleep_time
+
+        # # self.mech_interaction_sleep_time: int = self._ensure(
+        # #     "mech_interaction_sleep_time", kwargs, int
+        # # )
+
+        # use_mech_marketplace = kwargs.get("use_mech_marketplace", None)
+        # enforce(
+        #     use_mech_marketplace is not None,
+        #     "use_mech_marketplace not specified!",
+        # )
+        # self.use_mech_marketplace: str = use_mech_marketplace
+
+        # self.use_mech_marketplace = self._ensure("use_mech_marketplace", kwargs, bool)
+
+        # ipfs_address = kwargs.get("ipfs_address", None)
+        # enforce(multisend_batch_size is not None, "ipfs_address not specified!")
+        # self.ipfs_address: str = ipfs_address
+        # self._ipfs_address: str = self._ensure("ipfs_address", kwargs, str)
 
         super().__init__(*args, **kwargs)

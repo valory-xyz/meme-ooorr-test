@@ -41,6 +41,8 @@ from packages.valory.skills.abstract_round_abci.models import (
 from packages.valory.skills.reset_pause_abci.rounds import Event as ResetPauseEvent
 from packages.valory.skills.termination_abci.models import TerminationParams
 
+from packages.valory.skills.mech_interact_abci.rounds import Event as MechInteractEvent
+
 
 Requests = BaseRequests
 BenchmarkTool = BaseBenchmarkTool
@@ -76,9 +78,11 @@ class SharedState(BaseSharedState):
             self.context.params.round_timeout_seconds * MULTIPLIER
         )
 
+        # adding time for the mech interaction
+        MemeooorrChainedSkillAbciApp.event_to_timeout[
+            MechInteractEvent.ROUND_TIMEOUT
+        ] = self.context.params.round_timeout_seconds * 10
 
-class Params(  # pylint: disable=too-many-ancestors
-    MemeooorrParams,
-    TerminationParams,
-):
+
+class Params(MemeooorrParams, TerminationParams):  # pylint: disable=too-many-ancestors
     """A model to represent params for multiple abci apps."""
