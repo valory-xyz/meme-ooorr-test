@@ -38,15 +38,18 @@ from packages.valory.skills.abstract_round_abci.models import Requests as BaseRe
 from packages.valory.skills.abstract_round_abci.models import (
     SharedState as BaseSharedState,
 )
+from packages.valory.skills.mech_interact_abci.models import (
+    MechResponseSpecs as BaseMechResponseSpecs,
+)
+from packages.valory.skills.mech_interact_abci.rounds import Event as MechInteractEvent
 from packages.valory.skills.reset_pause_abci.rounds import Event as ResetPauseEvent
 from packages.valory.skills.termination_abci.models import TerminationParams
-
-from packages.valory.skills.mech_interact_abci.rounds import Event as MechInteractEvent
 
 
 Requests = BaseRequests
 BenchmarkTool = BaseBenchmarkTool
 RandomnessApi = MemeooorrRandomnessApi
+MechResponseSpecs = BaseMechResponseSpecs
 
 MARGIN = 5
 MULTIPLIER = 100
@@ -81,7 +84,9 @@ class SharedState(BaseSharedState):
         # adding time for the mech interaction
         MemeooorrChainedSkillAbciApp.event_to_timeout[
             MechInteractEvent.ROUND_TIMEOUT
-        ] = self.context.params.round_timeout_seconds * 10
+        ] = (
+            self.context.params.round_timeout_seconds * 10
+        )  # need to introduce a parameter for this
 
 
 class Params(MemeooorrParams, TerminationParams):  # pylint: disable=too-many-ancestors

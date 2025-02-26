@@ -19,13 +19,14 @@
 
 """This package contains round behaviours of MemeooorrAbciApp."""
 
-from dataclasses import asdict
 import json
 import pdb
 import random
 import secrets
+from dataclasses import asdict
 from datetime import datetime
 from typing import Dict, Generator, List, Optional, Tuple, Type, Union
+from uuid import uuid4
 
 from twitter_text import parse_tweet  # type: ignore
 
@@ -34,10 +35,8 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
     ALTERNATIVE_MODEL_TWITTER_PROMPT,
-    TWITTER_DECISION_PROMPT,
-    TWITTER_DECISION_PROMPT_WITH_TOOLS,
     TWITTER_DECISION_PROMPT_WITH_MECH_RESPONSE,
-    build_twitter_action_schema,
+    TWITTER_DECISION_PROMPT_WITH_TOOLS,
     build_decision_schema,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
@@ -51,7 +50,7 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     MechMetadata,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
-from uuid import uuid4
+
 
 TEMP_TOOLS_LIST = """
 Sentiment Analysis: This tool analyzes the sentiment of a given tweet and returns a score indicating whether the tweet is positive, negative, or neutral.
@@ -296,11 +295,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             event, new_mech_requests = yield from self.get_event()
 
-            self.context.logger.info(f"before payload creation")
-            self.context.logger.info(f"Event: {event}")
-            self.context.logger.info(f"Mech Requests: {new_mech_requests}")
-            mech_requests = json.dumps(new_mech_requests, sort_keys=True)
-            self.context.logger.info(f"Mech Requests JSON: {mech_requests}")
+            if new_mech_requests:
+                mech_requests = json.dumps(new_mech_requests, sort_keys=True)
+                self.context.logger.info(f"Mech Requests JSON: {mech_requests}")
 
             # add new prop to payload for tx_submitter and check for it in posttxround
             if event == Event.MECH.value:
@@ -314,10 +311,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 payload = EngageTwitterPayload(
                     sender=self.context.agent_address,
                     event=event,
+                    mech_request=None,
                     tx_submitter=self.matching_round.auto_round_id(),
                 )
-
-            self.context.logger.info(f"Payload FROM EngageTW before sending: {payload}")
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
             yield from self.send_a2a_transaction(payload)
@@ -394,9 +390,11 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             }
 
         # Build and post interactions
-        event, new_interacted_tweet_ids, new_mech_requests = (
-            yield from self.interact_twitter(pending_tweets)
-        )
+        (
+            event,
+            new_interacted_tweet_ids,
+            new_mech_requests,
+        ) = yield from self.interact_twitter(pending_tweets)
 
         if event == Event.MECH.value:
             return event, new_mech_requests
@@ -451,24 +449,20 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 "Mech for twitter detected, using Mech response for decision"
             )
 
-            print(self.synchronized_data.mech_responses)
-            print("CURENTLY NOT IMPLEMENTED USING SAME PROMPT")
-
             if not self.synchronized_data.mech_responses:
                 self.context.logger.error("No mech responses found")
-                mech_responses = []
 
             prompt = TWITTER_DECISION_PROMPT_WITH_MECH_RESPONSE.format(
                 persona=persona,
                 previous_tweets=previous_tweets,
                 other_tweets=other_tweets,
-                mech_responses=self.synchronized_data.mech_responses,
+                mech_response=self.synchronized_data.mech_responses,
                 time=self.get_sync_time_str(),
             )
 
             llm_response = yield from self._call_genai(
                 prompt=prompt,
-                schema=build_twitter_action_schema(),
+                schema=build_decision_schema(),
             )
 
         else:
@@ -503,8 +497,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             self.context.logger.error(f"LLM Response: {llm_response}")
             return Event.ERROR.value, new_interacted_tweet_ids
 
-        if "tool_action" in json_response:
-            print("Tool action detected YAY ! - AXAT")
+        if "tool_action" in json_response and json_response["tool_action"] is not None:
             self.context.logger.info("Tool action detected")
 
             new_mech_requests = []
@@ -527,9 +520,22 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         elif "tweet_action" in json_response:
             self.context.logger.info("Tweet action detected")
-            tweet_action = json_response["tweet_action"]
+            tweet_actions = json_response["tweet_action"]
 
-            for interaction in json_response:
+            # Ensure tweet_actions is a list
+            if isinstance(tweet_actions, str):
+                tweet_actions = [{"action": tweet_actions}]
+            elif not isinstance(tweet_actions, list):
+                tweet_actions = [tweet_actions]
+
+            for interaction in tweet_actions:
+                # Ensure interaction is a dictionary
+                if not isinstance(interaction, dict):
+                    self.context.logger.error(
+                        f"Invalid interaction format: {interaction}"
+                    )
+                    continue
+
                 tweet_id = interaction.get("selected_tweet_id", None)
                 user_id = interaction.get("user_id", None)
                 action = interaction.get("action", None)
@@ -610,10 +616,10 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                     if quoted:
                         new_interacted_tweet_ids.append(tweet_id)
 
-            return Event.DONE.value, new_interacted_tweet_ids
+            return Event.DONE.value, new_interacted_tweet_ids, []
         else:
             self.context.logger.error("Invalid response from the LLM.")
-            return Event.ERROR.value, new_interacted_tweet_ids
+            return Event.ERROR.value, new_interacted_tweet_ids, []
 
 
 class ActionTweetBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-ancestors

@@ -19,27 +19,25 @@
 
 """This package contains round behaviours of MemeooorrAbciApp."""
 
-from dataclasses import asdict
 import json
 import random
+from dataclasses import asdict
 from typing import Generator, Optional, Tuple, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-
-from packages.valory.skills.abstract_round_abci.base import AbstractRound
-from packages.dvilela.skills.memeooorr_abci.rounds import (
-    PostMechRequestRound,
-    FailedMechRequestRound,
-    FailedMechResponseRound,
-)
-
 from packages.dvilela.skills.memeooorr_abci.payloads import (
-    PostMechRequestPayload,
     FailedMechRequestPayload,
     FailedMechResponsePayload,
+    PostMechRequestPayload,
 )
+from packages.dvilela.skills.memeooorr_abci.rounds import (
+    FailedMechRequestRound,
+    FailedMechResponseRound,
+    PostMechRequestRound,
+)
+from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
 class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
@@ -51,16 +49,28 @@ class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-
             self.context.logger.info(
                 f"Mech request was successful, response = {self.synchronized_data.mech_responses}"
             )
 
             sender = self.context.agent_address
-            payload = PostMechRequestPayload(
-                sender=sender,
-                content="",  # content to add here
-            )
+            # check if the mech response is empty
+            if not self.synchronized_data.mech_responses:
+                self.context.logger.info(
+                    f"Mech response found, the LLM will ignore the mech response"
+                )
+                payload = FailedMechRequestPayload(
+                    sender=sender,
+                    mech_for_twitter=False,
+                )
+            else:
+                self.context.logger.error(
+                    f"Mech response  not Found, the LLM will use the mech response"
+                )
+                payload = PostMechRequestPayload(
+                    sender=sender,
+                    mech_for_twitter=True,
+                )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
             yield from self.send_a2a_transaction(payload)
@@ -78,7 +88,6 @@ class FailedMechRequestBehaviour(MemeooorrBaseBehaviour):
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-
             self.context.logger.info(
                 f"FailedMechRequest: mech_responses = {self.synchronized_data.mech_responses}"
             )
@@ -105,7 +114,6 @@ class FailedMechResponseBehaviour(MemeooorrBaseBehaviour):
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-
             self.context.logger.info(
                 f"FailedMechResponse: mech_responses = {self.synchronized_data.mech_responses}"
             )

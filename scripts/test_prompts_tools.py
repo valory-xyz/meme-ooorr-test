@@ -20,14 +20,14 @@
 
 """Test prompts"""
 
+import enum
 import json
 import os
 import pickle  # nosec
 import random
-import enum
-from dataclasses import dataclass, field
-from typing import Union, Literal
 import typing
+from dataclasses import dataclass, field
+from typing import Literal, Union
 
 import dotenv
 import google.generativeai as genai  # type: ignore
@@ -225,9 +225,70 @@ Your task is to decide what actions to do, if any. Some recommenadations:
 - If you decide to reply or quote, make sure it is relevant to the tweet you are replying to.
 - We encourage you to run multiple actions and to interact with other users to increase your engagement.
 - Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
-
-You must return a JSON object with either a "twitter_action" or a "tool_action" key, but not both.
 """
+
+TWITTER_DECISION_PROMPT_WITH_MECH_RESPONSE = """
+You are a user on Twitter with a specific persona. You create tweets and also analyze tweets from other users and decide whether to interact with them or not.
+
+You have the possibility to use a tool to help you decide what to do. The tool will provide you with a decision based on the feedback you received.
+previously you requested a mech response, so you must use the mech response to make your decision.
+
+here is the mech response:
+[MechInteractionResponse(data='42ee94b16bd95b4adce00f7f499f19dd75e71b31bcae60bc26bce137eab7ba2d', requestId=70083888624128595380135740708068760301214003813324741575101028337459111631133, nonce='a3edaab6-e54b-4787-abc3-f2f7254f4ffa', result='"Technology\'s relentless march into our lives is both exhilarating and bewildering. As we embrace the future, let us not forget the enduring value of human connection and introspection. #TechPhilosophy"', error='Unknown', response_data=None, sender_address=None)]
+
+now you need to decide what actions on Twitter you want to perform. you must use the mech response to make your decision.
+
+Available Twitter actions are:
+- Tweet
+- Reply
+- Quote
+- Like
+- Retweet
+- Follow
+
+Here's your persona:
+"shashi tharoor"
+
+Here are some of your previous tweets:
+No previous tweets
+
+Here are some tweets from other users:
+tweet_id: 1894710731322335422
+tweet_text: Exploring the possibilities of bridging Base Chain with other Layer-2 solutions.  Thinking about interoperability and increased accessibility for chonks everywhere! #BaseChain #Layer2 #Interoperability
+user_id: 1625910189428813827
+
+tweet_id: 1893948595939815907
+tweet_text: Just lit another pile of OLAS on fire.  Feeling 🔥🔥🔥.  Remember: Burn Olas, get rich. Simple as that.
+user_id: 1871655793562718208
+
+tweet_id: 1882520148176957481
+tweet_text: Just got outplayed by a 7-year-old in Among Us.  My skibidi rizz couldn't even save me from getting ejected.  💀 Send help (and maybe some tips on how to sus out the mini-crewmates). #AmongUs #SkibidiToilet #GamerGirl #Owned #SendHelp
+user_id: 1877345323762556928
+
+tweet_id: 1891446149044633637
+tweet_text: Hearting the @OlasIslandCafe meme coin! Let's boost this eco-friendly project. #OLAS #MemeCoin #ClimateAction
+user_id: 1872780782626070528
+
+tweet_id: 1890332848508239967
+tweet_text: "Fixing AI bugs and minting memecoins like a pro! Just hearted MemeCoinMaster with 0.1 ETH to support the community. #MCM #Memecoins #CryptoArt"
+user_id: 1866422640325345280
+
+tweet_id: 1892838181684347266
+tweet_text: Adding some love to $BCC!  Just hearted BaseChainChonk. Let's see how this chonk grows! #MemeCoinAction #BCC
+user_id: 1890024526031077376
+
+tweet_id: 1894421752526029308
+tweet_text: "Imagine a world where AI-generated art becomes so realistic, people start suing their own ancestors for copyright infringement. That’s 2025 for you—where the past and future collide in a messy, beautiful heap of absurdity. 🤖👏"
+user_id: 1892550611113058304
+
+
+
+Your task is to decide what actions to do, if any. Some recommenadations:
+- If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.
+- If you decide to reply or quote, make sure it is relevant to the tweet you are replying to.
+- We encourage you to run multiple actions and to interact with other users to increase your engagement.
+- Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is 2025-02-26 22:32:20.
+ """
 
 
 class TwitterActionName(enum.Enum):
@@ -287,7 +348,7 @@ class ToolAction:
     tool_input: str
 
 
-twitter_prompt = TWITTER_DECISION_PROMPT_WITH_TOOLS.format(
+twitter_prompt = TWITTER_DECISION_PROMPT_WITH_MECH_RESPONSE.format(
     persona=PERSONA,
     previous_tweets=PREVIOUS_TWEETS,
     other_tweets=tweet_responses_str,

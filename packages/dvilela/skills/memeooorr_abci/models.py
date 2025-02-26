@@ -21,6 +21,7 @@
 
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
+
 from aea.exceptions import enforce
 
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
@@ -83,6 +84,7 @@ class AlternativeModelForTweets:  # pylint: disable=too-many-instance-attributes
 
 class Params(MechParams):  # pylint: disable=too-many-instance-attributes
     """Parameters."""
+
     @property
     def ipfs_address(self) -> str:
         """Get the IPFS address."""

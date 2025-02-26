@@ -19,8 +19,8 @@
 
 """This package contains the rounds of MemeooorrAbciApp."""
 
-from dataclasses import asdict, dataclass, is_dataclass
 import json
+from dataclasses import asdict, dataclass, is_dataclass
 from enum import Enum
 from typing import Any, Dict, FrozenSet, List, Optional, Set, Tuple, cast
 
@@ -33,13 +33,13 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     CheckStakingPayload,
     CollectFeedbackPayload,
     EngageTwitterPayload,
+    FailedMechRequestPayload,
+    FailedMechResponsePayload,
     LoadDatabasePayload,
+    PostMechRequestPayload,
     PostTxDecisionMakingPayload,
     PullMemesPayload,
-    PostMechRequestPayload,
     TransactionLoopCheckPayload,
-    FailedMechResponsePayload,
-    FailedMechRequestPayload,
 )
 from packages.valory.skills.abstract_round_abci.base import (
     AbciApp,
@@ -53,12 +53,10 @@ from packages.valory.skills.abstract_round_abci.base import (
     DeserializedCollection,
     EventToTimeout,
     get_name,
-    VotingRound,
 )
-
 from packages.valory.skills.mech_interact_abci.states.base import (
-    MechMetadata,
     MechInteractionResponse,
+    MechMetadata,
 )
 
 
@@ -419,7 +417,6 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
             event = Event(payload.event)
             # checking if event is mech
             if event == Event.MECH:
-
                 # Handle mech requests if present
                 if hasattr(payload, "mech_request") and payload.mech_request:
                     try:
@@ -459,6 +456,7 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
             return self.synchronized_data, Event.NO_MAJORITY
 
         return None
+
 
 # This post mech round is the Happy path for the mech_interaction_abci
 class PostMechRequestRound(CollectSameUntilThresholdRound):
@@ -522,9 +520,6 @@ class FailedMechRequestRound(CollectSameUntilThresholdRound):
 
             return synchronized_data, Event.DONE
 
-    # This needs to be mentioned for static checkers
-    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR, Event.MISSING_TWEET
-
 
 class FailedMechResponseRound(CollectSameUntilThresholdRound):
     """FailedMechResponseRound handles the case where the mech response is not received.
@@ -557,9 +552,6 @@ class FailedMechResponseRound(CollectSameUntilThresholdRound):
             )
 
             return synchronized_data, Event.DONE
-
-    # This needs to be mentioned for static checkers
-    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR, Event.MISSING_TWEET
 
 
 class ActionDecisionRound(CollectSameUntilThresholdRound):
@@ -777,6 +769,7 @@ class TransactionLoopCheckRound(CollectSameUntilThresholdRound):
 
 class FinishedToResetRound(DegenerateRound):
     """FinishedToResetRound"""
+
 
 class FinishedToSettlementRound(DegenerateRound):
     """FinishedToSettlementRound"""

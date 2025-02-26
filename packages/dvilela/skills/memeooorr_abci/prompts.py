@@ -129,8 +129,6 @@ Your task is to decide what actions to do, if any. Some recommenadations:
 - If you decide to reply or quote, make sure it is relevant to the tweet you are replying to.
 - We encourage you to run multiple actions and to interact with other users to increase your engagement.
 - Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
-
-You must return a JSON object with "twitter_action"
  """
 
 

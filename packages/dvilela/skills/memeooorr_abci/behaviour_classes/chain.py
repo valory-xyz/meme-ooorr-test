@@ -33,11 +33,6 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     EngageTwitterBehaviour,
 )
-
-from packages.valory.skills.mech_interact_abci.behaviours.round_behaviour import (
-    MechRequestBehaviour,
-)
-
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionPreparationPayload,
     ActionPreparationRound,
@@ -64,6 +59,9 @@ from packages.valory.contracts.staking_token.contract import StakingTokenContrac
 from packages.valory.protocols.contract_api import ContractApiMessage
 from packages.valory.protocols.ledger_api import LedgerApiMessage
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
+from packages.valory.skills.mech_interact_abci.behaviours.round_behaviour import (
+    MechRequestBehaviour,
+)
 from packages.valory.skills.transaction_settlement_abci.payload_tools import (
     hash_payload_to_hex,
 )
