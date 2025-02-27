@@ -53,6 +53,7 @@ MechResponseSpecs = BaseMechResponseSpecs
 
 MARGIN = 5
 MULTIPLIER = 100
+MULTIPLIER_2 = 20
 
 
 class SharedState(BaseSharedState):
@@ -85,7 +86,7 @@ class SharedState(BaseSharedState):
         MemeooorrChainedSkillAbciApp.event_to_timeout[
             MechInteractEvent.ROUND_TIMEOUT
         ] = (
-            self.context.params.round_timeout_seconds * 10
+            self.context.params.round_timeout_seconds * MULTIPLIER_2
         )  # need to introduce a parameter for this
 
 
