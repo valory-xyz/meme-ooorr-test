@@ -85,13 +85,6 @@ class AlternativeModelForTweets:  # pylint: disable=too-many-instance-attributes
 class Params(MechParams):  # pylint: disable=too-many-instance-attributes
     """Parameters."""
 
-    @property
-    def ipfs_address(self) -> str:
-        """Get the IPFS address."""
-        if self._ipfs_address.endswith("/"):
-            return self._ipfs_address
-        return f"{self._ipfs_address}/"
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the parameters object."""
         self.service_endpoint = self._ensure("service_endpoint", kwargs, str)
@@ -159,9 +152,5 @@ class Params(MechParams):  # pylint: disable=too-many-instance-attributes
             AlternativeModelForTweets.from_dict(kwargs["alternative_model_for_tweets"])
         )
         self.tx_loop_breaker_count = self._ensure("tx_loop_breaker_count", kwargs, int)
-
-        multisend_batch_size = kwargs.get("multisend_batch_size", None)
-        enforce(multisend_batch_size is not None, "multisend_batch_size not specified!")
-        self.multisend_address: str = multisend_batch_size
 
         super().__init__(*args, **kwargs)
