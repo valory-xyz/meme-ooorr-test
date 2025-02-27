@@ -324,70 +324,118 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
     def get_event(self) -> Generator[None, None, Tuple[str, List]]:
         """Get the next event"""
         new_mech_requests = []
+        pending_tweets = {}
 
         if self.params.skip_engagement:
             self.context.logger.info("Skipping engagement on Twitter")
             return Event.DONE.value, new_mech_requests
 
-        # Get other memeooorr handles
-        agent_handles = yield from self.get_memeooorr_handles_from_mirror_db()
-        if agent_handles:
-            # Filter out suspended accounts
-            agent_handles = yield from self._call_twikit(
-                method="filter_suspended_users",
-                user_names=agent_handles,
+        # we dont need to do the event again if we are providing mech responses to the LLM
+        # mech_for_twitter tells us if we have mech responses for twitter
+        if self.synchronized_data.mech_for_twitter is False:
+            # Get other memeooorr handles
+            agent_handles = yield from self.get_memeooorr_handles_from_mirror_db()
+            if agent_handles:
+                # Filter out suspended accounts
+                agent_handles = yield from self._call_twikit(
+                    method="filter_suspended_users",
+                    user_names=agent_handles,
+                )
+
+            else:
+                # using subgraph to get memeooorr handles as a fallback
+                self.context.logger.info(
+                    "No memeooorr handles from MirrorDB , Now trying subgraph"
+                )
+                agent_handles = yield from self.get_memeooorr_handles_from_subgraph()
+                # filter out suspended accounts
+                agent_handles = yield from self._call_twikit(
+                    method="filter_suspended_users",
+                    user_names=agent_handles,
+                )
+
+            self.context.logger.info(f"Not suspended users: {agent_handles}")
+
+            if not agent_handles:
+                self.context.logger.error("No valid Twitter handles")
+                return Event.DONE.value, new_mech_requests
+
+            # Load previously responded tweets
+            db_data = yield from self._read_kv(keys=("interacted_tweet_ids",))
+
+            if db_data is None:
+                self.context.logger.error("Error while loading the database")
+                interacted_tweet_ids = []
+            else:
+                interacted_tweet_ids = json.loads(
+                    db_data["interacted_tweet_ids"] or "[]"
+                )
+
+            # Get their latest tweet
+            pending_tweets = {}
+            for agent_handle in agent_handles:
+                # By default only 1 tweet is retrieved (the latest one)
+                latest_tweets = yield from self._call_twikit(
+                    method="get_user_tweets",
+                    twitter_handle=agent_handle,
+                )
+                if not latest_tweets:
+                    self.context.logger.info("Couldn't get any tweets")
+                    continue
+                tweet_id = latest_tweets[0]["id"]
+
+                # Only respond to not previously interacted tweets
+                if int(tweet_id) in interacted_tweet_ids:
+                    self.context.logger.info("Tweet was already interacted with")
+                    continue
+
+                pending_tweets[tweet_id] = {
+                    "text": latest_tweets[0]["text"],
+                    "user_name": latest_tweets[0]["user_name"],
+                    "user_id": latest_tweets[0]["user_id"],
+                }
+
+            # storing interacted_tweet_ids  and pending in db
+            yield from self._write_kv(
+                {
+                    "interacted_tweet_ids_for_tw_mech": json.dumps(
+                        interacted_tweet_ids, sort_keys=True
+                    )
+                }
             )
+            self.context.logger.info("Wrote interacted tweet ids to db")
+
+            yield from self._write_kv(
+                {
+                    "pending_tweets_for_tw_mech": json.dumps(
+                        pending_tweets, sort_keys=True
+                    )
+                }
+            )
+            self.context.logger.info("Wrote pending tweets to db")
 
         else:
-            # using subgraph to get memeooorr handles as a fallback
             self.context.logger.info(
-                "No memeooorr handles from MirrorDB , Now trying subgraph"
-            )
-            agent_handles = yield from self.get_memeooorr_handles_from_subgraph()
-            # filter out suspended accounts
-            agent_handles = yield from self._call_twikit(
-                method="filter_suspended_users",
-                user_names=agent_handles,
+                "Mech for twitter detected, skipping engagement and using Mech response for decision"
             )
 
-        self.context.logger.info(f"Not suspended users: {agent_handles}")
-
-        if not agent_handles:
-            self.context.logger.error("No valid Twitter handles")
-            return Event.DONE.value, new_mech_requests
-
-        # Load previously responded tweets
-        db_data = yield from self._read_kv(keys=("interacted_tweet_ids",))
-
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            interacted_tweet_ids = []
-        else:
-            interacted_tweet_ids = json.loads(db_data["interacted_tweet_ids"] or "[]")
-
-        # Get their latest tweet
-        pending_tweets = {}
-        for agent_handle in agent_handles:
-            # By default only 1 tweet is retrieved (the latest one)
-            latest_tweets = yield from self._call_twikit(
-                method="get_user_tweets",
-                twitter_handle=agent_handle,
+            # fetching pending tweets from db
+            pending_tweets = yield from self._read_kv(
+                keys=("pending_tweets_for_tw_mech",)
             )
-            if not latest_tweets:
-                self.context.logger.info("Couldn't get any tweets")
-                continue
-            tweet_id = latest_tweets[0]["id"]
+            if not pending_tweets:
+                self.context.logger.error("No pending tweets found in KV store")
+            pending_tweets = json.loads(pending_tweets["pending_tweets_for_tw_mech"])
 
-            # Only respond to not previously interacted tweets
-            if int(tweet_id) in interacted_tweet_ids:
-                self.context.logger.info("Tweet was already interacted with")
-                continue
-
-            pending_tweets[tweet_id] = {
-                "text": latest_tweets[0]["text"],
-                "user_name": latest_tweets[0]["user_name"],
-                "user_id": latest_tweets[0]["user_id"],
-            }
+            # fetching interacted_tweet_ids from db
+            interacted_tweet_ids = yield from self._read_kv(
+                keys=("interacted_tweet_ids_for_tw_mech",)
+            )
+            if not interacted_tweet_ids:
+                self.context.logger.error("No interacted tweets found in KV store")
+            interacted_tweet_ids = json.loads(
+                interacted_tweet_ids["interacted_tweet_ids_for_tw_mech"]
+            )
 
         # Build and post interactions
         (
@@ -420,43 +468,36 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         new_interacted_tweet_ids: List[str] = []
         persona = yield from self.get_persona()
 
-        other_tweets = "\n\n".join(
-            [
-                f"tweet_id: {t_id}\ntweet_text: {t_data['text']}\nuser_id: {t_data['user_id']}"
-                for t_id, t_data in dict(
-                    random.sample(list(pending_tweets.items()), len(pending_tweets))
-                ).items()
-            ]
-        )
-
-        tweets = yield from self.get_previous_tweets()  # type: ignore
-        tweets = tweets[-5:] if tweets else None  # type: ignore
-
-        if tweets:
-            random.shuffle(tweets)
-            previous_tweets = "\n\n".join(
-                [
-                    f"tweet_id: {tweet['tweet_id']}\ntweet_text: {tweet['text']}\ntime: {datetime.fromtimestamp(tweet['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}"
-                    for tweet in tweets
-                ]
-            )
-        else:
-            previous_tweets = "No previous tweets"
-
-        # i need to check for previous mech responses over here
+        # detemining which prompot to use based on mech_for_twitter
         if self.synchronized_data.mech_for_twitter:
+
+            # reading previous tweets and other tweets from db saved for mech response
+            previous_tweets = yield from self._read_kv(
+                keys=("previous_tweets_for_tw_mech",)
+            )
+            if not previous_tweets:
+                self.context.logger.error("No previous tweets found in KV store")
+                previous_tweets = {}
+            previous_tweets = json.loads(previous_tweets["previous_tweets_for_tw_mech"])
+            other_tweets = yield from self._read_kv(keys=("other_tweets_for_tw_mech",))
+            if not other_tweets:
+                self.context.logger.error("No other tweets found in KV store")
+                other_tweets = {}
+            other_tweets = json.loads(other_tweets["other_tweets_for_tw_mech"])
+
             self.context.logger.info(
                 "Mech for twitter detected, using Mech response for decision"
             )
 
-            if not self.synchronized_data.mech_responses:
+            mech_responses = self.synchronized_data.mech_responses
+            if not mech_responses:
                 self.context.logger.error("No mech responses found")
 
             prompt = TWITTER_DECISION_PROMPT_WITH_MECH_RESPONSE.format(
                 persona=persona,
                 previous_tweets=previous_tweets,
                 other_tweets=other_tweets,
-                mech_response=self.synchronized_data.mech_responses,
+                mech_response=mech_responses,
                 time=self.get_sync_time_str(),
             )
 
@@ -465,10 +506,43 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 schema=build_decision_schema(),
             )
 
+            # clearing the previous tweets and other tweets from db
+            self.context.logger.info(
+                f"clearing all the pending tweets , interacted tweet id ,previous tweets and other tweets from db"
+            )
+            yield from self._write_kv({"previous_tweets_for_tw_mech": ""})
+            yield from self._write_kv({"other_tweets_for_tw_mech": ""})
+            yield from self._write_kv({"interacted_tweet_ids_for_tw_mech": ""})
+            yield from self._write_kv({"pending_tweets_for_tw_mech": ""})
+
         else:
             self.context.logger.info(
                 "No Mech for twitter detected , using prompt for decision and introducing tools to LLM"
             )
+
+            other_tweets = "\n\n".join(
+                [
+                    f"tweet_id: {t_id}\ntweet_text: {t_data['text']}\nuser_id: {t_data['user_id']}"
+                    for t_id, t_data in dict(
+                        random.sample(list(pending_tweets.items()), len(pending_tweets))
+                    ).items()
+                ]
+            )
+
+            tweets = yield from self.get_previous_tweets()  # type: ignore
+            tweets = tweets[-5:] if tweets else None  # type: ignore
+
+            if tweets:
+                random.shuffle(tweets)
+                previous_tweets = "\n\n".join(
+                    [
+                        f"tweet_id: {tweet['tweet_id']}\ntweet_text: {tweet['text']}\ntime: {datetime.fromtimestamp(tweet['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}"
+                        for tweet in tweets
+                    ]
+                )
+            else:
+                previous_tweets = "No previous tweets"
+
             prompt = TWITTER_DECISION_PROMPT_WITH_TOOLS.format(
                 persona=persona,
                 previous_tweets=previous_tweets,
@@ -480,6 +554,20 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 prompt=prompt,
                 schema=build_decision_schema(),
             )
+
+            # saving previous tweets and other tweets to db for mech response
+            self.context.logger.info(f"saving previous tweets and other tweets to db")
+            yield from self._write_kv(
+                {"previous_tweets_for_tw_mech": json.dumps(tweets)}
+            )
+
+            self.context.logger.info(f"wrote previous tweets to db")
+
+            yield from self._write_kv(
+                {"other_tweets_for_tw_mech": json.dumps(pending_tweets)}
+            )
+
+            self.context.logger.info(f"wrote other tweets to db")
 
         self.context.logger.info(f"Prompting the LLM for a decision : {prompt}")
 

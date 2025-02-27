@@ -24,34 +24,6 @@ import pickle  # nosec
 import typing
 from dataclasses import dataclass
 
-
-TWITTER_DECISION_PROMPT = """
-You are a user on Twitter with a specific persona. You create tweets and also analyze tweets from other users and decide whether to interact with them or not.
-You need to decide what actions on Twitter you want to perform. The available actions are:
-
-- Tweet
-- Reply
-- Quote
-- Like
-- Retweet
-- Follow
-
-Here's your persona:
-"{persona}"
-
-Here are some of your previous tweets:
-{previous_tweets}
-
-Here are some tweets from other users:
-{other_tweets}
-
-Your task is to decide what actions to do, if any. Some recommenadations:
-- If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.
-- If you decide to reply or quote, make sure it is relevant to the tweet you are replying to.
-- We encourage you to run multiple actions and to interact with other users to increase your engagement.
-- Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
-"""
-
 TWITTER_DECISION_PROMPT_WITH_TOOLS = """
 You are a user on Twitter with a specific persona. You create tweets and also analyze tweets from other users and decide whether to interact with them or not.
 

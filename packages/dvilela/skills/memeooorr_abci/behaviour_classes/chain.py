@@ -30,9 +30,6 @@ from packages.dvilela.contracts.meme_factory.contract import MemeFactoryContract
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
-    EngageTwitterBehaviour,
-)
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     ActionPreparationPayload,
     ActionPreparationRound,
