@@ -57,15 +57,15 @@ class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
             # check if the mech response is empty
             if not self.synchronized_data.mech_responses:
                 self.context.logger.info(
-                    f"Mech response found, the LLM will ignore the mech response"
+                    f"Mech response not found, the LLM will ignore the mech response"
                 )
-                payload = FailedMechRequestPayload(
+                payload = PostMechRequestPayload(
                     sender=sender,
                     mech_for_twitter=False,
                 )
             else:
                 self.context.logger.error(
-                    f"Mech response  not Found, the LLM will use the mech response"
+                    f"Mech response Found, the LLM will use the mech response"
                 )
                 payload = PostMechRequestPayload(
                     sender=sender,

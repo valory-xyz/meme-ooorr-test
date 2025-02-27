@@ -444,7 +444,13 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
             # If no mech requests, proceed with normal flow
             try:
                 # Handle any other payload data updates here
-                synchronized_data = self.synchronized_data
+                # changing the mech_for_twitter to False
+                synchronized_data = self.synchronized_data.update(
+                    synchronized_data_class=SynchronizedData,
+                    **{
+                        get_name(SynchronizedData.mech_for_twitter): False,
+                    },
+                )
                 return synchronized_data, Event.DONE
             except Exception as e:
                 self.context.logger.error(f"Error processing payload: {e}")
