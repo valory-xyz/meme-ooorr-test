@@ -735,7 +735,6 @@ class PostTxDecisionMakingBehaviour(
             ):
                 event = Event.ACTION.value
 
-            # check for
             if (
                 self.synchronized_data.tx_submitter
                 == MechRequestBehaviour.matching_round.auto_round_id()
