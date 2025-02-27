@@ -19,10 +19,7 @@
 
 """This package contains round behaviours of MemeooorrAbciApp."""
 
-import json
-import random
-from dataclasses import asdict
-from typing import Generator, Optional, Tuple, Type
+from typing import Generator, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
@@ -40,7 +37,9 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
-class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
+class PostMechRequestBehaviour(
+    MemeooorrBaseBehaviour
+):  # pylint: disable=too-many-ancestors
     """PostMechRequestBehaviour"""
 
     matching_round: Type[AbstractRound] = PostMechRequestRound
@@ -57,7 +56,7 @@ class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
             # check if the mech response is empty
             if not self.synchronized_data.mech_responses:
                 self.context.logger.info(
-                    f"Mech response not found, the LLM will ignore the mech response"
+                    "Mech response not found, the LLM will ignore the mech response"
                 )
                 payload = PostMechRequestPayload(
                     sender=sender,
@@ -65,7 +64,7 @@ class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
                 )
             else:
                 self.context.logger.error(
-                    f"Mech response Found, the LLM will use the mech response"
+                    "Mech response Found, the LLM will use the mech response"
                 )
                 payload = PostMechRequestPayload(
                     sender=sender,
@@ -79,7 +78,9 @@ class PostMechRequestBehaviour(MemeooorrBaseBehaviour):
         self.set_done()
 
 
-class FailedMechRequestBehaviour(MemeooorrBaseBehaviour):
+class FailedMechRequestBehaviour(
+    MemeooorrBaseBehaviour
+):  # pylint: disable=too-many-ancestors
     """FailedMechRequestBehaviour"""
 
     matching_round: Type[AbstractRound] = FailedMechRequestRound
@@ -105,7 +106,9 @@ class FailedMechRequestBehaviour(MemeooorrBaseBehaviour):
         self.set_done()
 
 
-class FailedMechResponseBehaviour(MemeooorrBaseBehaviour):
+class FailedMechResponseBehaviour(
+    MemeooorrBaseBehaviour
+):  # pylint: disable=too-many-ancestors
     """FailedMechResponseBehaviour"""
 
     matching_round: Type[AbstractRound] = FailedMechResponseRound

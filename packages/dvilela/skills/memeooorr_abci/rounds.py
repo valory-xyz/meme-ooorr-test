@@ -329,39 +329,11 @@ class PullMemesRound(CollectSameUntilThresholdRound):
 
 
 @dataclass
-class MechMetadata:
-    """A Mech's metadata."""
-
-    prompt: str
-    tool: str
-    nonce: str
-
-
-@dataclass
 class MechRequest:
     """A Mech's request."""
 
     data: str = ""
     requestId: int = 0
-
-
-@dataclass
-class MechInteractionResponse(MechRequest):
-    """A structure for the response of a mech interaction task."""
-
-    nonce: str = ""
-    result: Optional[str] = None
-    error: str = "Unknown"
-    response_data: Optional[bytes] = None
-    sender_address: Optional[str] = None
-
-    def retries_exceeded(self) -> None:
-        """Set an incorrect format response."""
-        self.error = "Retries were exceeded while trying to get the mech's response."
-
-    def incorrect_format(self, res: Any) -> None:
-        """Set an incorrect format response."""
-        self.error = f"The response's format was unexpected: {res}"
 
 
 class CollectFeedbackRound(CollectSameUntilThresholdRound):
@@ -406,7 +378,9 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
     synchronized_data_class = SynchronizedData
     extended_requirements = ()
 
-    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
+    def end_block(  # pylint: disable=too-many-return-statements
+        self,
+    ) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
             payload = EngageTwitterPayload(
@@ -452,7 +426,7 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
                     },
                 )
                 return synchronized_data, Event.DONE
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
                 self.context.logger.error(f"Error processing payload: {e}")
                 return self.synchronized_data, Event.ERROR
 
@@ -475,8 +449,6 @@ class PostMechRequestRound(CollectSameUntilThresholdRound):
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            # This needs to be mentioned for static checkers
-            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.WAIT
             payload = PostMechRequestPayload(
                 *(("dummy_sender",) + self.most_voted_payload_values)
             )
@@ -491,8 +463,17 @@ class PostMechRequestRound(CollectSameUntilThresholdRound):
                     ): payload.mech_for_twitter,
                 },
             )
+            # This needs to be mentioned for static checkers
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT,
 
             return synchronized_data, Event.DONE
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+
+        return None
 
 
 class FailedMechRequestRound(CollectSameUntilThresholdRound):
@@ -506,7 +487,7 @@ class FailedMechRequestRound(CollectSameUntilThresholdRound):
         """Process the end of the block."""
         if self.threshold_reached:
             # This needs to be mentioned for static checkers
-            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.WAIT
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR
             payload = FailedMechRequestPayload(
                 *(("dummy_sender",) + self.most_voted_payload_values)
             )
@@ -526,10 +507,16 @@ class FailedMechRequestRound(CollectSameUntilThresholdRound):
 
             return synchronized_data, Event.DONE
 
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+
+        return None
+
 
 class FailedMechResponseRound(CollectSameUntilThresholdRound):
-    """FailedMechResponseRound handles the case where the mech response is not received.
-    it is always going to end in EngageTwitterRound"""
+    """FailedMechResponseRound handles the case where the mech response is not received.it is always going to end in EngageTwitterRound"""
 
     payload_class = FailedMechResponsePayload
     synchronized_data_class = SynchronizedData
@@ -539,7 +526,7 @@ class FailedMechResponseRound(CollectSameUntilThresholdRound):
         """Process the end of the block."""
         if self.threshold_reached:
             # This needs to be mentioned for static checkers
-            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.WAIT
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR
             payload = FailedMechResponsePayload(
                 *(("dummy_sender",) + self.most_voted_payload_values)
             )
@@ -558,6 +545,13 @@ class FailedMechResponseRound(CollectSameUntilThresholdRound):
             )
 
             return synchronized_data, Event.DONE
+
+        if not self.is_majority_possible(
+            self.collection, self.synchronized_data.nb_participants
+        ):
+            return self.synchronized_data, Event.NO_MAJORITY
+
+        return None
 
 
 class ActionDecisionRound(CollectSameUntilThresholdRound):
@@ -688,7 +682,7 @@ class PostTxDecisionMakingRound(EventRoundBase):
     extended_requirements = ()
 
     # This needs to be mentioned for static checkers
-    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ACTION
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ACTION , Event.MECH
 
 
 class CallCheckpointRound(CollectSameUntilThresholdRound):
@@ -905,7 +899,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         FinishedForMechRequestRound,
         FinishedForMechResponseRound,
     }
-    event_to_timeout: EventToTimeout = {}
+    event_to_timeout: EventToTimeout = {Event.ROUND_TIMEOUT: 30}
     cross_period_persisted_keys: FrozenSet[str] = frozenset(["persona"])
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),

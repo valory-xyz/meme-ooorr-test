@@ -20,12 +20,10 @@
 """This module contains the shared state for the abci skill of MemeooorrAbciApp."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
-
-from aea.exceptions import enforce
+from typing import Any, Dict
 
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
-from packages.valory.skills.abstract_round_abci.models import ApiSpecs, BaseParams
+from packages.valory.skills.abstract_round_abci.models import ApiSpecs
 from packages.valory.skills.abstract_round_abci.models import (
     BenchmarkTool as BaseBenchmarkTool,
 )

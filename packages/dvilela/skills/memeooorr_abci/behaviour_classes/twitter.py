@@ -20,7 +20,6 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 
 import json
-import pdb
 import random
 import secrets
 from dataclasses import asdict
@@ -53,7 +52,6 @@ from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
 TEMP_TOOLS_LIST = """
-Sentiment Analysis: This tool analyzes the sentiment of a given tweet and returns a score indicating whether the tweet is positive, negative, or neutral.
 openai-gpt-3.5-turbo: This tool generates a tweet based on a given prompt using the OpenAI GPT-3.5-turbo model.
 """
 
@@ -358,10 +356,12 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         self.set_done()
 
-    def get_event(self) -> Generator[None, None, Tuple[str, List]]:
+    def get_event(  # pylint: disable=too-many-statements
+        self,
+    ) -> Generator[None, None, Tuple[str, List]]:
         """Get the next event"""
-        new_mech_requests = []
-        pending_tweets = {}
+        new_mech_requests = []  # type: ignore
+        pending_tweets = {}  # type: ignore
 
         if self.params.skip_engagement:
             self.context.logger.info("Skipping engagement on Twitter")
@@ -457,21 +457,21 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
 
             # fetching pending tweets from db
-            pending_tweets = yield from self._read_kv(
+            pending_tweets = yield from self._read_kv(  # type: ignore
                 keys=("pending_tweets_for_tw_mech",)
             )
             if not pending_tweets:
                 self.context.logger.error("No pending tweets found in KV store")
-            pending_tweets = json.loads(pending_tweets["pending_tweets_for_tw_mech"])
+            pending_tweets = json.loads(pending_tweets["pending_tweets_for_tw_mech"])  # type: ignore
 
             # fetching interacted_tweet_ids from db
-            interacted_tweet_ids = yield from self._read_kv(
+            interacted_tweet_ids = yield from self._read_kv(  # type: ignore
                 keys=("interacted_tweet_ids_for_tw_mech",)
             )
             if not interacted_tweet_ids:
                 self.context.logger.error("No interacted tweets found in KV store")
             interacted_tweet_ids = json.loads(
-                interacted_tweet_ids["interacted_tweet_ids_for_tw_mech"]
+                interacted_tweet_ids["interacted_tweet_ids_for_tw_mech"]  # type: ignore
             )
 
         # Build and post interactions
@@ -544,7 +544,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
             # clearing the previous tweets and other tweets from db
             self.context.logger.info(
-                f"clearing all the pending tweets , interacted tweet id ,previous tweets and other tweets from db"
+                "clearing all the pending tweets , interacted tweet id ,previous tweets and other tweets from db"
             )
             yield from self._write_kv({"previous_tweets_for_tw_mech": ""})
             yield from self._write_kv({"other_tweets_for_tw_mech": ""})
@@ -556,7 +556,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 "No Mech for twitter detected , using prompt for decision and introducing tools to LLM"
             )
 
-            other_tweets = "\n\n".join(
+            other_tweets = "\n\n".join(  # type: ignore
                 [
                     f"tweet_id: {t_id}\ntweet_text: {t_data['text']}\nuser_id: {t_data['user_id']}"
                     for t_id, t_data in dict(
@@ -570,14 +570,14 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
             if tweets:
                 random.shuffle(tweets)
-                previous_tweets = "\n\n".join(
+                previous_tweets = "\n\n".join(  # type: ignore
                     [
                         f"tweet_id: {tweet['tweet_id']}\ntweet_text: {tweet['text']}\ntime: {datetime.fromtimestamp(tweet['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}"
                         for tweet in tweets
                     ]
                 )
             else:
-                previous_tweets = "No previous tweets"
+                previous_tweets = "No previous tweets"  # type: ignore
 
             prompt = TWITTER_DECISION_PROMPT_WITH_TOOLS.format(
                 persona=persona,
@@ -592,18 +592,18 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
 
             # saving previous tweets and other tweets to db for mech response
-            self.context.logger.info(f"saving previous tweets and other tweets to db")
+            self.context.logger.info("saving previous tweets and other tweets to db")
             yield from self._write_kv(
                 {"previous_tweets_for_tw_mech": json.dumps(tweets)}
             )
 
-            self.context.logger.info(f"wrote previous tweets to db")
+            self.context.logger.info("wrote previous tweets to db")
 
             yield from self._write_kv(
                 {"other_tweets_for_tw_mech": json.dumps(pending_tweets)}
             )
 
-            self.context.logger.info(f"wrote other tweets to db")
+            self.context.logger.info("wrote other tweets to db")
 
         self.context.logger.info(f"Prompting the LLM for a decision : {prompt}")
 
@@ -611,7 +611,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         if llm_response is None:
             self.context.logger.error("Error getting a response from the LLM.")
-            return Event.ERROR.value, new_interacted_tweet_ids
+            return Event.ERROR.value, new_interacted_tweet_ids  # type: ignore
 
         try:
             json_response = json.loads(llm_response)
@@ -619,7 +619,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         except json.JSONDecodeError as e:
             self.context.logger.error(f"Error decoding LLM response: {e}")
             self.context.logger.error(f"LLM Response: {llm_response}")
-            return Event.ERROR.value, new_interacted_tweet_ids
+            return Event.ERROR.value, new_interacted_tweet_ids  # type: ignore
 
         if "tool_action" in json_response and json_response["tool_action"] is not None:
             self.context.logger.info("Tool action detected")
@@ -640,9 +640,13 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                     )
                 )
             )
-            return Event.MECH.value, new_interacted_tweet_ids, new_mech_requests
+            return (
+                Event.MECH.value,
+                new_interacted_tweet_ids,
+                new_mech_requests,
+            )
 
-        elif "tweet_action" in json_response:
+        if "tweet_action" in json_response:  # pylint: disable=no-else-return
             self.context.logger.info("Tweet action detected")
             tweet_actions = json_response["tweet_action"]
 
@@ -690,8 +694,29 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 self.context.logger.info(f"Sleeping for {delay} seconds")
                 yield from self.sleep(delay)
 
-            self.context.logger.info(f"Trying to {action} tweet {tweet_id}")
-            user_name = pending_tweets[str(tweet_id)]["user_name"]
+                if action == "tweet":
+                    # Optionally, replace the tweet with one generated by the alternative LLM
+                    new_text = yield from self.replace_tweet_with_alternative_model(
+                        ALTERNATIVE_MODEL_TWITTER_PROMPT.format(
+                            persona=persona,
+                            previous_tweets=previous_tweets,
+                        )
+                    )
+                    text = new_text or text
+
+                    if not is_tweet_valid(text):
+                        self.context.logger.error("The tweet is too long.")
+                        continue
+
+                    yield from self.post_tweet(tweet=[text], store=True)
+                    continue
+
+                if not is_tweet_valid(text):
+                    self.context.logger.error("The tweet is too long.")
+                    continue
+
+                self.context.logger.info(f"Trying to {action} tweet {tweet_id}")
+                user_name = pending_tweets[str(tweet_id)]["user_name"]
 
                 if action == "like":
                     liked = yield from self.like_tweet(tweet_id)
@@ -710,27 +735,6 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                     if retweeted:
                         new_interacted_tweet_ids.append(tweet_id)
                     continue
-
-            if action == "tweet":
-                # Optionally, replace the tweet with one generated by the alternative LLM
-                new_text = yield from self.replace_tweet_with_alternative_model(
-                    ALTERNATIVE_MODEL_TWITTER_PROMPT.format(
-                        persona=persona,
-                        previous_tweets=previous_tweets,
-                    )
-                )
-                text = new_text or text
-
-                if not is_tweet_valid(text):
-                    self.context.logger.error("The tweet is too long.")
-                    continue
-
-                yield from self.post_tweet(tweet=[text], store=True)
-                continue
-
-            if not is_tweet_valid(text):
-                self.context.logger.error("The tweet is too long.")
-                continue
 
                 if action == "reply":
                     responded = yield from self.respond_tweet(tweet_id, text)

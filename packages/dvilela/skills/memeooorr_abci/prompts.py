@@ -33,7 +33,7 @@ The following contains the available tools, together with their descriptions:
 
 {tools}
 
-You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform. 
+You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform.
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
 Available Twitter actions are:
@@ -132,7 +132,6 @@ class TwitterActionName(enum.Enum):
 class ToolActionName(enum.Enum):
     """ToolActionName"""
 
-    SENTIMENT_ANALYSIS = "sentiment_analysis"
     OPEN_AI_GPT_3 = "openai-gpt-3.5-turbo"
 
 

@@ -26,8 +26,8 @@ import os
 import pickle  # nosec
 import random
 import typing
-from dataclasses import dataclass, field
-from typing import Literal, Union
+from dataclasses import dataclass
+from typing import Union
 
 import dotenv
 import google.generativeai as genai  # type: ignore
@@ -314,7 +314,7 @@ class TwitterAction:
 
 
 @dataclass(frozen=True)
-class ToolAction:
+class ToolAction:  # pylint: disable=function-redefined
     """ToolAction"""
 
     tool_name: str
@@ -341,7 +341,7 @@ class ToolActionName(enum.Enum):
 
 
 @dataclass(frozen=True)
-class ToolAction:
+class ToolAction:  # pylint: disable=function-redefined
     """ToolAction"""
 
     tool_name: ToolActionName
