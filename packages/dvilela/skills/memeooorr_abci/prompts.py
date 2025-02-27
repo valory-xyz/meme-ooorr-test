@@ -24,6 +24,7 @@ import pickle  # nosec
 import typing
 from dataclasses import dataclass
 
+
 TWITTER_DECISION_PROMPT_WITH_TOOLS = """
 You are a user on Twitter with a specific persona. You create tweets and also analyze tweets from other users and decide whether to interact with them or not.
 

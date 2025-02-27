@@ -470,7 +470,6 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         # detemining which prompot to use based on mech_for_twitter
         if self.synchronized_data.mech_for_twitter:
-
             # reading previous tweets and other tweets from db saved for mech response
             previous_tweets = yield from self._read_kv(
                 keys=("previous_tweets_for_tw_mech",)

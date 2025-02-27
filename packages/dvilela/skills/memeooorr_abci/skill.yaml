@@ -13,14 +13,14 @@ fingerprint:
   behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
   behaviour_classes/llm.py: bafybeia6pr7dzvrx4hdns2xhfz3s323oz5jfboy3x2f7tnbch6pnafihwy
   behaviour_classes/mech.py: bafybeibuvcme443kwlvankqpypju2fctvg2biq5zehwspqsfz3ompntbuq
-  behaviour_classes/twitter.py: bafybeiciwtap5atsukcby6irrrezvd4oi3go52h6f7yg55zck7uob7a2fe
+  behaviour_classes/twitter.py: bafybeibluvx3tpkqpfh45qywo3erzv7sj4izepw6nfpgw62xdfxbr7f2me
   behaviours.py: bafybeiefzilxxfchw2kaueucubyzyhd2aactm3amcit2pun6sdi55bfhli
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeibnltvggikd2schhdzch5wfl2iuiwqczk4rjw2w6k7yodnc2xwkuq
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeibxooii4sl3zr45w3taphz3cfm7clwvznebizvad7ogqtgiuegyne
   payloads.py: bafybeih4d7lg45dqd6ygrxmurifhlusur6kfp42msavv7bf3dy53fjjyeu
-  prompts.py: bafybeidjtcql7k733i5bbc5xuojvuxuzapyzompigsohzyahyy7v2emrmm
+  prompts.py: bafybeifqk4qhp76bgth3ciehmycblfnf3ynd5ukwtwqll6dqutnzs6mtl4
   rounds.py: bafybeicvnnscigyilo5albx76gijbrperh4ke5yimv66wz4yxwuhyaqowe
   rounds_info.py: bafybeigeh4fp5ekghixyqxlhifyonmkw43mslcutm4re2u4x4tnrja5tsa
 fingerprint_ignore_patterns: []
