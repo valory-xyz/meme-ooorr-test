@@ -67,7 +67,7 @@ You must return a JSON object with either a "twitter_action" or a "tool_action" 
 
 MECH_RESPONSE_SUBPROMPT = """
 As you know You have the possibility to use a tool to help you decide what to do. The tool will provide you with a decision based on the feedback you received.
-previously you requested a mech response, so you must use the mech response to make your decision.
+previously you requested a mech response, so you must use the mech response to make your twitter action decision.
 
 here is the mech response:
 {mech_response}

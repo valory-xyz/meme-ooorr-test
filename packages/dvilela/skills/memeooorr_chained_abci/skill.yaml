@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeigebq46oqz2mx2iajupr6p5pgm6z5pvfye5w6zypsseuqtvta7b4a
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
 - valory/termination_abci:0.1.0:bafybeieurwmfernodqyczj5ertsgfbjtjnrlgvte7sli4sajnbopty7inu
-- dvilela/memeooorr_abci:0.1.0:bafybeigbk5o7hic7uv7t2fwqi5bvkvgr45xleaeifgtp2u6vnziefwbqbi
+- dvilela/memeooorr_abci:0.1.0:bafybeig4rsgyhnoefbnkqu2wegffz2o2ofsup3mqptkqstzuofpacmurg4
 - valory/mech_interact_abci:0.1.0:bafybeif2tpz2zet6p4z4vi3b254oxzyyzoe5tehj3me3znzt7h7otkpd54
 behaviours:
   main:
@@ -168,8 +168,6 @@ models:
       tx_loop_breaker_count: 3
       tools_for_mech:
         openai-gpt-3.5-turbo: This tool generates a tweet based on a given prompt
-          using the OpenAI GPT-3.5-turbo model
-        sentiment-analysis: This tool generates a sentiment analysis of a given text
           using the OpenAI GPT-3.5-turbo model
       mech_request_price: null
       mech_contract_address: ${str:0x111D7DB1B752AB4D2cC0286983D9bd73a49bac6c}
