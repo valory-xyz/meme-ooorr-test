@@ -30,10 +30,8 @@ You are a user on Twitter with a specific persona. You create tweets and also an
 Here's your persona:
 "{persona}"
 
-
 You have the possibility to use a tool to help you decide what to do. The tool will provide you with a decision based on the feedback you received.
 The following contains the available tools, together with their descriptions:
-
 
 Available Tool actions are:
 {tools} 
@@ -48,13 +46,11 @@ Available Twitter actions are:
 - Retweet
 - Follow
 
-
 Here are some of your previous tweets:
 {previous_tweets}
 
 Here are some tweets from other users:
 {other_tweets}
-
 
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform.
 You must choose **either** a Twitter action **or** a Tool action, but not both.
