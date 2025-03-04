@@ -34,8 +34,8 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
     ALTERNATIVE_MODEL_TWITTER_PROMPT,
-    TWITTER_DECISION_PROMPT,
     MECH_RESPONSE_SUBPROMPT,
+    TWITTER_DECISION_PROMPT,
     build_decision_schema,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
@@ -358,7 +358,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         Returns:
             Tuple[str, List]: Event type and any new mech requests.
         """
-        new_mech_requests = []
+        new_mech_requests: List[Dict[str, Any]] = []
 
         # Skip engagement if configured
         if self.params.skip_engagement:
@@ -367,18 +367,22 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         # Handle differently based on mech_for_twitter state
         if self.synchronized_data.mech_for_twitter:
-            pending_tweets, interacted_tweet_ids = (
-                yield from self._handle_mech_for_twitter()
-            )
+            (
+                pending_tweets,
+                interacted_tweet_ids,
+            ) = yield from self._handle_mech_for_twitter()
         else:
-            pending_tweets, interacted_tweet_ids = (
-                yield from self._handle_regular_engagement()
-            )
+            (
+                pending_tweets,
+                interacted_tweet_ids,
+            ) = yield from self._handle_regular_engagement()
 
         # Process interactions
-        event, new_interacted_tweet_ids, new_mech_requests = (
-            yield from self.interact_twitter(pending_tweets)
-        )
+        (
+            event,
+            new_interacted_tweet_ids,
+            new_mech_requests,
+        ) = yield from self.interact_twitter(pending_tweets)
 
         # Handle results based on event type
         if event == Event.MECH.value:
@@ -446,9 +450,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         # Load previously interacted tweets
         interacted_tweet_ids = yield from self._get_interacted_tweet_ids()
 
-        # Get latest tweets from each agent
+        # Get latest tweets from each agent - CHANGE HERE: convert list to set
         pending_tweets = yield from self._collect_pending_tweets(
-            agent_handles, interacted_tweet_ids
+            agent_handles, set(interacted_tweet_ids)
         )
 
         # Store data for mech processing
@@ -467,7 +471,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         return json.loads(db_data["interacted_tweet_ids"] or "[]")
 
     def _collect_pending_tweets(
-        self, agent_handles, interacted_tweet_ids
+        self, agent_handles: list[str], interacted_tweet_ids: set[int]
     ) -> Generator[None, None, dict]:
         """Collect pending tweets from agent handles that haven't been interacted with."""
         pending_tweets = {}
@@ -500,7 +504,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         return pending_tweets
 
     def _store_engagement_data(
-        self, interacted_tweet_ids, pending_tweets
+        self, interacted_tweet_ids: list[int], pending_tweets: dict[str, dict[str, str]]
     ) -> Generator[None, None, None]:
         """Store engagement data in the database for mech processing."""
         yield from self._write_kv(
@@ -518,7 +522,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         self.context.logger.info("Wrote pending tweets to db")
 
     def _update_interacted_tweets(
-        self, interacted_tweet_ids, new_interacted_tweet_ids
+        self, interacted_tweet_ids: list[int], new_interacted_tweet_ids: list[int]
     ) -> Generator[None, None, None]:
         """Update the list of interacted tweets in the database."""
         interacted_tweet_ids.extend(new_interacted_tweet_ids)
@@ -566,14 +570,16 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         # Handle tweet actions if present
         if "tweet_action" in json_response:
-            event, new_interacted_tweet_id, mech_request = (
-                yield from self._handle_tweet_actions(
-                    json_response,
-                    pending_tweets,
-                    previous_tweets,
-                    persona,
-                    new_interacted_tweet_ids,
-                )
+            (
+                event,
+                new_interacted_tweet_id,
+                mech_request,
+            ) = yield from self._handle_tweet_actions(
+                json_response,
+                pending_tweets,
+                previous_tweets,
+                persona,
+                new_interacted_tweet_ids,
             )
             return event, new_interacted_tweet_id, mech_request
 
@@ -653,7 +659,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             else:
                 previous_tweets_str = "No previous tweets"
 
-            previous_tweets = tweets or {}
+            previous_tweets = tweets if isinstance(tweets, dict) else {}
 
             prompt = TWITTER_DECISION_PROMPT.format(
                 persona=persona,
@@ -718,7 +724,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         return Event.MECH.value, [], new_mech_requests
 
-    def _handle_tweet_actions(
+    def _handle_tweet_actions(  # pylint: disable=too-many-arguments
         self,
         json_response: dict,
         pending_tweets: dict,
@@ -748,7 +754,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         return Event.DONE.value, new_interacted_tweet_ids, []
 
-    def _process_single_interaction(
+    def _process_single_interaction(  # pylint: disable=too-many-arguments
         self,
         interaction: dict,
         pending_tweets: dict,
@@ -833,7 +839,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         yield from self.post_tweet(tweet=[text], store=True)
 
-    def _handle_tweet_interaction(
+    def _handle_tweet_interaction(  # pylint: disable=too-many-arguments
         self,
         action: str,
         tweet_id: str,
@@ -853,29 +859,29 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         if action == "like":
             liked = yield from self.like_tweet(tweet_id)
             if liked:
-                new_interacted_tweet_ids.append(tweet_id)
+                new_interacted_tweet_ids.append(int(tweet_id))
 
         elif action == "follow" and user_id:
             followed = yield from self.follow_user(user_id)
             if followed:
-                new_interacted_tweet_ids.append(tweet_id)
+                new_interacted_tweet_ids.append(int(tweet_id))
 
         elif action == "retweet":
             retweeted = yield from self.retweet(tweet_id)
             if retweeted:
-                new_interacted_tweet_ids.append(tweet_id)
+                new_interacted_tweet_ids.append(int(tweet_id))
 
         elif action == "reply":
             responded = yield from self.respond_tweet(tweet_id, text)
             if responded:
-                new_interacted_tweet_ids.append(tweet_id)
+                new_interacted_tweet_ids.append(int(tweet_id))
 
         elif action == "quote":
             quoted = yield from self.respond_tweet(
                 tweet_id, text, quote=True, user_name=user_name
             )
             if quoted:
-                new_interacted_tweet_ids.append(tweet_id)
+                new_interacted_tweet_ids.append(int(tweet_id))
 
     def generate_mech_tool_info(self) -> str:
         """Generate tool info"""

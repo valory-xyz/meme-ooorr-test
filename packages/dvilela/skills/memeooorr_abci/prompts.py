@@ -24,6 +24,7 @@ import pickle  # nosec
 import typing
 from dataclasses import dataclass
 
+
 TWITTER_DECISION_PROMPT = """
 You are a user on Twitter with a specific persona. You create tweets and also analyze tweets from other users and decide whether to interact with them or not.
 
@@ -34,7 +35,7 @@ You have the possibility to use a tool to help you decide what to do. The tool w
 The following contains the available tools, together with their descriptions:
 
 Available Tool actions are:
-{tools} 
+{tools}
 
 {mech_response}
 

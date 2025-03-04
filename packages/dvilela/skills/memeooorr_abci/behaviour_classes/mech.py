@@ -55,17 +55,13 @@ class PostMechRequestBehaviour(
             sender = self.context.agent_address
             # check if the mech response is empty
             if not self.synchronized_data.mech_responses:
-                self.context.logger.info(
-                    "Mech response not found"
-                )
+                self.context.logger.info("Mech response not found")
                 payload = PostMechRequestPayload(
                     sender=sender,
                     mech_for_twitter=False,
                 )
             else:
-                self.context.logger.error(
-                    "Mech response Found"
-                )
+                self.context.logger.error("Mech response Found")
                 payload = PostMechRequestPayload(
                     sender=sender,
                     mech_for_twitter=True,

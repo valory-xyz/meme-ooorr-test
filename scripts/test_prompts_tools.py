@@ -26,18 +26,16 @@ import os
 import pickle  # nosec
 import random
 import typing
-
 from dataclasses import dataclass
-from typing import Union
 
 import dotenv
 import google.generativeai as genai  # type: ignore
 
 from packages.dvilela.skills.memeooorr_abci.prompts import (
-    TOKEN_DECISION_PROMPT,
-    build_token_action_schema,
-    TWITTER_DECISION_PROMPT,
     MECH_RESPONSE_SUBPROMPT,
+    TOKEN_DECISION_PROMPT,
+    TWITTER_DECISION_PROMPT,
+    build_token_action_schema,
 )
 
 
@@ -187,44 +185,6 @@ prompt = TOKEN_DECISION_PROMPT.format(
 # )
 
 # print(json.loads(response.text))
-
-
-class TwitterActionName(enum.Enum):
-    """TwitterActionName"""
-
-    NONE = "none"
-    TWEET = "tweet"
-    LIKE = "like"
-    RETWEET = "retweet"
-    REPLY = "reply"
-    QUOTE = "quote"
-    FOLLOW = "follow"
-
-
-@dataclass(frozen=True)
-class TwitterAction:
-    """TwitterAction"""
-
-    action: TwitterActionName
-    selected_tweet_id: str
-    user_id: str
-    text: str
-
-
-@dataclass(frozen=True)
-class ToolAction:  # pylint: disable=function-redefined
-    """ToolAction"""
-
-    tool_name: str
-    input: str = ""
-
-
-ActionType = Union[TwitterAction, ToolAction]
-
-
-def build_twitter_action_schema() -> dict:
-    """Build a schema for Twitter action response"""
-    return {"class": pickle.dumps(ActionType).hex(), "is_list": False}
 
 
 class TwitterActionName(enum.Enum):
