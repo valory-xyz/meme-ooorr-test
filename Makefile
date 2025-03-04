@@ -142,3 +142,41 @@ bump-packages:
 
 
 v := $(shell pip -V | grep virtualenvs)
+
+
+
+.PHONY: build-agent-runner
+build-agent-runner:
+	poetry lock
+	poetry install
+	poetry run pyinstaller \
+	--collect-data eth_account \
+	--collect-all aea \
+	--collect-all aea_ledger_ethereum \
+	--collect-all aea_ledger_cosmos \
+	--collect-all aea_ledger_ethereum_flashbots \
+	--collect-all asn1crypto \
+	--collect-all autonomy \
+	--collect-all backports.tarfile \
+	--collect-all google.protobuf \
+	--collect-all openapi_core \
+	--collect-all openapi_spec_validator \
+	--collect-all google.generativeai \
+	--collect-all js2py \
+	--collect-all peewee \
+	--collect-all textblob \
+	--collect-all twikit \
+	--collect-all twitter_text \
+	--collect-all twitter_text_parser \
+	--hidden-import aea_ledger_ethereum \
+	--hidden-import aea_ledger_cosmos \
+	--hidden-import aea_ledger_ethereum_flashbots \
+	--hidden-import grpc \
+	--hidden-import openapi_core \
+	--hidden-import py_ecc \
+	--hidden-import pytz \
+	--onefile pyinstaller/memeooorr_bin.py \
+	--name agent_runner_bin
+
+	./dist/agent_runner_bin 1>/dev/null
+
