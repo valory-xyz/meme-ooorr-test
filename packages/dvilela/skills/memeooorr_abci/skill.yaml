@@ -13,12 +13,12 @@ fingerprint:
   behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
   behaviour_classes/llm.py: bafybeia6pr7dzvrx4hdns2xhfz3s323oz5jfboy3x2f7tnbch6pnafihwy
   behaviour_classes/mech.py: bafybeihunfp7lyn7jcedqnhnsty2ltjyerj6r7ikikqqf3g7yyswtmrsi4
-  behaviour_classes/twitter.py: bafybeih6zc52r5n4okrzh5nrdqd3q4gsougp5abxyxpzx7rnomgpgr2ooi
+  behaviour_classes/twitter.py: bafybeih4brbfujabuewatgjuv57bojqoyjaaxfcukdks4zjx4lda7kngee
   behaviours.py: bafybeiefzilxxfchw2kaueucubyzyhd2aactm3amcit2pun6sdi55bfhli
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeibnltvggikd2schhdzch5wfl2iuiwqczk4rjw2w6k7yodnc2xwkuq
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
-  models.py: bafybeidqgsuwgverh4lk7w2sps4jsx3mllluygukdqh55fp7i7mksuyi3i
+  models.py: bafybeihwktpigm5sejfr65kwpefgibnkypqna65h56nd7ndbuk57zcifbm
   payloads.py: bafybeih4d7lg45dqd6ygrxmurifhlusur6kfp42msavv7bf3dy53fjjyeu
   prompts.py: bafybeidnxggddbatrftkdwhj33l7z4rnkzbnepqmk4irzrjbigcwhh6pfu
   rounds.py: bafybeign45ht53dhuwy2vi7vuylb3hsozmypvp7stojpzwqjhy4pwtzvdi
@@ -178,6 +178,11 @@ models:
       staking_token_contract_address: '0x0000000000000000000000000000000000000000'
       activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
       tx_loop_breaker_count: 3
+      tools_for_mech:
+        openai-gpt-3.5-turbo: This tool generates a tweet based on a given prompt
+          using the OpenAI GPT-3.5-turbo model
+        sentiment-analysis: This tool generates a sentiment analysis of a given text
+          using the OpenAI GPT-3.5-turbo model
       multisend_batch_size: ${int:50}
       mech_request_price: null
       mech_contract_address: ${str:0x111D7DB1B752AB4D2cC0286983D9bd73a49bac6c}

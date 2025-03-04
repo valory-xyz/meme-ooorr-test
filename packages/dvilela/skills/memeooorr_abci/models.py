@@ -154,4 +154,6 @@ class Params(MechParams):  # pylint: disable=too-many-instance-attributes
         )
         self.tx_loop_breaker_count = self._ensure("tx_loop_breaker_count", kwargs, int)
 
+        self.tools_for_mech: dict = self._ensure("tools_for_mech", kwargs, None)
+
         super().__init__(*args, **kwargs)

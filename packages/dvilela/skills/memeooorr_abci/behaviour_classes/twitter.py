@@ -51,10 +51,6 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
-TEMP_TOOLS_LIST = """
-openai-gpt-3.5-turbo: This tool generates a tweet based on a given prompt using the OpenAI GPT-3.5-turbo model.
-"""
-
 MAX_TWEET_CHARS = 280
 JSON_RESPONSE_REGEXES = [r"json.?({.*})", r"json({.*})", r"\`\`\`json(.*)\`\`\`"]
 MAX_TWEET_PREPARATIONS_RETRIES = 3
@@ -547,13 +543,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 previous_tweets=previous_tweets,
                 other_tweets=other_tweets,
                 mech_response=subprompt_with_mech_response,
-                tools=TEMP_TOOLS_LIST,
+                tools=self.generate_tool_info(),
                 time=self.get_sync_time_str(),
-            )
-
-            llm_response = yield from self._call_genai(
-                prompt=prompt,
-                schema=build_decision_schema(),
             )
 
             # clearing the previous tweets and other tweets from db
@@ -593,14 +584,14 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             else:
                 previous_tweets = "No previous tweets"  # type: ignore
 
-                prompt = TWITTER_DECISION_PROMPT.format(
-                    persona=persona,
-                    previous_tweets=previous_tweets,
-                    other_tweets=other_tweets,
-                    mech_response="",
-                    tools=TEMP_TOOLS_LIST,
-                    time=self.get_sync_time_str(),
-                )
+            prompt = TWITTER_DECISION_PROMPT.format(
+                persona=persona,
+                previous_tweets=previous_tweets,
+                other_tweets=other_tweets,
+                mech_response="",
+                tools=self.generate_tool_info(),
+                time=self.get_sync_time_str(),
+            )
             llm_response = yield from self._call_genai(
                 prompt=prompt,
                 schema=build_decision_schema(),
@@ -767,6 +758,19 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         else:
             self.context.logger.error("Invalid response from the LLM.")
             return Event.ERROR.value, new_interacted_tweet_ids, []
+
+    def generate_tool_info(self) -> str:
+        """Generate tool info"""
+
+        tools_dict = self.params.tools_for_mech
+        tools_info = "\n" + "\n".join(
+            [
+                f"- {tool_name}: {tool_description}"
+                for tool_name, tool_description in tools_dict.items()
+            ]
+        )
+        self.context.logger.info(tools_info)
+        return tools_info
 
 
 class ActionTweetBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-ancestors
