@@ -34,8 +34,8 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
     ALTERNATIVE_MODEL_TWITTER_PROMPT,
-    TWITTER_DECISION_PROMPT_WITH_MECH_RESPONSE,
-    TWITTER_DECISION_PROMPT_WITH_TOOLS,
+    TWITTER_DECISION_PROMPT,
+    MECH_RESPONSE_SUBPROMPT,
     build_decision_schema,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
@@ -334,21 +334,20 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 mech_requests = json.dumps(new_mech_requests, sort_keys=True)
                 self.context.logger.info(f"Mech Requests JSON: {mech_requests}")
 
-            # add new prop to payload for tx_submitter and check for it in posttxround
-            if event == Event.MECH.value:
-                payload = EngageTwitterPayload(
-                    sender=self.context.agent_address,
-                    event=event,
-                    mech_request=json.dumps(new_mech_requests, sort_keys=True),
-                    tx_submitter=self.matching_round.auto_round_id(),
-                )
-            else:
-                payload = EngageTwitterPayload(
-                    sender=self.context.agent_address,
-                    event=event,
-                    mech_request=None,
-                    tx_submitter=self.matching_round.auto_round_id(),
-                )
+            # Determine mech_request value based on event type
+            mech_request = (
+                json.dumps(new_mech_requests, sort_keys=True)
+                if event == Event.MECH.value
+                else None
+            )
+
+            # Create payload with appropriate mech_request value
+            payload = EngageTwitterPayload(
+                sender=self.context.agent_address,
+                event=event,
+                mech_request=mech_request,
+                tx_submitter=self.matching_round.auto_round_id(),
+            )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
             yield from self.send_a2a_transaction(payload)
@@ -462,7 +461,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
             if not pending_tweets:
                 self.context.logger.error("No pending tweets found in KV store")
-            pending_tweets = json.loads(pending_tweets["pending_tweets_for_tw_mech"])  # type: ignore
+                pending_tweets = {}
+            else:
+                pending_tweets = json.loads(pending_tweets["pending_tweets_for_tw_mech"])  # type: ignore
 
             # fetching interacted_tweet_ids from db
             interacted_tweet_ids = yield from self._read_kv(  # type: ignore
@@ -470,9 +471,11 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
             if not interacted_tweet_ids:
                 self.context.logger.error("No interacted tweets found in KV store")
-            interacted_tweet_ids = json.loads(
-                interacted_tweet_ids["interacted_tweet_ids_for_tw_mech"]  # type: ignore
-            )
+                interacted_tweet_ids = []
+            else:
+                interacted_tweet_ids = json.loads(
+                    interacted_tweet_ids["interacted_tweet_ids_for_tw_mech"]  # type: ignore
+                )
 
         # Build and post interactions
         (
@@ -514,12 +517,17 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             if not previous_tweets:
                 self.context.logger.error("No previous tweets found in KV store")
                 previous_tweets = {}
-            previous_tweets = json.loads(previous_tweets["previous_tweets_for_tw_mech"])
+            else:
+                previous_tweets = json.loads(
+                    previous_tweets["previous_tweets_for_tw_mech"]
+                )
+
             other_tweets = yield from self._read_kv(keys=("other_tweets_for_tw_mech",))
             if not other_tweets:
                 self.context.logger.error("No other tweets found in KV store")
                 other_tweets = {}
-            other_tweets = json.loads(other_tweets["other_tweets_for_tw_mech"])
+            else:
+                other_tweets = json.loads(other_tweets["other_tweets_for_tw_mech"])
 
             self.context.logger.info(
                 "Mech for twitter detected, using Mech response for decision"
@@ -529,11 +537,17 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             if not mech_responses:
                 self.context.logger.error("No mech responses found")
 
-            prompt = TWITTER_DECISION_PROMPT_WITH_MECH_RESPONSE.format(
+            # bulding prompt with subprompt
+            subprompt_with_mech_response = MECH_RESPONSE_SUBPROMPT.format(
+                mech_response=mech_responses,
+            )
+
+            prompt = TWITTER_DECISION_PROMPT.format(
                 persona=persona,
                 previous_tweets=previous_tweets,
                 other_tweets=other_tweets,
-                mech_response=mech_responses,
+                mech_response=subprompt_with_mech_response,
+                tools=TEMP_TOOLS_LIST,
                 time=self.get_sync_time_str(),
             )
 
@@ -579,13 +593,14 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             else:
                 previous_tweets = "No previous tweets"  # type: ignore
 
-            prompt = TWITTER_DECISION_PROMPT_WITH_TOOLS.format(
-                persona=persona,
-                previous_tweets=previous_tweets,
-                other_tweets=other_tweets,
-                tools=TEMP_TOOLS_LIST,  # temp setup
-                time=self.get_sync_time_str(),
-            )
+                prompt = TWITTER_DECISION_PROMPT.format(
+                    persona=persona,
+                    previous_tweets=previous_tweets,
+                    other_tweets=other_tweets,
+                    mech_response="",
+                    tools=TEMP_TOOLS_LIST,
+                    time=self.get_sync_time_str(),
+                )
             llm_response = yield from self._call_genai(
                 prompt=prompt,
                 schema=build_decision_schema(),

@@ -56,7 +56,7 @@ class PostMechRequestBehaviour(
             # check if the mech response is empty
             if not self.synchronized_data.mech_responses:
                 self.context.logger.info(
-                    "Mech response not found, the LLM will ignore the mech response"
+                    "Mech response not found"
                 )
                 payload = PostMechRequestPayload(
                     sender=sender,
@@ -64,7 +64,7 @@ class PostMechRequestBehaviour(
                 )
             else:
                 self.context.logger.error(
-                    "Mech response Found, the LLM will use the mech response"
+                    "Mech response Found"
                 )
                 payload = PostMechRequestPayload(
                     sender=sender,

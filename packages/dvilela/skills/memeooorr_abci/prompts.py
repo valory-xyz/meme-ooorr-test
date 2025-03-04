@@ -24,17 +24,21 @@ import pickle  # nosec
 import typing
 from dataclasses import dataclass
 
-
-TWITTER_DECISION_PROMPT_WITH_TOOLS = """
+TWITTER_DECISION_PROMPT = """
 You are a user on Twitter with a specific persona. You create tweets and also analyze tweets from other users and decide whether to interact with them or not.
+
+Here's your persona:
+"{persona}"
+
 
 You have the possibility to use a tool to help you decide what to do. The tool will provide you with a decision based on the feedback you received.
 The following contains the available tools, together with their descriptions:
 
-{tools}
 
-You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform.
-You must choose **either** a Twitter action **or** a Tool action, but not both.
+Available Tool actions are:
+{tools} 
+
+{mech_response}
 
 Available Twitter actions are:
 - Tweet
@@ -44,11 +48,6 @@ Available Twitter actions are:
 - Retweet
 - Follow
 
-Available Tool actions are:
-{tools} (to use a tool)
-
-Here's your persona:
-"{persona}"
 
 Here are some of your previous tweets:
 {previous_tweets}
@@ -56,6 +55,9 @@ Here are some of your previous tweets:
 Here are some tweets from other users:
 {other_tweets}
 
+
+You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform.
+You must choose **either** a Twitter action **or** a Tool action, but not both.
 
 Your task is to decide what actions to do, if any. Some recommenadations:
 - If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.
@@ -65,42 +67,15 @@ Your task is to decide what actions to do, if any. Some recommenadations:
 
 You must return a JSON object with either a "twitter_action" or a "tool_action" key, but not both.
 """
-# This is the same prmpot as the one above, but with the tool option removed and mech response provided also informing the model to use mech response which the model requested earlier
-TWITTER_DECISION_PROMPT_WITH_MECH_RESPONSE = """
-You are a user on Twitter with a specific persona. You create tweets and also analyze tweets from other users and decide whether to interact with them or not.
 
-You have the possibility to use a tool to help you decide what to do. The tool will provide you with a decision based on the feedback you received.
+
+MECH_RESPONSE_SUBPROMPT = """
+As you know You have the possibility to use a tool to help you decide what to do. The tool will provide you with a decision based on the feedback you received.
 previously you requested a mech response, so you must use the mech response to make your decision.
 
 here is the mech response:
 {mech_response}
-
-now you need to decide what actions on Twitter you want to perform. you must use the mech response to make your decision.
-
-Available Twitter actions are:
-- Tweet
-- Reply
-- Quote
-- Like
-- Retweet
-- Follow
-
-Here's your persona:
-"{persona}"
-
-Here are some of your previous tweets:
-{previous_tweets}
-
-Here are some tweets from other users:
-{other_tweets}
-
-
-Your task is to decide what actions to do, if any. Some recommenadations:
-- If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.
-- If you decide to reply or quote, make sure it is relevant to the tweet you are replying to.
-- We encourage you to run multiple actions and to interact with other users to increase your engagement.
-- Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
- """
+"""
 
 
 ALTERNATIVE_MODEL_TWITTER_PROMPT = """
