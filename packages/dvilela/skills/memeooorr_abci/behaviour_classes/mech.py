@@ -24,11 +24,7 @@ from typing import Generator, Type
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
 )
-from packages.dvilela.skills.memeooorr_abci.payloads import (
-    FailedMechRequestPayload,
-    FailedMechResponsePayload,
-    PostMechRequestPayload,
-)
+from packages.dvilela.skills.memeooorr_abci.payloads import MechPayload
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     FailedMechRequestRound,
     FailedMechResponseRound,
@@ -56,13 +52,13 @@ class PostMechRequestBehaviour(
             # check if the mech response is empty
             if not self.synchronized_data.mech_responses:
                 self.context.logger.info("Mech response not found")
-                payload = PostMechRequestPayload(
+                payload = MechPayload(
                     sender=sender,
                     mech_for_twitter=False,
                 )
             else:
                 self.context.logger.error("Mech response Found")
-                payload = PostMechRequestPayload(
+                payload = MechPayload(
                     sender=sender,
                     mech_for_twitter=True,
                 )
@@ -90,7 +86,7 @@ class FailedMechRequestBehaviour(
             )
 
             sender = self.context.agent_address
-            payload = FailedMechRequestPayload(
+            payload = MechPayload(
                 sender=sender,
                 mech_for_twitter=False,
             )
@@ -118,7 +114,7 @@ class FailedMechResponseBehaviour(
             )
 
             sender = self.context.agent_address
-            payload = FailedMechResponsePayload(
+            payload = MechPayload(
                 sender=sender,
                 mech_for_twitter=False,
             )
