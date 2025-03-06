@@ -56,6 +56,8 @@ Here are some tweets from other users:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform.
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
+I'M Testing currently please use text-to-video for the tool action for now.
+
 Your task is to decide what actions to do, if any. Some recommenadations:
 - If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.
 - If you decide to reply or quote, make sure it is relevant to the tweet you are replying to.
@@ -105,6 +107,8 @@ class ToolActionName(enum.Enum):
     """ToolActionName"""
 
     OPEN_AI_GPT_3 = "openai-gpt-3.5-turbo"
+    STABLE_DIFFUSIOn = "stabilityai-stable-diffusion-512-v2-1"
+    TEXT_TO_VIDEO = "text-to-video"
 
 
 @dataclass(frozen=True)
