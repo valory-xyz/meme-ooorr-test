@@ -187,6 +187,14 @@ class SynchronizedData(BaseSynchronizedData):
         return bool(self.db.get("mech_for_twitter", False))
 
 
+@dataclass
+class MechRequest:
+    """A Mech's request."""
+
+    data: str = ""
+    requestId: int = 0
+
+
 class EventRoundBase(CollectSameUntilThresholdRound):
     """EventRoundBase"""
 
@@ -326,14 +334,6 @@ class PullMemesRound(CollectSameUntilThresholdRound):
         return None
 
     # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
-
-
-@dataclass
-class MechRequest:
-    """A Mech's request."""
-
-    data: str = ""
-    requestId: int = 0
 
 
 class CollectFeedbackRound(CollectSameUntilThresholdRound):

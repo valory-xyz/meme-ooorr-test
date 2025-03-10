@@ -41,6 +41,7 @@ Available Tool actions are:
 
 Available Twitter actions are:
 - Tweet
+- Tweet With Media
 - Reply
 - Quote
 - Like
@@ -56,10 +57,12 @@ Here are some tweets from other users:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform.
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
-I'M Testing currently please use text-to-video for the tool action for now.
+I'M Testing currently please use stabilityai-stable-diffusion-v1-6 for the tool action for now. but if mech response if found then use that.
 
 Your task is to decide what actions to do, if any. Some recommenadations:
 - If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.
+- If you receive a mech response, you must use the mech response to make your twitter action decision and use Tweet With Media.
+- You can not use a tool if mech response is found.
 - If you decide to reply or quote, make sure it is relevant to the tweet you are replying to.
 - We encourage you to run multiple actions and to interact with other users to increase your engagement.
 - Pay attention to the time of creation of your previous tweets. You should not create new tweets too frequently. The time now is {time}.
@@ -101,13 +104,14 @@ class TwitterActionName(enum.Enum):
     REPLY = "reply"
     QUOTE = "quote"
     FOLLOW = "follow"
+    TWEET_WITH_MEDIA = "tweet_with_media"
 
 
 class ToolActionName(enum.Enum):
     """ToolActionName"""
 
     OPEN_AI_GPT_3 = "openai-gpt-3.5-turbo"
-    STABLE_DIFFUSIOn = "stabilityai-stable-diffusion-512-v2-1"
+    STABLE_DIFFUSION = "stabilityai-stable-diffusion-v1-6"
     TEXT_TO_VIDEO = "text-to-video"
 
 
