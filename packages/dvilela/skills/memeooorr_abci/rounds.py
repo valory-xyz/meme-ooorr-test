@@ -36,7 +36,7 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     FailedMechRequestPayload,
     FailedMechResponsePayload,
     LoadDatabasePayload,
-    PostMechRequestPayload,
+    PostMechResponsePayload,
     PostTxDecisionMakingPayload,
     PullMemesPayload,
     TransactionLoopCheckPayload,
@@ -439,21 +439,23 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
 
 
 # This post mech round is the Happy path for the mech_interaction_abci
-class PostMechRequestRound(CollectSameUntilThresholdRound):
-    """PostMechRequestRound"""
+class PostMechResponseRound(CollectSameUntilThresholdRound):
+    """PostMechResponseRound"""
 
-    payload_class = PostMechRequestPayload
+    payload_class = PostMechResponsePayload
     synchronized_data_class = SynchronizedData
     extended_requirements = ()
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            payload = PostMechRequestPayload(
+            payload = PostMechResponsePayload(
                 *(("dummy_sender",) + self.most_voted_payload_values)
             )
 
-            self.context.logger.info(f"PostMechRequestRound payload recived: {payload}")
+            self.context.logger.info(
+                f"PostMechResponseRound payload recived: {payload}"
+            )
 
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
@@ -792,7 +794,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         PullMemesRound,
         ActionPreparationRound,
         PostTxDecisionMakingRound,
-        PostMechRequestRound,
+        PostMechResponseRound,
         TransactionLoopCheckRound,
         FailedMechRequestRound,
         FailedMechResponseRound,
@@ -865,10 +867,10 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: CallCheckpointRound,
             Event.NO_MAJORITY: CallCheckpointRound,
         },
-        PostMechRequestRound: {
+        PostMechResponseRound: {
             Event.DONE: EngageTwitterRound,
-            Event.NO_MAJORITY: PostMechRequestRound,
-            Event.ROUND_TIMEOUT: PostMechRequestRound,
+            Event.NO_MAJORITY: PostMechResponseRound,
+            Event.ROUND_TIMEOUT: PostMechResponseRound,
         },
         TransactionLoopCheckRound: {
             Event.DONE: FinishedToResetRound,
@@ -907,7 +909,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         ActionPreparationRound: set(),
         PostTxDecisionMakingRound: set(),
         TransactionLoopCheckRound: set(),
-        PostMechRequestRound: set(),
+        PostMechResponseRound: set(),
         FailedMechRequestRound: set(),
         FailedMechResponseRound: set(),
     }

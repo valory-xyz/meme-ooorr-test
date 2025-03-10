@@ -118,8 +118,8 @@ class CallCheckpointPayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
-class PostMechRequestPayload(BaseTxPayload):
-    """Represent a transaction payload for the PostMechRequestRound."""
+class PostMechResponsePayload(BaseTxPayload):
+    """Represent a transaction payload for the PostMechResponseRound."""
 
     mech_for_twitter: bool
 

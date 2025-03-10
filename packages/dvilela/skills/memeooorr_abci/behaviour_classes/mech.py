@@ -34,22 +34,22 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 from packages.dvilela.skills.memeooorr_abci.payloads import (
     FailedMechRequestPayload,
     FailedMechResponsePayload,
-    PostMechRequestPayload,
+    PostMechResponsePayload,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
     FailedMechRequestRound,
     FailedMechResponseRound,
-    PostMechRequestRound,
+    PostMechResponseRound,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
 
-class PostMechRequestBehaviour(
+class PostMechResponseBehaviour(
     MemeooorrBaseBehaviour
 ):  # pylint: disable=too-many-ancestors
-    """PostMechRequestBehaviour"""
+    """PostMechResponseBehaviour"""
 
-    matching_round: Type[AbstractRound] = PostMechRequestRound
+    matching_round: Type[AbstractRound] = PostMechResponseRound
 
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""
@@ -93,7 +93,7 @@ class PostMechRequestBehaviour(
                 # mech_for_twitter remains False if no responses
 
             sender = self.context.agent_address
-            payload = PostMechRequestPayload(
+            payload = PostMechResponsePayload(
                 sender=sender,
                 mech_for_twitter=mech_for_twitter,
             )

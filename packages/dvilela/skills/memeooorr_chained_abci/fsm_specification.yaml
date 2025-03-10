@@ -48,7 +48,7 @@ states:
 - LoadDatabaseRound
 - MechRequestRound
 - MechResponseRound
-- PostMechRequestRound
+- PostMechResponseRound
 - PostTxDecisionMakingRound
 - PullMemesRound
 - RandomnessTransactionSubmissionRound
@@ -133,12 +133,12 @@ transition_func:
     (MechRequestRound, NO_MAJORITY): MechRequestRound
     (MechRequestRound, ROUND_TIMEOUT): MechRequestRound
     (MechRequestRound, SKIP_REQUEST): FailedMechRequestRound
-    (MechResponseRound, DONE): PostMechRequestRound
+    (MechResponseRound, DONE): PostMechResponseRound
     (MechResponseRound, NO_MAJORITY): MechResponseRound
     (MechResponseRound, ROUND_TIMEOUT): FailedMechResponseRound
-    (PostMechRequestRound, DONE): EngageTwitterRound
-    (PostMechRequestRound, NO_MAJORITY): PostMechRequestRound
-    (PostMechRequestRound, ROUND_TIMEOUT): PostMechRequestRound
+    (PostMechResponseRound, DONE): EngageTwitterRound
+    (PostMechResponseRound, NO_MAJORITY): PostMechResponseRound
+    (PostMechResponseRound, ROUND_TIMEOUT): PostMechResponseRound
     (PostTxDecisionMakingRound, ACTION): ActionPreparationRound
     (PostTxDecisionMakingRound, DONE): ResetAndPauseRound
     (PostTxDecisionMakingRound, MECH): MechResponseRound

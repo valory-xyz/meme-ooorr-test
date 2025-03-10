@@ -538,31 +538,88 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         new_interacted_tweet_ids: List[int] = []
         persona = yield from self.get_persona()
 
-        # Prepare prompt data based on whether we're using mech_for_twitter
-        prompt, previous_tweets = yield from self._prepare_prompt_data(
-            pending_tweets, persona
-        )
+        # Track retry attempts
+        max_retries = 3
+        retry_count = 0
+        valid_response = False
 
-        # Get LLM decision about how to interact with tweets
-        llm_response = yield from self._get_llm_decision(prompt)
-        if llm_response is None:
-            self.context.logger.error("Error getting a response from the LLM.")
-            return Event.ERROR.value, new_interacted_tweet_ids, []
-
-        # Parse LLM response
-        try:
-            json_response = json.loads(llm_response)
-            self.context.logger.info(
-                f"LLM response after JSON parsing: {json_response}"
+        while not valid_response and retry_count < max_retries:
+            # Prepare prompt data based on whether we're using mech_for_twitter
+            prompt, previous_tweets = yield from self._prepare_prompt_data(
+                pending_tweets, persona
             )
-        except json.JSONDecodeError as e:
-            self.context.logger.error(f"Error decoding LLM response: {e}")
-            self.context.logger.error(f"LLM Response: {llm_response}")
+
+            # Get LLM decision about how to interact with tweets
+            llm_response = yield from self._get_llm_decision(prompt)
+            if llm_response is None:
+                self.context.logger.error("Error getting a response from the LLM.")
+                return Event.ERROR.value, new_interacted_tweet_ids, []
+
+            # Parse LLM response
+            try:
+                json_response = json.loads(llm_response)
+                self.context.logger.info(
+                    f"LLM response after JSON parsing: {json_response}"
+                )
+
+                # Validate response based on mech_for_twitter state
+                if self.synchronized_data.mech_for_twitter:
+                    # When we have a mech response, we should get a tweet_with_media action
+                    if (
+                        "tweet_action" in json_response
+                        and json_response["tweet_action"] is not None
+                        and json_response["tweet_action"].get("action")
+                        == "tweet_with_media"
+                    ):
+                        valid_response = True
+                    else:
+                        self.context.logger.warning(
+                            "Invalid response from LLM when mech_for_twitter is True. "
+                            "Expected tweet_with_media action. Retrying..."
+                        )
+                        retry_count += 1
+                        continue
+                else:
+                    # For normal flow, any valid response is acceptable
+                    if (
+                        "tweet_action" in json_response
+                        and json_response["tweet_action"] is not None
+                    ) or (
+                        "tool_action" in json_response
+                        and json_response["tool_action"] is not None
+                    ):
+                        valid_response = True
+                    else:
+                        self.context.logger.warning(
+                            "Invalid response from LLM. Retrying..."
+                        )
+                        retry_count += 1
+                        continue
+
+            except json.JSONDecodeError as e:
+                self.context.logger.error(f"Error decoding LLM response: {e}")
+                self.context.logger.error(f"LLM Response: {llm_response}")
+                retry_count += 1
+                continue
+
+        # If we couldn't get a valid response after max retries
+        if not valid_response:
+            self.context.logger.error(
+                f"Failed to get valid response after {max_retries} attempts"
+            )
             return Event.ERROR.value, new_interacted_tweet_ids, []
 
         # Handle tool action if present
         if "tool_action" in json_response and json_response["tool_action"] is not None:
-            # Directly return the result of _handle_tool_action
+            # Check if we're trying to use a tool when we should be using the mech response
+            if self.synchronized_data.mech_for_twitter:
+                self.context.logger.error(
+                    "LLM provided a tool action when mech_for_twitter is True. "
+                    "This should not happen after our validation."
+                )
+                return Event.ERROR.value, new_interacted_tweet_ids, []
+
+            # Handle the tool action normally
             event, new_interacted_tweet_id, mech_request = self._handle_tool_action(
                 json_response
             )
@@ -583,7 +640,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
             return event, new_interacted_tweet_id, mech_request
 
-        # No valid actions found
+        # This point should not be reached due to our validation
         self.context.logger.error("Invalid response from the LLM.")
         return Event.ERROR.value, new_interacted_tweet_ids, []
 

@@ -22,7 +22,7 @@ start_states:
 - FailedMechRequestRound
 - FailedMechResponseRound
 - LoadDatabaseRound
-- PostMechRequestRound
+- PostMechResponseRound
 - PostTxDecisionMakingRound
 - PullMemesRound
 - TransactionLoopCheckRound
@@ -42,7 +42,7 @@ states:
 - FinishedToResetRound
 - FinishedToSettlementRound
 - LoadDatabaseRound
-- PostMechRequestRound
+- PostMechResponseRound
 - PostTxDecisionMakingRound
 - PullMemesRound
 - TransactionLoopCheckRound
@@ -92,9 +92,9 @@ transition_func:
     (LoadDatabaseRound, DONE): CheckStakingRound
     (LoadDatabaseRound, NO_MAJORITY): LoadDatabaseRound
     (LoadDatabaseRound, ROUND_TIMEOUT): LoadDatabaseRound
-    (PostMechRequestRound, DONE): EngageTwitterRound
-    (PostMechRequestRound, NO_MAJORITY): PostMechRequestRound
-    (PostMechRequestRound, ROUND_TIMEOUT): PostMechRequestRound
+    (PostMechResponseRound, DONE): EngageTwitterRound
+    (PostMechResponseRound, NO_MAJORITY): PostMechResponseRound
+    (PostMechResponseRound, ROUND_TIMEOUT): PostMechResponseRound
     (PostTxDecisionMakingRound, ACTION): ActionPreparationRound
     (PostTxDecisionMakingRound, DONE): FinishedToResetRound
     (PostTxDecisionMakingRound, MECH): FinishedForMechResponseRound
