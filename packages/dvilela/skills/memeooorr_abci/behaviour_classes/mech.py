@@ -19,14 +19,13 @@
 
 """This package contains round behaviours of MemeooorrAbciApp."""
 
-import requests
 import base64
 from datetime import datetime
 import json
-import os
-from PIL import Image
-from io import BytesIO
+import tempfile
 from typing import Generator, Type
+from packages.valory.skills.abstract_round_abci.io_.store import SupportedFiletype
+
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
@@ -105,42 +104,42 @@ class PostMechResponseBehaviour(
         self.set_done()
 
     def fetch_image_data_from_ipfs(self, ipfs_link: str) -> Generator[None, None, bool]:
-        """Fetch image from IPFS link and save it directly."""
+        """Fetch image from IPFS link and save it to a temporary file."""
         try:
             self.context.logger.info(f"Fetching image from IPFS link: {ipfs_link}")
 
-            # Use requests library instead of inbuilt gethttp response method
-            response = requests.get(ipfs_link)
+            # Extract the IPFS hash from the URL
+            path_parts = ipfs_link.split("/")
+            ipfs_hash = path_parts[4]
+            self.context.logger.info(f"Extracted IPFS hash: {ipfs_hash}")
 
-            if response.status_code == 200:
+            response = yield from self.get_from_ipfs(
+                ipfs_hash=ipfs_hash, filetype=SupportedFiletype.JSON
+            )
+
+            if response:
                 try:
-                    # Parse the response JSON
-                    response_json = response.json()
+                    # The response from get_from_ipfs is already a Python dictionary
+                    if "result" in response:
+                        # The result field is a JSON string that needs to be parsed
+                        result_data = json.loads(response["result"])
 
-                    # The response contains a 'result' field that is a JSON string that needs to be parsed
-                    if "result" in response_json:
-                        # Parse the result string to get the actual data structure
-                        result_data = json.loads(response_json["result"])
-
-                        # Process artifacts similarly to the to_png function
+                        # Process artifacts
                         if "artifacts" in result_data and result_data["artifacts"]:
                             # Get the first artifact's base64 data
                             image_base64 = result_data["artifacts"][0]["base64"]
                             image_data = base64.b64decode(image_base64)
 
-                            # Create output directory if needed
+                            # Create a temporary file with a specific suffix for the image
                             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                            image_filename = f"image_{timestamp}.png"
-                            image_dir = "/home/xzat/personal/twikit-stress-test/image"
-                            os.makedirs(image_dir, exist_ok=True)
-
-                            # Save image directly to file
-                            image_path = os.path.join(image_dir, image_filename)
-                            with open(image_path, "wb") as f:
-                                f.write(image_data)
+                            with tempfile.NamedTemporaryFile(
+                                suffix=f"_{timestamp}.png", delete=False
+                            ) as temp_file:
+                                temp_file.write(image_data)
+                                image_path = temp_file.name
 
                             self.context.logger.info(
-                                f"Successfully saved image to {image_path}"
+                                f"Successfully saved image to temporary file: {image_path}"
                             )
 
                             # Store the image path in the context
@@ -163,9 +162,7 @@ class PostMechResponseBehaviour(
                     self.context.logger.error(traceback.format_exc())
                     return False
             else:
-                self.context.logger.error(
-                    f"Failed to fetch image: HTTP {response.status_code}"
-                )
+                self.context.logger.error("Failed to fetch image: Empty response")
                 return False
 
         except Exception as e:
@@ -174,7 +171,6 @@ class PostMechResponseBehaviour(
 
             self.context.logger.error(traceback.format_exc())
             return False
-
 
 class FailedMechRequestBehaviour(
     MemeooorrBaseBehaviour

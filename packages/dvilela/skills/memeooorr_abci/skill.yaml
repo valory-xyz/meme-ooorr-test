@@ -10,10 +10,10 @@ fingerprint:
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeia34tmkof6pprnsuovywixxa3llyi6g7ki2mxfimcnp7v6x7cdwny
   behaviour_classes/chain.py: bafybeihkvrx2upmrexrr53hiojpeuxvwhb5lr5uujhm32a4azus7q4546q
-  behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
+  behaviour_classes/db.py: bafybeid27emt2e3uk32lrqraw4jxaoq7qi3wdqxs7fp3bbccgfofxjtcrq
   behaviour_classes/llm.py: bafybeia6pr7dzvrx4hdns2xhfz3s323oz5jfboy3x2f7tnbch6pnafihwy
-  behaviour_classes/mech.py: bafybeihbzoy3kp5qiqqlnhytlzh62bkc57iyuqlvlgfd6eh5x6pka7wc64
-  behaviour_classes/twitter.py: bafybeiae4sad2o2sz2owhi75zoptcgenvf753lftyg2zy62znssr2k5mru
+  behaviour_classes/mech.py: bafybeiekdhsc7aslceiyqgk7v5du6tdkqcmse4sbhkvn6y6igezufbzyh4
+  behaviour_classes/twitter.py: bafybeib3cpnsqy7revjfo4hoera5tpo32cgbqfw6gxffay6m3f2vfw5wpe
   behaviours.py: bafybeicsif4jpkuq4a5ijgj63s5zn4mskmakuddgiquqb4vrlz3trqa7fu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeigentt3vsdpeikkvsry6kyya4c2cnfdstg2l6adgwprwel7tqpeuq
@@ -27,7 +27,7 @@ fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiecnl7yc5qx6x4q7467i66ehmfw4qydnnry7tjs7plqeytb6ueyvu
 - dvilela/twikit:0.1.0:bafybeifvuk57umzfj7epjjpaw7s27wyc4gewpjp6zrszdyfijcmbjmarju
-- dvilela/mirror_db:0.1.0:bafybeifhl7e5odr53pbz2bog3tysyyfnimrz2acksgnal4yza4faxam6pa
+- dvilela/mirror_db:0.1.0:bafybeichyu6kg4w3j64cqd4t4tb73l4nh7zztc3mpdfzrnj4mahl2zyumy
 - dvilela/genai:0.1.0:bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty
 - valory/http_server:0.22.0:bafybeic3jpkum7g6qo6x6vdrmvvhj7vqw7ec2op72uc3yfhmnlp5hn3joy
 contracts:
@@ -45,7 +45,7 @@ protocols:
 skills:
 - valory/abstract_round_abci:0.1.0:bafybeia27qmw6w5ds5fcrpj2475brnz742aampe3sgochloijs2l7jovai
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
-- valory/mech_interact_abci:0.1.0:bafybeicendtz35so7icwdwmcy4lniinuorshwjio2l7ulj7keendtuk27q
+- valory/mech_interact_abci:0.1.0:bafybeiddxoc3nmgkzu34zyjp2kad3hgzmsuxj5uxyoare4tku6was54cwi
 behaviours:
   main:
     args: {}

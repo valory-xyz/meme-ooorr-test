@@ -542,13 +542,29 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         max_retries = 3
         retry_count = 0
         valid_response = False
+        json_response = None
 
-        while not valid_response and retry_count < max_retries:
-            # Prepare prompt data based on whether we're using mech_for_twitter
+        # Try to get the previously stored prompt first
+        stored_prompt_data = yield from self._read_kv(keys=("last_prompt",))
+        stored_prompt = (
+            stored_prompt_data.get("last_prompt") if stored_prompt_data else None
+        )
+
+        # Check if we should use a stored prompt or generate a new one
+        if stored_prompt and retry_count > 0:
+            self.context.logger.info("Using previously stored prompt")
+            prompt = stored_prompt
+            # We still need previous_tweets for potential media handling
+            previous_tweets = yield from self._get_stored_kv_data(
+                "previous_tweets_for_tw_mech", {}
+            )
+        else:
+            # Generate a new prompt and store it
             prompt, previous_tweets = yield from self._prepare_prompt_data(
                 pending_tweets, persona
             )
 
+        while not valid_response and retry_count < max_retries:
             # Get LLM decision about how to interact with tweets
             llm_response = yield from self._get_llm_decision(prompt)
             if llm_response is None:
@@ -562,44 +578,25 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                     f"LLM response after JSON parsing: {json_response}"
                 )
 
-                # Validate response based on mech_for_twitter state
-                if self.synchronized_data.mech_for_twitter:
-                    # When we have a mech response, we should get a tweet_with_media action
-                    if (
-                        "tweet_action" in json_response
-                        and json_response["tweet_action"] is not None
-                        and json_response["tweet_action"].get("action")
-                        == "tweet_with_media"
-                    ):
-                        valid_response = True
-                    else:
-                        self.context.logger.warning(
-                            "Invalid response from LLM when mech_for_twitter is True. "
-                            "Expected tweet_with_media action. Retrying..."
-                        )
-                        retry_count += 1
-                        continue
+                # Validate response format
+                if self._validate_llm_response(json_response):
+                    valid_response = True
                 else:
-                    # For normal flow, any valid response is acceptable
-                    if (
-                        "tweet_action" in json_response
-                        and json_response["tweet_action"] is not None
-                    ) or (
-                        "tool_action" in json_response
-                        and json_response["tool_action"] is not None
-                    ):
-                        valid_response = True
-                    else:
-                        self.context.logger.warning(
-                            "Invalid response from LLM. Retrying..."
-                        )
-                        retry_count += 1
-                        continue
+                    retry_count += 1
+                    self.context.logger.warning(
+                        f"Invalid response format from LLM (attempt {retry_count}/{max_retries})"
+                    )
+                    # If we need to retry, use the stored prompt
+                    if retry_count > 0 and stored_prompt:
+                        prompt = stored_prompt
 
             except json.JSONDecodeError as e:
                 self.context.logger.error(f"Error decoding LLM response: {e}")
                 self.context.logger.error(f"LLM Response: {llm_response}")
                 retry_count += 1
+                # If we need to retry, use the stored prompt
+                if retry_count > 0 and stored_prompt:
+                    prompt = stored_prompt
                 continue
 
         # If we couldn't get a valid response after max retries
@@ -611,7 +608,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         # Handle tool action if present
         if "tool_action" in json_response and json_response["tool_action"] is not None:
-            # Check if we're trying to use a tool when we should be using the mech response
+            # The validation should have already caught this, but double-check
             if self.synchronized_data.mech_for_twitter:
                 self.context.logger.error(
                     "LLM provided a tool action when mech_for_twitter is True. "
@@ -738,6 +735,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
             self.context.logger.info("Wrote other tweets to db")
 
+        # saving the prompt to the kv store for retrying if llm response is invalid
+        yield from self._write_kv({"last_prompt": prompt})
+
         return prompt, previous_tweets
 
     def _get_stored_kv_data(
@@ -760,9 +760,72 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         self.context.logger.info(f"LLM response for twitter decision: {llm_response}")
         return llm_response
 
+    def _validate_llm_response(self, json_response: dict) -> bool:
+        """Validate that the LLM response has either valid tweet_action or valid tool_action"""
+        # If mech_for_twitter is True, only tweet_action with 'tweet_with_media' is allowed
+        if self.synchronized_data.mech_for_twitter:
+            if (
+                "tweet_action" in json_response
+                and json_response["tweet_action"] is not None
+            ):
+                # Check both possible field names: action_type (schema format) and action (actual response format)
+                action = json_response["tweet_action"].get(
+                    "action_type", json_response["tweet_action"].get("action")
+                )
+                if action == "tweet_with_media":
+                    # Ensure we have the required text field for media tweet
+                    if "text" in json_response["tweet_action"]:
+                        return True
+                    else:
+                        self.context.logger.error(
+                            "Invalid tweet_with_media action: missing 'text' field"
+                        )
+                        return False
+
+            self.context.logger.error(
+                "Invalid LLM response: expected tweet_action with type 'tweet_with_media' when mech_for_twitter is True"
+            )
+            return False
+
+        # Normal validation when mech_for_twitter is False
+        if (
+            "tweet_action" in json_response
+            and json_response["tweet_action"] is not None
+        ):
+            return True
+
+        if "tool_action" in json_response and json_response["tool_action"] is not None:
+            # Ensure tool_action has both required fields
+            if (
+                "tool_name" not in json_response["tool_action"]
+                or "tool_input" not in json_response["tool_action"]
+            ):
+                self.context.logger.error(
+                    f"Invalid tool_action format: missing required fields. Got: {json_response['tool_action']}"
+                )
+                return False
+            return True
+
+        self.context.logger.error(
+            "Invalid LLM response: neither tweet_action nor tool_action is valid"
+        )
+        return False
+
     def _handle_tool_action(self, json_response: dict) -> Tuple[str, List, List]:
         """Handle tool action from LLM response."""
         self.context.logger.info("Tool action detected")
+
+        # Validate that we have both tool_name and tool_input
+        if (
+            "tool_action" not in json_response
+            or not json_response["tool_action"]
+            or "tool_name" not in json_response["tool_action"]
+            or "tool_input" not in json_response["tool_action"]
+        ):
+            self.context.logger.error(
+                "Invalid tool action: missing tool_name or tool_input"
+            )
+            return Event.ERROR.value, [], []
 
         new_mech_requests = []
         nonce = str(uuid4())
