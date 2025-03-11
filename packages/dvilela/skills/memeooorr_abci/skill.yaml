@@ -10,24 +10,24 @@ fingerprint:
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeia34tmkof6pprnsuovywixxa3llyi6g7ki2mxfimcnp7v6x7cdwny
   behaviour_classes/chain.py: bafybeihkvrx2upmrexrr53hiojpeuxvwhb5lr5uujhm32a4azus7q4546q
-  behaviour_classes/db.py: bafybeid27emt2e3uk32lrqraw4jxaoq7qi3wdqxs7fp3bbccgfofxjtcrq
+  behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
   behaviour_classes/llm.py: bafybeia6pr7dzvrx4hdns2xhfz3s323oz5jfboy3x2f7tnbch6pnafihwy
-  behaviour_classes/mech.py: bafybeiekdhsc7aslceiyqgk7v5du6tdkqcmse4sbhkvn6y6igezufbzyh4
-  behaviour_classes/twitter.py: bafybeib3cpnsqy7revjfo4hoera5tpo32cgbqfw6gxffay6m3f2vfw5wpe
+  behaviour_classes/mech.py: bafybeifv45xgcpwkyzrf5q326pzgojdyj4egkz7zbiixmxr5kyraqsduv4
+  behaviour_classes/twitter.py: bafybeiack736y3qtrejevdck6ar2inlq4bof34j2tajvt6nbmgr4w5hjvi
   behaviours.py: bafybeicsif4jpkuq4a5ijgj63s5zn4mskmakuddgiquqb4vrlz3trqa7fu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeigentt3vsdpeikkvsry6kyya4c2cnfdstg2l6adgwprwel7tqpeuq
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeihwktpigm5sejfr65kwpefgibnkypqna65h56nd7ndbuk57zcifbm
   payloads.py: bafybeibh4ct2k5epnedcbuhf2f2uh3isecjq4aqhnkkqmmepozlijgpgqi
-  prompts.py: bafybeidemq66vfo6wuujwealmfn246kdf7az7edynebembcuotcnyg6iei
+  prompts.py: bafybeibilzodnx4nu3scgaa5vlbddoypxjqy3gqupmymr5xdmnjamte7iu
   rounds.py: bafybeibpbkdterwo23isnwnvfuqeigkidt36lgz3rxjx5blhixefbezx3a
   rounds_info.py: bafybeib6a5a7bvwvfiscnbhsc6sejloelyglnu6lwbeeileyxrsgkxcb6a
 fingerprint_ignore_patterns: []
 connections:
 - dvilela/kv_store:0.1.0:bafybeiecnl7yc5qx6x4q7467i66ehmfw4qydnnry7tjs7plqeytb6ueyvu
 - dvilela/twikit:0.1.0:bafybeifvuk57umzfj7epjjpaw7s27wyc4gewpjp6zrszdyfijcmbjmarju
-- dvilela/mirror_db:0.1.0:bafybeichyu6kg4w3j64cqd4t4tb73l4nh7zztc3mpdfzrnj4mahl2zyumy
+- dvilela/mirror_db:0.1.0:bafybeifhl7e5odr53pbz2bog3tysyyfnimrz2acksgnal4yza4faxam6pa
 - dvilela/genai:0.1.0:bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty
 - valory/http_server:0.22.0:bafybeic3jpkum7g6qo6x6vdrmvvhj7vqw7ec2op72uc3yfhmnlp5hn3joy
 contracts:

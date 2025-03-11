@@ -531,7 +531,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         )
         self.context.logger.info("Updated interacted tweets in db")
 
-    def interact_twitter(
+    def interact_twitter(  # pylint: disable=too-many-locals
         self, pending_tweets: dict
     ) -> Generator[None, None, Tuple[str, List, List]]:
         """Decide whether to interact with tweets based on the persona's preferences."""
@@ -579,7 +579,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 )
 
                 # Validate response format
-                if self._validate_llm_response(json_response):
+                if json_response is not None and self._validate_llm_response(
+                    json_response
+                ):
                     valid_response = True
                 else:
                     retry_count += 1
@@ -600,11 +602,14 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 continue
 
         # If we couldn't get a valid response after max retries
-        if not valid_response:
+        if not valid_response or json_response is None:
             self.context.logger.error(
                 f"Failed to get valid response after {max_retries} attempts"
             )
             return Event.ERROR.value, new_interacted_tweet_ids, []
+
+        # At this point, json_response must be valid and not None
+        assert json_response is not None, "json_response should not be None here"
 
         # Handle tool action if present
         if "tool_action" in json_response and json_response["tool_action"] is not None:
@@ -760,7 +765,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         self.context.logger.info(f"LLM response for twitter decision: {llm_response}")
         return llm_response
 
-    def _validate_llm_response(self, json_response: dict) -> bool:
+    def _validate_llm_response(  # pylint: disable=too-many-return-statements
+        self, json_response: dict
+    ) -> bool:
         """Validate that the LLM response has either valid tweet_action or valid tool_action"""
         # If mech_for_twitter is True, only tweet_action with 'tweet_with_media' is allowed
         if self.synchronized_data.mech_for_twitter:
@@ -776,11 +783,11 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                     # Ensure we have the required text field for media tweet
                     if "text" in json_response["tweet_action"]:
                         return True
-                    else:
-                        self.context.logger.error(
-                            "Invalid tweet_with_media action: missing 'text' field"
-                        )
-                        return False
+
+                    self.context.logger.error(
+                        "Invalid tweet_with_media action: missing 'text' field"
+                    )
+                    return False
 
             self.context.logger.error(
                 "Invalid LLM response: expected tweet_action with type 'tweet_with_media' when mech_for_twitter is True"
