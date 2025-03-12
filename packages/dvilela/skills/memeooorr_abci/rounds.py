@@ -33,10 +33,8 @@ from packages.dvilela.skills.memeooorr_abci.payloads import (
     CheckStakingPayload,
     CollectFeedbackPayload,
     EngageTwitterPayload,
-    FailedMechRequestPayload,
-    FailedMechResponsePayload,
     LoadDatabasePayload,
-    PostMechResponsePayload,
+    MechPayload,
     PostTxDecisionMakingPayload,
     PullMemesPayload,
     TransactionLoopCheckPayload,
@@ -439,22 +437,25 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
 
 
 # This post mech round is the Happy path for the mech_interaction_abci
-class PostMechResponseRound(CollectSameUntilThresholdRound):
-    """PostMechResponseRound"""
+class MechRoundBase(CollectSameUntilThresholdRound):
+    """Base class for Mech-related rounds to reduce code duplication"""
 
-    payload_class = PostMechResponsePayload
     synchronized_data_class = SynchronizedData
     extended_requirements = ()
+
+    # children classes should set this to the appropriate payload class
+    payload_class = MechPayload
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
         if self.threshold_reached:
-            payload = PostMechResponsePayload(
+            # Create payload instance using the subclass's payload_class
+            payload = self.payload_class(
                 *(("dummy_sender",) + self.most_voted_payload_values)
             )
 
             self.context.logger.info(
-                f"PostMechResponseRound payload recived: {payload}"
+                f"{self.__class__.__name__} payload received: {payload}"
             )
 
             synchronized_data = self.synchronized_data.update(
@@ -465,8 +466,6 @@ class PostMechResponseRound(CollectSameUntilThresholdRound):
                     ): payload.mech_for_twitter,
                 },
             )
-            # This needs to be mentioned for static checkers
-            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT,
 
             return synchronized_data, Event.DONE
 
@@ -478,82 +477,28 @@ class PostMechResponseRound(CollectSameUntilThresholdRound):
         return None
 
 
-class FailedMechRequestRound(CollectSameUntilThresholdRound):
+class PostMechRequestRound(MechRoundBase):
+    """PostMechRequestRound"""
+
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
+
+
+class FailedMechRequestRound(MechRoundBase):
     """FailedMechRequestRound"""
 
-    payload_class = FailedMechRequestPayload
-    synchronized_data_class = SynchronizedData
-    extended_requirements = ()
-
-    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
-        """Process the end of the block."""
-        if self.threshold_reached:
-            # This needs to be mentioned for static checkers
-            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR
-            payload = FailedMechRequestPayload(
-                *(("dummy_sender",) + self.most_voted_payload_values)
-            )
-
-            self.context.logger.info(
-                f"FailedMechRequestRound payload recived: {payload}"
-            )
-
-            synchronized_data = self.synchronized_data.update(
-                synchronized_data_class=SynchronizedData,
-                **{
-                    get_name(
-                        SynchronizedData.mech_for_twitter
-                    ): payload.mech_for_twitter,
-                },
-            )
-
-            return synchronized_data, Event.DONE
-
-        if not self.is_majority_possible(
-            self.collection, self.synchronized_data.nb_participants
-        ):
-            return self.synchronized_data, Event.NO_MAJORITY
-
-        return None
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT , Event.ERROR
 
 
-class FailedMechResponseRound(CollectSameUntilThresholdRound):
-    """FailedMechResponseRound handles the case where the mech response is not received.it is always going to end in EngageTwitterRound"""
+class FailedMechResponseRound(MechRoundBase):
+    """FailedMechResponseRound handles the case where the mech response is not received.
 
-    payload_class = FailedMechResponsePayload
-    synchronized_data_class = SynchronizedData
-    extended_requirements = ()
+    It is always going to end in EngageTwitterRound.
+    """
 
-    def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
-        """Process the end of the block."""
-        if self.threshold_reached:
-            # This needs to be mentioned for static checkers
-            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.ERROR
-            payload = FailedMechResponsePayload(
-                *(("dummy_sender",) + self.most_voted_payload_values)
-            )
-
-            self.context.logger.info(
-                f"FailedMechResponseRound payload recived: {payload}"
-            )
-
-            synchronized_data = self.synchronized_data.update(
-                synchronized_data_class=SynchronizedData,
-                **{
-                    get_name(
-                        SynchronizedData.mech_for_twitter
-                    ): payload.mech_for_twitter,
-                },
-            )
-
-            return synchronized_data, Event.DONE
-
-        if not self.is_majority_possible(
-            self.collection, self.synchronized_data.nb_participants
-        ):
-            return self.synchronized_data, Event.NO_MAJORITY
-
-        return None
+    # This needs to be mentioned for static checkers
+    # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT , Event.ERROR
 
 
 class ActionDecisionRound(CollectSameUntilThresholdRound):
