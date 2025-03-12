@@ -145,8 +145,8 @@ ROUNDS_INFO = {
         "name": "Mech Response",
         "description": "Handles a Mech response",
     },
-    "post_mech_request_round": {
-        "name": "Post Mech Request",
-        "description": "Handles a post Mech request",
+    "post_mech_response_round": {
+        "name": "Post Mech response",
+        "description": "Handles a post Mech response",
     },
 }

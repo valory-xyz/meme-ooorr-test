@@ -8,9 +8,9 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeiacqbub377oj2uvkw3lu2u43zv5rpdd2z4jx7dailiffqttksds24
   behaviours.py: bafybeiabl3v5527rgeyehgexmfbfvya5gipr6buurvjr7rh5mhu67dwnwq
-  composition.py: bafybeiggssssihgu53n3ub3fk7p23y6whtvvfzguhaucqvynid3oc6b77u
+  composition.py: bafybeid5bpa7wkwo4zlhoheelactdqddb7iad7bsjraudnw2prlwusvo7u
   dialogues.py: bafybeiawrgmlra5f6o63nhv5kc77wvzoqmcareub3lf4qceuwpjso4pjbe
-  fsm_specification.yaml: bafybeicf2bbhgdxc5dd3ttilychmdd3tw2jyq3l5ldgxqjnhgujrdwxgfe
+  fsm_specification.yaml: bafybeigw6xxq5mscxrdroncsbdywfd2xxovlcdnhtip2h2qwu75zag6goy
   handlers.py: bafybeibw5nfno2scl5qzly3fpvodgoovikl6h3hoiiu6e4sqpbbczbzfim
   models.py: bafybeic7yeihfmzlql7gzq2jwhw7exyiq4wejaai33kqg7zcdy5d7lgzcm
 fingerprint_ignore_patterns: []
@@ -23,8 +23,8 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeigebq46oqz2mx2iajupr6p5pgm6z5pvfye5w6zypsseuqtvta7b4a
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
 - valory/termination_abci:0.1.0:bafybeieurwmfernodqyczj5ertsgfbjtjnrlgvte7sli4sajnbopty7inu
-- dvilela/memeooorr_abci:0.1.0:bafybeid24uuywqbirxeggw2suxt4uzt2d56drkw5snl5oczgk7ohsn76q4
-- valory/mech_interact_abci:0.1.0:bafybeif2tpz2zet6p4z4vi3b254oxzyyzoe5tehj3me3znzt7h7otkpd54
+- dvilela/memeooorr_abci:0.1.0:bafybeifepnkrgqs7axkbcza4emnp3tojsd5zxmruhcmiwanridknoi63ba
+- valory/mech_interact_abci:0.1.0:bafybeiddxoc3nmgkzu34zyjp2kad3hgzmsuxj5uxyoare4tku6was54cwi
 behaviours:
   main:
     args: {}
@@ -167,8 +167,8 @@ models:
       activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
       tx_loop_breaker_count: 3
       tools_for_mech:
-        openai-gpt-3.5-turbo: This tool generates a tweet based on a given prompt
-          using the OpenAI GPT-3.5-turbo model
+        stabilityai-stable-diffusion-v1-6: This tool generates an image based on a
+          given prompt using the StabilityAI Stable Diffusion v1.6 model
       mech_request_price: null
       mech_contract_address: ${str:0x111D7DB1B752AB4D2cC0286983D9bd73a49bac6c}
       mech_chain_id: base

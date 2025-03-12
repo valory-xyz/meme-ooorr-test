@@ -185,6 +185,14 @@ class SynchronizedData(BaseSynchronizedData):
         return bool(self.db.get("mech_for_twitter", False))
 
 
+@dataclass
+class MechRequest:
+    """A Mech's request."""
+
+    data: str = ""
+    requestId: int = 0
+
+
 class EventRoundBase(CollectSameUntilThresholdRound):
     """EventRoundBase"""
 
@@ -324,14 +332,6 @@ class PullMemesRound(CollectSameUntilThresholdRound):
         return None
 
     # Event.ROUND_TIMEOUT  # this needs to be mentioned for static checkers
-
-
-@dataclass
-class MechRequest:
-    """A Mech's request."""
-
-    data: str = ""
-    requestId: int = 0
 
 
 class CollectFeedbackRound(CollectSameUntilThresholdRound):
@@ -477,8 +477,8 @@ class MechRoundBase(CollectSameUntilThresholdRound):
         return None
 
 
-class PostMechRequestRound(MechRoundBase):
-    """PostMechRequestRound"""
+class PostMechResponseRound(MechRoundBase):
+    """PostMechResponseRound"""
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
@@ -739,7 +739,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         PullMemesRound,
         ActionPreparationRound,
         PostTxDecisionMakingRound,
-        PostMechRequestRound,
+        PostMechResponseRound,
         TransactionLoopCheckRound,
         FailedMechRequestRound,
         FailedMechResponseRound,
@@ -812,10 +812,10 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: CallCheckpointRound,
             Event.NO_MAJORITY: CallCheckpointRound,
         },
-        PostMechRequestRound: {
+        PostMechResponseRound: {
             Event.DONE: EngageTwitterRound,
-            Event.NO_MAJORITY: PostMechRequestRound,
-            Event.ROUND_TIMEOUT: PostMechRequestRound,
+            Event.NO_MAJORITY: PostMechResponseRound,
+            Event.ROUND_TIMEOUT: PostMechResponseRound,
         },
         TransactionLoopCheckRound: {
             Event.DONE: FinishedToResetRound,
@@ -854,7 +854,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         ActionPreparationRound: set(),
         PostTxDecisionMakingRound: set(),
         TransactionLoopCheckRound: set(),
-        PostMechRequestRound: set(),
+        PostMechResponseRound: set(),
         FailedMechRequestRound: set(),
         FailedMechResponseRound: set(),
     }

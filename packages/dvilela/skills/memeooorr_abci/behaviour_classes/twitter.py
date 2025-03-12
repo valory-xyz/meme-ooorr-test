@@ -531,38 +531,97 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         )
         self.context.logger.info("Updated interacted tweets in db")
 
-    def interact_twitter(
+    def interact_twitter(  # pylint: disable=too-many-locals
         self, pending_tweets: dict
     ) -> Generator[None, None, Tuple[str, List, List]]:
         """Decide whether to interact with tweets based on the persona's preferences."""
         new_interacted_tweet_ids: List[int] = []
         persona = yield from self.get_persona()
 
-        # Prepare prompt data based on whether we're using mech_for_twitter
-        prompt, previous_tweets = yield from self._prepare_prompt_data(
-            pending_tweets, persona
+        # Track retry attempts
+        max_retries = 3
+        retry_count = 0
+        valid_response = False
+        json_response = None
+
+        # Try to get the previously stored prompt first
+        stored_prompt_data = yield from self._read_kv(keys=("last_prompt",))
+        stored_prompt = (
+            stored_prompt_data.get("last_prompt") if stored_prompt_data else None
         )
 
-        # Get LLM decision about how to interact with tweets
-        llm_response = yield from self._get_llm_decision(prompt)
-        if llm_response is None:
-            self.context.logger.error("Error getting a response from the LLM.")
+        # Check if we should use a stored prompt or generate a new one
+        if stored_prompt and retry_count > 0:
+            self.context.logger.info("Using previously stored prompt")
+            prompt = stored_prompt
+            # We still need previous_tweets for potential media handling
+            previous_tweets = yield from self._get_stored_kv_data(
+                "previous_tweets_for_tw_mech", {}
+            )
+        else:
+            # Generate a new prompt and store it
+            prompt, previous_tweets = yield from self._prepare_prompt_data(
+                pending_tweets, persona
+            )
+
+        while not valid_response and retry_count < max_retries:
+            # Get LLM decision about how to interact with tweets
+            llm_response = yield from self._get_llm_decision(prompt)
+            if llm_response is None:
+                self.context.logger.error("Error getting a response from the LLM.")
+                return Event.ERROR.value, new_interacted_tweet_ids, []
+
+            # Parse LLM response
+            try:
+                json_response = json.loads(llm_response)
+                self.context.logger.info(
+                    f"LLM response after JSON parsing: {json_response}"
+                )
+
+                # Validate response format
+                if json_response is not None and self._validate_llm_response(
+                    json_response
+                ):
+                    valid_response = True
+                else:
+                    retry_count += 1
+                    self.context.logger.warning(
+                        f"Invalid response format from LLM (attempt {retry_count}/{max_retries})"
+                    )
+                    # If we need to retry, use the stored prompt
+                    if retry_count > 0 and stored_prompt:
+                        prompt = stored_prompt
+
+            except json.JSONDecodeError as e:
+                self.context.logger.error(f"Error decoding LLM response: {e}")
+                self.context.logger.error(f"LLM Response: {llm_response}")
+                retry_count += 1
+                # If we need to retry, use the stored prompt
+                if retry_count > 0 and stored_prompt:
+                    prompt = stored_prompt
+                continue
+
+        # If we couldn't get a valid response after max retries
+        if not valid_response or json_response is None:
+            self.context.logger.error(
+                f"Failed to get valid response after {max_retries} attempts"
+            )
             return Event.ERROR.value, new_interacted_tweet_ids, []
 
-        # Parse LLM response
-        try:
-            json_response = json.loads(llm_response)
-            self.context.logger.info(
-                f"LLM response after JSON parsing: {json_response}"
-            )
-        except json.JSONDecodeError as e:
-            self.context.logger.error(f"Error decoding LLM response: {e}")
-            self.context.logger.error(f"LLM Response: {llm_response}")
-            return Event.ERROR.value, new_interacted_tweet_ids, []
+        # At this point, json_response must be valid and not None
+        assert json_response is not None, "json_response should not be None here"
 
         # Handle tool action if present
         if "tool_action" in json_response and json_response["tool_action"] is not None:
-            # Directly return the result of _handle_tool_action
+            # The validation should have already caught this, but double-check
+            if self.synchronized_data.mech_for_twitter:
+                self.context.logger.error(
+                    "LLM provided a tool action when mech_for_twitter is True. "
+                    "This should not happen after our validation."
+                )
+                return Event.ERROR.value, new_interacted_tweet_ids, []
+
+            # Handle the tool action normally
             event, new_interacted_tweet_id, mech_request = self._handle_tool_action(
                 json_response
             )
@@ -583,7 +642,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
             return event, new_interacted_tweet_id, mech_request
 
-        # No valid actions found
+        # This point should not be reached due to our validation
         self.context.logger.error("Invalid response from the LLM.")
         return Event.ERROR.value, new_interacted_tweet_ids, []
 
@@ -681,6 +740,9 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
             self.context.logger.info("Wrote other tweets to db")
 
+        # saving the prompt to the kv store for retrying if llm response is invalid
+        yield from self._write_kv({"last_prompt": prompt})
+
         return prompt, previous_tweets
 
     def _get_stored_kv_data(
@@ -703,9 +765,97 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         self.context.logger.info(f"LLM response for twitter decision: {llm_response}")
         return llm_response
 
+    def _validate_llm_response(  # pylint: disable=too-many-return-statements
+        self, json_response: dict
+    ) -> bool:
+        """Validate that the LLM response has either valid tweet_action or valid tool_action"""
+        # If mech_for_twitter is True, only tweet_action with 'tweet_with_media' is allowed
+        if self.synchronized_data.mech_for_twitter:
+            if (
+                "tweet_action" in json_response
+                and json_response["tweet_action"] is not None
+            ):
+                # Check both possible field names: action_type (schema format) and action (actual response format)
+                action = json_response["tweet_action"].get(
+                    "action_type", json_response["tweet_action"].get("action")
+                )
+                if action == "tweet_with_media":
+                    # Ensure we have the required text field for media tweet
+                    if "text" in json_response["tweet_action"]:
+                        return True
+
+                    self.context.logger.error(
+                        "Invalid tweet_with_media action: missing 'text' field"
+                    )
+                    return False
+
+                self.context.logger.error(
+                    f"Invalid action type: {action}. Only 'tweet_with_media' is allowed when mech_for_twitter is True"
+                )
+                return False
+
+            self.context.logger.error(
+                "Invalid LLM response: expected tweet_action with type 'tweet_with_media' when mech_for_twitter is True"
+            )
+            return False
+
+        # Normal validation when mech_for_twitter is False
+        if (
+            "tweet_action" in json_response
+            and json_response["tweet_action"] is not None
+        ):
+            # For non-mech context, tweet_with_media should not be allowed
+            if isinstance(json_response["tweet_action"], list):
+                for action in json_response["tweet_action"]:
+                    action_type = action.get("action")
+                    if action_type == "tweet_with_media":
+                        self.context.logger.error(
+                            "Invalid action: 'tweet_with_media' is not allowed when mech_for_twitter is False"
+                        )
+                        return False
+            else:
+                action_type = json_response["tweet_action"].get(
+                    "action_type", json_response["tweet_action"].get("action")
+                )
+                if action_type == "tweet_with_media":
+                    self.context.logger.error(
+                        "Invalid action: 'tweet_with_media' is not allowed when mech_for_twitter is False"
+                    )
+                    return False
+            return True
+
+        if "tool_action" in json_response and json_response["tool_action"] is not None:
+            # Ensure tool_action has both required fields
+            if (
+                "tool_name" not in json_response["tool_action"]
+                or "tool_input" not in json_response["tool_action"]
+            ):
+                self.context.logger.error(
+                    f"Invalid tool_action format: missing required fields. Got: {json_response['tool_action']}"
+                )
+                return False
+            return True
+
+        self.context.logger.error(
+            "Invalid LLM response: neither tweet_action nor tool_action is valid"
+        )
+        return False
+
     def _handle_tool_action(self, json_response: dict) -> Tuple[str, List, List]:
         """Handle tool action from LLM response."""
         self.context.logger.info("Tool action detected")
+
+        # Validate that we have both tool_name and tool_input
+        if (
+            "tool_action" not in json_response
+            or not json_response["tool_action"]
+            or "tool_name" not in json_response["tool_action"]
+            or "tool_input" not in json_response["tool_action"]
+        ):
+            self.context.logger.error(
+                "Invalid tool action: missing tool_name or tool_input"
+            )
+            return Event.ERROR.value, [], []
 
         new_mech_requests = []
         nonce = str(uuid4())
@@ -772,6 +922,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         user_id = interaction.get("user_id", None)
         action = interaction.get("action", None)
         text = interaction.get("text", None)
+        media_path = interaction.get("media_path", None)
 
         # Validate action and parameters
         if not self._validate_interaction(action, tweet_id, user_id, pending_tweets):
@@ -785,6 +936,16 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         # Handle tweet action based on type
         if action == "tweet":
             yield from self._handle_new_tweet(text, previous_tweets, persona)
+        elif action == "tweet_with_media":
+            # fetching the media path from kv store
+            media_path = yield from self._read_kv(keys=("latest_image_path",))
+            self.context.logger.info(f"Media path from kv store: {media_path}")
+            if not media_path:
+                self.context.logger.error(
+                    "No media path found in KV store for tweet_with_media action"
+                )
+                return
+            yield from self._handle_tweet_with_media(text, previous_tweets, persona)
         else:
             yield from self._handle_tweet_interaction(
                 action,
@@ -803,7 +964,11 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             self.context.logger.error("Action is none")
             return False
 
-        if action != "tweet" and str(tweet_id) not in pending_tweets.keys():
+        # Treat tweet_with_media like tweet - it doesn't need a tweet_id
+        if (
+            action not in ["tweet", "tweet_with_media"]
+            and str(tweet_id) not in pending_tweets.keys()
+        ):
             self.context.logger.error(
                 f"Action is {action} but tweet_id is not valid [{tweet_id}]"
             )
@@ -882,6 +1047,66 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
             if quoted:
                 new_interacted_tweet_ids.append(int(tweet_id))
+
+    def _handle_tweet_with_media(
+        self, text: str, previous_tweets: dict, persona: str
+    ) -> Generator[None, None, None]:
+        """Handle creating a new tweet with media."""
+        # Optionally, replace the tweet with one generated by the alternative model
+        new_text = yield from self.replace_tweet_with_alternative_model(
+            ALTERNATIVE_MODEL_TWITTER_PROMPT.format(
+                persona=persona,
+                previous_tweets=previous_tweets,
+            )
+        )
+        text = new_text or text
+
+        if not is_tweet_valid(text):
+            self.context.logger.error("The tweet is too long.")
+            return
+
+        # Get the latest image path from the database
+        db_data = yield from self._read_kv(keys=("latest_image_path",))
+
+        if not db_data or "latest_image_path" not in db_data:
+            self.context.logger.error(
+                "No image path found for tweet_with_media action."
+            )
+            return
+
+        image_path = db_data["latest_image_path"]
+        self.context.logger.info(f"Using image from path: {image_path}")
+
+        # Upload the media first
+        media_id = yield from self._call_twikit(
+            method="upload_media",
+            media_path=image_path,  # Pass the path as a string, not as a dictionary
+        )
+
+        if not media_id:
+            self.context.logger.error(f"Failed to upload media from path: {image_path}")
+            return
+
+        # Post tweet with the uploaded media ID
+        self.context.logger.info(f"Posting tweet with media_id: {media_id}")
+        tweet_ids = yield from self._call_twikit(
+            method="post", tweets=[{"text": text, "media_ids": [media_id]}]
+        )
+
+        if not tweet_ids:
+            self.context.logger.error("Failed posting tweet with media to Twitter.")
+            return
+
+        latest_tweet = {
+            "tweet_id": tweet_ids[0],
+            "text": text,
+            "media_path": image_path,
+            "timestamp": self.get_sync_timestamp(),
+        }
+
+        # Write latest tweet to the database
+        yield from self.store_tweet(latest_tweet)
+        self.context.logger.info("Wrote latest tweet with media to db")
 
     def generate_mech_tool_info(self) -> str:
         """Generate tool info"""
