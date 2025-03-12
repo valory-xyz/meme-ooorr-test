@@ -12,16 +12,16 @@ fingerprint:
   behaviour_classes/chain.py: bafybeihkvrx2upmrexrr53hiojpeuxvwhb5lr5uujhm32a4azus7q4546q
   behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
   behaviour_classes/llm.py: bafybeia6pr7dzvrx4hdns2xhfz3s323oz5jfboy3x2f7tnbch6pnafihwy
-  behaviour_classes/mech.py: bafybeifv45xgcpwkyzrf5q326pzgojdyj4egkz7zbiixmxr5kyraqsduv4
-  behaviour_classes/twitter.py: bafybeiack736y3qtrejevdck6ar2inlq4bof34j2tajvt6nbmgr4w5hjvi
+  behaviour_classes/mech.py: bafybeibxwcvdqhuvekkczrlowssxratc5i2oznjuci24xoly6x5hqr4byy
+  behaviour_classes/twitter.py: bafybeiduz2qy2yomx5ugsswfu3qocpnybshuq337tifac3go2eq7r3ibry
   behaviours.py: bafybeicsif4jpkuq4a5ijgj63s5zn4mskmakuddgiquqb4vrlz3trqa7fu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeigentt3vsdpeikkvsry6kyya4c2cnfdstg2l6adgwprwel7tqpeuq
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeihwktpigm5sejfr65kwpefgibnkypqna65h56nd7ndbuk57zcifbm
-  payloads.py: bafybeibh4ct2k5epnedcbuhf2f2uh3isecjq4aqhnkkqmmepozlijgpgqi
-  prompts.py: bafybeibilzodnx4nu3scgaa5vlbddoypxjqy3gqupmymr5xdmnjamte7iu
-  rounds.py: bafybeibpbkdterwo23isnwnvfuqeigkidt36lgz3rxjx5blhixefbezx3a
+  payloads.py: bafybeidpqxudrhkhv66svwfxqupurgvblfez53icls2ukliskz5s7qrbrq
+  prompts.py: bafybeiduyg4hci57xhoidydacwtk6ydek2xfsynv6pxtg7bd44ahbdrjia
+  rounds.py: bafybeic44uaa36fynvnclomya4a3gwlq4zhxot3t6gysoifvltcfaqrmpq
   rounds_info.py: bafybeib6a5a7bvwvfiscnbhsc6sejloelyglnu6lwbeeileyxrsgkxcb6a
 fingerprint_ignore_patterns: []
 connections:
@@ -179,8 +179,6 @@ models:
       activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
       tx_loop_breaker_count: 3
       tools_for_mech:
-        openai-gpt-3.5-turbo: This tool generates a tweet based on a given prompt
-          using the OpenAI GPT-3.5-turbo model
         stabilityai-stable-diffusion-v1-6: This tool generates an image based on a
           given prompt using the StabilityAI Stable Diffusion v1.6 model
       multisend_batch_size: ${int:50}

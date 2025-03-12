@@ -95,18 +95,11 @@ class PostMechResponseBehaviour(
 
             sender = self.context.agent_address
             # check if the mech response is empty
-            if not self.synchronized_data.mech_responses:
-                self.context.logger.info("Mech response not found")
-                payload = MechPayload(
-                    sender=sender,
-                    mech_for_twitter=False,
-                )
-            else:
-                self.context.logger.error("Mech response Found")
-                payload = MechPayload(
-                    sender=sender,
-                    mech_for_twitter=True,
-                )
+            self.context.logger.info("Mech response not found")
+            payload = MechPayload(
+                sender=sender,
+                mech_for_twitter=mech_for_twitter,
+            )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
             yield from self.send_a2a_transaction(payload)

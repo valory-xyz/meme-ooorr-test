@@ -789,6 +789,11 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                     )
                     return False
 
+                self.context.logger.error(
+                    f"Invalid action type: {action}. Only 'tweet_with_media' is allowed when mech_for_twitter is True"
+                )
+                return False
+
             self.context.logger.error(
                 "Invalid LLM response: expected tweet_action with type 'tweet_with_media' when mech_for_twitter is True"
             )
@@ -799,6 +804,24 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             "tweet_action" in json_response
             and json_response["tweet_action"] is not None
         ):
+            # For non-mech context, tweet_with_media should not be allowed
+            if isinstance(json_response["tweet_action"], list):
+                for action in json_response["tweet_action"]:
+                    action_type = action.get("action")
+                    if action_type == "tweet_with_media":
+                        self.context.logger.error(
+                            "Invalid action: 'tweet_with_media' is not allowed when mech_for_twitter is False"
+                        )
+                        return False
+            else:
+                action_type = json_response["tweet_action"].get(
+                    "action_type", json_response["tweet_action"].get("action")
+                )
+                if action_type == "tweet_with_media":
+                    self.context.logger.error(
+                        "Invalid action: 'tweet_with_media' is not allowed when mech_for_twitter is False"
+                    )
+                    return False
             return True
 
         if "tool_action" in json_response and json_response["tool_action"] is not None:

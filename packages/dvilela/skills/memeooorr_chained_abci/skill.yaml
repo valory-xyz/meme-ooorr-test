@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeigebq46oqz2mx2iajupr6p5pgm6z5pvfye5w6zypsseuqtvta7b4a
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
 - valory/termination_abci:0.1.0:bafybeieurwmfernodqyczj5ertsgfbjtjnrlgvte7sli4sajnbopty7inu
-- dvilela/memeooorr_abci:0.1.0:bafybeievzd6j7eb2ecfjjsrmkx5fjsru22huhmxmy5nwfp7m3cce5z6bii
+- dvilela/memeooorr_abci:0.1.0:bafybeib2qapmza3wagw745wpznp32deci2zn2wwjgijbtpbvvbu4m24n2y
 - valory/mech_interact_abci:0.1.0:bafybeiddxoc3nmgkzu34zyjp2kad3hgzmsuxj5uxyoare4tku6was54cwi
 behaviours:
   main:
@@ -167,8 +167,6 @@ models:
       activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
       tx_loop_breaker_count: 3
       tools_for_mech:
-        openai-gpt-3.5-turbo: This tool generates a tweet based on a given prompt
-          using the OpenAI GPT-3.5-turbo model
         stabilityai-stable-diffusion-v1-6: This tool generates an image based on a
           given prompt using the StabilityAI Stable Diffusion v1.6 model
       mech_request_price: null
