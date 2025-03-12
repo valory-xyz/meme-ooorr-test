@@ -46,9 +46,9 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     EngageTwitterPayload,
     EngageTwitterRound,
     Event,
-    MechMetadata,
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
+from packages.valory.skills.mech_interact_abci.states.base import MechMetadata
 
 
 MAX_TWEET_CHARS = 280

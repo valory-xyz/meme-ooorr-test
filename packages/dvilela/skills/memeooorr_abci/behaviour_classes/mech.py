@@ -94,8 +94,6 @@ class PostMechResponseBehaviour(
                 # mech_for_twitter remains False if no responses
 
             sender = self.context.agent_address
-            # check if the mech response is empty
-            self.context.logger.info("Mech response not found")
             payload = MechPayload(
                 sender=sender,
                 mech_for_twitter=mech_for_twitter,

@@ -20,7 +20,7 @@
 """This package contains the rounds of MemeooorrAbciApp."""
 
 import json
-from dataclasses import asdict, dataclass, is_dataclass
+from dataclasses import asdict, is_dataclass
 from enum import Enum
 from typing import Any, Dict, FrozenSet, List, Optional, Set, Tuple, cast
 
@@ -183,14 +183,6 @@ class SynchronizedData(BaseSynchronizedData):
     def mech_for_twitter(self) -> bool:
         """Get the mech for twitter."""
         return bool(self.db.get("mech_for_twitter", False))
-
-
-@dataclass
-class MechRequest:
-    """A Mech's request."""
-
-    data: str = ""
-    requestId: int = 0
 
 
 class EventRoundBase(CollectSameUntilThresholdRound):
@@ -394,11 +386,6 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
                     try:
                         mech_requests = json.loads(payload.mech_request)
 
-                        # Validate mech requests format
-                        if not isinstance(mech_requests, list):
-                            self.context.logger.error("Invalid mech_requests format")
-                            return self.synchronized_data, Event.ERROR
-
                         # Update synchronized data with new mech requests
                         synchronized_data = self.synchronized_data.update(
                             synchronized_data_class=SynchronizedData,
@@ -413,20 +400,13 @@ class EngageTwitterRound(CollectSameUntilThresholdRound):
                         self.context.logger.error(f"Failed to parse mech_request: {e}")
                         return self.synchronized_data, Event.ERROR
 
-            # If no mech requests, proceed with normal flow
-            try:
-                # Handle any other payload data updates here
-                # changing the mech_for_twitter to False
-                synchronized_data = self.synchronized_data.update(
-                    synchronized_data_class=SynchronizedData,
-                    **{
-                        get_name(SynchronizedData.mech_for_twitter): False,
-                    },
-                )
-                return synchronized_data, Event.DONE
-            except Exception as e:  # pylint: disable=broad-except
-                self.context.logger.error(f"Error processing payload: {e}")
-                return self.synchronized_data, Event.ERROR
+            synchronized_data = self.synchronized_data.update(
+                synchronized_data_class=SynchronizedData,
+                **{
+                    get_name(SynchronizedData.mech_for_twitter): False,
+                },
+            )
+            return synchronized_data, Event.DONE
 
         if not self.is_majority_possible(
             self.collection, self.synchronized_data.nb_participants
