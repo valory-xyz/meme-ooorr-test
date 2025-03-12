@@ -477,8 +477,8 @@ class MechRoundBase(CollectSameUntilThresholdRound):
         return None
 
 
-class PostMechRequestRound(MechRoundBase):
-    """PostMechRequestRound"""
+class PostMechResponseRound(MechRoundBase):
+    """PostMechResponseRound"""
 
     # This needs to be mentioned for static checkers
     # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
