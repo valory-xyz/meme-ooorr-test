@@ -57,8 +57,6 @@ Here are some tweets from other users:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform.
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
-I'm Testing mech tool please use tool stabilityai-stable-diffusion-v1-6 for now if mech response is provided use it to make twitter action decision.
-
 Your task is to decide what actions to do, if any. Some recommenadations:
 - If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.
 - If you receive a mech response, you must use the mech response to make your twitter action decision and use Tweet With Media.
@@ -112,7 +110,6 @@ class ToolActionName(enum.Enum):
     """ToolActionName"""
 
     STABLE_DIFFUSION = "stabilityai-stable-diffusion-v1-6"
-    TEXT_TO_VIDEO = "text-to-video"
 
 
 @dataclass(frozen=True)
