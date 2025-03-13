@@ -1,7 +1,6 @@
 5a2cc25f75c16938f30da18a9be6ea88f7110d7d:packages/dvilela/services/memeooorr/service.yaml:generic-api-key:60
 5a2cc25f75c16938f30da18a9be6ea88f7110d7d:packages/dvilela/skills/memeooorr_chained_abci/skill.yaml:generic-api-key:83
 5a2cc25f75c16938f30da18a9be6ea88f7110d7d:packages/dvilela/agents/memeooorr/aea-config.yaml:generic-api-key:126
-5a2cc25f75c16938f30da18a9be6ea88f7110d7d:packages/dvilela/skills/memeooorr_abci/skill.yaml:generic-api-key:887fa2ce3e55eaeebb9b17c8ab40b5affbc769c4cc:packages/dvilela/services/memeooorr/service.yaml:generic-api-key:60
 7fa2ce3e55eaeebb9b17c8ab40b5affbc769c4cc:packages/dvilela/skills/memeooorr_chained_abci/skill.yaml:generic-api-key:83
 7fa2ce3e55eaeebb9b17c8ab40b5affbc769c4cc:packages/dvilela/agents/memeooorr/aea-config.yaml:generic-api-key:126
 7fa2ce3e55eaeebb9b17c8ab40b5affbc769c4cc:packages/dvilela/skills/memeooorr_abci/skill.yaml:generic-api-key:88

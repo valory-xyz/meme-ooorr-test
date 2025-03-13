@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 from packages.dvilela.skills.memeooorr_abci.rounds import MemeooorrAbciApp
-from packages.valory.skills.abstract_round_abci.models import ApiSpecs, BaseParams
+from packages.valory.skills.abstract_round_abci.models import ApiSpecs
 from packages.valory.skills.abstract_round_abci.models import (
     BenchmarkTool as BaseBenchmarkTool,
 )
@@ -31,6 +31,7 @@ from packages.valory.skills.abstract_round_abci.models import Requests as BaseRe
 from packages.valory.skills.abstract_round_abci.models import (
     SharedState as BaseSharedState,
 )
+from packages.valory.skills.mech_interact_abci.models import MechParams
 
 
 class SharedState(BaseSharedState):
@@ -79,7 +80,7 @@ class AlternativeModelForTweets:  # pylint: disable=too-many-instance-attributes
         )
 
 
-class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
+class Params(MechParams):  # pylint: disable=too-many-instance-attributes
     """Parameters."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -152,5 +153,7 @@ class Params(BaseParams):  # pylint: disable=too-many-instance-attributes
             AlternativeModelForTweets.from_dict(alternative_model_kwargs)
         )
         self.tx_loop_breaker_count = self._ensure("tx_loop_breaker_count", kwargs, int)
+
+        self.tools_for_mech: dict = self._ensure("tools_for_mech", kwargs, None)
 
         super().__init__(*args, **kwargs)
