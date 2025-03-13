@@ -826,8 +826,17 @@ class MemeooorrBaseBehaviour(
             )
             return None
 
-        response_json = json.loads(response.body)["data"]  # type: ignore
-        return response_json
+        # Parse the response body
+        response_body = json.loads(response.body)  # type: ignore
+
+        # Check if 'data' key exists in the response
+        if "data" not in response_body:
+            self.context.logger.error(
+                f"Expected 'data' key in response, but got: {response_body}"
+            )
+            return None
+
+        return response_body["data"]
 
     def get_memeooorr_handles_from_subgraph(self) -> Generator[None, None, List[str]]:
         """Get Memeooorr service handles"""
