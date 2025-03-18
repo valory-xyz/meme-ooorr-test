@@ -146,7 +146,11 @@ class Params(MechParams):  # pylint: disable=too-many-instance-attributes
         self.activity_checker_contract_address: str = self._ensure(
             "activity_checker_contract_address", kwargs, str
         )
-        self.fireworks_api_key: str = kwargs.get("fireworks_api_key", None)
+        self.fireworks_api_key: str | None = kwargs.get("fireworks_api_key", None)
+        if self.fireworks_api_key is not None and (
+            self.fireworks_api_key == "" or self.fireworks_api_key.isspace()
+        ):
+            self.fireworks_api_key = None
         alternative_model_kwargs = kwargs["alternative_model_for_tweets"]
         alternative_model_kwargs["api_key"] = self.fireworks_api_key
         self.alternative_model_for_tweets: AlternativeModelForTweets = (
