@@ -60,7 +60,7 @@ def api_call():
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+        "Authorization": f"Bearer {os.getenv('FIREWORKS_API_KEY')}",
     }
     response = requests.request(
         "POST", url, headers=headers, data=json.dumps(payload), timeout=60
