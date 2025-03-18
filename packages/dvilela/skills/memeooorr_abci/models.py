@@ -54,7 +54,7 @@ class AlternativeModelForTweets:  # pylint: disable=too-many-instance-attributes
 
     use: bool
     url: str
-    api_key: str
+    api_key: str | None
     model: str
     max_tokens: int
     top_p: int
@@ -66,10 +66,20 @@ class AlternativeModelForTweets:  # pylint: disable=too-many-instance-attributes
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AlternativeModelForTweets":
         """Create an instance from a dictionary."""
+        api_key = data["api_key"]
+        # Treat empty, whitespace-only strings, or placeholder string as None
+        if api_key is not None and (
+            api_key == ""
+            or (
+                isinstance(api_key, str) and (api_key.isspace() or api_key == "${str:}")
+            )
+        ):
+            api_key = None
+
         return cls(
-            use=data["api_key"] is not None,
+            use=api_key is not None,
             url=data["url"],
-            api_key=data["api_key"],
+            api_key=api_key,
             model=data["model"],
             max_tokens=data["max_tokens"],
             top_p=data["top_p"],
@@ -146,7 +156,7 @@ class Params(MechParams):  # pylint: disable=too-many-instance-attributes
         self.activity_checker_contract_address: str = self._ensure(
             "activity_checker_contract_address", kwargs, str
         )
-        self.fireworks_api_key: str = kwargs.get("fireworks_api_key", None)
+        self.fireworks_api_key: str | None = kwargs.get("fireworks_api_key", None)
         alternative_model_kwargs = kwargs["alternative_model_for_tweets"]
         alternative_model_kwargs["api_key"] = self.fireworks_api_key
         self.alternative_model_for_tweets: AlternativeModelForTweets = (

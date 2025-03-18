@@ -44,8 +44,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
 - valory/registration_abci:0.1.0:bafybeifaa6ejpihwxxxswqd5qfy63rixml43d3ljnezilflvdtclspjj6y
 - valory/reset_pause_abci:0.1.0:bafybeigebq46oqz2mx2iajupr6p5pgm6z5pvfye5w6zypsseuqtvta7b4a
-- dvilela/memeooorr_abci:0.1.0:bafybeiakto7mytuaz7dqxpizpcj4nhi5xjpzk6bc6bqjnkhuqeenqredve
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeifnuxdek5bnftkpwblfnmsrvi3gkwxf2mbx3y4jryir2v76tfzf4m
+- dvilela/memeooorr_abci:0.1.0:bafybeibccetnusksidz4xqes5ekjlmrtnbnxbz5qawsoxjdywrvnf3hzgq
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeifkdfda6jzlwjs55ztqi54f2xttl3ysojezfdh2vdf5zaw6qgc5jy
 - valory/mech_interact_abci:0.1.0:bafybeicgdtoq5dwr5plqcxd3nfjuaf2abh7d3tqzv6e576wloszmyxueom
 default_ledger: ethereum
 required_ledgers:
@@ -231,7 +231,7 @@ models:
       max_heart_amount_celo: ${float:0.2}
       staking_token_contract_address: ${str:0x0000000000000000000000000000000000000000}
       activity_checker_contract_address: ${str:0x0000000000000000000000000000000000000000}
-      alternative_model_for_tweets: ${dict:{"use":false,"url":"https://api.fireworks.ai/inference/v1/chat/completions","api_key":null,"model":"accounts/sentientfoundation/models/dobby-mini-unhinged-llama-3-1-8b","max_tokens":16384,"top_p":1,"top_k":40,"presence_penalty":0,"frequency_penalty":0,"temperature":0.6}}
+      alternative_model_for_tweets: ${dict:{"use":false,"url":"https://api.fireworks.ai/inference/v1/chat/completions","api_key":null,"model":"accounts/sentientfoundation/models/dobby-unhinged-llama-3-3-70b-new","max_tokens":16384,"top_p":1,"top_k":40,"presence_penalty":0,"frequency_penalty":0,"temperature":0.6}}
       fireworks_api_key: ${str:null}
       tx_loop_breaker_count: 3
       tools_for_mech: ${dict:{}}

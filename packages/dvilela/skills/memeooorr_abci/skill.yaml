@@ -8,7 +8,7 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeictycy6g4xvkbgdh5dbxwg4qi4ebpnzkqd6ayqg4repfv6wuyi7vu
+  behaviour_classes/base.py: bafybeihjcjasup4x45ealvzxjhinh3zukibbdjy7ysincad47jzwk7ghvq
   behaviour_classes/chain.py: bafybeihkvrx2upmrexrr53hiojpeuxvwhb5lr5uujhm32a4azus7q4546q
   behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
   behaviour_classes/llm.py: bafybeia6pr7dzvrx4hdns2xhfz3s323oz5jfboy3x2f7tnbch6pnafihwy
@@ -18,7 +18,7 @@ fingerprint:
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeigentt3vsdpeikkvsry6kyya4c2cnfdstg2l6adgwprwel7tqpeuq
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
-  models.py: bafybeihwktpigm5sejfr65kwpefgibnkypqna65h56nd7ndbuk57zcifbm
+  models.py: bafybeidbp7elfx2x4hmv6krrr5ohjgg755ifa54fixc2fikj4mkwy6q2ci
   payloads.py: bafybeidpqxudrhkhv66svwfxqupurgvblfez53icls2ukliskz5s7qrbrq
   prompts.py: bafybeifmmflmwautscn6ie5pq64pccww6qwzdb5zro4hvwy5spj363bmzy
   rounds.py: bafybeigc6wsnzfcggvjguch3lruy3l4kahtgtoul6y7ae4nradb3edtpjq
@@ -192,7 +192,7 @@ models:
         use: false
         url: https://api.fireworks.ai/inference/v1/chat/completions
         api_key: null
-        model: accounts/sentientfoundation/models/dobby-mini-unhinged-llama-3-1-8b
+        model: accounts/sentientfoundation/models/dobby-unhinged-llama-3-3-70b-new
         max_tokens: 16384
         top_p: 1
         top_k: 40
