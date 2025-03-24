@@ -38,15 +38,15 @@ protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
 skills:
-- valory/abstract_abci:0.1.0:bafybeia2egqettv7fd4yryya5ocrxdmpxibvt5ayjg2npvblz73rjpoxla
-- valory/abstract_round_abci:0.1.0:bafybeia27qmw6w5ds5fcrpj2475brnz742aampe3sgochloijs2l7jovai
-- valory/termination_abci:0.1.0:bafybeieurwmfernodqyczj5ertsgfbjtjnrlgvte7sli4sajnbopty7inu
-- valory/transaction_settlement_abci:0.1.0:bafybeifkftgkyzrxwxjdyqixpp7vk6aqmufikalmwx3kydtlg74tonu47u
-- valory/registration_abci:0.1.0:bafybeifaa6ejpihwxxxswqd5qfy63rixml43d3ljnezilflvdtclspjj6y
-- valory/reset_pause_abci:0.1.0:bafybeigebq46oqz2mx2iajupr6p5pgm6z5pvfye5w6zypsseuqtvta7b4a
-- dvilela/memeooorr_abci:0.1.0:bafybeihmqm5z2izw3o5vtc4nerdxvekucieonetafp2oymsv76jcmk7hca
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeiggbi2rvcl6a7jlvjp4ef2whunkvf5levisxg26vxioxt7qul6anq
-- valory/mech_interact_abci:0.1.0:bafybeicgdtoq5dwr5plqcxd3nfjuaf2abh7d3tqzv6e576wloszmyxueom
+- valory/abstract_abci:0.1.0:bafybeihligouknh2v2o2xwugm7yfiypllokbahnxgsh36mgdascvchjmpe
+- valory/abstract_round_abci:0.1.0:bafybeiezhbsm2ctlw7frt53jxpdq6d5cq2xaruzsedg66nqmi4prrglame
+- valory/termination_abci:0.1.0:bafybeif7lxvscvrsbr6f74ymbb5t3apnfwjxzvwmtixyy7hclpx2pqa3oa
+- valory/transaction_settlement_abci:0.1.0:bafybeidfhgtyvsltd6naqrifycbobb7nlqk2gtnjvtolbli3okqovdm2su
+- valory/registration_abci:0.1.0:bafybeigrxf2uhudr4ode6p77jikrjzfemfttqhoqez366qugqdckbb6wzi
+- valory/reset_pause_abci:0.1.0:bafybeid5tsasmon5gennzigr3ffkctz3womegogkhqcatdb6g7l7llwfu4
+- dvilela/memeooorr_abci:0.1.0:bafybeidcq4p7tkzt3p7kkr556jxg7hzepn44xxauy2kddlgzadwl44lame
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeidk3p674rpavmlqlxv5glipbxra25t3w4mk4sqnwmeuvduu26skpu
+- valory/mech_interact_abci:0.1.0:bafybeihh5vcanzy2cyrfewb5rx4v2toij65n5jtga7ktleu4rmuk57jr7m
 default_ledger: ethereum
 required_ledgers:
 - ethereum
