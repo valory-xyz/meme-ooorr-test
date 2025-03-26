@@ -33,8 +33,8 @@ TENDERLY_ADMIN_RPC = os.getenv("TENDERLY_ADMIN_RPC")
 
 FUND_REQUIREMENTS = {
     "wallets": {
-        "agent_memeooorr": "0x87BF6ba00CeB28daB75bF1AcD32AB00F16841892",
-        "safe_memeooorr": "0xAFfa43df44289672164E37CF415596315344C277",
+        "agent_memeooorr": "0xA41eD143B957a43ED3fc1e77fEcF7D54B9Daf1f2",
+        "safe_memeooorr": "0x6D2d342D2860e525Fc7018078792E7f6E2314aA3",
     },
     "funds": {
         "native": 10,  # in ETH

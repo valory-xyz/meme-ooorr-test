@@ -370,7 +370,9 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
         service_staking_state = yield from self._get_service_staking_state(
             chain=self.get_chain_id()
         )
-        self.context.logger.debug(f"{service_staking_state=}")
+
+        self.context.logger.debug(f"service_staking_state: {service_staking_state}")
+
         if service_staking_state != StakingState.STAKED:
             self.context.logger.info("Service is not staked")
             return False
@@ -385,6 +387,9 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
             chain_id=self.get_chain_id(),
             address=self.synchronized_data.safe_contract_address,
         )
+
+        self.context.logger.debug(f"mech_request_count: {mech_request_count}")
+
         if mech_request_count is None:
             self.context.logger.error("Could not get the mech request count")
             return None
@@ -395,6 +400,8 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
         if service_info is None or len(service_info) == 0 or len(service_info[2]) == 0:
             self.context.logger.error(f"Error fetching service info {service_info}")
             return None
+
+        self.context.logger.debug(f"service_info: {service_info}")
 
         # Use requests count (position [1]) instead of multisig nonces (position [0])
         mech_request_count_on_last_checkpoint = service_info[2][1]

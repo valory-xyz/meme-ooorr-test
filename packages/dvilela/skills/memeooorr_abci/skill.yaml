@@ -9,18 +9,18 @@ fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeihjcjasup4x45ealvzxjhinh3zukibbdjy7ysincad47jzwk7ghvq
-  behaviour_classes/chain.py: bafybeihkvrx2upmrexrr53hiojpeuxvwhb5lr5uujhm32a4azus7q4546q
+  behaviour_classes/chain.py: bafybeibevtfxi72pmwtx3igqfx2td2vuurebcagudomvouykesstasxjcu
   behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
-  behaviour_classes/llm.py: bafybeia6pr7dzvrx4hdns2xhfz3s323oz5jfboy3x2f7tnbch6pnafihwy
+  behaviour_classes/llm.py: bafybeihqemvq6tr22f2zwtvxgaoenxva6mrswlotycaunuia6akbatdw24
   behaviour_classes/mech.py: bafybeifkms4e5ky4jx53ho4zk2eq57fxokrqe6wrktowjceoqmny6vr2ja
-  behaviour_classes/twitter.py: bafybeifu3pxdpg72cwlf32uccteikbw6umbklg4wjwvapziysp2ky6if3m
+  behaviour_classes/twitter.py: bafybeid4lk67yepzhy7zklsuarczs3nbpsasc2eqxlsmkjznyk2yfvyawq
   behaviours.py: bafybeicsif4jpkuq4a5ijgj63s5zn4mskmakuddgiquqb4vrlz3trqa7fu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeigentt3vsdpeikkvsry6kyya4c2cnfdstg2l6adgwprwel7tqpeuq
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeidbp7elfx2x4hmv6krrr5ohjgg755ifa54fixc2fikj4mkwy6q2ci
   payloads.py: bafybeidpqxudrhkhv66svwfxqupurgvblfez53icls2ukliskz5s7qrbrq
-  prompts.py: bafybeianww2yewt6wmoael36iybjeurfr4gp3x2rm4krpck4bguk5xebeu
+  prompts.py: bafybeidghqhng7nv6j7r7pw5r75bekv7sq7irv2pugusw5mqztfjvnz56y
   rounds.py: bafybeigc6wsnzfcggvjguch3lruy3l4kahtgtoul6y7ae4nradb3edtpjq
   rounds_info.py: bafybeib6a5a7bvwvfiscnbhsc6sejloelyglnu6lwbeeileyxrsgkxcb6a
 fingerprint_ignore_patterns: []
@@ -36,6 +36,7 @@ contracts:
 - dvilela/service_registry:0.1.0:bafybeia4y7jmxbbr6xrthjwjp2vnwluunmdhefsxpkbt6mu4y7uzna7obe
 - valory/staking_token:0.1.0:bafybeic2m4oisdcnydyb3ra3r2xgh5ann3gargn2cfsl6o6viehhdxe7ri
 - valory/staking_activity_checker:0.1.0:bafybeifcghzfjqx6o2iytyrjjadjqembh6cq3eezfcp7wes3xr7xppmhu4
+- valory/mech:0.1.0:bafybeiffl527ti4rbmizirribicc3elvbxq63e3xg2as26izg67o4nxsay
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
@@ -187,6 +188,18 @@ models:
       mech_chain_id: base
       mech_interaction_sleep_time: 10
       use_mech_marketplace: false
+      mech_marketplace_config:
+        mech_marketplace_address: '0x0000000000000000000000000000000000000000'
+        priority_mech_address: '0x0000000000000000000000000000000000000000'
+        priority_mech_staking_instance_address: '0x0000000000000000000000000000000000000000'
+        priority_mech_service_id: 0
+        requester_staking_instance_address: '0x0000000000000000000000000000000000000000'
+        response_timeout: 300
+      expected_mech_response_time: 300
+      mech_invalid_response: Invalid Response
+      mech_consecutive_failures_threshold: 2
+      tool_quarantine_duration: 18000
+      mech_interact_round_timeout_seconds: 5400
       use_acn_for_delivers: false
       alternative_model_for_tweets:
         use: false
