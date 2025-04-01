@@ -45,7 +45,7 @@ protocols:
 skills:
 - valory/abstract_round_abci:0.1.0:bafybeiezhbsm2ctlw7frt53jxpdq6d5cq2xaruzsedg66nqmi4prrglame
 - valory/transaction_settlement_abci:0.1.0:bafybeidfhgtyvsltd6naqrifycbobb7nlqk2gtnjvtolbli3okqovdm2su
-- valory/mech_interact_abci:0.1.0:bafybeihh5vcanzy2cyrfewb5rx4v2toij65n5jtga7ktleu4rmuk57jr7m
+- valory/mech_interact_abci:0.1.0:bafybeied65nmmbybf5kpmrfmdgf3t2k7g3hw26rqphfdn64mjcmiqdprnm
 behaviours:
   main:
     args: {}
@@ -182,19 +182,30 @@ models:
         stabilityai-stable-diffusion-v1-6: This tool generates an image based on a
           given prompt using the StabilityAI Stable Diffusion v1.6 model
       multisend_batch_size: ${int:50}
-      mech_request_price: null
+      mech_request_price: ${int:100}
       mech_contract_address: ${str:0xe535D7AcDEeD905dddcb5443f41980436833cA2B}
       mech_chain_id: base
       mech_interaction_sleep_time: 10
       use_mech_marketplace: true
       use_acn_for_delivers: false
       mech_marketplace_config:
-        mech_marketplace_address: '0x0000000000000000000000000000000000000000'
+        mech_marketplace_address: '0xf24eE42edA0fc9b33B7D41B06Ee8ccD2Ef7C5020'
         priority_mech_address: '0x0000000000000000000000000000000000000000'
         priority_mech_staking_instance_address: '0x0000000000000000000000000000000000000000'
         priority_mech_service_id: 0
         requester_staking_instance_address: '0x0000000000000000000000000000000000000000'
         response_timeout: 300
+      mech_to_subscription_params:
+        base_url: url
+        did: did
+        escrow_payment_condition_address: address
+        lock_payment_condition_address: address
+        transfer_nft_condition_address: address
+        token_address: address
+        order_address: address
+        nft_amount: amount
+        payment_token: address
+        price: price
       alternative_model_for_tweets:
         use: false
         url: https://api.fireworks.ai/inference/v1/chat/completions

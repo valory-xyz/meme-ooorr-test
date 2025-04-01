@@ -23,8 +23,8 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeid5tsasmon5gennzigr3ffkctz3womegogkhqcatdb6g7l7llwfu4
 - valory/transaction_settlement_abci:0.1.0:bafybeidfhgtyvsltd6naqrifycbobb7nlqk2gtnjvtolbli3okqovdm2su
 - valory/termination_abci:0.1.0:bafybeif7lxvscvrsbr6f74ymbb5t3apnfwjxzvwmtixyy7hclpx2pqa3oa
-- dvilela/memeooorr_abci:0.1.0:bafybeihwnzgvn4dmkkqbcf4mfuwwcpptul6vzcecjc2k2ke3fg4y6bcah4
-- valory/mech_interact_abci:0.1.0:bafybeihh5vcanzy2cyrfewb5rx4v2toij65n5jtga7ktleu4rmuk57jr7m
+- dvilela/memeooorr_abci:0.1.0:bafybeig5uf4mc3m2iqqmrrdlqgfry3xvzihzqf5vxjbvancknn2oen5w6m
+- valory/mech_interact_abci:0.1.0:bafybeied65nmmbybf5kpmrfmdgf3t2k7g3hw26rqphfdn64mjcmiqdprnm
 behaviours:
   main:
     args: {}
@@ -169,7 +169,7 @@ models:
       tools_for_mech:
         stabilityai-stable-diffusion-v1-6: This tool generates an image based on a
           given prompt using the StabilityAI Stable Diffusion v1.6 model
-      mech_request_price: null
+      mech_request_price: ${int:100}
       mech_contract_address: ${str:0xe535D7AcDEeD905dddcb5443f41980436833cA2B}
       mech_chain_id: base
       mech_interaction_sleep_time: 10
