@@ -44,8 +44,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeidfhgtyvsltd6naqrifycbobb7nlqk2gtnjvtolbli3okqovdm2su
 - valory/registration_abci:0.1.0:bafybeigrxf2uhudr4ode6p77jikrjzfemfttqhoqez366qugqdckbb6wzi
 - valory/reset_pause_abci:0.1.0:bafybeid5tsasmon5gennzigr3ffkctz3womegogkhqcatdb6g7l7llwfu4
-- dvilela/memeooorr_abci:0.1.0:bafybeidcq4p7tkzt3p7kkr556jxg7hzepn44xxauy2kddlgzadwl44lame
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeidk3p674rpavmlqlxv5glipbxra25t3w4mk4sqnwmeuvduu26skpu
+- dvilela/memeooorr_abci:0.1.0:bafybeihwnzgvn4dmkkqbcf4mfuwwcpptul6vzcecjc2k2ke3fg4y6bcah4
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeicl22g4k2ol5aaml3dqifxfmuqwk5au45hq3guyxfp2boxiulox74
 - valory/mech_interact_abci:0.1.0:bafybeihh5vcanzy2cyrfewb5rx4v2toij65n5jtga7ktleu4rmuk57jr7m
 default_ledger: ethereum
 required_ledgers:
@@ -236,10 +236,17 @@ models:
       tx_loop_breaker_count: 3
       tools_for_mech: ${dict:{}}
       mech_request_price: null
-      mech_contract_address: ${str:0x111D7DB1B752AB4D2cC0286983D9bd73a49bac6c}
+      mech_contract_address: ${str:0xe535D7AcDEeD905dddcb5443f41980436833cA2B}
       mech_chain_id: base
       mech_interaction_sleep_time: 10
-      use_mech_marketplace: false
+      use_mech_marketplace: true
+      mech_marketplace_config:
+        mech_marketplace_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
+        priority_mech_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
+        priority_mech_staking_instance_address: '0x0000000000000000000000000000000000000000'
+        priority_mech_service_id: 0
+        requester_staking_instance_address: '0x0000000000000000000000000000000000000000'
+        response_timeout: 300
       use_acn_for_delivers: false
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq

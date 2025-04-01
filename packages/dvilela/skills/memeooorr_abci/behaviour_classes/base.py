@@ -153,6 +153,9 @@ class MemeooorrBaseBehaviour(
         self, method: str, **kwargs: Any
     ) -> Generator[None, None, Any]:
         """Send a request message to the Twikit connection and handle MirrorDB interactions."""
+        # Track this API call with our unified tracking function
+        yield from self.track_twikit_api_usage(method, **kwargs)
+
         mirror_db_config_data = (
             yield from self._handle_mirror_db_interactions_pre_twikit()
         )
@@ -1357,3 +1360,188 @@ class MemeooorrBaseBehaviour(
         self.context.logger.info(f"Got new tweet from Fireworks API: {tweet}")
 
         return tweet
+
+    def track_twikit_api_usage(
+        self, method: str, **kwargs: Any
+    ) -> Generator[None, None, None]:
+        """
+        Track Twikit API calls and store analytics in KV store.
+        Handles both direct API calls and compound operations that make multiple internal API calls.
+
+        Args:
+            method: The Twikit API method being called
+            kwargs: Arguments passed to the method, used to determine count for compound operations
+        """
+        # Get current statistics
+        twikit_stats = yield from self._get_twikit_stats()
+
+        # Define read vs write operations
+        read_operations = {
+            "get_user_by_screen_name",
+            "get_twitter_user_id",
+            "get_user_timeline",
+            "search_tweets",
+            "get_tweet",
+            "get_user_followers",
+            "get_user_following",
+            "validate_login",
+            "get_user_tweets",
+            "search",
+        }
+
+        write_operations = {
+            "post",
+            "post_tweet",
+            "like_tweet",
+            "retweet",
+            "follow_user",
+            "upload_media",
+            "delete_tweet",
+        }
+
+        # Track compound operations that make multiple API calls
+        compound_operations = {
+            "filter_suspended_users": {
+                "base_method": "get_user_by_screen_name",
+                "count_param": "user_names",
+                "operation_type": "read",
+            },
+            "get_user_tweets": {
+                "base_method": "get_user_by_screen_name",
+                "count": 1,
+                "operation_type": "read",
+            },
+            "post": {
+                "base_method": "post_tweet",
+                "count_param": "tweets",
+                "operation_type": "write",
+            },
+            "search": {
+                "base_method": "search_tweets",
+                "count": 1,
+                "operation_type": "read",
+            },
+            "validate_login": {
+                "base_method": "verify_credentials",
+                "count": 1,
+                "operation_type": "read",
+            },
+        }
+
+        # PART 1: Track the direct method call
+
+        # Determine operation type
+        if method in read_operations:
+            operation_type = "read"
+            twikit_stats["read_operations"] += 1
+        elif method in write_operations:
+            operation_type = "write"
+            twikit_stats["write_operations"] += 1
+        elif method in compound_operations:
+            operation_type = compound_operations[method]["operation_type"]
+            # For compound operations, we'll count their internal calls separately below
+        else:
+            operation_type = "other"
+            twikit_stats["other_operations"] = (
+                twikit_stats.get("other_operations", 0) + 1
+            )
+
+        # Increment total calls counter
+        twikit_stats["total_calls"] += 1
+
+        # Record the specific method call with timestamp
+        if method not in twikit_stats["methods_called"]:
+            twikit_stats["methods_called"][method] = {
+                "count": 0,
+                "type": operation_type,
+                "last_called": None,
+                "first_called": datetime.utcnow().isoformat(),
+            }
+
+        # Update method statistics
+        twikit_stats["methods_called"][method]["count"] += 1
+        twikit_stats["methods_called"][method][
+            "last_called"
+        ] = datetime.utcnow().isoformat()
+
+        # PART 2: Track internal calls for compound operations
+        if method in compound_operations:
+            mapping = compound_operations[method]
+            base_method = mapping["base_method"]
+            internal_operation_type = mapping["operation_type"]
+
+            # Determine number of internal calls
+            internal_call_count = 1  # Default to at least one call
+            if "count_param" in mapping and mapping["count_param"] in kwargs:
+                param_value = kwargs[mapping["count_param"]]
+                if isinstance(param_value, list):
+                    internal_call_count = len(param_value)
+            elif "count" in mapping:
+                internal_call_count = mapping["count"]
+
+            # Update stats for the internal method calls
+            if base_method not in twikit_stats["methods_called"]:
+                twikit_stats["methods_called"][base_method] = {
+                    "count": 0,
+                    "type": internal_operation_type,
+                    "last_called": None,
+                    "first_called": datetime.utcnow().isoformat(),
+                }
+
+            # Update counters for internal calls
+            twikit_stats["methods_called"][base_method]["count"] += internal_call_count
+            twikit_stats["methods_called"][base_method][
+                "last_called"
+            ] = datetime.utcnow().isoformat()
+
+            # Update operation type counters
+            if internal_operation_type == "read":
+                twikit_stats["read_operations"] += internal_call_count
+            elif internal_operation_type == "write":
+                twikit_stats["write_operations"] += internal_call_count
+            else:
+                twikit_stats["other_operations"] = (
+                    twikit_stats.get("other_operations", 0) + internal_call_count
+                )
+
+            twikit_stats["total_calls"] += internal_call_count
+
+        # Update timestamp
+        twikit_stats["last_updated"] = datetime.utcnow().isoformat()
+
+        # Save updated stats to KV store
+        yield from self._write_kv({"twikit_stats": json.dumps(twikit_stats)})
+
+    def _get_twikit_stats(self) -> Generator[None, None, Dict[str, Any]]:
+        """Get the Twikit API call statistics from KV store or initialize new stats."""
+        db_data = yield from self._read_kv(keys=("twikit_stats",))
+
+        if (
+            db_data is None
+            or "twikit_stats" not in db_data
+            or db_data["twikit_stats"] is None
+        ):
+            # Initialize new stats dict
+            twikit_stats = {
+                "read_operations": 0,
+                "write_operations": 0,
+                "other_operations": 0,
+                "total_calls": 0,
+                "methods_called": {},
+                "first_tracked": datetime.utcnow().isoformat(),
+                "last_updated": datetime.utcnow().isoformat(),
+            }
+        else:
+            # Load existing stats
+            twikit_stats = json.loads(db_data["twikit_stats"])
+
+        return twikit_stats
+
+    def get_twikit_analytics(self) -> Generator[None, None, Dict[str, Any]]:
+        """Get analytics for Twikit API usage.
+
+        Returns:
+            Dict containing read operations count, write operations count,
+            total calls, and a breakdown of calls by method.
+        """
+        return (yield from self._get_twikit_stats())

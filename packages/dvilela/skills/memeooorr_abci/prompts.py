@@ -57,6 +57,8 @@ Here are some tweets from other users:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform.
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
+I'm testing currently with a tool, so you should use the tool stabilityai-stable-diffusion-v1-6
+
 Your task is to decide what actions to do, if any. Some recommenadations:
 - Do not invent or assume any details. Use only the information provided. as we do not want to spread misinformation.
 - If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.

@@ -741,6 +741,10 @@ class PostTxDecisionMakingBehaviour(
             ):
                 event = Event.MECH.value
 
+            # get twikit analytics data
+            twikit_analytics = yield from self.get_twikit_analytics()
+            self.context.logger.info(f"Twikit analytics: {twikit_analytics}")
+
             payload = PostTxDecisionMakingPayload(
                 sender=self.context.agent_address,
                 event=event,
@@ -762,6 +766,10 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ances
         """Do the action."""
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             checkpoint_tx_hex = yield from self.get_checkpoint_tx_hash()
+
+            # get twikit analytics data
+            twikit_analytics = yield from self.get_twikit_analytics()
+            self.context.logger.info(f"Twikit analytics: {twikit_analytics}")
 
             payload = CallCheckpointPayload(
                 sender=self.context.agent_address,
@@ -864,6 +872,10 @@ class TransactionLoopCheckBehaviour(
             self.context.logger.info(
                 f"Checking if the transaction loop is still running. Counter: {self.synchronized_data.tx_loop_count} and increasing it by 1"
             )
+
+            # get twikit analytics data
+            twikit_analytics = yield from self.get_twikit_analytics()
+            self.context.logger.info(f"Twikit analytics: {twikit_analytics}")
 
             payload = TransactionLoopCheckPayload(
                 sender=self.context.agent_address,
