@@ -13,15 +13,15 @@ fingerprint:
   behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
   behaviour_classes/llm.py: bafybeia6pr7dzvrx4hdns2xhfz3s323oz5jfboy3x2f7tnbch6pnafihwy
   behaviour_classes/mech.py: bafybeifkms4e5ky4jx53ho4zk2eq57fxokrqe6wrktowjceoqmny6vr2ja
-  behaviour_classes/twitter.py: bafybeifu3pxdpg72cwlf32uccteikbw6umbklg4wjwvapziysp2ky6if3m
+  behaviour_classes/twitter.py: bafybeifwz75n3qqdsfeh5hh36tjsglmug5hifzayy2n6qvhxb4tgcnfr24
   behaviours.py: bafybeicsif4jpkuq4a5ijgj63s5zn4mskmakuddgiquqb4vrlz3trqa7fu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeigentt3vsdpeikkvsry6kyya4c2cnfdstg2l6adgwprwel7tqpeuq
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeidbp7elfx2x4hmv6krrr5ohjgg755ifa54fixc2fikj4mkwy6q2ci
   payloads.py: bafybeidpqxudrhkhv66svwfxqupurgvblfez53icls2ukliskz5s7qrbrq
-  prompts.py: bafybeifqcqmm7zoc7o6k5ta4uximefsvokjmjkwxo7fiwaibuclfmvqvea
-  rounds.py: bafybeigc6wsnzfcggvjguch3lruy3l4kahtgtoul6y7ae4nradb3edtpjq
+  prompts.py: bafybeifr2jacykjjpr4n6so57htbpytusuxb7dy6xj7ivfe6wgxs6uwm24
+  rounds.py: bafybeihjrfwwxnitubadpkvzopurbatfs2qhimrytiuk3occbxoyfbdpay
   rounds_info.py: bafybeib6a5a7bvwvfiscnbhsc6sejloelyglnu6lwbeeileyxrsgkxcb6a
 fingerprint_ignore_patterns: []
 connections:
@@ -45,7 +45,7 @@ protocols:
 skills:
 - valory/abstract_round_abci:0.1.0:bafybeiezhbsm2ctlw7frt53jxpdq6d5cq2xaruzsedg66nqmi4prrglame
 - valory/transaction_settlement_abci:0.1.0:bafybeidfhgtyvsltd6naqrifycbobb7nlqk2gtnjvtolbli3okqovdm2su
-- valory/mech_interact_abci:0.1.0:bafybeihh5vcanzy2cyrfewb5rx4v2toij65n5jtga7ktleu4rmuk57jr7m
+- valory/mech_interact_abci:0.1.0:bafybeigvou76l53vtfoff6tf46v3shupybkxsxxeixhsyleg7uughfxin4
 behaviours:
   main:
     args: {}
@@ -181,8 +181,8 @@ models:
       tools_for_mech:
         stabilityai-stable-diffusion-v1-6: This tool generates an image based on a
           given prompt using the StabilityAI Stable Diffusion v1.6 model
-      multisend_batch_size: ${int:50}
-      mech_request_price: ${int:100}
+      multisend_batch_size: 50
+      mech_request_price: 100
       mech_contract_address: ${str:0xe535D7AcDEeD905dddcb5443f41980436833cA2B}
       mech_chain_id: base
       mech_interaction_sleep_time: 10

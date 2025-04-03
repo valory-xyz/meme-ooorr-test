@@ -113,6 +113,7 @@ class ToolActionName(enum.Enum):
     """ToolActionName"""
 
     STABLE_DIFFUSION = "stabilityai-stable-diffusion-v1-6"
+    SHORT_MAKER = "short_maker"
 
 
 @dataclass(frozen=True)
