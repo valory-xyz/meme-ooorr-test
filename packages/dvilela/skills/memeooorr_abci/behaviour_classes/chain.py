@@ -23,7 +23,7 @@ import json
 import math
 from abc import ABC
 from typing import Any, Generator, Optional, Tuple, Type, cast
-from packages.valory.contracts.mech.contract import Mech as MechContract
+from packages.valory.contracts.mech_marketplace.contract import MechMarketplace
 
 
 from aea.configurations.data_types import PublicId
@@ -373,25 +373,39 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         self.context.logger.debug(f"service_staking_state: {service_staking_state}")
 
-        if service_staking_state != StakingState.STAKED:
-            self.context.logger.info("Service is not staked")
-            return False
+        # if service_staking_state != StakingState.STAKED:
+        #     self.context.logger.info("Service is not staked")
+        #     return False
 
-        # Get mech request count
-        mech_request_count = yield from self.contract_interact(
-            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,
-            contract_address=self.params.mech_contract_address,
-            contract_public_id=MechContract.contract_id,
-            contract_callable="get_requests_count",
-            data_key="requests_count",
+        self.context.logger.info(
+            f"Getting mech marketplace request count for {self.synchronized_data.safe_contract_address} from {self.params.mech_marketplace_config.mech_marketplace_address}"
+        )
+        # Get mech marketplace request count for this safe address
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,
+            contract_address=self.params.mech_marketplace_config.mech_marketplace_address,
+            contract_id=str(MechMarketplace.contract_id),
+            contract_callable="mapRequestCounts",
             chain_id=self.get_chain_id(),
-            address=self.synchronized_data.safe_contract_address,
+            args=(self.synchronized_data.safe_contract_address,),
         )
 
-        self.context.logger.debug(f"mech_request_count: {mech_request_count}")
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the mech marketplace request count: {response_msg}"
+            )
+            return None
+
+        # Assuming the contract API framework returns the count under the key "requests_count"
+        # Adjust the key if necessary based on actual framework behavior for view functions.
+        mech_request_count = cast(
+            int, response_msg.state.body.get("requests_count", None)
+        )
 
         if mech_request_count is None:
-            self.context.logger.error("Could not get the mech request count")
+            self.context.logger.error(
+                f"Could not parse mech marketplace request count from response: {response_msg.state.body}"
+            )
             return None
         self.context.logger.debug(f"{mech_request_count=}")
 
