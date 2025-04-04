@@ -51,43 +51,79 @@ class PostMechResponseBehaviour(
             # Initialize mech_for_twitter to False by default
             mech_for_twitter = False
             ipfs_link = None
+            video_hash = None
 
             self.context.logger.info(
                 f"Mech request was successful, response = {self.synchronized_data.mech_responses}"
             )
             if self.synchronized_data.mech_responses:
                 try:
-                    # Check if the response contains an image by examining the result
+                    # Check if the response contains video and image keys
                     response = self.synchronized_data.mech_responses[0]
                     # Add null check before parsing JSON
                     if response.result is not None:
                         result_json = json.loads(response.result)
 
-                        # check if the result_json has an ipfs_link
-                        if "ipfs_link" in result_json:
+                        # Case 1: Check if the result_json has 'video' key
+                        if "video" in result_json:
+                            video_hash = result_json["video"]
+                            self.context.logger.info(
+                                "Case 1: Video hash found. Fetching video from IPFS."
+                            )
+                            self.context.logger.info(f"Video IPFS hash: {video_hash}")
+                            # Fetch video data using the video hash
+                            success = yield from self.fetch_video_data_from_ipfs(
+                                video_hash
+                            )
+                            if success:
+                                self.context.logger.info(
+                                    "Video data fetched and saved successfully."
+                                )
+                                mech_for_twitter = True
+                            else:
+                                self.context.logger.error(
+                                    "Failed to fetch or save video data from IPFS."
+                                )
+                                # Keep mech_for_twitter False if video fetch fails
+
+                        # Case 2: Check if the result_json has an 'ipfs_link' (old format)
+                        elif "ipfs_link" in result_json:
                             ipfs_link = result_json["ipfs_link"]
                             self.context.logger.info(
-                                "IPFS link found in mech response fetching the image from IPFS"
+                                "Case 2: IPFS link found. Fetching image from IPFS link."
                             )
                             self.context.logger.info(f"IPFS link: {ipfs_link}")
+                            # Fetch image data using the IPFS link
                             success = yield from self.fetch_image_data_from_ipfs(
                                 ipfs_link
                             )
                             if success:
                                 self.context.logger.info(
-                                    "Image data fetched and saved successfully"
+                                    "Image data fetched and saved successfully."
                                 )
                                 mech_for_twitter = True
+                            else:
+                                self.context.logger.error(
+                                    "Failed to fetch or save image data from IPFS link."
+                                )
+                                # Keep mech_for_twitter False if image fetch fails
+
+                        # Case 3: Neither expected format found
                         else:
                             self.context.logger.info(
-                                "No IPFS link found in mech response, skipping image fetching"
+                                "Case 3: Mech response format not recognized (no video/image hash pair or ipfs_link). Cannot fetch media."
                             )
                             mech_for_twitter = False
                     else:
                         self.context.logger.error("Mech response result is None")
                         mech_for_twitter = False
+                except json.JSONDecodeError as e:
+                    self.context.logger.error(
+                        f"Error decoding JSON from mech response result: {e}"
+                    )
+                    mech_for_twitter = False
                 except Exception as e:  # pylint: disable=broad-except
-                    self.context.logger.error(f"Error parsing mech response: {e}")
+                    self.context.logger.error(f"Error processing mech response: {e}")
                     # mech_for_twitter remains False in case of exception
             else:
                 self.context.logger.error("No mech responses found")
@@ -184,6 +220,50 @@ class PostMechResponseBehaviour(
 
         except Exception as e:  # pylint: disable=broad-except
             self.context.logger.error(f"Error fetching image: {e}")
+            self.context.logger.error(traceback.format_exc())
+            return False
+
+    def fetch_video_data_from_ipfs(  # pylint: disable=too-many-return-statements
+        self, ipfs_hash: str
+    ) -> Generator[None, None, bool]:
+        """Fetch video data from IPFS hash and save it to a temporary file."""
+        try:
+            self.context.logger.info(f"Fetching video from IPFS hash: {ipfs_hash}")
+
+            # Fetch raw binary data for the video
+            video_data = yield from self.get_from_ipfs(
+                ipfs_hash=ipfs_hash, filetype=SupportedFiletype.BIN
+            )
+
+            if video_data:
+                try:
+                    # Create a temporary file with a specific suffix for the video
+                    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                    with tempfile.NamedTemporaryFile(
+                        suffix=f"_{timestamp}.mp4",
+                        delete=False,  # Assuming mp4, adjust if needed
+                    ) as temp_file:
+                        temp_file.write(video_data)
+                        video_path = temp_file.name
+
+                    self.context.logger.info(
+                        f"Successfully saved video to temporary file: {video_path}"
+                    )
+
+                    # Store the video path in the context
+                    yield from self._write_kv({"latest_video_path": video_path})
+                    return True
+
+                except Exception as e:  # pylint: disable=broad-except
+                    self.context.logger.error(f"Error saving video data: {e}")
+                    self.context.logger.error(traceback.format_exc())
+                    return False
+
+            self.context.logger.error("Failed to fetch video: Empty response from IPFS")
+            return False
+
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(f"Error fetching video from IPFS: {e}")
             self.context.logger.error(traceback.format_exc())
             return False
 
