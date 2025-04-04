@@ -34,9 +34,9 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
     ALTERNATIVE_MODEL_TWITTER_PROMPT,
+    ENFORCE_ACTION_COMMAND,
     MECH_RESPONSE_SUBPROMPT,
     TWITTER_DECISION_PROMPT,
-    ENFORCE_ACTION_COMMAND,
     build_decision_schema,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (

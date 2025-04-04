@@ -24,6 +24,7 @@ import pickle  # nosec
 import typing
 from dataclasses import dataclass
 
+
 ENFORCE_ACTION_COMMAND = "Please use mech, as you are required to meet some action KPIs and you have not met them yet."
 
 

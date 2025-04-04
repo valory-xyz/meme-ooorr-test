@@ -23,8 +23,6 @@ import json
 import math
 from abc import ABC
 from typing import Any, Generator, Optional, Tuple, Type, cast
-from packages.valory.contracts.mech_marketplace.contract import MechMarketplace
-
 
 from aea.configurations.data_types import PublicId
 
@@ -51,6 +49,7 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     TransactionLoopCheckRound,
 )
 from packages.valory.contracts.gnosis_safe.contract import GnosisSafeContract
+from packages.valory.contracts.mech_marketplace.contract import MechMarketplace
 from packages.valory.contracts.staking_activity_checker.contract import (
     StakingActivityCheckerContract,
 )
