@@ -372,9 +372,9 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         self.context.logger.debug(f"service_staking_state: {service_staking_state}")
 
-        # if service_staking_state != StakingState.STAKED:
-        #     self.context.logger.info("Service is not staked")
-        #     return False
+        if service_staking_state != StakingState.STAKED:
+            self.context.logger.info("Service is not staked")
+            return False
 
         self.context.logger.info(
             f"Getting mech marketplace request count for {self.synchronized_data.safe_contract_address} from {self.params.mech_marketplace_config.mech_marketplace_address}"
