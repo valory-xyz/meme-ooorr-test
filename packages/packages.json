@@ -10,7 +10,6 @@
         "connection/dvilela/kv_store/0.1.0": "bafybeiecnl7yc5qx6x4q7467i66ehmfw4qydnnry7tjs7plqeytb6ueyvu",
         "skill/dvilela/memeooorr_abci/0.1.0": "bafybeic2vfe2zk7aze6xxyzpey4cyra6zdtecormly4x7d5fnd75ypzy5m",
         "skill/dvilela/memeooorr_chained_abci/0.1.0": "bafybeiaszjjge3xy355g325vhttftma6uotqwslhspqczzg7pc6h7z7zpq",
-        "skill/valory/mech_interact_abci/0.1.0": "bafybeieijlmfox63tsuei56tepu3ge25xvbhvyw2e6zb642pbgyabloue4",
         "agent/dvilela/memeooorr/0.1.0": "bafybeias3v5wsbsiiaswmpge3vl6cmrd4gddk7z4em7yyq53k2k7eqtpsm",
         "service/dvilela/memeooorr/0.1.0": "bafybeiatlmby53pjxohdavgf3bwyri72duvyzk67vthv2ywkm6m6e67usu"
     },
@@ -41,6 +40,7 @@
         "connection/valory/ledger/0.19.0": "bafybeibdsjmy4w2eyilbqc7yzutopl65qpeyspxwz7mjvirr52twhjlf5y",
         "connection/valory/p2p_libp2p_client/0.1.0": "bafybeic6ayusdwy4dks75njwk32ac7ur7salgllwf4fdc34ue5z2k5iz4q",
         "connection/valory/http_server/0.22.0": "bafybeic3jpkum7g6qo6x6vdrmvvhj7vqw7ec2op72uc3yfhmnlp5hn3joy",
+        "skill/valory/mech_interact_abci/0.1.0": "bafybeieijlmfox63tsuei56tepu3ge25xvbhvyw2e6zb642pbgyabloue4",
         "skill/valory/abstract_abci/0.1.0": "bafybeihligouknh2v2o2xwugm7yfiypllokbahnxgsh36mgdascvchjmpe",
         "skill/valory/reset_pause_abci/0.1.0": "bafybeid5tsasmon5gennzigr3ffkctz3womegogkhqcatdb6g7l7llwfu4",
         "skill/valory/registration_abci/0.1.0": "bafybeigrxf2uhudr4ode6p77jikrjzfemfttqhoqez366qugqdckbb6wzi",
