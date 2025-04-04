@@ -20,7 +20,7 @@ fingerprint:
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeidbp7elfx2x4hmv6krrr5ohjgg755ifa54fixc2fikj4mkwy6q2ci
   payloads.py: bafybeidpqxudrhkhv66svwfxqupurgvblfez53icls2ukliskz5s7qrbrq
-  prompts.py: bafybeib3d67yobevtzcv2erncmsn4yoa6nns4risclup4bz2seszmdadaa
+  prompts.py: bafybeifr2jacykjjpr4n6so57htbpytusuxb7dy6xj7ivfe6wgxs6uwm24
   rounds.py: bafybeihjrfwwxnitubadpkvzopurbatfs2qhimrytiuk3occbxoyfbdpay
   rounds_info.py: bafybeib6a5a7bvwvfiscnbhsc6sejloelyglnu6lwbeeileyxrsgkxcb6a
 fingerprint_ignore_patterns: []
@@ -45,7 +45,7 @@ protocols:
 skills:
 - valory/abstract_round_abci:0.1.0:bafybeiezhbsm2ctlw7frt53jxpdq6d5cq2xaruzsedg66nqmi4prrglame
 - valory/transaction_settlement_abci:0.1.0:bafybeidfhgtyvsltd6naqrifycbobb7nlqk2gtnjvtolbli3okqovdm2su
-- valory/mech_interact_abci:0.1.0:bafybeihrxywjy2ichkf25ssi5ibieedab3dxgiedqyd6t2es75v3xn4sui
+- valory/mech_interact_abci:0.1.0:bafybeieijlmfox63tsuei56tepu3ge25xvbhvyw2e6zb642pbgyabloue4
 behaviours:
   main:
     args: {}
