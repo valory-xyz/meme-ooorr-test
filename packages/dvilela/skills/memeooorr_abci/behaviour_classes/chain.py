@@ -385,9 +385,9 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
             performative=ContractApiMessage.Performative.GET_STATE,
             contract_address=self.params.mech_marketplace_config.mech_marketplace_address,
             contract_id=str(MechMarketplace.contract_id),
-            contract_callable="mapRequestCounts",
+            contract_callable="get_request_count",
             chain_id=self.get_chain_id(),
-            args=(self.synchronized_data.safe_contract_address,),
+            address=self.synchronized_data.safe_contract_address,
         )
 
         if response_msg.performative != ContractApiMessage.Performative.STATE:
@@ -398,6 +398,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         # Assuming the contract API framework returns the count under the key "requests_count"
         # Adjust the key if necessary based on actual framework behavior for view functions.
+
         mech_request_count = cast(
             int, response_msg.state.body.get("requests_count", None)
         )
@@ -407,7 +408,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
                 f"Could not parse mech marketplace request count from response: {response_msg.state.body}"
             )
             return None
-        self.context.logger.debug(f"{mech_request_count=}")
+        self.context.logger.info(f"{mech_request_count=}")
 
         # Get service info and previous mech request count
         service_info = yield from self._get_service_info(chain=self.get_chain_id())
