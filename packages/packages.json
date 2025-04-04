@@ -25,8 +25,8 @@
         "protocol/valory/tendermint/0.1.0": "bafybeigydrbfrlmr4f7shbtqx44kvmbg22im27mxdap2e3m5tkti6t445y",
         "protocol/valory/srr/0.1.0": "bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4",
         "protocol/dvilela/kv_store/0.1.0": "bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci",
-        "contract/valory/mech_mm/0.1.0": "bafybeievm5q5vpwmjl2s2ds4aayvxnxvs3cyazcj64e2resrhuurpfoqcu",
-        "contract/valory/mech_marketplace/0.1.0": "bafybeieyatxmbvjh6fuyaq6i3lpjp47noo4urxascohqv2ye34jzr6dfsm",
+        "contract/valory/mech_mm/0.1.0": "bafybeiad32w5rysrrw5coldzklbx7zcwj4pjsbb26mqzgcxvlvoslmanqe",
+        "contract/valory/mech_marketplace/0.1.0": "bafybeiajuyxzp7l3lzxk23jle2bjdxapghc5om6iidcnwg6szfkqpxhb6y",
         "contract/valory/service_registry/0.1.0": "bafybeigmiyl3c23qbklwhnf5vpmhmign3cn6nakfdxqi2c7efthq57qaea",
         "contract/valory/gnosis_safe_proxy_factory/0.1.0": "bafybeidjgnk2jephgtwlxlxokto5rfde4u5kreh4wx5lv3fengidogynsi",
         "contract/valory/multisend/0.1.0": "bafybeig5byt5urg2d2bsecufxe5ql7f4mezg3mekfleeh32nmuusx66p4y",
@@ -46,6 +46,6 @@
         "skill/valory/abstract_round_abci/0.1.0": "bafybeifclzgoyulkyyigcwrqzmydyrj6c5d26xu7jk6cjbsed3pkls4pba",
         "skill/valory/termination_abci/0.1.0": "bafybeianygjbwmt4xrq77pfl3yzcokbjfzxmuru6j2k7a3boqc2qfb7shi",
         "skill/valory/transaction_settlement_abci/0.1.0": "bafybeid4alawv3oz4gdyom5uevrgzfsahbwabi37r7gomsetwqiq66g6cm",
-        "skill/valory/mech_interact_abci/0.1.0": "bafybeifsv4o3ztf4pxf7gcuogulezxtj6gzlqmqq2xrxhqioqgdetoa2xi"
+        "skill/valory/mech_interact_abci/0.1.0": "bafybeiembxpedbceflomc5sphtpplfz44lxiz5jizvcdyje6f55jyd53fy"
     }
 }
