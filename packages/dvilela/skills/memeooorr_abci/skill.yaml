@@ -31,11 +31,11 @@ connections:
 - dvilela/genai:0.1.0:bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty
 - valory/http_server:0.22.0:bafybeic3jpkum7g6qo6x6vdrmvvhj7vqw7ec2op72uc3yfhmnlp5hn3joy
 contracts:
-- valory/gnosis_safe:0.1.0:bafybeicint4o6qwf4z2a6hykufxrm6qmtblydzt34lbhxr2mxma454blo4
-- dvilela/meme_factory:0.1.0:bafybeibu6j4s4uiwkbtd7qgf4co4dkbiei44ke6gwr4r24skhaufmo3xyq
-- dvilela/service_registry:0.1.0:bafybeia4y7jmxbbr6xrthjwjp2vnwluunmdhefsxpkbt6mu4y7uzna7obe
-- valory/staking_token:0.1.0:bafybeic2m4oisdcnydyb3ra3r2xgh5ann3gargn2cfsl6o6viehhdxe7ri
-- valory/staking_activity_checker:0.1.0:bafybeifcghzfjqx6o2iytyrjjadjqembh6cq3eezfcp7wes3xr7xppmhu4
+- valory/gnosis_safe:0.1.0:bafybeidhegkiibxroyvzvsyuh5t3qpq3egj24u2yg2xryf2kir4f36on3u
+- dvilela/meme_factory:0.1.0:bafybeifa5h2a3t2ysi24c2zvfyyazjjxjicmveoszcyjbbamoqh7pmk6cu
+- dvilela/service_registry:0.1.0:bafybeih2dhp3dr5ijsbmo6rwfotpbbccejkb3cgutghgadncjqhfryklpu
+- valory/staking_token:0.1.0:bafybeigvcnjzhrwcbzdhiddc2vj7lmyroatnyhkgpkhwrduhuajuekjic4
+- valory/staking_activity_checker:0.1.0:bafybeievwpysmimhhjfgetswigoivnkdluj2n6dh342r2iesiqdw3dpvru
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
@@ -43,9 +43,9 @@ protocols:
 - valory/ledger_api:1.0.0:bafybeihmqzcbj6t7vxz2aehd5726ofnzsfjs5cwlf42ro4tn6i34cbfrc4
 - valory/contract_api:1.0.0:bafybeid247uig2ekykdumh7ewhp2cdq7rchaeqjj6e7urx35zfpdl5zrn4
 skills:
-- valory/abstract_round_abci:0.1.0:bafybeiezhbsm2ctlw7frt53jxpdq6d5cq2xaruzsedg66nqmi4prrglame
-- valory/transaction_settlement_abci:0.1.0:bafybeidfhgtyvsltd6naqrifycbobb7nlqk2gtnjvtolbli3okqovdm2su
-- valory/mech_interact_abci:0.1.0:bafybeihh5vcanzy2cyrfewb5rx4v2toij65n5jtga7ktleu4rmuk57jr7m
+- valory/abstract_round_abci:0.1.0:bafybeifclzgoyulkyyigcwrqzmydyrj6c5d26xu7jk6cjbsed3pkls4pba
+- valory/transaction_settlement_abci:0.1.0:bafybeid4alawv3oz4gdyom5uevrgzfsahbwabi37r7gomsetwqiq66g6cm
+- valory/mech_interact_abci:0.1.0:bafybeiaib7sg5lnvutv2zcxyfqqadmsikksbjo573klxik4vy5anqt2lka
 behaviours:
   main:
     args: {}
