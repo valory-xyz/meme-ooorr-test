@@ -945,32 +945,36 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         if action == "tweet":
             yield from self._handle_new_tweet(text, previous_tweets, persona)
         elif action == "tweet_with_media":
-            # Try to get video path first, fallback to image path
-            video_path_data = yield from self._read_kv(keys=("latest_video_path",))
-            media_path = (
-                video_path_data.get("latest_video_path") if video_path_data else None
-            )
+            # Read the combined media info from kv store
+            media_info_data = yield from self._read_kv(keys=("latest_media_info",))
+            media_info = None
+            if media_info_data and "latest_media_info" in media_info_data:
+                try:
+                    media_info = json.loads(media_info_data["latest_media_info"])
+                except json.JSONDecodeError:
+                    self.context.logger.error(
+                        "Failed to parse media_info JSON from KV store"
+                    )
+                    return
 
-            if not media_path:
-                self.context.logger.info(
-                    "No video path found, checking for image path."
+            if not media_info or "path" not in media_info or "type" not in media_info:
+                self.context.logger.error(
+                    "No valid media info (path and type) found in KV store for tweet_with_media action"
                 )
-                image_path_data = yield from self._read_kv(keys=("latest_image_path",))
-                media_path = (
-                    image_path_data.get("latest_image_path")
-                    if image_path_data
-                    else None
-                )
+                return
+
+            media_path = media_info["path"]
+            media_type = media_info[
+                "type"
+            ]  # We have the type now, though not explicitly used for upload yet
 
             self.context.logger.info(
-                f"Media path extracted from kv store: {media_path}"
+                f"Extracted media path: {media_path}, type: {media_type}"
             )
 
             # Ensure media_path is a valid string path
             if not media_path or not isinstance(media_path, str):
-                self.context.logger.error(
-                    "No valid media path (string) found in KV store for tweet_with_media action"
-                )
+                self.context.logger.error("Invalid media path found in KV store")
                 return
 
             # Upload the media first

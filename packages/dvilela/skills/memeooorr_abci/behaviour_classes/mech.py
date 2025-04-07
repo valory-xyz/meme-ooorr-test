@@ -20,12 +20,13 @@
 """This package contains round behaviours of MemeooorrAbciApp."""
 import base64
 import json
+import os
 import tempfile
 import traceback
 from datetime import datetime
 from typing import Any, Generator, Optional, Type
 
-import requests  # Import the requests library
+import requests
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
@@ -204,8 +205,12 @@ class PostMechResponseBehaviour(
                             f"Successfully saved image to temporary file: {image_path}"
                         )
 
-                        # Store the image path in the context
-                        yield from self._write_kv({"latest_image_path": image_path})
+                        # Store the image path and type in the context
+                        media_info = {"path": image_path, "type": "image"}
+                        yield from self._write_kv(
+                            {"latest_media_info": json.dumps(media_info)}
+                        )
+                        self.context.logger.info(f"Stored media info: {media_info}")
                         return True
 
                     self.context.logger.error("No artifacts found in result data")
@@ -237,39 +242,54 @@ class PostMechResponseBehaviour(
             self.context.logger.info(f"Using IPFS gateway URL: {ipfs_gateway_url}")
 
             # Make a synchronous GET request
-            response = requests.get(ipfs_gateway_url, timeout=30)  # Add a timeout
+            # Use stream=True for potentially large files
+            with requests.get(ipfs_gateway_url, timeout=120, stream=True) as response:
+                # Check if the request was successful
+                response.raise_for_status()  # Raises HTTPError for bad responses (4XX or 5XX)
 
-            # Check if the request was successful
-            response.raise_for_status()  # Raises HTTPError for bad responses (4XX or 5XX)
+                # Save the binary data to a temporary file
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                with tempfile.NamedTemporaryFile(
+                    suffix=f"_{timestamp}.mp4",
+                    delete=False,
+                ) as temp_file:
+                    video_path = temp_file.name
+                    downloaded_size = 0
+                    for chunk in response.iter_content(
+                        chunk_size=8192
+                    ):  # Read in chunks
+                        if chunk:  # filter out keep-alive new chunks
+                            temp_file.write(chunk)
+                            downloaded_size += len(chunk)
 
-            video_data = response.content
-            if not video_data:
+            if downloaded_size == 0:
                 self.context.logger.error(
-                    f"Received empty content from IPFS gateway {ipfs_gateway_url}"
+                    f"Received empty or no content from IPFS gateway {ipfs_gateway_url}"
                 )
+                # Attempt to remove empty file if created
+                try:
+                    if os.path.exists(video_path):
+                        os.remove(video_path)
+                except OSError as rm_err:
+                    self.context.logger.warning(
+                        f"Could not remove empty temp file {video_path}: {rm_err}"
+                    )
                 return False
 
             self.context.logger.info(
-                f"Successfully fetched video data (size: {len(video_data)} bytes) from IPFS gateway."
+                f"Successfully fetched video data (size: {downloaded_size} bytes) from IPFS gateway."
             )
-
-            # Save the binary data to a temporary file
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            with tempfile.NamedTemporaryFile(
-                suffix=f"_{timestamp}.mp4",
-                delete=False,
-            ) as temp_file:
-                temp_file.write(video_data)
-                video_path = temp_file.name
-
             self.context.logger.info(
                 f"Successfully saved video to temporary file: {video_path}"
             )
 
-            # Store the video path in the context
-            # Note: Calling _write_kv directly might not be ideal from a sync func
-            # If issues arise, consider queueing this or handling it differently.
-            self.context.logger.info(f"Video path: {video_path}")
+            # Store the video path and type in the context
+            media_info = {"path": video_path, "type": "video"}
+            # Note: Writing directly to DB state as this function is synchronous.
+            yield from self._write_kv(("latest_media_info", json.dumps(media_info)))
+            self.context.logger.info(
+                f"Stored media info directly to DB state: {media_info}"
+            )
             return True
 
         except requests.exceptions.RequestException as e:

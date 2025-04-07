@@ -87,7 +87,7 @@ LIVENESS_RATIO_SCALE_FACTOR = 10**18
 
 # A safety margin in case there is a delay between the moment the KPI condition is
 # satisfied, and the moment where the checkpoint is called.
-REQUIRED_REQUESTS_SAFETY_MARGIN = 1
+REQUIRED_REQUESTS_SAFETY_MARGIN = 0  # using it as 0 for now
 
 
 class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-ancestors
