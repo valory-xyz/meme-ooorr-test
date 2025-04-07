@@ -65,6 +65,8 @@ def is_tweet_valid(tweet: str) -> bool:
 # Define a context holder for interaction processing
 @dataclass
 class InteractionContext:
+    """Holds the context required for processing multiple Twitter interactions within a single period."""
+
     pending_tweets: dict
     previous_tweets: dict
     persona: str
@@ -72,7 +74,7 @@ class InteractionContext:
 
 
 class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-ancestors
-    """BaseTweetBehaviour"""
+    """Base behaviour for tweet-related actions."""
 
     matching_round: Type[AbstractRound] = None  # type: ignore
 
@@ -940,7 +942,6 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         user_id = interaction.get("user_id", None)
         action = interaction.get("action", None)
         text = interaction.get("text", None)
-        # media_path = interaction.get("media_path", None) # No longer needed here
 
         # Validate action and parameters (using context)
         if not self._validate_interaction(
@@ -1002,7 +1003,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         )
 
         # Clear the media info from KV store immediately after reading
-        yield from self._write_kv({"latest_media_info": None})
+        yield from self._write_kv({"latest_media_info": ""})
         self.context.logger.info("Cleared latest_media_info from KV store.")
 
         # Ensure media_path is a valid string path

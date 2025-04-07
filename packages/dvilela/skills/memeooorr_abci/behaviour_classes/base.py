@@ -23,7 +23,7 @@ import json
 import re
 from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, Generator, List, Optional, Tuple, cast
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union, cast
 
 from aea.protocols.base import Message
 from twitter_text import parse_tweet  # type: ignore
@@ -1366,6 +1366,7 @@ class MemeooorrBaseBehaviour(
     ) -> Generator[None, None, None]:
         """
         Track Twikit API calls and store analytics in KV store.
+
         Handles both direct API calls and compound operations that make multiple internal API calls.
 
         Args:
@@ -1400,7 +1401,7 @@ class MemeooorrBaseBehaviour(
         }
 
         # Track compound operations that make multiple API calls
-        compound_operations = {
+        compound_operations: Dict[str, Dict[str, Union[str, int]]] = {
             "filter_suspended_users": {
                 "base_method": "get_user_by_screen_name",
                 "count_param": "user_names",
@@ -1438,7 +1439,7 @@ class MemeooorrBaseBehaviour(
             operation_type = "write"
             twikit_stats["write_operations"] += 1
         elif method in compound_operations:
-            operation_type = compound_operations[method]["operation_type"]
+            operation_type = cast(str, compound_operations[method]["operation_type"])
             # For compound operations, we'll count their internal calls separately below
         else:
             operation_type = "other"
@@ -1467,17 +1468,19 @@ class MemeooorrBaseBehaviour(
         # PART 2: Track internal calls for compound operations
         if method in compound_operations:
             mapping = compound_operations[method]
-            base_method = mapping["base_method"]
-            internal_operation_type = mapping["operation_type"]
+            # Use cast to specify the expected type
+            base_method: str = cast(str, mapping["base_method"])
+            # Explicitly type the variable and use cast
+            internal_operation_type: str = cast(str, mapping["operation_type"])
 
             # Determine number of internal calls
             internal_call_count = 1  # Default to at least one call
-            if "count_param" in mapping and mapping["count_param"] in kwargs:
-                param_value = kwargs[mapping["count_param"]]
+            if "count_param" in mapping and cast(str, mapping["count_param"]) in kwargs:
+                param_value = kwargs[cast(str, mapping["count_param"])]
                 if isinstance(param_value, list):
                     internal_call_count = len(param_value)
             elif "count" in mapping:
-                internal_call_count = mapping["count"]
+                internal_call_count = cast(int, mapping["count"])
 
             # Update stats for the internal method calls
             if base_method not in twikit_stats["methods_called"]:

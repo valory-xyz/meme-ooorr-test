@@ -24,7 +24,7 @@ import os
 import tempfile
 import traceback
 from datetime import datetime
-from typing import Generator, Type
+from typing import Generator, Optional, Type
 
 import requests
 
@@ -74,20 +74,25 @@ class PostMechResponseBehaviour(
                                 "Case 1: Video hash found. Fetching video from IPFS."
                             )
                             self.context.logger.info(f"Video IPFS hash: {video_hash}")
-                            # Fetch video data using the video hash
-                            success = yield from self.fetch_video_data_from_ipfs(
-                                video_hash
-                            )
-                            if success:
+                            # Call the synchronous download function (no yield from)
+                            video_path = self.fetch_video_data_from_ipfs(video_hash)
+                            # If download succeeded, save path and type asynchronously
+                            if video_path:
                                 self.context.logger.info(
-                                    "Video data fetched and saved successfully."
+                                    f"Video downloaded successfully to: {video_path}"
                                 )
-                                mech_for_twitter = True
+                                # Now save using _write_kv in the async context
+                                media_info = {"path": video_path, "type": "video"}
+                                yield from self._write_kv(
+                                    {"latest_media_info": json.dumps(media_info)}
+                                )
+                                self.context.logger.info(
+                                    f"Stored media info via _write_kv: {media_info}"
+                                )
+                                mech_for_twitter = True  # Set flag only after successful download AND save
                             else:
-                                self.context.logger.error(
-                                    "Failed to fetch or save video data from IPFS."
-                                )
-                                # Keep mech_for_twitter False if video fetch fails
+                                self.context.logger.error("Video download failed.")
+                                # mech_for_twitter remains False
 
                         # Case 2: Check if the result_json has an 'ipfs_link' (old format)
                         elif "ipfs_link" in result_json:
@@ -230,80 +235,85 @@ class PostMechResponseBehaviour(
             self.context.logger.error(traceback.format_exc())
             return False
 
+    # Synchronous function using requests, ONLY downloads and returns path or None
     def fetch_video_data_from_ipfs(  # pylint: disable=too-many-return-statements, too-many-locals
         self, ipfs_hash: str
-    ) -> bool:
-        """Fetch video data from IPFS hash using requests library and save it to a temporary file."""
+    ) -> Optional[str]:  # Returns Optional[str], not bool or Generator
+        """Fetch video data from IPFS hash using requests library, save locally, and return the path."""
+        video_path = None  # Initialize
         try:
             self.context.logger.info(
-                f"Attempting to fetch video from IPFS hash via requests: {ipfs_hash}"
+                f"Attempting synchronous video fetch via requests: {ipfs_hash}"
             )
-            # Use the specified Autonolas gateway
             ipfs_gateway_url = f"https://gateway.autonolas.tech/ipfs/{ipfs_hash}"
             self.context.logger.info(f"Using IPFS gateway URL: {ipfs_gateway_url}")
 
-            # Make a synchronous GET request
-            # Use stream=True for potentially large files
             with requests.get(ipfs_gateway_url, timeout=120, stream=True) as response:
-                # Check if the request was successful
-                response.raise_for_status()  # Raises HTTPError for bad responses (4XX or 5XX)
-
-                # Save the binary data to a temporary file
+                response.raise_for_status()
                 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
                 with tempfile.NamedTemporaryFile(
-                    suffix=f"_{timestamp}.mp4",
-                    delete=False,
+                    suffix=f"_{timestamp}.mp4", delete=False
                 ) as temp_file:
-                    video_path = temp_file.name
+                    video_path = temp_file.name  # Assign path
                     downloaded_size = 0
-                    for chunk in response.iter_content(
-                        chunk_size=8192
-                    ):  # Read in chunks
-                        if chunk:  # filter out keep-alive new chunks
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
                             temp_file.write(chunk)
                             downloaded_size += len(chunk)
 
             if downloaded_size == 0:
                 self.context.logger.error(
-                    f"Received empty or no content from IPFS gateway {ipfs_gateway_url}"
+                    f"Received empty content from {ipfs_gateway_url}"
                 )
                 # Attempt to remove empty file if created
-                try:
-                    if os.path.exists(video_path):
+                if video_path and os.path.exists(video_path):
+                    try:
                         os.remove(video_path)
-                except OSError as rm_err:
-                    self.context.logger.warning(
-                        f"Could not remove empty temp file {video_path}: {rm_err}"
-                    )
-                return False
+                        self.context.logger.info(
+                            f"Removed empty temporary file: {video_path}"
+                        )
+                    except OSError as rm_err:
+                        self.context.logger.warning(
+                            f"Could not remove empty temp file {video_path}: {rm_err}"
+                        )
+                return None  # Return None on failure
 
             self.context.logger.info(
-                f"Successfully fetched video data (size: {downloaded_size} bytes) from IPFS gateway."
+                f"Successfully fetched video (size: {downloaded_size} bytes) to: {video_path}"
             )
-            self.context.logger.info(
-                f"Successfully saved video to temporary file: {video_path}"
-            )
-
-            # Store the video path and type in the context
-            media_info = {"path": video_path, "type": "video"}
-            # Note: Writing directly to DB state as this function is synchronous.
-            # saving to kv store
-            yield from self._write_kv({"latest_media_info": json.dumps(media_info)})
-            self.context.logger.info(
-                f"Stored media info directly to DB state: {media_info}"
-            )
-            return True
+            # DO NOT save to KV store here
+            return video_path  # Return path on success
 
         except requests.exceptions.RequestException as e:
             self.context.logger.error(f"HTTP request failed: {e}")
             self.context.logger.error(traceback.format_exc())
-            return False
+            # Attempt to remove potentially partially created temp file on error
+            if video_path and os.path.exists(video_path):
+                try:
+                    os.remove(video_path)
+                    self.context.logger.info(
+                        f"Removed temporary file due to HTTP error: {video_path}"
+                    )
+                except OSError as rm_err:
+                    self.context.logger.warning(
+                        f"Could not remove temp file {video_path} after HTTP error: {rm_err}"
+                    )
+            return None  # Return None on failure
         except Exception as e:  # pylint: disable=broad-except
-            self.context.logger.error(
-                f"Error fetching/saving video from IPFS gateway: {e}"
-            )
+            self.context.logger.error(f"Error in fetch_video_data_from_ipfs: {e}")
             self.context.logger.error(traceback.format_exc())
-            return False
+            # Attempt to remove potentially partially created temp file on error
+            if video_path and os.path.exists(video_path):
+                try:
+                    os.remove(video_path)
+                    self.context.logger.info(
+                        f"Removed temporary file due to error: {video_path}"
+                    )
+                except OSError as rm_err:
+                    self.context.logger.warning(
+                        f"Could not remove temp file {video_path} after error: {rm_err}"
+                    )
+            return None  # Return None on failure
 
 
 class FailedMechRequestBehaviour(
