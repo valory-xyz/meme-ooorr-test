@@ -60,8 +60,6 @@ Here are some tweets from other users:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform.
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
-I'm testing currently with a tool, so you should use the tool stabilityai-stable-diffusion-v1-6
-
 {extra_command}
 
 Your task is to decide what actions to do, if any. Some recommenadations:
@@ -118,7 +116,6 @@ class ToolActionName(enum.Enum):
     """ToolActionName"""
 
     STABLE_DIFFUSION = "stabilityai-stable-diffusion-v1-6"
-    SHORT_MAKER = "short_maker"
 
 
 @dataclass(frozen=True)
