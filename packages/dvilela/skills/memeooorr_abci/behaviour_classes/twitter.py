@@ -373,12 +373,10 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 interacted_tweet_ids,
             ) = yield from self._handle_mech_for_twitter()
         else:
-            # (
-            #     pending_tweets,
-            #     interacted_tweet_ids,
-            # ) = yield from self._handle_regular_engagement()
-            pending_tweets = {}
-            interacted_tweet_ids = []
+            (
+                pending_tweets,
+                interacted_tweet_ids,
+            ) = yield from self._handle_regular_engagement()
 
         # Process interactions
         (
@@ -680,6 +678,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 mech_response=subprompt_with_mech_response,
                 tools=self.generate_mech_tool_info(),
                 time=self.get_sync_time_str(),
+                extra_command="",  # disabling extra command in this case as we are in mech submission path
             )
 
             # Clear stored data
