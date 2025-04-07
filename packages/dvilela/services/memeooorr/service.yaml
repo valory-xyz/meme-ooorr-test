@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeia3ru6glyu5fsragbwsdezh7ixp3avmhbn7rsh5iq6abj3ohqqkju
+agent: dvilela/memeooorr:0.1.0:bafybeidwygtv5emlm6zdbrvqeqbew7mlnjnimbtgge726cgcoctsnpf7je
 number_of_agents: 1
 deployment:
   agent:
@@ -104,7 +104,7 @@ extra:
         max_summon_amount_celo: ${MAX_SUMMON_AMOUNT_CELO:float:20.0}
         max_heart_amount_celo: ${MAX_HEART_AMOUNT_CELO:float:0.2}
         use_mech_marketplace: ${USE_MECH_MARKETPLACE:bool:false}
-        mech_marketplace_config: ${MECH_MARKETPLACE_CONFIG:dict:{"mech_marketplace_address":"0x0000000000000000000000000000000000000000","priority_mech_address":"0x0000000000000000000000000000000000000000","priority_mech_staking_instance_address":"0x0000000000000000000000000000000000000000","priority_mech_service_id":0,"requester_staking_instance_address":"0x0000000000000000000000000000000000000000","response_timeout":300}}
+        mech_marketplace_config: ${MECH_MARKETPLACE_CONFIG:dict:{"mech_marketplace_address":"0x0000000000000000000000000000000000000000","priority_mech_address":"0x0000000000000000000000000000000000000000","response_timeout":300}}
         mech_contract_address: ${MECH_CONTRACT_ADDRESS:str:0x}
         mech_request_price: ${MECH_REQUEST_PRICE:int:100}
         mech_chain_id: ${MECH_CHAIN_ID:str:gnosis}

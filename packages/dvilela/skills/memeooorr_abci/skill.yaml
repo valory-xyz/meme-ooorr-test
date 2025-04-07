@@ -13,7 +13,7 @@ fingerprint:
   behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
   behaviour_classes/llm.py: bafybeihqemvq6tr22f2zwtvxgaoenxva6mrswlotycaunuia6akbatdw24
   behaviour_classes/mech.py: bafybeiha6ilm3xdes7bm3cd6x3jterbshcnqqhn7xubbilvergn6bpeic4
-  behaviour_classes/twitter.py: bafybeihsye6vnbouxvjcqgerg4lewpj3oiton4ium3v76inphgt2g7mh3y
+  behaviour_classes/twitter.py: bafybeiatf7zyjzepa2w7hrwx24f2xxvfn4ppnhynlindpnwq2ouorivbay
   behaviours.py: bafybeicsif4jpkuq4a5ijgj63s5zn4mskmakuddgiquqb4vrlz3trqa7fu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeigentt3vsdpeikkvsry6kyya4c2cnfdstg2l6adgwprwel7tqpeuq
@@ -21,7 +21,7 @@ fingerprint:
   models.py: bafybeidbp7elfx2x4hmv6krrr5ohjgg755ifa54fixc2fikj4mkwy6q2ci
   payloads.py: bafybeidpqxudrhkhv66svwfxqupurgvblfez53icls2ukliskz5s7qrbrq
   prompts.py: bafybeiditz4mfsf6umhp37za7ufpndr2ouw4plidtw4jqyht5i6blv6zji
-  rounds.py: bafybeigc6wsnzfcggvjguch3lruy3l4kahtgtoul6y7ae4nradb3edtpjq
+  rounds.py: bafybeihjrfwwxnitubadpkvzopurbatfs2qhimrytiuk3occbxoyfbdpay
   rounds_info.py: bafybeib6a5a7bvwvfiscnbhsc6sejloelyglnu6lwbeeileyxrsgkxcb6a
 fingerprint_ignore_patterns: []
 connections:
@@ -46,7 +46,7 @@ protocols:
 skills:
 - valory/abstract_round_abci:0.1.0:bafybeifclzgoyulkyyigcwrqzmydyrj6c5d26xu7jk6cjbsed3pkls4pba
 - valory/transaction_settlement_abci:0.1.0:bafybeid4alawv3oz4gdyom5uevrgzfsahbwabi37r7gomsetwqiq66g6cm
-- valory/mech_interact_abci:0.1.0:bafybeia7pdjl6i2c2flwtfvdwbdxikrmjo5crrkfmi6kwv2yaoilpr3gpy
+- valory/mech_interact_abci:0.1.0:bafybeie2kwvljwwof7ctvrwbvxrazvyygpdnwqohlkbti3xmlxzt65qnz4
 behaviours:
   main:
     args: {}
@@ -185,17 +185,14 @@ models:
         short_maker: This tool generates a short video based on a given prompt
       multisend_batch_size: 50
       mech_request_price: 100
-      mech_contract_address: ${str:0xe535D7AcDEeD905dddcb5443f41980436833cA2B}
+      mech_contract_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
       mech_chain_id: base
       mech_interaction_sleep_time: 10
-      use_mech_marketplace: true
       use_acn_for_delivers: false
+      use_mech_marketplace: true
       mech_marketplace_config:
         mech_marketplace_address: '0xf24eE42edA0fc9b33B7D41B06Ee8ccD2Ef7C5020'
-        priority_mech_address: '0x0000000000000000000000000000000000000000'
-        priority_mech_staking_instance_address: '0x0000000000000000000000000000000000000000'
-        priority_mech_service_id: 0
-        requester_staking_instance_address: '0x0000000000000000000000000000000000000000'
+        priority_mech_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
         response_timeout: 300
       mech_to_subscription_params:
         base_url: url

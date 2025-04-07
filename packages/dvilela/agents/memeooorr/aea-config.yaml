@@ -44,9 +44,9 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeid4alawv3oz4gdyom5uevrgzfsahbwabi37r7gomsetwqiq66g6cm
 - valory/registration_abci:0.1.0:bafybeigt7bmrfhet7fyafqojl2i5uhzvpaz5wfv6kuk5ojwhhnhmg3qihu
 - valory/reset_pause_abci:0.1.0:bafybeicskv7u3mtfhi7nnoyw3bppwjof63izs4jgqdddtxicoea26t2n7i
-- dvilela/memeooorr_abci:0.1.0:bafybeifdb7ew2nklvke6kjyjxhuprbrgfh6hbxc3doi3o4krp6uhno7slm
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeibgg2bcezjdt2wdf5t2nbbiuk6pilbhx7je5etwwlsrrht3byyudq
-- valory/mech_interact_abci:0.1.0:bafybeia7pdjl6i2c2flwtfvdwbdxikrmjo5crrkfmi6kwv2yaoilpr3gpy
+- dvilela/memeooorr_abci:0.1.0:bafybeiexfrm5ejz4g6fa6yvv7orbvhlzs6wu6p4epufdliqtsbs3fwb3dy
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeih2thevrci5jeygrczvhkftn3q43lml4mtlge3zhnli35dpiy2tca
+- valory/mech_interact_abci:0.1.0:bafybeie2kwvljwwof7ctvrwbvxrazvyygpdnwqohlkbti3xmlxzt65qnz4
 default_ledger: ethereum
 required_ledgers:
 - ethereum
@@ -235,16 +235,13 @@ models:
       fireworks_api_key: ${str:null}
       tx_loop_breaker_count: 3
       tools_for_mech: ${dict:{}}
-      mech_contract_address: ${str:0xe535D7AcDEeD905dddcb5443f41980436833cA2B}
+      mech_contract_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
       mech_chain_id: base
       mech_interaction_sleep_time: 10
       use_mech_marketplace: true
       mech_marketplace_config:
         mech_marketplace_address: '0xf24eE42edA0fc9b33B7D41B06Ee8ccD2Ef7C5020'
         priority_mech_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
-        priority_mech_staking_instance_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
-        priority_mech_service_id: 0
-        requester_staking_instance_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
         response_timeout: 300
       use_acn_for_delivers: false
 ---
