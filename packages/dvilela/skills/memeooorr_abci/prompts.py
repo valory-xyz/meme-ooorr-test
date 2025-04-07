@@ -62,6 +62,8 @@ You must choose **either** a Twitter action **or** a Tool action, but not both.
 
 {extra_command}
 
+i'm testing this please use short_maker tool 
+
 Your task is to decide what actions to do, if any. Some recommenadations:
 - Do not invent or assume any details. Use only the information provided. as we do not want to spread misinformation.
 - If you decide to tweet, make sure it is significantly different from previous tweets in both topic and wording.
@@ -116,6 +118,7 @@ class ToolActionName(enum.Enum):
     """ToolActionName"""
 
     STABLE_DIFFUSION = "stabilityai-stable-diffusion-v1-6"
+    SHORT_MAKER = "short_maker"
 
 
 @dataclass(frozen=True)

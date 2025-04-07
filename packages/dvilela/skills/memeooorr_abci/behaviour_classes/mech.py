@@ -22,8 +22,9 @@ import base64
 import json
 import tempfile
 import traceback
+import requests  # Import the requests library
 from datetime import datetime
-from typing import Generator, Type
+from typing import Generator, Type, Optional, Any
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
@@ -34,6 +35,7 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     FailedMechResponseRound,
     PostMechResponseRound,
 )
+from packages.valory.protocols.http.message import HttpMessage
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 from packages.valory.skills.abstract_round_abci.io_.store import SupportedFiletype
 
@@ -72,9 +74,7 @@ class PostMechResponseBehaviour(
                             )
                             self.context.logger.info(f"Video IPFS hash: {video_hash}")
                             # Fetch video data using the video hash
-                            success = yield from self.fetch_video_data_from_ipfs(
-                                video_hash
-                            )
+                            success = self.fetch_video_data_from_ipfs(video_hash)
                             if success:
                                 self.context.logger.info(
                                     "Video data fetched and saved successfully."
@@ -223,47 +223,62 @@ class PostMechResponseBehaviour(
             self.context.logger.error(traceback.format_exc())
             return False
 
-    def fetch_video_data_from_ipfs(  # pylint: disable=too-many-return-statements
+    def fetch_video_data_from_ipfs(  # pylint: disable=too-many-return-statements, too-many-locals
         self, ipfs_hash: str
-    ) -> Generator[None, None, bool]:
-        """Fetch video data from IPFS hash and save it to a temporary file."""
+    ) -> bool:
+        """Fetch video data from IPFS hash using requests library and save it to a temporary file."""
         try:
-            self.context.logger.info(f"Fetching video from IPFS hash: {ipfs_hash}")
+            self.context.logger.info(
+                f"Attempting to fetch video from IPFS hash via requests: {ipfs_hash}"
+            )
+            # Use the specified Autonolas gateway
+            ipfs_gateway_url = f"https://gateway.autonolas.tech/ipfs/{ipfs_hash}"
+            self.context.logger.info(f"Using IPFS gateway URL: {ipfs_gateway_url}")
 
-            # Fetch raw binary data for the video
-            video_data = yield from self.get_from_ipfs(
-                ipfs_hash=ipfs_hash, filetype=SupportedFiletype.BIN
+            # Make a synchronous GET request
+            response = requests.get(ipfs_gateway_url, timeout=30)  # Add a timeout
+
+            # Check if the request was successful
+            response.raise_for_status()  # Raises HTTPError for bad responses (4XX or 5XX)
+
+            video_data = response.content
+            if not video_data:
+                self.context.logger.error(
+                    f"Received empty content from IPFS gateway {ipfs_gateway_url}"
+                )
+                return False
+
+            self.context.logger.info(
+                f"Successfully fetched video data (size: {len(video_data)} bytes) from IPFS gateway."
             )
 
-            if video_data:
-                try:
-                    # Create a temporary file with a specific suffix for the video
-                    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                    with tempfile.NamedTemporaryFile(
-                        suffix=f"_{timestamp}.mp4",
-                        delete=False,  # Assuming mp4, adjust if needed
-                    ) as temp_file:
-                        temp_file.write(video_data)
-                        video_path = temp_file.name
+            # Save the binary data to a temporary file
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            with tempfile.NamedTemporaryFile(
+                suffix=f"_{timestamp}.mp4",
+                delete=False,
+            ) as temp_file:
+                temp_file.write(video_data)
+                video_path = temp_file.name
 
-                    self.context.logger.info(
-                        f"Successfully saved video to temporary file: {video_path}"
-                    )
+            self.context.logger.info(
+                f"Successfully saved video to temporary file: {video_path}"
+            )
 
-                    # Store the video path in the context
-                    yield from self._write_kv({"latest_video_path": video_path})
-                    return True
+            # Store the video path in the context
+            # Note: Calling _write_kv directly might not be ideal from a sync func
+            # If issues arise, consider queueing this or handling it differently.
+            self.context.logger.info(f"Video path: {video_path}")
+            return True
 
-                except Exception as e:  # pylint: disable=broad-except
-                    self.context.logger.error(f"Error saving video data: {e}")
-                    self.context.logger.error(traceback.format_exc())
-                    return False
-
-            self.context.logger.error("Failed to fetch video: Empty response from IPFS")
+        except requests.exceptions.RequestException as e:
+            self.context.logger.error(f"HTTP request failed: {e}")
+            self.context.logger.error(traceback.format_exc())
             return False
-
         except Exception as e:  # pylint: disable=broad-except
-            self.context.logger.error(f"Error fetching video from IPFS: {e}")
+            self.context.logger.error(
+                f"Error fetching/saving video from IPFS gateway: {e}"
+            )
             self.context.logger.error(traceback.format_exc())
             return False
 
