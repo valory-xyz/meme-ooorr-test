@@ -964,13 +964,15 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 return
 
             media_path = media_info["path"]
-            media_type = media_info[
-                "type"
-            ]  # We have the type now, though not explicitly used for upload yet
+            media_type = media_info["type"]
 
             self.context.logger.info(
                 f"Extracted media path: {media_path}, type: {media_type}"
             )
+
+            # Clear the media info from KV store after reading
+            yield from self._write_kv({"latest_media_info": None})
+            self.context.logger.info("Cleared latest_media_info from KV store.")
 
             # Ensure media_path is a valid string path
             if not media_path or not isinstance(media_path, str):

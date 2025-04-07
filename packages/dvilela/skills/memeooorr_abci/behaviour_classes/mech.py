@@ -76,7 +76,9 @@ class PostMechResponseBehaviour(
                             )
                             self.context.logger.info(f"Video IPFS hash: {video_hash}")
                             # Fetch video data using the video hash
-                            success = self.fetch_video_data_from_ipfs(video_hash)
+                            success = yield from self.fetch_video_data_from_ipfs(
+                                video_hash
+                            )
                             if success:
                                 self.context.logger.info(
                                     "Video data fetched and saved successfully."
@@ -286,7 +288,8 @@ class PostMechResponseBehaviour(
             # Store the video path and type in the context
             media_info = {"path": video_path, "type": "video"}
             # Note: Writing directly to DB state as this function is synchronous.
-            yield from self._write_kv(("latest_media_info", json.dumps(media_info)))
+            # saving to kv store
+            yield from self._write_kv({"latest_media_info": json.dumps(media_info)})
             self.context.logger.info(
                 f"Stored media info directly to DB state: {media_info}"
             )
