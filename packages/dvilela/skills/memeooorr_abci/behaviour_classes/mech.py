@@ -24,7 +24,7 @@ import os
 import tempfile
 import traceback
 from datetime import datetime
-from typing import Any, Generator, Optional, Type
+from typing import Generator, Type
 
 import requests
 
@@ -37,7 +37,6 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
     FailedMechResponseRound,
     PostMechResponseRound,
 )
-from packages.valory.protocols.http.message import HttpMessage
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 from packages.valory.skills.abstract_round_abci.io_.store import SupportedFiletype
 
@@ -49,7 +48,7 @@ class PostMechResponseBehaviour(
 
     matching_round: Type[AbstractRound] = PostMechResponseRound
 
-    def async_act(self) -> Generator:
+    def async_act(self) -> Generator:  # pylint: disable=too-many-statements
         """Do the act, supporting asynchronous execution."""
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             # Initialize mech_for_twitter to False by default

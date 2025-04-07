@@ -369,7 +369,7 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         return StakingState(service_staking_state)
 
-    def _is_staking_kpi_met(
+    def _is_staking_kpi_met(  # pylint: disable=too-many-return-statements
         self,
     ) -> Generator[
         None, None, Optional[bool]
