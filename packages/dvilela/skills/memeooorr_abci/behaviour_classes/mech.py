@@ -22,9 +22,10 @@ import base64
 import json
 import tempfile
 import traceback
-import requests  # Import the requests library
 from datetime import datetime
-from typing import Generator, Type, Optional, Any
+from typing import Any, Generator, Optional, Type
+
+import requests  # Import the requests library
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
     MemeooorrBaseBehaviour,
