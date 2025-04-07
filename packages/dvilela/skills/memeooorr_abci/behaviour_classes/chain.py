@@ -332,6 +332,12 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
     def _get_service_staking_state(
         self, chain: str
     ) -> Generator[None, None, Optional[StakingState]]:
+        self.context.logger.info(f"Getting service staking state for chain {chain}")
+        self.context.logger.info(f"service_id: {self.params.on_chain_service_id}")
+        self.context.logger.info(
+            f"staking_token_contract_address: {self.params.staking_token_contract_address}"
+        )
+
         service_id = self.params.on_chain_service_id
         if service_id is None:
             self.context.logger.warning(
@@ -363,7 +369,11 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
 
         return StakingState(service_staking_state)
 
-    def _is_staking_kpi_met(self) -> Generator[None, None, Optional[bool]]:  # pylint: disable=too-many-return-statements
+    def _is_staking_kpi_met(
+        self,
+    ) -> Generator[
+        None, None, Optional[bool]
+    ]:  # pylint: disable=too-many-return-statements
         """Return whether the staking KPI has been met (only for staked services)."""
         # Check if service is staked
         service_staking_state = yield from self._get_service_staking_state(
@@ -456,6 +466,16 @@ class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-a
             self.round_sequence.last_round_transition_timestamp.timestamp()
         )
         self.context.logger.info(f"{current_timestamp=}")
+
+        self.context.logger.info(
+            f"Calculating required_mech_requests with params: "
+            f"liveness_period={liveness_period}, "
+            f"current_timestamp={current_timestamp}, "
+            f"last_ts_checkpoint={last_ts_checkpoint}, "
+            f"liveness_ratio={liveness_ratio}, "
+            f"LIVENESS_RATIO_SCALE_FACTOR={LIVENESS_RATIO_SCALE_FACTOR}, "
+            f"REQUIRED_REQUESTS_SAFETY_MARGIN={REQUIRED_REQUESTS_SAFETY_MARGIN}"
+        )
 
         # Calculate required requests
         required_mech_requests = (
@@ -818,10 +838,6 @@ class PostTxDecisionMakingBehaviour(
             ):
                 event = Event.MECH.value
 
-            # get twikit analytics data
-            twikit_analytics = yield from self.get_twikit_analytics()
-            self.context.logger.info(f"Twikit analytics: {twikit_analytics}")
-
             payload = PostTxDecisionMakingPayload(
                 sender=self.context.agent_address,
                 event=event,
@@ -843,10 +859,6 @@ class CallCheckpointBehaviour(ChainBehaviour):  # pylint: disable=too-many-ances
         """Do the action."""
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             checkpoint_tx_hex = yield from self.get_checkpoint_tx_hash()
-
-            # get twikit analytics data
-            twikit_analytics = yield from self.get_twikit_analytics()
-            self.context.logger.info(f"Twikit analytics: {twikit_analytics}")
 
             payload = CallCheckpointPayload(
                 sender=self.context.agent_address,
@@ -949,10 +961,6 @@ class TransactionLoopCheckBehaviour(
             self.context.logger.info(
                 f"Checking if the transaction loop is still running. Counter: {self.synchronized_data.tx_loop_count} and increasing it by 1"
             )
-
-            # get twikit analytics data
-            twikit_analytics = yield from self.get_twikit_analytics()
-            self.context.logger.info(f"Twikit analytics: {twikit_analytics}")
 
             payload = TransactionLoopCheckPayload(
                 sender=self.context.agent_address,

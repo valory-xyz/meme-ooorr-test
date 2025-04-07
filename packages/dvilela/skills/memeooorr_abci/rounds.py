@@ -726,8 +726,8 @@ class MemeooorrAbciApp(AbciApp[Event]):
     }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
-            # Event.DONE: CheckStakingRound,
-            Event.DONE: EngageTwitterRound,
+            Event.DONE: CheckStakingRound,
+            # Event.DONE: EngageTwitterRound,
             Event.NO_MAJORITY: LoadDatabaseRound,
             Event.ROUND_TIMEOUT: LoadDatabaseRound,
         },

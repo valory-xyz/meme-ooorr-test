@@ -9,7 +9,7 @@ fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
   behaviour_classes/base.py: bafybeiarxdkutnu57my2ub533ydcxa6yd672l2r2bpyo2j7d2zw6xu56eu
-  behaviour_classes/chain.py: bafybeibkt4wsuxswadnm6fbhyuliwcxetv647gaskesl4qw2oozj4nkn3y
+  behaviour_classes/chain.py: bafybeiho7kr457f53bewn6q7yx57csif3ygtvh45oweoh54dx4hllrib6i
   behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
   behaviour_classes/llm.py: bafybeihqemvq6tr22f2zwtvxgaoenxva6mrswlotycaunuia6akbatdw24
   behaviour_classes/mech.py: bafybeihrqldemq5rpo3pnjwzwkdichfhrwzwe4wtlooy67o73t274ysojm
@@ -21,7 +21,7 @@ fingerprint:
   models.py: bafybeidbp7elfx2x4hmv6krrr5ohjgg755ifa54fixc2fikj4mkwy6q2ci
   payloads.py: bafybeidpqxudrhkhv66svwfxqupurgvblfez53icls2ukliskz5s7qrbrq
   prompts.py: bafybeigmhcdv4dlaebaj5dw7uf3ytfloqnn3qcqvsvinylcbehpypjoisu
-  rounds.py: bafybeihjrfwwxnitubadpkvzopurbatfs2qhimrytiuk3occbxoyfbdpay
+  rounds.py: bafybeihzztvmpv4xcheyzbyhxyme3xgdtvf6mc7hebeehbnmcuwpl2aq5e
   rounds_info.py: bafybeib6a5a7bvwvfiscnbhsc6sejloelyglnu6lwbeeileyxrsgkxcb6a
 fingerprint_ignore_patterns: []
 connections:
@@ -46,7 +46,7 @@ protocols:
 skills:
 - valory/abstract_round_abci:0.1.0:bafybeifclzgoyulkyyigcwrqzmydyrj6c5d26xu7jk6cjbsed3pkls4pba
 - valory/transaction_settlement_abci:0.1.0:bafybeid4alawv3oz4gdyom5uevrgzfsahbwabi37r7gomsetwqiq66g6cm
-- valory/mech_interact_abci:0.1.0:bafybeibnoygeh5twpe45jh2mzhnm6zsx6pldndp64ov7ul5zndv3tmvdne
+- valory/mech_interact_abci:0.1.0:bafybeigmxzvetmzh25pvgwmt5nua4lgza7tpwqyzzz5r7jbuhzor7zbphu
 behaviours:
   main:
     args: {}
