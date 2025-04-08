@@ -152,7 +152,6 @@ class ActionDecisionBehaviour(
         )
 
         # Get last summon timestamp and current persona
-        last_summon_timestamp = self.synchronized_data.last_summon_timestamp
         current_persona = yield from self.get_persona()
         current_timestamp = self.get_sync_timestamp()
         summon_cooldown_seconds = self.params.summon_cooldown_seconds
