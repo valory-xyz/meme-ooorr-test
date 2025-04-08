@@ -185,7 +185,7 @@ TOKEN_DECISION_PROMPT = (  # nosec
 
     The complete list of token actions is:
 
-    * summon: create a new token based on your persona
+    * summon: create a new token based on your persona. IMPORTANT: This action has a {summon_cooldown_seconds}-second cooldown. You can ONLY summon if the time elapsed since the last summon ({current_timestamp} - {last_summon_timestamp}) is GREATER THAN OR EQUAL TO {summon_cooldown_seconds} seconds.
     * heart: contribute funds to the token, to later be able to collect the token
     * unleash: activate the inactive token, and collect the token if you hearted before
     * collect: collect your token if you have previously contributed
@@ -201,7 +201,6 @@ TOKEN_DECISION_PROMPT = (  # nosec
     * Summon your own token if the responses to your latest tweet are getting good engagement metrics or if the number of meme coins in the market is low (under 3)
     * Execute one action from the available actions for one of the already existing tokens.
     * Do nothing
-
 
     ONLY if you are not summoning, action priority should be "collect" > "unleash" > "purge" > "heart".
 

@@ -515,6 +515,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
                     "token_supply": payload.token_supply,
                     "amount": payload.amount,
                     "tweet": payload.tweet,
+                    "timestamp": payload.timestamp,
                 }
 
                 synchronized_data = synchronized_data.update(
@@ -742,8 +743,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
     }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
-            # Event.DONE: CheckStakingRound,
-            Event.DONE: ActionDecisionRound,
+            Event.DONE: CheckStakingRound,
             Event.NO_MAJORITY: LoadDatabaseRound,
             Event.ROUND_TIMEOUT: LoadDatabaseRound,
         },
@@ -773,6 +773,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         ActionDecisionRound: {
             Event.DONE: ActionPreparationRound,
             Event.WAIT: CallCheckpointRound,
+            Event.RETRY: ActionDecisionRound,
             Event.NO_MAJORITY: ActionDecisionRound,
             Event.ROUND_TIMEOUT: ActionDecisionRound,
         },

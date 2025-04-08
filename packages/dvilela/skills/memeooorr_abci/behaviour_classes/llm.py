@@ -38,6 +38,7 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
+
 JSON_RESPONSE_REGEX = r"json.?({.*})"
 
 # fmt: off
@@ -65,8 +66,6 @@ class ActionDecisionBehaviour(
 
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""
-        SUMMON_COOLDOWN_SECONDS = self.params.summon_cooldown_seconds
-
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             (
                 event,
@@ -79,6 +78,7 @@ class ActionDecisionBehaviour(
                 amount,
                 tweet,
                 new_persona,
+                current_timestamp,
             ) = yield from self.get_event()
 
             payload = ActionDecisionPayload(
@@ -93,6 +93,7 @@ class ActionDecisionBehaviour(
                 amount=amount,
                 tweet=tweet,
                 new_persona=new_persona,
+                timestamp=current_timestamp,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -117,10 +118,10 @@ class ActionDecisionBehaviour(
             Optional[float],
             Optional[str],
             Optional[str],
+            float,
         ],
     ]:
         """Get the next event"""
-
         # Filter out tokens with no available actions and
         # randomly sort to avoid the LLM to always selecting the first ones
         meme_coins = self.synchronized_data.meme_coins
@@ -150,12 +151,23 @@ class ActionDecisionBehaviour(
             ]
         )
 
+        # Get last summon timestamp and current persona
+        last_summon_timestamp = self.synchronized_data.last_summon_timestamp
+        current_persona = yield from self.get_persona()
+        current_timestamp = self.get_sync_timestamp()
+        summon_cooldown_seconds = self.params.summon_cooldown_seconds
+        last_summon_timestamp = self.synchronized_data.last_summon_timestamp
+
         prompt_data = {
             "meme_coins": meme_coins_str,
             "latest_tweet": latest_tweet,
             "tweet_responses": tweet_responses,
             "balance": safe_native_balance,
             "ticker": self.get_native_ticker(),
+            "current_persona": current_persona,
+            "summon_cooldown_seconds": summon_cooldown_seconds,
+            "last_summon_timestamp": last_summon_timestamp,
+            "current_timestamp": current_timestamp,
         }
 
         llm_response = yield from self._call_genai(
@@ -178,11 +190,14 @@ class ActionDecisionBehaviour(
                 None,
                 None,
                 None,
+                current_timestamp,
             )
 
         try:
             response = json.loads(llm_response)
             action_name = response.get("action_name", "none")
+
+            # Continue processing with the original response
             action = response.get(action_name, {})
             new_persona = response.get("new_persona", None)
             tweet = response.get("action_tweet", None)
@@ -225,6 +240,7 @@ class ActionDecisionBehaviour(
                     None,
                     None,
                     None,
+                    current_timestamp,
                 )
 
             if action_name in ["heart", "unleash"] and token_nonce not in valid_nonces:
@@ -242,6 +258,7 @@ class ActionDecisionBehaviour(
                     None,
                     None,
                     None,
+                    current_timestamp,
                 )
 
             available_actions = []
@@ -265,37 +282,41 @@ class ActionDecisionBehaviour(
                     None,
                     None,
                     None,
+                    current_timestamp,
                 )
 
             if action_name == "summon":
-                # Check cooldown
-                current_timestamp = self.get_sync_timestamp()
-                last_summon_timestamp = self.synchronized_data.last_summon_timestamp
-
-                self.context.logger.info(
-                    f"Last summon timestamp: {last_summon_timestamp}"
-                )
-                self.context.logger.info(f"Current timestamp: {current_timestamp}")
+                # Failsafe check: Recalculate or re-use time_since_last_summon
 
                 time_since_last_summon = current_timestamp - last_summon_timestamp
-                if time_since_last_summon < SUMMON_COOLDOWN_SECONDS:
-                    self.context.logger.info(
-                        f"Summon action is on cooldown. Time remaining: {SUMMON_COOLDOWN_SECONDS - time_since_last_summon:.2f} seconds."
+                summon_cooldown_seconds = self.params.summon_cooldown_seconds
+
+                # tampering with to make the below condition true
+                time_since_last_summon = 0
+
+                if time_since_last_summon < summon_cooldown_seconds:
+                    cooldown_remaining = (
+                        summon_cooldown_seconds - time_since_last_summon
                     )
+                    self.context.logger.warning(
+                        f"LLM suggested 'summon' despite active cooldown ({cooldown_remaining:.2f}s remaining , going to retry)"
+                    )
+
                     return (
-                        Event.WAIT.value,
-                        None,  # action_name
-                        None,  # token_address
-                        None,  # token_nonce
-                        None,  # token_name
-                        None,  # token_ticker
-                        None,  # token_supply
-                        None,  # amount
-                        None,  # tweet
-                        None,  # new_persona
+                        Event.RETRY.value,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
                         current_timestamp,
                     )
 
+                # If cooldown is not active, proceed with summon logic
                 chain_id = self.get_chain_id()
 
                 amount = max(
@@ -338,6 +359,7 @@ class ActionDecisionBehaviour(
                 amount,
                 tweet,
                 new_persona,
+                current_timestamp,
             )
 
         # The response is not a valid json
@@ -354,4 +376,5 @@ class ActionDecisionBehaviour(
                 None,
                 None,
                 None,
+                current_timestamp,
             )
