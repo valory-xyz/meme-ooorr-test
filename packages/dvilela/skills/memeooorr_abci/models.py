@@ -166,4 +166,8 @@ class Params(MechParams):  # pylint: disable=too-many-instance-attributes
 
         self.tools_for_mech: dict = self._ensure("tools_for_mech", kwargs, None)
 
+        self.summon_cooldown_seconds = self._ensure(
+            "summon_cooldown_seconds", kwargs, int
+        )
+
         super().__init__(*args, **kwargs)

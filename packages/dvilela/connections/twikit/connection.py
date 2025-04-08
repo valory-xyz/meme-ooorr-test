@@ -245,7 +245,7 @@ class TwikitConnection(Connection):
             return self.prepare_error_message(
                 srr_message,
                 dialogue,
-                "Connection is disabled. Set TWIKIT_SKIP_CONNECTION=false to enable it.",
+                "Connection is disabled. Set TWIKIT_SKIP_CONNECTIONfalse to enable it.",
             )
 
         payload = json.loads(srr_message.payload)

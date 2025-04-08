@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeihh6u5src6imo4o67xcsfp5qhyzfmyb6zxis2mngqgmn6gvhr7ute
+agent: dvilela/memeooorr:0.1.0:bafybeih7vkrw62byeeapizur3lo4i35ycvcgwhciumshmwxx7gldmkcz7q
 number_of_agents: 1
 deployment:
   agent:
@@ -115,6 +115,7 @@ extra:
         tx_loop_breaker_count: 3
         tools_for_mech: ${dict:{}}
         use_acn_for_delivers: false
+        summon_cooldown_seconds: ${SUMMON_COOLDOWN_SECONDS:int:600}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

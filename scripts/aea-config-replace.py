@@ -64,6 +64,8 @@ PATH_TO_VAR = {
     # Fireworks API
     "models/params/args/alternative_model_for_tweets": "ALTERNATIVE_MODEL_FOR_TWEETS",
     "models/params/args/fireworks_api_key": "FIREWORKS_API_KEY",
+    # Cooldown
+    "models/params/args/summon_cooldown_seconds": "SUMMON_COOLDOWN_SECONDS",
 }
 
 CONFIG_REGEX = r"\${.*?:(.*)}"

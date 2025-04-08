@@ -38,7 +38,6 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 
-
 JSON_RESPONSE_REGEX = r"json.?({.*})"
 
 # fmt: off
@@ -66,6 +65,7 @@ class ActionDecisionBehaviour(
 
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""
+        SUMMON_COOLDOWN_SECONDS = self.params.summon_cooldown_seconds
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             (
@@ -267,8 +267,35 @@ class ActionDecisionBehaviour(
                     None,
                 )
 
-            # Fix amounts
             if action_name == "summon":
+                # Check cooldown
+                current_timestamp = self.get_sync_timestamp()
+                last_summon_timestamp = self.synchronized_data.last_summon_timestamp
+
+                self.context.logger.info(
+                    f"Last summon timestamp: {last_summon_timestamp}"
+                )
+                self.context.logger.info(f"Current timestamp: {current_timestamp}")
+
+                time_since_last_summon = current_timestamp - last_summon_timestamp
+                if time_since_last_summon < SUMMON_COOLDOWN_SECONDS:
+                    self.context.logger.info(
+                        f"Summon action is on cooldown. Time remaining: {SUMMON_COOLDOWN_SECONDS - time_since_last_summon:.2f} seconds."
+                    )
+                    return (
+                        Event.WAIT.value,
+                        None,  # action_name
+                        None,  # token_address
+                        None,  # token_nonce
+                        None,  # token_name
+                        None,  # token_ticker
+                        None,  # token_supply
+                        None,  # amount
+                        None,  # tweet
+                        None,  # new_persona
+                        current_timestamp,
+                    )
+
                 chain_id = self.get_chain_id()
 
                 amount = max(

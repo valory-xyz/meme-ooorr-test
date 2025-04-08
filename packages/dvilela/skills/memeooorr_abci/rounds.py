@@ -184,6 +184,11 @@ class SynchronizedData(BaseSynchronizedData):
         """Get the mech for twitter."""
         return bool(self.db.get("mech_for_twitter", False))
 
+    @property
+    def last_summon_timestamp(self) -> float:
+        """Get the timestamp of the last summon action."""
+        return float(self.db.get("last_summon_timestamp", 0.0))
+
 
 class EventRoundBase(CollectSameUntilThresholdRound):
     """EventRoundBase"""
@@ -529,6 +534,17 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
                         },
                     )
 
+                # Store timestamp if the action was summon
+                if payload.action == "summon":
+                    synchronized_data = synchronized_data.update(
+                        synchronized_data_class=SynchronizedData,
+                        **{
+                            get_name(
+                                SynchronizedData.last_summon_timestamp
+                            ): payload.timestamp,
+                        },
+                    )
+
             return synchronized_data, event
 
         if not self.is_majority_possible(
@@ -726,7 +742,8 @@ class MemeooorrAbciApp(AbciApp[Event]):
     }
     transition_function: AbciAppTransitionFunction = {
         LoadDatabaseRound: {
-            Event.DONE: CheckStakingRound,
+            # Event.DONE: CheckStakingRound,
+            Event.DONE: ActionDecisionRound,
             Event.NO_MAJORITY: LoadDatabaseRound,
             Event.ROUND_TIMEOUT: LoadDatabaseRound,
         },
@@ -827,7 +844,9 @@ class MemeooorrAbciApp(AbciApp[Event]):
         FinishedForMechResponseRound,
     }
     event_to_timeout: EventToTimeout = {Event.ROUND_TIMEOUT: 30}
-    cross_period_persisted_keys: FrozenSet[str] = frozenset(["persona"])
+    cross_period_persisted_keys: FrozenSet[str] = frozenset(
+        ["persona", "last_summon_timestamp"]
+    )
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
         PullMemesRound: set(),
