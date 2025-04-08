@@ -643,6 +643,10 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""
 
+        # fetching the last summon timestamp from the synchronized data
+        last_summon_timestamp = self.synchronized_data.last_summon_timestamp
+        self.context.logger.info(f"Last summon timestamp: {last_summon_timestamp}")
+
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             tx_hash = yield from self.get_tx_hash()
 

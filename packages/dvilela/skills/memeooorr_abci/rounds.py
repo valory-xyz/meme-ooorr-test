@@ -187,7 +187,8 @@ class SynchronizedData(BaseSynchronizedData):
     @property
     def last_summon_timestamp(self) -> float:
         """Get the timestamp of the last summon action."""
-        return float(self.db.get("last_summon_timestamp", 0.0))
+        # Cast the db result to float to satisfy mypy
+        return cast(float, self.db.get("last_summon_timestamp", 0.0))
 
 
 class EventRoundBase(CollectSameUntilThresholdRound):
@@ -498,7 +499,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
 
         if self.threshold_reached:
             # This needs to be mentioned for static checkers
-            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.WAIT
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.WAIT , Event.RETRY
             payload = ActionDecisionPayload(
                 *(("dummy_sender",) + self.most_voted_payload_values)
             )

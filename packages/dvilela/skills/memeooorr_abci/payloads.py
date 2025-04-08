@@ -78,7 +78,7 @@ class ActionDecisionPayload(
     amount: Optional[float]
     tweet: Optional[str]
     new_persona: Optional[str]
-    timestamp: Optional[int] = 0
+    timestamp: Optional[float] = 0
 
 
 @dataclass(frozen=True)

@@ -291,9 +291,6 @@ class ActionDecisionBehaviour(
                 time_since_last_summon = current_timestamp - last_summon_timestamp
                 summon_cooldown_seconds = self.params.summon_cooldown_seconds
 
-                # tampering with to make the below condition true
-                time_since_last_summon = 0
-
                 if time_since_last_summon < summon_cooldown_seconds:
                     cooldown_remaining = (
                         summon_cooldown_seconds - time_since_last_summon
