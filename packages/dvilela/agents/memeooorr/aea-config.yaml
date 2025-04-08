@@ -244,7 +244,7 @@ models:
         priority_mech_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
         response_timeout: 300
       use_acn_for_delivers: false
-      summon_cooldown_seconds: ${int:600}
+      summon_cooldown_seconds: ${int:2592000}
 ---
 public_id: valory/http_server:0.22.0:bafybeicblltx7ha3ulthg7bzfccuqqyjmihhrvfeztlgrlcoxhr7kf6nbq
 type: connection

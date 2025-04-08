@@ -181,7 +181,7 @@ models:
         priority_mech_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
         response_timeout: 300
       use_acn_for_delivers: false
-      summon_cooldown_seconds: 600
+      summon_cooldown_seconds: 2592000
       alternative_model_for_tweets:
         use: false
         url: https://api.fireworks.ai/inference/v1/chat/completions
