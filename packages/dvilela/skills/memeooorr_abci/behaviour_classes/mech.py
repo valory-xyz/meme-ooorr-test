@@ -103,61 +103,45 @@ class PostMechResponseBehaviour(
             return False  # Fail fast on JSON decode error
 
         # Proceed with fetching/saving logic, handling other potential errors
-        try:
-            # Case 1: Video format
-            if "video" in result_json:
-                video_hash = result_json["video"]
-                self.context.logger.info(
-                    f"Case 1: Found video hash: {video_hash}. Fetching..."
-                )
-                video_path = self.fetch_video_data_from_ipfs(video_hash)
 
-                if video_path:  # Success path
-                    self.context.logger.info(
-                        f"Video downloaded successfully to: {video_path}"
-                    )
-                    yield from self._save_media_info(video_path, "video")
-                    return True  # Early return on success
-                else:  # Failure path
-                    self.context.logger.error("Video download failed.")
-                    # Intentionally proceed to check for 'ipfs_link' as a fallback.
-
-            # Case 2: Image format (via ipfs_link)
-            if "ipfs_link" in result_json:
-                ipfs_link = result_json["ipfs_link"]
-                self.context.logger.info(
-                    f"Case 2: Found IPFS link: {ipfs_link}. Fetching image..."
-                )
-                # fetch_image_data_from_ipfs now handles saving and returns True/False
-                success = yield from self.fetch_image_data_from_ipfs(ipfs_link)
-                if success:
-                    self.context.logger.info(
-                        "Image data fetched and saved successfully (via fetch_image_data_from_ipfs)."
-                    )
-                    return True  # Early return on success
-                # else: Image fetch/save failed, proceed to unrecognized format check
-
-            # Case 3: Unrecognized format (only log if neither video nor image keys were present or processed)
-            if not ("video" in result_json or "ipfs_link" in result_json):
-                self.context.logger.warning(
-                    f"Mech response format not recognized (no 'video' or 'ipfs_link' key): {result_json}"
-                )
-            # If we reached here, it means either:
-            # - Video key existed, but fetch failed
-            # - Image key existed, but fetch failed
-            # - Neither key existed
-            # In all these cases, media processing failed for this response.
-
-        except (
-            Exception
-        ) as e:  # Catches errors during fetch/save/yield from _save_media_info
-            self.context.logger.error(
-                f"Unexpected error during media processing/saving: {e}"
+        # Case 1: Unrecognized format (only log if neither video nor image keys were present or processed)
+        if "video" not in result_json and "ipfs_link" not in result_json:
+            self.context.logger.warning(
+                f"Mech response format not recognized (no 'video' or 'ipfs_link' key): {result_json}"
             )
-            self.context.logger.error(traceback.format_exc())
-            # Fall through to return False
+            return False
 
-        return False  # Return False if no media was successfully processed or if errors occurred
+        # Case 2: Video format
+        if "video" in result_json:
+            video_hash = result_json["video"]
+            self.context.logger.info(
+                f"Case 1: Found video hash: {video_hash}. Fetching..."
+            )
+            video_path = self.fetch_video_data_from_ipfs(video_hash)
+
+            if not video_path:  # Success path
+                self.context.logger.error("Video download failed.")
+                return False
+
+            self.context.logger.info(
+                f"Video downloaded successfully to: {video_path}"
+            )
+            success = yield from self._save_media_info(video_path, "video")
+            return success
+
+        # Case 3: Image format (via ipfs_link)
+        if "ipfs_link" in result_json:
+            ipfs_link = result_json["ipfs_link"]
+            self.context.logger.info(
+                f"Case 2: Found IPFS link: {ipfs_link}. Fetching image..."
+            )
+            # fetch_image_data_from_ipfs now handles saving and returns True/False
+            success = yield from self.fetch_image_data_from_ipfs(ipfs_link)
+            if success:
+                self.context.logger.info(
+                    "Image data fetched and saved successfully (via fetch_image_data_from_ipfs)."
+                )
+            return success  # Return False if no media was successfully processed or if errors occurred
 
     def _save_media_info(
         self, media_path: str, media_type: str
