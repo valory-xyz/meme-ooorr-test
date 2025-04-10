@@ -236,6 +236,27 @@ class PostMechResponseBehaviour(
             return False
 
     # Synchronous function using requests, ONLY downloads and returns path or None
+
+    # ****************************************************************************
+    # ******************************** WARNING ***********************************
+    # ****************************************************************************
+    # This function uses the 'requests' library directly to fetch video data
+    # from an IPFS gateway. This is a deviation from the standard practice of
+    # using the built-in IPFS helper functions (like `get_from_ipfs`).
+    #
+    # REASON: The standard IPFS helpers were consistently failing to retrieve
+    # video files correctly, potentially due to issues with handling large files,
+    # streaming, or specific gateway interactions for video content type.
+    # Using 'requests' provides more direct control over the HTTP request
+    # and response handling, which proved necessary to successfully download
+    # the video content in this specific case.
+    #
+    # This approach might be less robust if the IPFS gateway URL changes or if
+    # underlying IPFS fetch mechanisms in the framework are updated.
+    # Consider revisiting this if the built-in methods become reliable for videos.
+
+    # plan to revisit this and figure out what's wrong with the built-in methods
+    # ****************************************************************************
     def fetch_video_data_from_ipfs(  # pylint: disable=too-many-return-statements, too-many-locals
         self, ipfs_hash: str
     ) -> Optional[str]:  # Returns Optional[str], not bool or Generator

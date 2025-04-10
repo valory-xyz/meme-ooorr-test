@@ -91,7 +91,7 @@ LIVENESS_RATIO_SCALE_FACTOR = 10**18
 # The REQUIRED_REQUESTS_SAFETY_MARGIN is set to 0 since we don't need additional buffer for mech requests.
 # This differs from the trader implementation where a safety margin was used to account for potential delays.
 # We may revisit this in the future if we need to add a safety margin for similar reasons.
-REQUIRED_REQUESTS_SAFETY_MARGIN = 0  
+REQUIRED_REQUESTS_SAFETY_MARGIN = 0
 
 
 class ChainBehaviour(MemeooorrBaseBehaviour, ABC):  # pylint: disable=too-many-ancestors
