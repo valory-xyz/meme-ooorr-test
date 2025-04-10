@@ -102,56 +102,72 @@ class PostMechResponseBehaviour(
             )
             return False  # Fail fast on JSON decode error
 
-        # Proceed with fetching/saving logic, handling other potential errors
+        # Main fetch/save logic block
+        video_hash = result_json.get("video")
+        ipfs_link = result_json.get("ipfs_link")
 
-        # Case 1: Unrecognized format (only log if neither video nor image keys were present or processed)
-        if "video" not in result_json and "ipfs_link" not in result_json:
-            self.context.logger.warning(
-                f"Mech response format not recognized (no 'video' or 'ipfs_link' key): {result_json}"
-            )
-            return False
-
-        # Case 2: Video format
-        if "video" in result_json:
-            video_hash = result_json["video"]
-            self.context.logger.info(
-                f"Case 1: Found video hash: {video_hash}. Fetching..."
-            )
+        # Case 1: Video format (Attempt first if key exists)
+        if video_hash:
+            self.context.logger.info(f"Attempting video fetch for hash: {video_hash}")
+            # fetch_video_data_from_ipfs handles its own network/IO errors and returns Optional[str]
             video_path = self.fetch_video_data_from_ipfs(video_hash)
 
-            if not video_path:  # Success path
-                self.context.logger.error("Video download failed.")
-                return False
-
-            self.context.logger.info(
-                f"Video downloaded successfully to: {video_path}"
-            )
-            success = yield from self._save_media_info(video_path, "video")
-            return success
-
-        # Case 3: Image format (via ipfs_link)
-        if "ipfs_link" in result_json:
-            ipfs_link = result_json["ipfs_link"]
-            self.context.logger.info(
-                f"Case 2: Found IPFS link: {ipfs_link}. Fetching image..."
-            )
-            # fetch_image_data_from_ipfs now handles saving and returns True/False
-            success = yield from self.fetch_image_data_from_ipfs(ipfs_link)
-            if success:
+            if video_path:  # Video fetch succeeded
                 self.context.logger.info(
-                    "Image data fetched and saved successfully (via fetch_image_data_from_ipfs)."
+                    f"Video downloaded to: {video_path}. Saving metadata..."
                 )
-            return success  # Return False if no media was successfully processed or if errors occurred
+                # Attempt to save metadata. _save_media_info handles errors and returns True/False
+                save_success = yield from self._save_media_info(video_path, "video")
+                if save_success:
+                    self.context.logger.info("Video metadata saved successfully.")
+                    return True
+
+            else:
+                self.context.logger.warning(
+                    f"Video fetch failed for hash: {video_hash}. Will check for image fallback."
+                )
+                # Proceed to image check
+
+        # Case 2: Image format
+        if ipfs_link:
+            self.context.logger.info(f"Attempting image fetch for link: {ipfs_link}")
+            # fetch_image_data_from_ipfs handles its own fetch/IO/parse errors and returns Optional[str]
+            image_path = yield from self.fetch_image_data_from_ipfs(ipfs_link)
+
+            if image_path:  # Image fetch succeeded
+                self.context.logger.info(
+                    f"Image downloaded to: {image_path}. Saving metadata..."
+                )
+                # Attempt to save metadata. _save_media_info handles errors and returns True/False
+                save_success = yield from self._save_media_info(image_path, "image")
+                if save_success:
+                    self.context.logger.info("Image metadata saved successfully.")
+                    return True  # SUCCESS
+
+        # If we reach here, neither video nor image processing succeeded.
+        self.context.logger.warning(
+            "Could not process mech response: No video/image successfully fetched and saved. Looked for keys 'video' and 'ipfs_link'."
+        )
+        return False  # FAILURE
 
     def _save_media_info(
         self, media_path: str, media_type: str
-    ) -> Generator[None, None, None]:
-        """Helper method to save media information to the key-value store."""
+    ) -> Generator[None, None, bool]:
+        """Helper method to save media information to the key-value store. Returns True on success, False on failure."""
         media_info = {"path": media_path, "type": media_type}
-        yield from self._write_kv({"latest_media_info": json.dumps(media_info)})
-        self.context.logger.info(
-            f"Stored media info ({media_type}) via _write_kv: {media_info}"
-        )
+        try:
+            yield from self._write_kv({"latest_media_info": json.dumps(media_info)})
+            self.context.logger.info(
+                f"Stored media info ({media_type}) via _write_kv: {media_info}"
+            )
+            return True  # Success
+        except Exception as e:  # pylint: disable=broad-except
+            # Catch potential errors from _write_kv method
+            self.context.logger.error(
+                f"Failed to save media metadata ({media_type}) for path {media_path} via _write_kv: {e}"
+            )
+            self.context.logger.error(traceback.format_exc())
+            return False  # Failure
 
     def _parse_and_validate_ipfs_image_response(self, response: Any) -> Optional[Dict]:
         """Parse the response from get_from_ipfs for image data and validate its structure."""
@@ -208,8 +224,10 @@ class PostMechResponseBehaviour(
         # Return validated data or None
         return result_data if is_valid else None
 
-    def fetch_image_data_from_ipfs(self, ipfs_link: str) -> Generator[None, None, bool]:
-        """Fetch image from IPFS link and save it to a temporary file."""
+    def fetch_image_data_from_ipfs(
+        self, ipfs_link: str
+    ) -> Generator[None, None, Optional[str]]:
+        """Fetch image from IPFS link, save to temp file, and return path or None."""
         image_path = None
         try:
             self.context.logger.info(f"Fetching image from IPFS link: {ipfs_link}")
@@ -218,7 +236,7 @@ class PostMechResponseBehaviour(
             path_parts = ipfs_link.split("/")
             if len(path_parts) < 5:
                 self.context.logger.error(f"Invalid IPFS link format: {ipfs_link}")
-                return False
+                return None  # Return None on failure
             ipfs_hash = path_parts[4]
             self.context.logger.info(f"Extracted IPFS hash: {ipfs_hash}")
 
@@ -230,13 +248,13 @@ class PostMechResponseBehaviour(
                 self.context.logger.error(
                     "Failed to fetch image: Empty response from get_from_ipfs"
                 )
-                return False
+                return None  # Return None on failure
 
             # Parse and validate response structure
             result_data = self._parse_and_validate_ipfs_image_response(response)
             if result_data is None:
                 # Error logged in helper
-                return False
+                return None  # Return None on failure
 
             # Extract image data
             image_base64 = result_data["artifacts"][0].get("base64")
@@ -244,7 +262,7 @@ class PostMechResponseBehaviour(
                 self.context.logger.error(
                     f"No base64 data found in artifact: {result_data['artifacts'][0]}"
                 )
-                return False
+                return None  # Return None on failure
 
             image_data = base64.b64decode(image_base64)
 
@@ -260,9 +278,7 @@ class PostMechResponseBehaviour(
                 f"Successfully saved image to temporary file: {image_path}"
             )
 
-            # Store metadata
-            yield from self._save_media_info(image_path, "image")
-            return True  # Success!
+            return image_path
 
         except (KeyError, IndexError, TypeError) as e:
             self.context.logger.error(
@@ -274,10 +290,12 @@ class PostMechResponseBehaviour(
                 f"Error writing image data to temporary file {image_path}: {e}"
             )
             self.context.logger.error(traceback.format_exc())
-        except Exception as e:  # pylint: disable=broad-except
-            # Catch any other unexpected error during the overall fetch/processing
+        except (
+            Exception  # pylint: disable=broad-except
+        ) as e:  # catching it here for base64 decode
+            # Catch any other unexpected error during image processing (like base64 decode)
             self.context.logger.error(
-                f"Unexpected error fetching/processing image data from {ipfs_link}: {e}"
+                f"Unexpected error during image processing for {ipfs_link}: {e}"
             )
             self.context.logger.error(traceback.format_exc())
 
@@ -285,7 +303,7 @@ class PostMechResponseBehaviour(
         if image_path and os.path.exists(image_path):
             self._cleanup_temp_file(image_path, "image processing error")
 
-        return False  # Return False if any exception occurred or checks failed
+        return None  # Return None if any exception occurred or checks failed
 
     def _cleanup_temp_file(self, file_path: Optional[str], reason: str) -> None:
         """Attempt to remove a temporary file and log the outcome."""
@@ -339,13 +357,6 @@ class PostMechResponseBehaviour(
         except IOError as e:
             self.context.logger.error(
                 f"File I/O error during video download/save to {video_path}: {e}"
-            )
-            self.context.logger.error(traceback.format_exc())
-            # Cleanup handled by the caller
-            return None
-        except Exception as e:  # pylint: disable=broad-except
-            self.context.logger.error(
-                f"Unexpected error during video download/save: {e}"
             )
             self.context.logger.error(traceback.format_exc())
             # Cleanup handled by the caller
@@ -416,13 +427,6 @@ class PostMechResponseBehaviour(
                 f"HTTP request failed for {ipfs_gateway_url}: {e}"
             )
             error_reason = "request exception"
-        except Exception as e:  # pylint: disable=broad-except
-            # Catch any other unexpected error during request setup or handling outside specific cases
-            self.context.logger.error(
-                f"Unexpected error in fetch_video_data_from_ipfs ({ipfs_hash}): {e}"
-            )
-            self.context.logger.error(traceback.format_exc())
-            error_reason = "unexpected error"  # Overwrite default
 
         # Centralized cleanup for all error cases
         # video_path might be None if error happened before _download_and_save_video assigned it
