@@ -160,6 +160,9 @@ def build_decision_schema() -> dict:
     return {"class": pickle.dumps(Decision).hex(), "is_list": False}
 
 
+SUMMON_TOKEN_ACTION = """* summon: create a new token based on your persona"""  # nosec
+
+
 TOKEN_DECISION_PROMPT = (  # nosec
     ""
     """You are a cryptocurrency and token expert with a specific persona. You analyze new meme coins that have just been depoyed to the market and
@@ -185,7 +188,7 @@ TOKEN_DECISION_PROMPT = (  # nosec
 
     The complete list of token actions is:
 
-    * summon: create a new token based on your persona. IMPORTANT: This action has a {summon_cooldown_seconds}-second cooldown. You can ONLY summon if the time elapsed since the last summon ({current_timestamp} - {last_summon_timestamp}) is GREATER THAN OR EQUAL TO {summon_cooldown_seconds} seconds.
+    {summon_token_action}
     * heart: contribute funds to the token, to later be able to collect the token
     * unleash: activate the inactive token, and collect the token if you hearted before
     * collect: collect your token if you have previously contributed
@@ -248,7 +251,7 @@ ALTERNATIVE_MODEL_TOKEN_PROMPT = (  # nosec
 
     The complete list of token actions is:
 
-    * summon: create a new token based on your persona
+    {summon_token_action}
     * heart: contribute funds to the token, to later be able to collect the token
     * unleash: activate the inactive token, and collect the token if you hearted before
     * collect: collect your token if you have previously contributed

@@ -11,7 +11,7 @@ fingerprint:
   behaviour_classes/base.py: bafybeihau36r37th2itj4elrsyy2qrfipvr3edbpcvwzf2og4qoumccqn4
   behaviour_classes/chain.py: bafybeid26lp7guky7feydgheljj6ee6663ymminlv2isvai2fsi3ppln4y
   behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
-  behaviour_classes/llm.py: bafybeiactrcodasnm3mxggwmqnx6klddbqtdeusp4bsvcee3ne7ourfpsu
+  behaviour_classes/llm.py: bafybeiaqe3m3dvdaybg6wve5333mw7jgak2qhwvn427yeeqob5hm2ohpoi
   behaviour_classes/mech.py: bafybeidd2xwkvf2mvim5j5rvzkq4p3pxj42dvhv7mdkb5s7cuqvhadatzi
   behaviour_classes/twitter.py: bafybeihsye6vnbouxvjcqgerg4lewpj3oiton4ium3v76inphgt2g7mh3y
   behaviours.py: bafybeicsif4jpkuq4a5ijgj63s5zn4mskmakuddgiquqb4vrlz3trqa7fu
@@ -20,7 +20,7 @@ fingerprint:
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
   models.py: bafybeibahq7p7p2dkbyl5capozrwfqdpwjkugpyg6jwwfocoa4mqz6jem4
   payloads.py: bafybeibitehqtl4mydt7e7qdestsrvxdj5klclqu2dackckp5f2sazmlcm
-  prompts.py: bafybeigm4qso5bvat5h67yup34slyrgcnfcwdut7t6bhuhnvy34zcsdeqi
+  prompts.py: bafybeicgezsc5zx5nmcft43qphjrdfcajzofbtupff3evnhsbdxtllri3e
   rounds.py: bafybeigzan5olzybbbgsc6lpge6eqa2dl26wcgbd27o3kyhqbwl5d5puxa
   rounds_info.py: bafybeib6a5a7bvwvfiscnbhsc6sejloelyglnu6lwbeeileyxrsgkxcb6a
 fingerprint_ignore_patterns: []
