@@ -39,6 +39,9 @@ from packages.dvilela.skills.memeooorr_abci.rounds import (
 )
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 from packages.valory.skills.abstract_round_abci.io_.store import SupportedFiletype
+from packages.valory.skills.mech_interact_abci.states.base import (
+    MechInteractionResponse,
+)
 
 
 class PostMechResponseBehaviour(
@@ -74,7 +77,7 @@ class PostMechResponseBehaviour(
         self.set_done()
 
     def _process_mech_response_and_fetch_media(
-        self, mech_responses: List[Dict[str, Any]]
+        self, mech_responses: List[MechInteractionResponse]
     ) -> Generator[None, None, bool]:
         """
         Process the mech response, fetch media (video or image) based on the format,
