@@ -53,7 +53,7 @@ MechResponseSpecs = BaseMechResponseSpecs
 
 MARGIN = 5
 MULTIPLIER = 100
-MULTIPLIER_2 = 20
+MULTIPLIER_2 = 50
 
 
 class SharedState(BaseSharedState):

@@ -22,7 +22,7 @@
 import json
 import random
 import secrets
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, Union
 from uuid import uuid4
@@ -34,6 +34,7 @@ from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
 )
 from packages.dvilela.skills.memeooorr_abci.prompts import (
     ALTERNATIVE_MODEL_TWITTER_PROMPT,
+    ENFORCE_ACTION_COMMAND,
     MECH_RESPONSE_SUBPROMPT,
     TWITTER_DECISION_PROMPT,
     build_decision_schema,
@@ -61,8 +62,19 @@ def is_tweet_valid(tweet: str) -> bool:
     return parse_tweet(tweet).asdict()["weightedLength"] <= MAX_TWEET_CHARS
 
 
+# Define a context holder for interaction processing
+@dataclass
+class InteractionContext:
+    """Holds the context required for processing multiple Twitter interactions within a single period."""
+
+    pending_tweets: dict
+    previous_tweets: dict
+    persona: str
+    new_interacted_tweet_ids: List[int]
+
+
 class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-ancestors
-    """BaseTweetBehaviour"""
+    """Base behaviour for tweet-related actions."""
 
     matching_round: Type[AbstractRound] = None  # type: ignore
 
@@ -677,6 +689,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 mech_response=subprompt_with_mech_response,
                 tools=self.generate_mech_tool_info(),
                 time=self.get_sync_time_str(),
+                extra_command="",  # disabling extra command in this case as we are in mech submission path
             )
 
             # Clear stored data
@@ -720,6 +733,11 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
             previous_tweets = tweets if isinstance(tweets, dict) else {}
 
+            is_staking_kpi_met = self.synchronized_data.is_staking_kpi_met
+            extra_command = (
+                ENFORCE_ACTION_COMMAND if is_staking_kpi_met is False else ""
+            )
+
             prompt = TWITTER_DECISION_PROMPT.format(
                 persona=persona,
                 previous_tweets=previous_tweets_str,
@@ -727,6 +745,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 mech_response="",
                 tools=self.generate_mech_tool_info(),
                 time=self.get_sync_time_str(),
+                extra_command=extra_command,
             )
 
             # Save data for future mech responses
@@ -892,25 +911,26 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         elif not isinstance(tweet_actions, list):
             tweet_actions = [tweet_actions]
 
+        # Create context object
+        context = InteractionContext(
+            pending_tweets=pending_tweets,
+            previous_tweets=previous_tweets,
+            persona=persona,
+            new_interacted_tweet_ids=new_interacted_tweet_ids,
+        )
+
         for interaction in tweet_actions:
             # Process each interaction
             yield from self._process_single_interaction(
-                interaction,
-                pending_tweets,
-                previous_tweets,
-                persona,
-                new_interacted_tweet_ids,
+                interaction, context  # Pass the context object
             )
 
-        return Event.DONE.value, new_interacted_tweet_ids, []
+        return Event.DONE.value, context.new_interacted_tweet_ids, []
 
-    def _process_single_interaction(  # pylint: disable=too-many-arguments
+    def _process_single_interaction(  # pylint: disable=too-many-locals
         self,
         interaction: dict,
-        pending_tweets: dict,
-        previous_tweets: dict,
-        persona: str,
-        new_interacted_tweet_ids: List[int],
+        context: InteractionContext,  # Use InteractionContext
     ) -> Generator[None, None, None]:
         """Process a single tweet interaction."""
         # Ensure interaction is a dictionary
@@ -922,10 +942,11 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         user_id = interaction.get("user_id", None)
         action = interaction.get("action", None)
         text = interaction.get("text", None)
-        media_path = interaction.get("media_path", None)
 
-        # Validate action and parameters
-        if not self._validate_interaction(action, tweet_id, user_id, pending_tweets):
+        # Validate action and parameters (using context)
+        if not self._validate_interaction(
+            action, tweet_id, user_id, context.pending_tweets
+        ):
             return
 
         # Add random delay to avoid rate limiting
@@ -935,26 +956,92 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         # Handle tweet action based on type
         if action == "tweet":
-            yield from self._handle_new_tweet(text, previous_tweets, persona)
+            yield from self._handle_new_tweet(
+                text, context.previous_tweets, context.persona
+            )
         elif action == "tweet_with_media":
-            # fetching the media path from kv store
-            media_path = yield from self._read_kv(keys=("latest_image_path",))
-            self.context.logger.info(f"Media path from kv store: {media_path}")
-            if not media_path:
-                self.context.logger.error(
-                    "No media path found in KV store for tweet_with_media action"
-                )
-                return
-            yield from self._handle_tweet_with_media(text, previous_tweets, persona)
+            # Delegate to the new handler
+            success = yield from self._handle_media_tweet(text)
+            if not success:
+                self.context.logger.error("Failed to handle tweet_with_media action.")
+                # Potentially return or handle error differently if needed
         else:
             yield from self._handle_tweet_interaction(
                 action,
                 tweet_id,
                 text,
                 user_id,
-                pending_tweets,
-                new_interacted_tweet_ids,
+                context.pending_tweets,  # Pass needed context items
+                context.new_interacted_tweet_ids,
             )
+
+    def _handle_media_tweet(self, text: str) -> Generator[None, None, bool]:
+        """Handles the 'tweet_with_media' action, including fetching, uploading, posting, and clearing KV."""
+        # Read the combined media info from kv store
+        media_info_data = yield from self._read_kv(keys=("latest_media_info",))
+        media_info = None
+        if media_info_data and "latest_media_info" in media_info_data:
+            try:
+                media_info = json.loads(media_info_data["latest_media_info"])
+            except json.JSONDecodeError:
+                self.context.logger.error(
+                    "Failed to parse media_info JSON from KV store"
+                )
+                return False  # Indicate failure
+
+        if not media_info or "path" not in media_info or "type" not in media_info:
+            self.context.logger.error(
+                "No valid media info (path and type) found in KV store for tweet_with_media action"
+            )
+            return False  # Indicate failure
+
+        media_path = media_info["path"]
+        media_type = media_info["type"]
+
+        self.context.logger.info(
+            f"Extracted media path: {media_path}, type: {media_type}"
+        )
+
+        # Clear the media info from KV store immediately after reading
+        yield from self._write_kv({"latest_media_info": ""})
+        self.context.logger.info("Cleared latest_media_info from KV store.")
+
+        # Ensure media_path is a valid string path
+        if not media_path or not isinstance(media_path, str):
+            self.context.logger.error("Invalid media path found in KV store")
+            return False  # Indicate failure
+
+        # Upload the media first
+        media_id = yield from self._call_twikit(
+            method="upload_media",
+            media_path=media_path,  # Pass the extracted string path
+        )
+
+        if not media_id:
+            self.context.logger.error(f"Failed to upload media from path: {media_path}")
+            return False  # Indicate failure
+
+        # Post tweet with the uploaded media ID
+        self.context.logger.info(f"Posting tweet with media_id: {media_id}")
+        tweet_ids = yield from self._call_twikit(
+            method="post", tweets=[{"text": text, "media_ids": [media_id]}]
+        )
+
+        if not tweet_ids:
+            self.context.logger.error("Failed posting tweet with media to Twitter.")
+            return False  # Indicate failure
+
+        latest_tweet = {
+            "tweet_id": tweet_ids[0],
+            "text": text,
+            "media_path": media_path,
+            "timestamp": self.get_sync_timestamp(),
+        }
+
+        # Write latest tweet to the database
+        yield from self.store_tweet(latest_tweet)
+        self.context.logger.info("Wrote latest tweet with media to db")
+        return True  # Indicate success
 
     def _validate_interaction(
         self, action: str, tweet_id: str, user_id: str, pending_tweets: dict
@@ -1019,94 +1106,31 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             return
 
         self.context.logger.info(f"Trying to {action} tweet {tweet_id}")
-        user_name = pending_tweets[str(tweet_id)]["user_name"]
+        # Ensure tweet_id is string for dictionary lookup
+        str_tweet_id = str(tweet_id)
+        if str_tweet_id not in pending_tweets:
+            self.context.logger.error(
+                f"Tweet ID {tweet_id} not found in pending tweets for interaction."
+            )
+            return
+        user_name = pending_tweets[str_tweet_id]["user_name"]
 
+        success = False
         if action == "like":
-            liked = yield from self.like_tweet(tweet_id)
-            if liked:
-                new_interacted_tweet_ids.append(int(tweet_id))
-
+            success = yield from self.like_tweet(tweet_id)
         elif action == "follow" and user_id:
-            followed = yield from self.follow_user(user_id)
-            if followed:
-                new_interacted_tweet_ids.append(int(tweet_id))
-
+            success = yield from self.follow_user(user_id)
         elif action == "retweet":
-            retweeted = yield from self.retweet(tweet_id)
-            if retweeted:
-                new_interacted_tweet_ids.append(int(tweet_id))
-
+            success = yield from self.retweet(tweet_id)
         elif action == "reply":
-            responded = yield from self.respond_tweet(tweet_id, text)
-            if responded:
-                new_interacted_tweet_ids.append(int(tweet_id))
-
+            success = yield from self.respond_tweet(tweet_id, text)
         elif action == "quote":
-            quoted = yield from self.respond_tweet(
+            success = yield from self.respond_tweet(
                 tweet_id, text, quote=True, user_name=user_name
             )
-            if quoted:
-                new_interacted_tweet_ids.append(int(tweet_id))
 
-    def _handle_tweet_with_media(
-        self, text: str, previous_tweets: dict, persona: str
-    ) -> Generator[None, None, None]:
-        """Handle creating a new tweet with media."""
-        # Optionally, replace the tweet with one generated by the alternative model
-        new_text = yield from self.replace_tweet_with_alternative_model(
-            ALTERNATIVE_MODEL_TWITTER_PROMPT.format(
-                persona=persona,
-                previous_tweets=previous_tweets,
-            )
-        )
-        text = new_text or text
-
-        if not is_tweet_valid(text):
-            self.context.logger.error("The tweet is too long.")
-            return
-
-        # Get the latest image path from the database
-        db_data = yield from self._read_kv(keys=("latest_image_path",))
-
-        if not db_data or "latest_image_path" not in db_data:
-            self.context.logger.error(
-                "No image path found for tweet_with_media action."
-            )
-            return
-
-        image_path = db_data["latest_image_path"]
-        self.context.logger.info(f"Using image from path: {image_path}")
-
-        # Upload the media first
-        media_id = yield from self._call_twikit(
-            method="upload_media",
-            media_path=image_path,  # Pass the path as a string, not as a dictionary
-        )
-
-        if not media_id:
-            self.context.logger.error(f"Failed to upload media from path: {image_path}")
-            return
-
-        # Post tweet with the uploaded media ID
-        self.context.logger.info(f"Posting tweet with media_id: {media_id}")
-        tweet_ids = yield from self._call_twikit(
-            method="post", tweets=[{"text": text, "media_ids": [media_id]}]
-        )
-
-        if not tweet_ids:
-            self.context.logger.error("Failed posting tweet with media to Twitter.")
-            return
-
-        latest_tweet = {
-            "tweet_id": tweet_ids[0],
-            "text": text,
-            "media_path": image_path,
-            "timestamp": self.get_sync_timestamp(),
-        }
-
-        # Write latest tweet to the database
-        yield from self.store_tweet(latest_tweet)
-        self.context.logger.info("Wrote latest tweet with media to db")
+        if success:
+            new_interacted_tweet_ids.append(int(tweet_id))
 
     def generate_mech_tool_info(self) -> str:
         """Generate tool info"""

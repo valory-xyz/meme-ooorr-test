@@ -583,7 +583,9 @@ class TwikitConnection(Connection):
                     )
 
                 # Upload media to Twitter
-                result = await self.client.upload_media(source=media_path)
+                result = await self.client.upload_media(
+                    source=media_path, wait_for_completion=True
+                )
                 media_id = result
 
                 if media_id is not None:

@@ -184,6 +184,12 @@ class SynchronizedData(BaseSynchronizedData):
         """Get the mech for twitter."""
         return bool(self.db.get("mech_for_twitter", False))
 
+    @property
+    def last_summon_timestamp(self) -> float:
+        """Get the timestamp of the last summon action."""
+        # Cast the db result to float to satisfy mypy
+        return cast(float, self.db.get("last_summon_timestamp", 0.0))
+
 
 class EventRoundBase(CollectSameUntilThresholdRound):
     """EventRoundBase"""
@@ -493,7 +499,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
 
         if self.threshold_reached:
             # This needs to be mentioned for static checkers
-            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.WAIT
+            # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT, Event.WAIT , Event.RETRY
             payload = ActionDecisionPayload(
                 *(("dummy_sender",) + self.most_voted_payload_values)
             )
@@ -510,6 +516,7 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
                     "token_supply": payload.token_supply,
                     "amount": payload.amount,
                     "tweet": payload.tweet,
+                    "timestamp": payload.timestamp,
                 }
 
                 synchronized_data = synchronized_data.update(
@@ -526,6 +533,17 @@ class ActionDecisionRound(CollectSameUntilThresholdRound):
                         synchronized_data_class=SynchronizedData,
                         **{
                             get_name(SynchronizedData.persona): payload.new_persona,
+                        },
+                    )
+
+                # Store timestamp if the action was summon
+                if payload.action == "summon":
+                    synchronized_data = synchronized_data.update(
+                        synchronized_data_class=SynchronizedData,
+                        **{
+                            get_name(
+                                SynchronizedData.last_summon_timestamp
+                            ): payload.timestamp,
                         },
                     )
 
@@ -756,6 +774,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
         ActionDecisionRound: {
             Event.DONE: ActionPreparationRound,
             Event.WAIT: CallCheckpointRound,
+            Event.RETRY: ActionDecisionRound,
             Event.NO_MAJORITY: ActionDecisionRound,
             Event.ROUND_TIMEOUT: ActionDecisionRound,
         },
@@ -827,7 +846,9 @@ class MemeooorrAbciApp(AbciApp[Event]):
         FinishedForMechResponseRound,
     }
     event_to_timeout: EventToTimeout = {Event.ROUND_TIMEOUT: 30}
-    cross_period_persisted_keys: FrozenSet[str] = frozenset(["persona"])
+    cross_period_persisted_keys: FrozenSet[str] = frozenset(
+        ["persona", "last_summon_timestamp"]
+    )
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
         PullMemesRound: set(),
