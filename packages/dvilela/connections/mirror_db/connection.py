@@ -402,3 +402,82 @@ class MirrorDBConnection(Connection):
         ) as response:
             await self._raise_for_response(response, "getting active X handles")
             return await response.json()
+
+    # Interface 2.0
+    # TODO: Implement the new interface on the behaviours as well
+
+    @retry_with_exponential_backoff()
+    async def create_(self, method_name: str, endpoint: str, data: Dict) -> Dict:
+        """
+        Create a resource using a POST request.
+
+        :param method_name: Name of the method for logging and error reporting
+        :param endpoint: API endpoint to call
+        :param data: The data to send in the request body
+        :return: Response from the API
+        """
+        async with self.session.post(  # type: ignore
+            f"{self.base_url}/{endpoint}",
+            json=data,
+            # headers={"access-token": f"{self.api_key}"},
+        ) as response:
+            await self._raise_for_response(
+                response, f"creating resource via {method_name}"
+            )
+            return await response.json()
+
+    @retry_with_exponential_backoff()
+    async def read_(self, method_name: str, endpoint: str) -> Dict:
+        """
+        Read a resource using a GET request.
+
+        :param method_name: Name of the method for logging and error reporting
+        :param endpoint: API endpoint to call
+        :return: Response from the API
+        """
+        async with self.session.get(  # type: ignore
+            f"{self.base_url}/{endpoint}",
+            # headers={"access-token": f"{self.api_key}"},
+        ) as response:
+            await self._raise_for_response(
+                response, f"reading resource via {method_name}"
+            )
+            return await response.json()
+
+    @retry_with_exponential_backoff()
+    async def update_(self, method_name: str, endpoint: str, data: Dict) -> Dict:
+        """
+        Update a resource using a PUT request.
+
+        :param method_name: Name of the method for logging and error reporting
+        :param endpoint: API endpoint to call
+        :param data: The data to send in the request body
+        :return: Response from the API
+        """
+        async with self.session.put(  # type: ignore
+            f"{self.base_url}/{endpoint}",
+            json=data,
+            # headers={"access-token": f"{self.api_key}"},
+        ) as response:
+            await self._raise_for_response(
+                response, f"updating resource via {method_name}"
+            )
+            return await response.json()
+
+    @retry_with_exponential_backoff()
+    async def delete_(self, method_name: str, endpoint: str) -> Dict:
+        """
+        Delete a resource using a DELETE request.
+
+        :param method_name: Name of the method for logging and error reporting
+        :param endpoint: API endpoint to call
+        :return: Response from the API
+        """
+        async with self.session.delete(  # type: ignore
+            f"{self.base_url}/{endpoint}",
+            # headers={"access-token": f"{self.api_key}"},
+        ) as response:
+            await self._raise_for_response(
+                response, f"deleting resource via {method_name}"
+            )
+            return await response.json()
