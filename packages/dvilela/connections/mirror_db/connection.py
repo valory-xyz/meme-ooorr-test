@@ -229,7 +229,7 @@ class MirrorDBConnection(Connection):
                 performative=SrrMessage.Performative.RESPONSE,
                 target_message=srr_message,
                 payload=json.dumps({"error": error}),
-                # error=True, # 'error' is not a valid kwarg for SrrMessage RESPONSE
+                error=True,  # Add error=True for error responses
             ),
         )
         return response_message
@@ -260,7 +260,6 @@ class MirrorDBConnection(Connection):
         self, srr_message: SrrMessage, dialogue: Optional[BaseDialogue]
     ) -> SrrMessage:
         """Get response from the backend service by dispatching to internal methods."""
-        self.logger.info(f"in get_response")
         if srr_message.performative != SrrMessage.Performative.REQUEST:
             return self.prepare_error_message(
                 srr_message,
@@ -310,9 +309,9 @@ class MirrorDBConnection(Connection):
                     performative=SrrMessage.Performative.RESPONSE,
                     target_message=srr_message,
                     payload=json.dumps({"response": response_data}),
+                    error=False,  # Add error=False for successful responses
                 ),
             )
-            self.logger.info(f"before return of get_response")
             return response_message
 
         except json.JSONDecodeError as e:

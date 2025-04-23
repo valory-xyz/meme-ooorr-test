@@ -1673,10 +1673,18 @@ class MemeooorrBaseBehaviour(
             )
             return None
 
+    _HTTP_METHOD_TO_CONNECTION_METHOD = {
+        "GET": "read_",
+        "POST": "create_",
+        "PUT": "update_",
+        "DELETE": "delete_",
+    }
+
     def _call_mirrordb(
         self, http_method: str, endpoint: str, **kwargs: Any
     ) -> Generator[None, None, Any]:
         """Send a request message to the MirrorDB connection using generic method names."""
+        connection_method = None  # Initialize here
         try:
             # Map HTTP verb to connection method name
             connection_method = self._HTTP_METHOD_TO_CONNECTION_METHOD.get(
@@ -1730,9 +1738,12 @@ class MemeooorrBaseBehaviour(
 
             return response_json.get("response")  # type: ignore
         except Exception as e:  # pylint: disable=broad-except
+            # Log based on the original HTTP method for clarity
+            log_method = (
+                connection_method if connection_method else "unknown connection method"
+            )
             self.context.logger.error(
-                # Log based on the original HTTP method for clarity
-                f"Exception while calling MirrorDB ({http_method} {endpoint} -> {connection_method}): {e}"
+                f"Exception while calling MirrorDB ({http_method} {endpoint} -> {log_method}): {e}"
             )
             return None
 
