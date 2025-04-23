@@ -563,363 +563,6 @@ class MemeooorrBaseBehaviour(
                 f"Failed to store twitter_interactions_attr_def_id={attr_def_id} in KV Store."
             )
 
-    def _call_mirrordb(
-        self, http_method: str, endpoint: str, **kwargs: Any
-    ) -> Generator[None, None, Any]:
-        """Send a request message to the MirrorDB connection."""
-        try:
-            # Construct payload for the connection
-            # Pass the actual HTTP method and endpoint, plus any other data (like 'data' or 'auth')
-            connection_kwargs = {
-                "endpoint": endpoint,
-                **kwargs,  # Pass through data, auth, etc.
-            }
-            payload_data = {"method": http_method.upper(), "kwargs": connection_kwargs}
-
-            srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
-            srr_message, srr_dialogue = srr_dialogues.create(
-                counterparty=str(MIRRORDB_CONNECTION_PUBLIC_ID),
-                performative=SrrMessage.Performative.REQUEST,
-                payload=json.dumps(payload_data),  # Send method and kwargs
-            )
-            srr_message = cast(SrrMessage, srr_message)
-            srr_dialogue = cast(SrrDialogue, srr_dialogue)
-            response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
-
-            response_json = json.loads(response.payload)  # type: ignore
-
-            if "error" in response_json:
-                self.context.logger.error(
-                    f"MirrorDB call ({http_method} {endpoint}) failed: {response_json['error']}"
-                )
-                return None
-
-            return response_json.get("response")  # type: ignore
-        except Exception as e:  # pylint: disable=broad-except
-            self.context.logger.error(
-                f"Exception while calling MirrorDB ({http_method} {endpoint}): {e}"
-            )
-            return None
-
-    def _register_with_mirror_db(self) -> Generator[None, None, None]:
-        """Register with the MirrorDB service and save the configuration."""
-        try:
-            # 1. Get Twitter User Data (unchanged)
-            twitter_user_data = yield from self._get_twitter_user_data()
-            if not twitter_user_data:
-                self.context.logger.error(
-                    "Failed to get Twitter user data. Registration with MirrorDB aborted."
-                )
-                return
-
-            twitter_user_id = twitter_user_data.get("id")
-            twitter_username = twitter_user_data.get("screen_name")
-            twitter_name = twitter_user_data.get("name")
-
-            if not all([twitter_user_id, twitter_username, twitter_name]):
-                self.context.logger.error(
-                    f"Missing required Twitter data: id={twitter_user_id}, username={twitter_username}, name={twitter_name}"
-                )
-                return
-
-            # 2. (New) Get Agent Type ID (Assuming type name 'memeooorr')
-            agent_type_name = "memeooorr"  # TODO: Make this configurable if needed
-            agent_type_response = yield from self._call_mirrordb(
-                "GET", endpoint=f"/api/agent-types/name/{agent_type_name}"
-            )
-
-            # --- Create Agent Type if it doesn't exist ---
-            if agent_type_response is None:
-                self.context.logger.info(
-                    f"Agent type '{agent_type_name}' not found. Creating..."
-                )
-                agent_type_create_data = {
-                    "type_name": agent_type_name,
-                    "description": "Agent type for Memeooorr skill",
-                }
-                # Agent type creation seems unauthenticated per spec
-                agent_type_response = yield from self._call_mirrordb(
-                    "POST", endpoint="/api/agent-types/", data=agent_type_create_data
-                )
-                if agent_type_response is None:
-                    self.context.logger.error(
-                        f"Failed to create agent type '{agent_type_name}'. Aborting registration."
-                    )
-                    return
-                self.context.logger.info(f"Created agent type: {agent_type_response}")
-            # -----------------------------------------------
-
-            if "type_id" not in agent_type_response:
-                self.context.logger.error(
-                    f"Could not find or create agent type '{agent_type_name}'. Response: {agent_type_response}"
-                )
-                return
-
-            agent_type_id = agent_type_response["type_id"]
-            self.context.logger.info(
-                f"Using agent type '{agent_type_name}' with type_id: {agent_type_id}"
-            )
-
-            # 3. Create Agent Registry Entry
-            agent_registry_data = {
-                "agent_name": f"{self.synchronized_data.safe_contract_address}_{datetime.utcnow().isoformat()}",
-                "type_id": agent_type_id,
-                "eth_address": self.context.agent_address,  # Use agent's eth address
-            }
-            # --- Signing --- (ASSUMPTION: create_agent_registry does NOT require signing)
-            # No signature needed for this initial creation step based on assumption.
-            # auth_data_agent = None
-
-            # --- Call ---
-            # Pass only the data payload for registry creation
-            agent_registry_response = yield from self._call_mirrordb(
-                "POST",
-                endpoint="/api/agent-registry/",
-                data=agent_registry_data,
-                # auth=auth_data_agent # Not passing auth based on assumption
-            )
-            self.context.logger.info(
-                f"Agent registry entry created: {agent_registry_response}"
-            )
-
-            if (
-                agent_registry_response is None
-                or "agent_id" not in agent_registry_response
-            ):
-                self.context.logger.error(
-                    "Failed to create agent registry entry or get agent_id."
-                )
-                return
-            agent_id = agent_registry_response["agent_id"]
-
-            # Note: API key handling is removed as per new API structure assumptions.
-            # Authentication might be handled differently (e.g., signatures by the connection).
-            # The old `create_agent` response included an api_key. The new one doesn't.
-            # We will store the agent_id and twitter_user_id, but not an API key unless proven necessary.
-
-            # 5. Save configuration (agent_id, twitter_user_id) locally (KV store)
-            # API key is no longer part of the primary config needed from registration.
-            config_data = {
-                "agent_id": agent_id,
-                "twitter_user_id": twitter_user_id,
-            }
-            self.context.logger.info(f"Saving MirrorDB config data: {config_data}")
-            yield from self._write_kv({"mirrod_db_config": json.dumps(config_data)})
-
-            # 6. (New) Get or create Attribute Definition for Interactions
-            interaction_attr_def_name = "twitter_interactions"
-            interaction_attr_def_response = yield from self._call_mirrordb(
-                "GET", endpoint=f"/api/attributes/name/{interaction_attr_def_name}"
-            )
-
-            # --- Create Interaction Attribute Definition if it doesn't exist ---
-            interaction_attr_def_id = None  # Initialize
-            if interaction_attr_def_response is None:
-                self.context.logger.info(
-                    f"Attribute definition '{interaction_attr_def_name}' not found. Creating..."
-                )
-                interaction_attr_def_payload = {
-                    "type_id": agent_type_id,
-                    "attr_name": interaction_attr_def_name,
-                    "data_type": "json",  # Assuming JSON to store interaction details
-                    "is_required": False,
-                    "default_value": "{}",
-                }
-                interaction_attr_def_endpoint = (
-                    f"/api/agent-types/{agent_type_id}/attributes/"
-                )
-
-                # --- Signing required ---
-                auth_data_inter_attr_def = yield from self._sign_mirrordb_request(
-                    interaction_attr_def_endpoint, agent_id
-                )
-                if auth_data_inter_attr_def is None:
-                    self.context.logger.error(
-                        f"Failed to sign attribute definition creation request for '{interaction_attr_def_name}'. Aborting."
-                    )
-                else:
-                    # --- Call ---
-                    request_body_inter = {
-                        "attr_def": interaction_attr_def_payload,
-                        "auth": auth_data_inter_attr_def,
-                    }
-                    interaction_attr_def_response = yield from self._call_mirrordb(
-                        "POST",
-                        endpoint=interaction_attr_def_endpoint,
-                        data=request_body_inter,
-                    )
-                    if interaction_attr_def_response is None:
-                        self.context.logger.error(
-                            f"Failed to create attribute definition '{interaction_attr_def_name}'."
-                        )
-                    # Re-assign response for ID extraction below
-
-            # Extract ID if creation was successful or if it existed
-            if (
-                interaction_attr_def_response
-                and "attr_def_id" in interaction_attr_def_response
-            ):
-                interaction_attr_def_id = interaction_attr_def_response["attr_def_id"]
-                self.context.logger.info(
-                    f"Using attribute definition '{interaction_attr_def_name}' with attr_def_id: {interaction_attr_def_id}"
-                )
-                # Store ID in KV Store
-                success = yield from self._write_kv(
-                    {"twitter_interactions_attr_def_id": str(interaction_attr_def_id)}
-                )
-                if success:
-                    self.context.logger.info(
-                        f"Stored twitter_interactions_attr_def_id={interaction_attr_def_id} in KV Store."
-                    )
-                else:
-                    self.context.logger.error(
-                        f"Failed to store twitter_interactions_attr_def_id={interaction_attr_def_id} in KV Store."
-                    )
-            else:
-                self.context.logger.error(
-                    f"Could not find or create attribute definition '{interaction_attr_def_name}'. Response: {interaction_attr_def_response}"
-                )
-                # Decide if registration should fail if interaction tracking is critical
-
-            # 7. (New) Get or create Attribute Definition for Username
-            # Store Agent Type ID in KV store for later use
-            if agent_type_id:
-                success_type_id = yield from self._write_kv(
-                    {"memeooorr_agent_type_id": str(agent_type_id)}
-                )
-                if success_type_id:
-                    self.context.logger.info(
-                        f"Stored memeooorr_agent_type_id={agent_type_id} in KV Store."
-                    )
-                else:
-                    self.context.logger.error(
-                        f"Failed to store memeooorr_agent_type_id={agent_type_id} in KV Store."
-                    )
-
-            username_attr_def_name = "twitter_username"
-            username_attr_def_response = yield from self._call_mirrordb(
-                "GET", endpoint=f"/api/attributes/name/{username_attr_def_name}"
-            )
-
-            # --- Create Username Attribute Definition if it doesn't exist ---
-            username_attr_def_id = None  # Initialize
-            if username_attr_def_response is None:
-                self.context.logger.info(
-                    f"Attribute definition '{username_attr_def_name}' not found. Creating..."
-                )
-                username_attr_def_payload = {
-                    "type_id": agent_type_id,
-                    "attr_name": username_attr_def_name,
-                    "data_type": "string",
-                    "is_required": True,  # Username should be required for identification
-                    "default_value": "",
-                }
-                username_attr_def_endpoint = (
-                    f"/api/agent-types/{agent_type_id}/attributes/"
-                )
-
-                # --- Signing required ---
-                auth_data_user_attr_def = yield from self._sign_mirrordb_request(
-                    username_attr_def_endpoint, agent_id
-                )
-                if auth_data_user_attr_def is None:
-                    self.context.logger.error(
-                        f"Failed to sign attribute definition creation request for '{username_attr_def_name}'. Aborting."
-                    )
-                else:
-                    # --- Call ---
-                    request_body_user = {
-                        "attr_def": username_attr_def_payload,
-                        "auth": auth_data_user_attr_def,
-                    }
-                    username_attr_def_response = yield from self._call_mirrordb(
-                        "POST",
-                        endpoint=username_attr_def_endpoint,
-                        data=request_body_user,
-                    )
-                    if username_attr_def_response is None:
-                        self.context.logger.error(
-                            f"Failed to create attribute definition '{username_attr_def_name}'."
-                        )
-
-            # Extract ID
-            if (
-                username_attr_def_response
-                and "attr_def_id" in username_attr_def_response
-            ):
-                username_attr_def_id = username_attr_def_response["attr_def_id"]
-                self.context.logger.info(
-                    f"Using attribute definition '{username_attr_def_name}' with attr_def_id: {username_attr_def_id}"
-                )
-                # Store ID in KV Store
-                success = yield from self._write_kv(
-                    {"twitter_username_attr_def_id": str(username_attr_def_id)}
-                )
-                if success:
-                    self.context.logger.info(
-                        f"Stored twitter_username_attr_def_id={username_attr_def_id} in KV Store."
-                    )
-                else:
-                    self.context.logger.error(
-                        f"Failed to store twitter_username_attr_def_id={username_attr_def_id} in KV Store."
-                    )
-            else:
-                self.context.logger.error(
-                    f"Could not find or create attribute definition '{username_attr_def_name}'. Response: {username_attr_def_response}"
-                )
-                # Username attribute is likely crucial, consider aborting registration
-                return  # Abort if we can't get/create the username attribute def
-
-            # 8. (New) Create Username Attribute Instance for this agent
-            if username_attr_def_id is not None and twitter_username is not None:
-                username_attr_instance_payload = {
-                    "agent_id": agent_id,
-                    "attr_def_id": username_attr_def_id,
-                    "string_value": twitter_username,
-                    # Other value types are None
-                    "integer_value": None,
-                    "float_value": None,
-                    "boolean_value": None,
-                    "date_value": None,
-                    "json_value": None,
-                }
-                username_attr_instance_endpoint = f"/api/agents/{agent_id}/attributes/"
-
-                # --- Signing required ---
-                auth_data_user_attr_instance = yield from self._sign_mirrordb_request(
-                    username_attr_instance_endpoint, agent_id
-                )
-                if auth_data_user_attr_instance is None:
-                    self.context.logger.error(
-                        f"Failed to sign attribute instance creation request for '{username_attr_def_name}'."
-                    )
-                else:
-                    # --- Call ---
-                    request_body_user_instance = {
-                        "agent_attr": username_attr_instance_payload,
-                        "auth": auth_data_user_attr_instance,
-                    }
-                    username_attr_instance_response = yield from self._call_mirrordb(
-                        "POST",
-                        endpoint=username_attr_instance_endpoint,
-                        data=request_body_user_instance,
-                    )
-                    if username_attr_instance_response is None:
-                        self.context.logger.error(
-                            f"Failed to create attribute instance for '{username_attr_def_name}' for agent {agent_id}."
-                        )
-                    else:
-                        self.context.logger.info(
-                            f"Successfully created attribute instance for '{username_attr_def_name}' for agent {agent_id}."
-                        )
-            else:
-                self.context.logger.error(
-                    f"Cannot create username attribute instance: missing attr_def_id ({username_attr_def_id}) or twitter_username ({twitter_username})."
-                )
-
-        except Exception as e:  # pylint: disable=broad-except
-            self.context.logger.error(f"Exception while registering with MirrorDB: {e}")
-
     def _get_twitter_user_data(self) -> Generator[None, None, Dict[str, str]]:
         """Get the twitter user data using Twikit."""
 
@@ -1992,7 +1635,6 @@ class MemeooorrBaseBehaviour(
         """
         return (yield from self._get_twikit_stats())
 
-    # --- NEW Helper Method for Signing ---
     def _sign_mirrordb_request(
         self, endpoint: str, agent_id: int
     ) -> Generator[None, None, Optional[Dict[str, Any]]]:
@@ -2031,4 +1673,384 @@ class MemeooorrBaseBehaviour(
             )
             return None
 
-    # -------------------------------------
+    def _call_mirrordb(
+        self, http_method: str, endpoint: str, **kwargs: Any
+    ) -> Generator[None, None, Any]:
+        """Send a request message to the MirrorDB connection using generic method names."""
+        try:
+            # Map HTTP verb to connection method name
+            connection_method = self._HTTP_METHOD_TO_CONNECTION_METHOD.get(
+                http_method.upper()
+            )
+            if not connection_method:
+                self.context.logger.error(
+                    f"Unsupported HTTP method for MirrorDB call: {http_method}"
+                )
+                return None
+
+            # Construct payload for the connection
+            # Pass the generic method name and original kwargs (endpoint, data, auth)
+            connection_kwargs = {
+                "endpoint": endpoint,
+                **kwargs,  # Pass through data, auth, etc.
+            }
+
+            # Send the generic method name 'read_', 'create_', etc.
+            payload_data = {"method": connection_method, "kwargs": connection_kwargs}
+
+            srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
+            srr_message, srr_dialogue = srr_dialogues.create(
+                counterparty=str(MIRRORDB_CONNECTION_PUBLIC_ID),
+                performative=SrrMessage.Performative.REQUEST,
+                payload=json.dumps(payload_data),
+            )
+            srr_message = cast(SrrMessage, srr_message)
+            srr_dialogue = cast(SrrDialogue, srr_dialogue)
+            response = yield from self._do_connection_request(srr_message, srr_dialogue)  # type: ignore
+
+            response_json = json.loads(response.payload)  # type: ignore
+
+            if "error" in response_json:
+                error_message = response_json["error"]
+                # Check if the error is a 404 Not Found, which is expected during registration checks
+                is_404 = (
+                    isinstance(error_message, str) and "Status 404" in error_message
+                )
+                if is_404:
+                    # Log expected 404s less severely
+                    self.context.logger.info(
+                        f"Resource not found ({http_method} {endpoint} -> {connection_method}): Expected 404."
+                    )
+                else:
+                    # Log other errors as actual errors
+                    self.context.logger.error(
+                        f"MirrorDB call ({http_method} {endpoint} -> {connection_method}) failed: {error_message}"
+                    )
+                return None
+
+            return response_json.get("response")  # type: ignore
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(
+                # Log based on the original HTTP method for clarity
+                f"Exception while calling MirrorDB ({http_method} {endpoint} -> {connection_method}): {e}"
+            )
+            return None
+
+    def _register_with_mirror_db(self) -> Generator[None, None, None]:
+        """Register with the MirrorDB service and save the configuration."""
+        try:
+            # 1. Get Twitter User Data (unchanged)
+            twitter_user_data = yield from self._get_twitter_user_data()
+            if not twitter_user_data:
+                self.context.logger.error(
+                    "Failed to get Twitter user data. Registration with MirrorDB aborted."
+                )
+                return
+
+            twitter_user_id = twitter_user_data.get("id")
+            twitter_username = twitter_user_data.get("screen_name")
+            twitter_name = twitter_user_data.get("name")
+
+            if not all([twitter_user_id, twitter_username, twitter_name]):
+                self.context.logger.error(
+                    f"Missing required Twitter data: id={twitter_user_id}, username={twitter_username}, name={twitter_name}"
+                )
+                return
+
+            # 2. (New) Get Agent Type ID (Assuming type name 'memeooorr')
+            agent_type_name = "memeooorr"  # TODO: Make this configurable if needed
+            agent_type_response = yield from self._call_mirrordb(
+                "GET", endpoint=f"/api/agent-types/name/{agent_type_name}"
+            )
+
+            # --- Create Agent Type if it doesn't exist ---
+            if agent_type_response is None:
+                self.context.logger.info(
+                    f"Agent type '{agent_type_name}' not found. Creating..."
+                )
+                agent_type_create_data = {
+                    "type_name": agent_type_name,
+                    "description": "Agent type for Memeooorr skill",
+                }
+                # Agent type creation seems unauthenticated per spec
+                agent_type_response = yield from self._call_mirrordb(
+                    "POST", endpoint="/api/agent-types/", data=agent_type_create_data
+                )
+                if agent_type_response is None:
+                    self.context.logger.error(
+                        f"Failed to create agent type '{agent_type_name}'. Aborting registration."
+                    )
+                    return
+                self.context.logger.info(f"Created agent type: {agent_type_response}")
+            # -----------------------------------------------
+
+            if "type_id" not in agent_type_response:
+                self.context.logger.error(
+                    f"Could not find or create agent type '{agent_type_name}'. Response: {agent_type_response}"
+                )
+                return
+
+            agent_type_id = agent_type_response["type_id"]
+            self.context.logger.info(
+                f"Using agent type '{agent_type_name}' with type_id: {agent_type_id}"
+            )
+
+            # 3. Create Agent Registry Entry
+            agent_registry_data = {
+                "agent_name": f"{self.synchronized_data.safe_contract_address}_{datetime.utcnow().isoformat()}",
+                "type_id": agent_type_id,
+                "eth_address": self.context.agent_address,  # Use agent's eth address
+            }
+            # --- Signing --- (ASSUMPTION: create_agent_registry does NOT require signing)
+            # No signature needed for this initial creation step based on assumption.
+            # auth_data_agent = None
+
+            # --- Call ---
+            # Pass only the data payload for registry creation
+            agent_registry_response = yield from self._call_mirrordb(
+                "POST",
+                endpoint="/api/agent-registry/",
+                data=agent_registry_data,
+                # auth=auth_data_agent # Not passing auth based on assumption
+            )
+            self.context.logger.info(
+                f"Agent registry entry created: {agent_registry_response}"
+            )
+
+            if (
+                agent_registry_response is None
+                or "agent_id" not in agent_registry_response
+            ):
+                self.context.logger.error(
+                    "Failed to create agent registry entry or get agent_id."
+                )
+                return
+            agent_id = agent_registry_response["agent_id"]
+
+            # Note: API key handling is removed as per new API structure assumptions.
+            # Authentication might be handled differently (e.g., signatures by the connection).
+            # The old `create_agent` response included an api_key. The new one doesn't.
+            # We will store the agent_id and twitter_user_id, but not an API key unless proven necessary.
+
+            # 5. Save configuration (agent_id, twitter_user_id) locally (KV store)
+            # API key is no longer part of the primary config needed from registration.
+            config_data = {
+                "agent_id": agent_id,
+                "twitter_user_id": twitter_user_id,
+            }
+            self.context.logger.info(f"Saving MirrorDB config data: {config_data}")
+            yield from self._write_kv({"mirrod_db_config": json.dumps(config_data)})
+
+            # 6. (New) Get or create Attribute Definition for Interactions
+            interaction_attr_def_name = "twitter_interactions"
+            interaction_attr_def_response = yield from self._call_mirrordb(
+                "GET", endpoint=f"/api/attributes/name/{interaction_attr_def_name}"
+            )
+
+            # --- Create Interaction Attribute Definition if it doesn't exist ---
+            interaction_attr_def_id = None  # Initialize
+            if interaction_attr_def_response is None:
+                self.context.logger.info(
+                    f"Attribute definition '{interaction_attr_def_name}' not found. Creating..."
+                )
+                interaction_attr_def_payload = {
+                    "type_id": agent_type_id,
+                    "attr_name": interaction_attr_def_name,
+                    "data_type": "json",  # Assuming JSON to store interaction details
+                    "is_required": False,
+                    "default_value": "{}",
+                }
+                interaction_attr_def_endpoint = (
+                    f"/api/agent-types/{agent_type_id}/attributes/"
+                )
+
+                # --- Signing required ---
+                auth_data_inter_attr_def = yield from self._sign_mirrordb_request(
+                    interaction_attr_def_endpoint, agent_id
+                )
+                if auth_data_inter_attr_def is None:
+                    self.context.logger.error(
+                        f"Failed to sign attribute definition creation request for '{interaction_attr_def_name}'. Aborting."
+                    )
+                else:
+                    # --- Call ---
+                    request_body_inter = {
+                        "attr_def": interaction_attr_def_payload,
+                        "auth": auth_data_inter_attr_def,
+                    }
+                    interaction_attr_def_response = yield from self._call_mirrordb(
+                        "POST",
+                        endpoint=interaction_attr_def_endpoint,
+                        data=request_body_inter,
+                    )
+                    if interaction_attr_def_response is None:
+                        self.context.logger.error(
+                            f"Failed to create attribute definition '{interaction_attr_def_name}'."
+                        )
+                    # Re-assign response for ID extraction below
+
+            # Extract ID if creation was successful or if it existed
+            if (
+                interaction_attr_def_response
+                and "attr_def_id" in interaction_attr_def_response
+            ):
+                interaction_attr_def_id = interaction_attr_def_response["attr_def_id"]
+                self.context.logger.info(
+                    f"Using attribute definition '{interaction_attr_def_name}' with attr_def_id: {interaction_attr_def_id}"
+                )
+                # Store ID in KV Store
+                success = yield from self._write_kv(
+                    {"twitter_interactions_attr_def_id": str(interaction_attr_def_id)}
+                )
+                if success:
+                    self.context.logger.info(
+                        f"Stored twitter_interactions_attr_def_id={interaction_attr_def_id} in KV Store."
+                    )
+                else:
+                    self.context.logger.error(
+                        f"Failed to store twitter_interactions_attr_def_id={interaction_attr_def_id} in KV Store."
+                    )
+            else:
+                self.context.logger.error(
+                    f"Could not find or create attribute definition '{interaction_attr_def_name}'. Response: {interaction_attr_def_response}"
+                )
+                # Decide if registration should fail if interaction tracking is critical
+
+            # 7. (New) Get or create Attribute Definition for Username
+            # Store Agent Type ID in KV store for later use
+            if agent_type_id:
+                success_type_id = yield from self._write_kv(
+                    {"memeooorr_agent_type_id": str(agent_type_id)}
+                )
+                if success_type_id:
+                    self.context.logger.info(
+                        f"Stored memeooorr_agent_type_id={agent_type_id} in KV Store."
+                    )
+                else:
+                    self.context.logger.error(
+                        f"Failed to store memeooorr_agent_type_id={agent_type_id} in KV Store."
+                    )
+
+            username_attr_def_name = "twitter_username"
+            username_attr_def_response = yield from self._call_mirrordb(
+                "GET", endpoint=f"/api/attributes/name/{username_attr_def_name}"
+            )
+
+            # --- Create Username Attribute Definition if it doesn't exist ---
+            username_attr_def_id = None  # Initialize
+            if username_attr_def_response is None:
+                self.context.logger.info(
+                    f"Attribute definition '{username_attr_def_name}' not found. Creating..."
+                )
+                username_attr_def_payload = {
+                    "type_id": agent_type_id,
+                    "attr_name": username_attr_def_name,
+                    "data_type": "string",
+                    "is_required": True,  # Username should be required for identification
+                    "default_value": "",
+                }
+                username_attr_def_endpoint = (
+                    f"/api/agent-types/{agent_type_id}/attributes/"
+                )
+
+                # --- Signing required ---
+                auth_data_user_attr_def = yield from self._sign_mirrordb_request(
+                    username_attr_def_endpoint, agent_id
+                )
+                if auth_data_user_attr_def is None:
+                    self.context.logger.error(
+                        f"Failed to sign attribute definition creation request for '{username_attr_def_name}'. Aborting."
+                    )
+                else:
+                    # --- Call ---
+                    request_body_user = {
+                        "attr_def": username_attr_def_payload,
+                        "auth": auth_data_user_attr_def,
+                    }
+                    username_attr_def_response = yield from self._call_mirrordb(
+                        "POST",
+                        endpoint=username_attr_def_endpoint,
+                        data=request_body_user,
+                    )
+                    if username_attr_def_response is None:
+                        self.context.logger.error(
+                            f"Failed to create attribute definition '{username_attr_def_name}'."
+                        )
+
+            # Extract ID
+            if (
+                username_attr_def_response
+                and "attr_def_id" in username_attr_def_response
+            ):
+                username_attr_def_id = username_attr_def_response["attr_def_id"]
+                self.context.logger.info(
+                    f"Using attribute definition '{username_attr_def_name}' with attr_def_id: {username_attr_def_id}"
+                )
+                # Store ID in KV Store
+                success = yield from self._write_kv(
+                    {"twitter_username_attr_def_id": str(username_attr_def_id)}
+                )
+                if success:
+                    self.context.logger.info(
+                        f"Stored twitter_username_attr_def_id={username_attr_def_id} in KV Store."
+                    )
+                else:
+                    self.context.logger.error(
+                        f"Failed to store twitter_username_attr_def_id={username_attr_def_id} in KV Store."
+                    )
+            else:
+                self.context.logger.error(
+                    f"Could not find or create attribute definition '{username_attr_def_name}'. Response: {username_attr_def_response}"
+                )
+                # Username attribute is likely crucial, consider aborting registration
+                return  # Abort if we can't get/create the username attribute def
+
+            # 8. (New) Create Username Attribute Instance for this agent
+            if username_attr_def_id is not None and twitter_username is not None:
+                username_attr_instance_payload = {
+                    "agent_id": agent_id,
+                    "attr_def_id": username_attr_def_id,
+                    "string_value": twitter_username,
+                    # Other value types are None
+                    "integer_value": None,
+                    "float_value": None,
+                    "boolean_value": None,
+                    "date_value": None,
+                    "json_value": None,
+                }
+                username_attr_instance_endpoint = f"/api/agents/{agent_id}/attributes/"
+
+                # --- Signing required ---
+                auth_data_user_attr_instance = yield from self._sign_mirrordb_request(
+                    username_attr_instance_endpoint, agent_id
+                )
+                if auth_data_user_attr_instance is None:
+                    self.context.logger.error(
+                        f"Failed to sign attribute instance creation request for '{username_attr_def_name}'."
+                    )
+                else:
+                    # --- Call ---
+                    request_body_user_instance = {
+                        "agent_attr": username_attr_instance_payload,
+                        "auth": auth_data_user_attr_instance,
+                    }
+                    username_attr_instance_response = yield from self._call_mirrordb(
+                        "POST",
+                        endpoint=username_attr_instance_endpoint,
+                        data=request_body_user_instance,
+                    )
+                    if username_attr_instance_response is None:
+                        self.context.logger.error(
+                            f"Failed to create attribute instance for '{username_attr_def_name}' for agent {agent_id}."
+                        )
+                    else:
+                        self.context.logger.info(
+                            f"Successfully created attribute instance for '{username_attr_def_name}' for agent {agent_id}."
+                        )
+            else:
+                self.context.logger.error(
+                    f"Cannot create username attribute instance: missing attr_def_id ({username_attr_def_id}) or twitter_username ({twitter_username})."
+                )
+
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(f"Exception while registering with MirrorDB: {e}")
