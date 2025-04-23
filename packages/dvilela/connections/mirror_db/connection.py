@@ -24,7 +24,7 @@ import asyncio
 import json
 import ssl
 from functools import wraps
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast, Tuple
 
 import aiohttp
 import certifi
@@ -42,6 +42,9 @@ from packages.valory.protocols.srr.message import SrrMessage
 
 PUBLIC_ID = PublicId.from_str("dvilela/mirror_db:0.1.0")
 
+# Default headers for JSON requests
+DEFAULT_HEADERS = {"Content-Type": "application/json", "accept": "application/json"}
+
 
 def retry_with_exponential_backoff(max_retries=5, initial_delay=1, backoff_factor=2):  # type: ignore
     """Retry a function with exponential backoff."""
@@ -49,23 +52,50 @@ def retry_with_exponential_backoff(max_retries=5, initial_delay=1, backoff_facto
     def decorator(func):  # type: ignore
         @wraps(func)
         async def wrapper(*args, **kwargs):  # type: ignore
+            connection_instance = args[
+                0
+            ]  # Assuming the first arg is self (the connection instance)
             delay = initial_delay
             for attempt in range(max_retries):
                 try:
                     return await func(*args, **kwargs)
-                except Exception as e:
-                    if "rate limit exceeded" in str(e).lower():
+                except aiohttp.ClientResponseError as e:
+                    # Check if the error is rate limiting (e.g., status code 429)
+                    # You might need to adjust the status code based on the API
+                    if e.status == 429:
                         if attempt < max_retries - 1:
-                            print(f"Retrying in {delay} seconds due to rate limit...")
+                            connection_instance.logger.warning(
+                                f"Rate limit exceeded. Retrying in {delay} seconds..."
+                            )
                             await asyncio.sleep(delay)
                             delay *= backoff_factor
                         else:
-                            print(
-                                "Max retries reached. Could not complete the request."
+                            connection_instance.logger.error(
+                                "Max retries reached for rate limiting. Could not complete the request."
                             )
                             raise
                     else:
+                        # Re-raise other client errors immediately
                         raise
+                except aiohttp.ClientConnectionError as e:
+                    # Handle connection errors (e.g., DNS resolution, connection refused)
+                    if attempt < max_retries - 1:
+                        connection_instance.logger.warning(
+                            f"Connection error: {e}. Retrying in {delay} seconds..."
+                        )
+                        await asyncio.sleep(delay)
+                        delay *= backoff_factor
+                    else:
+                        connection_instance.logger.error(
+                            "Max retries reached for connection error. Could not complete the request."
+                        )
+                        raise
+                except Exception as e:
+                    # Handle other potential exceptions during the request
+                    connection_instance.logger.error(
+                        f"An unexpected error occurred: {e}"
+                    )
+                    raise  # Re-raise unexpected errors
 
         return wrapper
 
@@ -110,26 +140,11 @@ class MirrorDBConnection(Connection):
         """Initialize the connection."""
         super().__init__(*args, **kwargs)
         self.base_url = self.configuration.config.get("mirror_db_base_url")
-        self.api_key: Optional[str] = None
-        self.agent_id: Optional[str] = None
-        self.twitter_user_id: Optional[str] = None
         self.session: Optional[aiohttp.ClientSession] = None
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
         self._response_envelopes: Optional[asyncio.Queue] = None
         self.task_to_request: Dict[asyncio.Future, Envelope] = {}
         self.ssl_context = ssl.create_default_context(cafile=certifi.where())
-
-    async def update_api_key(self, api_key: str) -> None:
-        """Update the API key."""
-        self.api_key = api_key
-
-    async def update_agent_id(self, agent_id: str) -> None:
-        """Update the agent ID."""
-        self.agent_id = agent_id
-
-    async def update_twitter_user_id(self, twitter_user_id: str) -> None:
-        """Update the Twitter user ID."""
-        self.twitter_user_id = twitter_user_id
 
     @property
     def response_envelopes(self) -> asyncio.Queue:
@@ -189,6 +204,7 @@ class MirrorDBConnection(Connection):
         self, srr_message: SrrMessage, dialogue: Optional[BaseDialogue], error: str
     ) -> SrrMessage:
         """Prepare error message"""
+        self.logger.error(f"Preparing error response: {error}")
         response_message = cast(
             SrrMessage,
             dialogue.reply(  # type: ignore
@@ -216,268 +232,151 @@ class MirrorDBConnection(Connection):
 
         self.response_envelopes.put_nowait(response_envelope)
 
+    # Allowed methods are now the generic ones
     _ALLOWED_METHODS = {
-        "create_agent",
-        "read_agent",
-        "create_twitter_account",
-        "get_twitter_account",
-        "create_tweet",
-        "read_tweet",
-        "create_interaction",
-        "get_latest_tweets",
-        "get_active_twitter_handles",
-        "update_twitter_user_id",
-        "update_agent_id",
-        "update_api_key",
+        "create_",
+        "read_",
+        "update_",
+        "delete_",
     }
 
-    async def _get_response(
-        self, srr_message: SrrMessage, dialogue: Optional[BaseDialogue]
-    ) -> SrrMessage:
+    # Map generic method names to HTTP verbs
+    _METHOD_TO_VERB = {
+        "create_": "POST",
+        "read_": "GET",
+        "update_": "PUT",
+        "delete_": "DELETE",
+    }
+
+    @retry_with_exponential_backoff()
+    async def _make_request(
+        self, http_verb: str, url: str, headers: Dict, json_data: Optional[Dict]
+    ) -> Tuple[int, bytes]:
+        """Makes an HTTP request and handles the response.
+        Returns status code and raw body bytes.
+        Raises ClientResponseError on 4xx/5xx.
+        """
+        if self.session is None:
+            raise ConnectionError("aiohttp session is not initialized.")
+
+        # Clearer logging for potentially sensitive data (optional)
+        log_data = "<data provided>" if json_data else "None"
+        self.logger.info(
+            f"Making {http_verb} request to {url} with headers: {headers} Data: {log_data}"
+        )
+
+        async with self.session.request(
+            method=http_verb,
+            url=url,
+            headers=headers,
+            json=json_data,
+            # ssl=self.ssl_context # TCPConnector handles SSL
+        ) as response:
+            # Use raise_for_status() for basic HTTP error checking (4xx, 5xx)
+            response.raise_for_status()
+            # If successful (2xx), return status code and raw body bytes
+            return response.status, await response.read()
+            # Other errors like connection errors are handled by the retry decorator
+
+    async def _get_response(self, message: Message, dialogue: Dialogue) -> SrrMessage:
         """Get response from the backend service."""
-        if srr_message.performative != SrrMessage.Performative.REQUEST:
-            return self.prepare_error_message(
-                srr_message,
-                dialogue,
-                f"Performative `{srr_message.performative.value}` is not supported.",
-            )
-
-        payload = json.loads(srr_message.payload)
-        method_name = payload.get("method")
-
-        if method_name not in self._ALLOWED_METHODS:
-            return self.prepare_error_message(
-                srr_message,
-                dialogue,
-                f"Method {method_name} is not allowed or present.",
-            )
-
-        method = getattr(self, method_name, None)
-
-        if method is None:
-            return self.prepare_error_message(
-                srr_message,
-                dialogue,
-                f"Method {method_name} is not available.",
-            )
+        request_nonce = dialogue.dialogue_label.dialogue_reference[0]
+        response_payload: Optional[Dict] = None
+        response_error: Optional[str] = None
 
         try:
-            response = await method(**payload.get("kwargs", {}))
-            response_message = cast(
-                SrrMessage,
-                dialogue.reply(  # type: ignore
-                    performative=SrrMessage.Performative.RESPONSE,
-                    target_message=srr_message,
-                    payload=json.dumps({"response": response}),
-                    error=False,
-                ),
-            )
-            return response_message
+            payload = json.loads(message.payload)
+            # Extract the HTTP method and endpoint, passed from the skill
+            http_method = payload.get(
+                "method", "GET"
+            ).upper()  # Default to GET if not provided
+            kwargs = payload.get("kwargs", {})
+            endpoint = kwargs.get("endpoint")
+            # The 'data' kwarg now contains the *full* pre-constructed request body
+            json_body = kwargs.get("data")
 
-        except Exception as e:
-            return self.prepare_error_message(
-                srr_message, dialogue, f"Exception while calling backend service:\n{e}"
+            self.logger.info(
+                f"Received request: Method={http_method}, Endpoint={endpoint}, Body provided: {json_body is not None}"
             )
 
-    async def _raise_for_response(
-        self, response: aiohttp.ClientResponse, action: str
-    ) -> None:
-        """Raise exception with relevant message based on the HTTP status code."""
-        if response.status == 200:
-            return
-        error_content = await response.json()
-        detail = error_content.get("detail", error_content)
-        raise Exception(f"Error {action}: {detail} (HTTP {response.status})")
+            if not endpoint:
+                raise ValueError("Request received without an endpoint.")
 
-    @retry_with_exponential_backoff()
-    async def create_agent(self, agent_data: Dict) -> Dict:
-        """Create an agent and a Twitter account."""
-        async with self.session.post(  # type: ignore
-            f"{self.base_url}/api/agents/",
-            json=agent_data,
-            headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(response, "creating agent")
-            agent_response = await response.json()
+            # Construct full URL and headers
+            url = f"{self.base_url}{endpoint}"
+            headers = DEFAULT_HEADERS.copy()
 
-        agent_id = agent_response.get("agent_id")
-        if agent_id is None:
-            raise ValueError("Failed to create agent, no agent_id returned.")
-        return agent_response
-
-    @retry_with_exponential_backoff()
-    async def read_agent(self, agent_id: str) -> Dict:
-        """Read an agent."""
-        async with self.session.get(  # type: ignore
-            f"{self.base_url}/api/agents/{agent_id}",
-            headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(response, "reading agent")
-            return await response.json()
-
-    @retry_with_exponential_backoff()
-    async def create_twitter_account(self, agent_id: str, account_data: Dict) -> Dict:
-        """Create a Twitter account if not already present."""
-        api_key = account_data.get("api_key", self.api_key)
-
-        async with self.session.post(  # type: ignore
-            f"{self.base_url}/api/agents/{agent_id}/twitter_accounts/",
-            json=account_data,
-            headers={"access-token": f"{api_key}"},
-        ) as response:
-            await self._raise_for_response(response, "creating twitter account")
-            return await response.json()
-
-    @retry_with_exponential_backoff()
-    async def get_twitter_account(self, twitter_user_id: str) -> Dict:
-        """Get a Twitter account."""
-        async with self.session.get(  # type: ignore
-            f"{self.base_url}/api/twitter_accounts/{twitter_user_id}",
-            headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(response, "getting twitter account")
-            return await response.json()
-
-    @retry_with_exponential_backoff()
-    async def create_tweet(
-        self, agent_id: int, twitter_user_id: str, tweet_data: Dict
-    ) -> Dict:
-        """Create a tweet."""
-        tweet_id = tweet_data.get("tweet_id")
-        if tweet_id is None:
-            raise ValueError("Failed to create tweet, no tweet_id provided.")
-
-        async with self.session.post(  # type: ignore
-            f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/tweets/",
-            json=tweet_data,
-            headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(response, "creating tweet")
-            return await response.json()
-
-    @retry_with_exponential_backoff()
-    async def read_tweet(self, tweet_id: str) -> Dict:
-        """Read a tweet."""
-        async with self.session.get(  # type: ignore
-            f"{self.base_url}/api/tweets/{tweet_id}",
-            headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(response, "reading tweet")
-            return await response.json()
-
-    @retry_with_exponential_backoff()
-    async def create_interaction(
-        self, agent_id: int, twitter_user_id: str, interaction_data: Dict
-    ) -> Dict:
-        """Create an interaction."""
-        async with self.session.post(  # type: ignore
-            f"{self.base_url}/api/agents/{agent_id}/accounts/{twitter_user_id}/interactions/",
-            json=interaction_data,
-            headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(response, "creating interaction")
-            return await response.json()
-
-    @retry_with_exponential_backoff()
-    async def get_latest_tweets(self, agent_id: int) -> List[Dict]:
-        """Get the latest tweets for a given agent."""
-        async with self.session.get(  # type: ignore
-            f"{self.base_url}/api/agents/{agent_id}/twitter_accounts/tweets/",
-            headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(response, "getting latest tweets")
-            return await response.json()
-
-    @retry_with_exponential_backoff()
-    async def get_active_twitter_handles(self) -> List[str]:
-        """
-        Retrieves a list of active X (Twitter) handles.
-
-        This function directly calls the
-        /api/active_usernames/ endpoint and returns the list of usernames.
-        """
-        async with self.session.get(  # type: ignore
-            f"{self.base_url}/api/active_usernames/",
-            headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(response, "getting active X handles")
-            return await response.json()
-
-    # Interface 2.0
-    # TODO: Implement the new interface on the behaviours as well
-
-    @retry_with_exponential_backoff()
-    async def create_(self, method_name: str, endpoint: str, data: Dict) -> Dict:
-        """
-        Create a resource using a POST request.
-
-        :param method_name: Name of the method for logging and error reporting
-        :param endpoint: API endpoint to call
-        :param data: The data to send in the request body
-        :return: Response from the API
-        """
-        async with self.session.post(  # type: ignore
-            f"{self.base_url}/{endpoint}",
-            json=data,
-            # headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(
-                response, f"creating resource via {method_name}"
+            # Make the request using positional args for http_method and url
+            status_code, response_bytes = await self._make_request(
+                http_method,  # Corresponds to http_verb
+                url,  # Corresponds to url
+                headers=headers,
+                json_data=json_body,  # Pass the pre-constructed body
+                # Removed internal state management for auth
             )
-            return await response.json()
 
-    @retry_with_exponential_backoff()
-    async def read_(self, method_name: str, endpoint: str) -> Dict:
-        """
-        Read a resource using a GET request.
+            # Process response based on status code
+            if 200 <= status_code < 300:
+                # Success path
+                try:
+                    if response_bytes:  # Check if body is not empty
+                        response_payload = json.loads(response_bytes.decode())
+                    else:  # Handle empty success body (e.g., 204)
+                        response_payload = {
+                            "status_code": status_code,
+                            "message": "Success (No Content)",
+                        }
+                except json.JSONDecodeError:
+                    # Success status but body is not valid JSON
+                    self.logger.warning(
+                        f"Request to {url} succeeded ({status_code}) but response body is not valid JSON: {response_bytes[:200]}..."
+                    )
+                    response_payload = {
+                        "status_code": status_code,
+                        "message": "Success (Invalid JSON Body)",
+                        "body_preview": response_bytes.decode(errors="ignore")[:200],
+                    }
+            else:
+                # This part should ideally not be reached if raise_for_status works
+                # But as a fallback, handle non-2xx status here
+                response_payload = None  # Indicate failure
+                response_error = f"Received unexpected non-2xx status: {status_code}"
+                self.logger.error(
+                    f"{response_error} for {url}. Body: {response_bytes.decode(errors='ignore')[:500]}..."
+                )
 
-        :param method_name: Name of the method for logging and error reporting
-        :param endpoint: API endpoint to call
-        :return: Response from the API
-        """
-        async with self.session.get(  # type: ignore
-            f"{self.base_url}/{endpoint}",
-            # headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(
-                response, f"reading resource via {method_name}"
+        except json.JSONDecodeError as e:
+            response_error = f"Invalid JSON payload received: {e}"
+            self.logger.error(response_error)
+        except ValueError as e:
+            response_error = f"Value error processing request: {e}"
+            self.logger.error(response_error)
+        except aiohttp.ClientResponseError as e:  # Specific HTTP error handling
+            self.logger.error(
+                f"Caught ClientResponseError: Status={e.status}, Message={e.message}, Headers={e.headers}"
             )
-            return await response.json()
+            # Try to get more details from the error response body
+            error_body_text = ""
+            try:
+                error_body_bytes = await e.read()
+                error_body_text = f", Body: {error_body_bytes.decode(errors='ignore')[:500]}..."  # Decode safely
+            except Exception as body_err:
+                error_body_text = f", Body: <failed to read: {body_err}>"
+            response_error = f"HTTP Error: Status {e.status}, Message: {e.message or '[No Message]'}, Headers: {e.headers}{error_body_text}"  # Ensure non-empty message
+            self.logger.error(f"Request to {url} failed: {response_error}")
+        except Exception as e:  # Catch-all
+            response_error = f"An unexpected error occurred: {e}"
+            self.logger.exception(
+                response_error
+            )  # Log full traceback for unexpected errors
 
-    @retry_with_exponential_backoff()
-    async def update_(self, method_name: str, endpoint: str, data: Dict) -> Dict:
-        """
-        Update a resource using a PUT request.
-
-        :param method_name: Name of the method for logging and error reporting
-        :param endpoint: API endpoint to call
-        :param data: The data to send in the request body
-        :return: Response from the API
-        """
-        async with self.session.put(  # type: ignore
-            f"{self.base_url}/{endpoint}",
-            json=data,
-            # headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(
-                response, f"updating resource via {method_name}"
+        # Construct and send response message
+        response_kwargs = {"performative": SrrMessage.Performative.RESPONSE}
+        if response_payload:
+            response_kwargs["payload"] = json.dumps({"response": response_payload})
+        else:
+            response_kwargs["payload"] = json.dumps(
+                {"error": response_error or "Unknown error"}
             )
-            return await response.json()
 
-    @retry_with_exponential_backoff()
-    async def delete_(self, method_name: str, endpoint: str) -> Dict:
-        """
-        Delete a resource using a DELETE request.
-
-        :param method_name: Name of the method for logging and error reporting
-        :param endpoint: API endpoint to call
-        :return: Response from the API
-        """
-        async with self.session.delete(  # type: ignore
-            f"{self.base_url}/{endpoint}",
-            # headers={"access-token": f"{self.api_key}"},
-        ) as response:
-            await self._raise_for_response(
-                response, f"deleting resource via {method_name}"
-            )
-            return await response.json()
+        return dialogue.reply(**response_kwargs)
