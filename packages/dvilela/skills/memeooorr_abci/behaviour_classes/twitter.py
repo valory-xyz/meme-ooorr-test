@@ -211,7 +211,9 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         """
         # Try to get tweets from MirrorDB
         self.context.logger.info("Trying to get latest tweets from MirrorDB for agent")
-        mirror_db_config_data = yield from self._mirror_db_registration_check()
+        mirror_db_config_data = (
+            yield from self.mirrordb_helper._mirror_db_registration_check()
+        )
 
         if mirror_db_config_data:  # pylint: disable=too-many-nested-blocks
             self.context.logger.info(f"Mirror Db config = {mirror_db_config_data}")
@@ -220,7 +222,7 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
             if agent_id:
                 try:
-                    mirror_db_response = yield from self._call_mirrordb(
+                    mirror_db_response = yield from self.mirrordb_helper._call_mirrordb(
                         method="get_latest_tweets",
                         agent_id=agent_id,
                     )
@@ -452,7 +454,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             Tuple[dict, list]: Pending tweets and interacted tweet IDs.
         """
         # Get other memeooorr handles
-        agent_handles = yield from self.get_agent_handles()
+        agent_handles = yield from self.mirrordb_helper.get_active_twitter_handles()
         self.context.logger.info(f"Not suspended users: {agent_handles}")
 
         if not agent_handles:
@@ -1147,7 +1149,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
     def get_agent_handles(self) -> Generator[None, None, List[str]]:
         """Get the agent handles"""
-        agent_handles = yield from self.get_active_twitter_handles()
+        agent_handles = yield from self.mirrordb_helper.get_active_twitter_handles()
         if agent_handles:
             # Filter out suspended accounts
             agent_handles = yield from self._call_twikit(
