@@ -23,7 +23,7 @@ import json
 import random
 import secrets
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, Union
 from uuid import uuid4
 
@@ -198,10 +198,13 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             )
             return False
 
-    def get_previous_tweets(
+    def get_previous_tweets(  # pylint: disable=too-many-locals
         self, limit: int = 5
     ) -> Generator[None, None, Optional[List[Dict]]]:
-        """Get the latest tweets
+        """Get the latest tweets posted by the agent.
+
+        Tries to fetch interaction attributes from MirrorDB first, filtering for 'post' actions.
+        Falls back to local KV store if MirrorDB fails.
 
         Args:
             limit (int, optional): Maximum number of tweets to return. Defaults to 5.
@@ -209,48 +212,124 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         Returns:
             Generator yielding Optional[List[Dict]]: List of tweets or None
         """
-        # Try to get tweets from MirrorDB
         self.context.logger.info("Trying to get latest tweets from MirrorDB for agent")
         mirror_db_config_data = (
-            yield from self.mirrordb_helper._mirror_db_registration_check()
+            yield from self.mirrordb_helper.mirror_db_registration_check()
         )
 
         if mirror_db_config_data:  # pylint: disable=too-many-nested-blocks
             self.context.logger.info(f"Mirror Db config = {mirror_db_config_data}")
 
-            agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
+            agent_id = mirror_db_config_data.get("agent_id")
+            interactions_attr_def_id = mirror_db_config_data.get(
+                "twitter_interactions_attr_def_id"
+            )
 
-            if agent_id:
+            if agent_id and interactions_attr_def_id:
                 try:
-                    mirror_db_response = yield from self.mirrordb_helper._call_mirrordb(
-                        method="get_latest_tweets",
-                        agent_id=agent_id,
+                    # Ensure interaction attr_def_id is an integer
+                    interactions_attr_def_id = int(interactions_attr_def_id)
+
+                    # Endpoint to get all attributes for the agent
+                    endpoint = f"/api/agents/{agent_id}/attributes/"
+                    self.context.logger.info(
+                        f"Calling MirrorDB endpoint: GET {endpoint}"
                     )
-                    self.context.logger.info(f"MirrorDB response: {mirror_db_response}")
 
-                    if (
-                        "detail" in mirror_db_response
-                        and mirror_db_response["detail"]
-                        == "No tweets found for the associated Twitter accounts"
-                    ):
-                        mirror_db_response = None
+                    all_attributes = yield from self.mirrordb_helper.call_mirrordb(
+                        http_method="GET",
+                        endpoint=endpoint,
+                    )
 
-                    if mirror_db_response:
-                        for tweet in mirror_db_response:
-                            created_at = tweet.get("created_at")
-                            if created_at:
-                                tweet["timestamp"] = datetime.fromisoformat(
-                                    created_at
-                                ).timestamp()
-                        return mirror_db_response[:limit]
+                    if all_attributes and isinstance(all_attributes, list):
+                        self.context.logger.info(
+                            f"Retrieved {len(all_attributes)} attributes from MirrorDB for agent {agent_id}."
+                        )
+                        posted_tweets = []
+                        for attr in all_attributes:
+                            # Filter by the correct attribute definition ID
+                            if attr.get("attr_def_id") == interactions_attr_def_id:
+                                json_value = attr.get("json_value")
+                                # Check if it's a 'post' action and has details
+                                if (
+                                    isinstance(json_value, dict)
+                                    and json_value.get("action") == "post"
+                                    and "details" in json_value
+                                    and isinstance(json_value["details"], dict)
+                                ):
+                                    details = json_value["details"]
+                                    timestamp_str = json_value.get("timestamp")
+                                    if (
+                                        details.get("tweet_id")
+                                        and details.get("text")
+                                        and timestamp_str
+                                    ):
+                                        try:
+                                            # Handle potential timezone info (e.g., Z for UTC)
+                                            if timestamp_str.endswith("Z"):
+                                                timestamp_str = (
+                                                    timestamp_str[:-1] + "+00:00"
+                                                )
+                                            dt_object = datetime.fromisoformat(
+                                                timestamp_str
+                                            )
+                                            # Convert to UTC timestamp float
+                                            timestamp = dt_object.replace(
+                                                tzinfo=timezone.utc
+                                            ).timestamp()
+
+                                            posted_tweets.append(
+                                                {
+                                                    "tweet_id": details["tweet_id"],
+                                                    "text": details["text"],
+                                                    "timestamp": timestamp,  # Store as timestamp float
+                                                    "created_at": json_value.get(
+                                                        "timestamp"
+                                                    ),  # Keep original string too
+                                                }
+                                            )
+                                        except ValueError:
+                                            self.context.logger.warning(
+                                                f"Could not parse timestamp: {timestamp_str} in attribute {attr.get('attribute_id')}"
+                                            )
+
+                        if posted_tweets:
+                            # Sort tweets by timestamp (most recent first)
+                            posted_tweets.sort(
+                                key=lambda x: x["timestamp"], reverse=True
+                            )
+                            self.context.logger.info(
+                                f"Found {len(posted_tweets)} posted tweets in MirrorDB attributes. Returning latest {limit}."
+                            )
+                            return posted_tweets[:limit]
+
+                        self.context.logger.info(
+                            f"No 'post' interaction attributes found for agent {agent_id} with attr_def_id {interactions_attr_def_id}."
+                        )
+
+                    elif all_attributes is None:
+                        # This case includes 404 Not Found
+                        self.context.logger.info(
+                            f"No attributes found for agent {agent_id} via MirrorDB endpoint {endpoint}."
+                        )
+                    else:
+                        # Log unexpected response type
+                        self.context.logger.warning(
+                            f"Unexpected response type from {endpoint}: {type(all_attributes)}. Expected list."
+                        )
+
+                except (ValueError, TypeError) as e:
+                    self.context.logger.error(
+                        f"Error processing MirrorDB attributes or config IDs: {e}"
+                    )
                 except Exception as e:  # pylint: disable=broad-except
                     self.context.logger.error(
-                        f"Error getting tweets from MirrorDB: {e}"
+                        f"Error getting or processing attributes from MirrorDB: {e}"
                     )
 
         # Fallback to get_tweets_from_db if MirrorDB fails or returns no results
         self.context.logger.info(
-            f"Couldn't fetch tweets from MirrorDB Getting latest {limit} tweets from local DB as fallback"
+            f"Couldn't fetch tweets from MirrorDB or no 'post' actions found. Getting latest {limit} tweets from local DB as fallback."
         )
         tweets = yield from self.get_tweets_from_db()
 
@@ -374,11 +453,6 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         """
         new_mech_requests: List[Dict[str, Any]] = []
 
-        # Skip engagement if configured
-        if self.params.skip_engagement:
-            self.context.logger.info("Skipping engagement on Twitter")
-            return Event.DONE.value, new_mech_requests
-
         # Handle differently based on mech_for_twitter state
         if self.synchronized_data.mech_for_twitter:
             (
@@ -386,6 +460,10 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 interacted_tweet_ids,
             ) = yield from self._handle_mech_for_twitter()
         else:
+            # Skip engagement if configured
+            if self.params.skip_engagement:
+                self.context.logger.info("Skipping engagement on Twitter")
+                return Event.DONE.value, new_mech_requests
             (
                 pending_tweets,
                 interacted_tweet_ids,
@@ -425,24 +503,32 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             keys=("pending_tweets_for_tw_mech",)
         )
         pending_tweets = {}
-        if pending_tweets_data:
+        if pending_tweets_data and pending_tweets_data.get(
+            "pending_tweets_for_tw_mech"
+        ):
             pending_tweets = json.loads(
                 pending_tweets_data["pending_tweets_for_tw_mech"]
             )
         else:
-            self.context.logger.error("No pending tweets found in KV store")
+            self.context.logger.warning(
+                "No pending tweets found in KV store or value is empty."
+            )
 
         # Fetch previously interacted tweets
         interacted_ids_data = yield from self._read_kv(
             keys=("interacted_tweet_ids_for_tw_mech",)
         )
         interacted_tweet_ids = []
-        if interacted_ids_data:
+        if interacted_ids_data and interacted_ids_data.get(
+            "interacted_tweet_ids_for_tw_mech"
+        ):
             interacted_tweet_ids = json.loads(
                 interacted_ids_data["interacted_tweet_ids_for_tw_mech"]
             )
         else:
-            self.context.logger.error("No interacted tweets found in KV store")
+            self.context.logger.warning(
+                "No interacted tweets found in KV store or value is empty."
+            )
 
         return pending_tweets, interacted_tweet_ids
 
@@ -454,7 +540,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             Tuple[dict, list]: Pending tweets and interacted tweet IDs.
         """
         # Get other memeooorr handles
-        agent_handles = yield from self.mirrordb_helper.get_active_twitter_handles()
+        agent_handles = yield from self.get_agent_handles()
         self.context.logger.info(f"Not suspended users: {agent_handles}")
 
         if not agent_handles:

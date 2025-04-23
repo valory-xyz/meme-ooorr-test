@@ -14,7 +14,7 @@ connections:
 - valory/ledger:0.19.0:bafybeibdsjmy4w2eyilbqc7yzutopl65qpeyspxwz7mjvirr52twhjlf5y
 - valory/p2p_libp2p_client:0.1.0:bafybeic6ayusdwy4dks75njwk32ac7ur7salgllwf4fdc34ue5z2k5iz4q
 - dvilela/twikit:0.1.0:bafybeignkhvzulhxabtstdcd2kk5krkiczdcedbogdv3xvawitb2fnwicy
-- dvilela/mirror_db:0.1.0:bafybeidumpsvjimdasz64ionbzeuxfn4mmzqd3rdjgifuagao3toog7zpi
+- dvilela/mirror_db:0.1.0:bafybeidclkdlgoorpgaudekeoptqkjdp6yjqzujbuyxzwpjmvvja7gyoum
 - dvilela/kv_store:0.1.0:bafybeiecnl7yc5qx6x4q7467i66ehmfw4qydnnry7tjs7plqeytb6ueyvu
 - valory/http_server:0.22.0:bafybeic3jpkum7g6qo6x6vdrmvvhj7vqw7ec2op72uc3yfhmnlp5hn3joy
 - dvilela/genai:0.1.0:bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty
@@ -44,8 +44,8 @@ skills:
 - valory/transaction_settlement_abci:0.1.0:bafybeid4alawv3oz4gdyom5uevrgzfsahbwabi37r7gomsetwqiq66g6cm
 - valory/registration_abci:0.1.0:bafybeigt7bmrfhet7fyafqojl2i5uhzvpaz5wfv6kuk5ojwhhnhmg3qihu
 - valory/reset_pause_abci:0.1.0:bafybeicskv7u3mtfhi7nnoyw3bppwjof63izs4jgqdddtxicoea26t2n7i
-- dvilela/memeooorr_abci:0.1.0:bafybeicqp37rgqzhaze6cipiwgcwzpe5greg5inc2ti6pocnrgdvofswya
-- dvilela/memeooorr_chained_abci:0.1.0:bafybeif5oxbugs7eqaxj54sf5anszqw7g2f3uevcrvbffa5y3gmqskgojq
+- dvilela/memeooorr_abci:0.1.0:bafybeieureiwp762itfifuqwhuwsliufgaxxnlb5awp47khqyg2qyrkvwq
+- dvilela/memeooorr_chained_abci:0.1.0:bafybeibfbtenckw6cf44ko7a3solfrueukoubmpvwcv76uckvlckixsnp4
 - valory/mech_interact_abci:0.1.0:bafybeibhigcn46vxrqwcmygin4v442qknyklmuaufyre2npca26sbmkdvu
 default_ledger: ethereum
 required_ledgers:

@@ -60,7 +60,7 @@ Here are some tweets from other users:
 You need to decide if you want to use tools or not , if not then what actions on Twitter you want to perform.
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
-IMPORTANT: DO NOT USE TOOLS CURRENTLY IM TESTING
+{extra_command}
 
 Your task is to decide what actions to do, if any. Some recommenadations:
 - Do not invent or assume any details. Use only the information provided. as we do not want to spread misinformation.

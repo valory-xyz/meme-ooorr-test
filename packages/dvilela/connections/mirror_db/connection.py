@@ -22,10 +22,9 @@
 
 import asyncio
 import json
-import re
 import ssl
 from functools import wraps
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, Optional, Union, cast
 
 import aiohttp
 import certifi
@@ -276,7 +275,7 @@ class MirrorDBConnection(Connection):
                 return self.prepare_error_message(
                     srr_message,
                     dialogue,
-                    f"Method '{method_name}' is not allowed or not provided.",
+                    f"Method {method_name} is not allowed or not provided.",
                 )
 
             method_to_call = getattr(self, method_name, None)
@@ -285,7 +284,7 @@ class MirrorDBConnection(Connection):
                 return self.prepare_error_message(
                     srr_message,
                     dialogue,
-                    f"Internal connection error: Method '{method_name}' not found or not callable.",
+                    f"Internal connection error: Method {method_name} not found or not callable.",
                 )
 
             endpoint = kwargs.get("endpoint")
@@ -333,71 +332,61 @@ class MirrorDBConnection(Connection):
     # --- Internal API call methods ---
 
     @retry_with_exponential_backoff()  # Apply retry here
-    async def create_(self, endpoint: str, data: Dict, **kwargs) -> Dict:
-        """Create a resource using a POST request."""
+    async def create_(
+        self, endpoint: str, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
+        """Create a resource."""
         if self.session is None:
-            raise ConnectionError("Session not initialized.")
+            raise ValueError(
+                "Session not initialized. Ensure connection is established."
+            )
         url = f"{self.base_url}{endpoint}"
-        json_body = data  # Use the data kwarg directly as the body
-        self.logger.info(
-            f"Making POST request to {url} Data: {'<data provided>' if json_body else 'None'}"
-        )
+        self.logger.debug(f"Creating resource at {url} with data {data}")
         async with self.session.post(
-            url, json=json_body, headers=DEFAULT_HEADERS
+            url, json=data, headers=DEFAULT_HEADERS
         ) as response:
-            await self._raise_for_response(response, f"creating resource at {endpoint}")
-            if response.status == 204:
-                return {"status_code": 204, "message": "Created (No Content)"}
+            await self._raise_for_response(response, "create")
             return await response.json()
 
     @retry_with_exponential_backoff()
-    async def read_(self, endpoint: str, **kwargs) -> Dict:
-        """Read a resource using a GET request."""
+    async def read_(self, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
+        """Read a resource."""
         if self.session is None:
-            raise ConnectionError("Session not initialized.")
+            raise ValueError(
+                "Session not initialized. Ensure connection is established."
+            )
         url = f"{self.base_url}{endpoint}"
-        self.logger.info(f"Making GET request to {url}")
+        self.logger.debug(f"Reading resource at {url}")
         async with self.session.get(url, headers=DEFAULT_HEADERS) as response:
-            await self._raise_for_response(response, f"reading resource at {endpoint}")
-            if response.status == 204:
-                return {"status_code": 204, "message": "Success (No Content)"}
+            await self._raise_for_response(response, "read")
             return await response.json()
 
     @retry_with_exponential_backoff()
-    async def update_(self, endpoint: str, data: Dict, **kwargs) -> Dict:
-        """Update a resource using a PUT request."""
+    async def update_(
+        self, endpoint: str, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
+        """Update a resource."""
         if self.session is None:
-            raise ConnectionError("Session not initialized.")
+            raise ValueError(
+                "Session not initialized. Ensure connection is established."
+            )
         url = f"{self.base_url}{endpoint}"
-        json_body = data  # Use the data kwarg directly as the body
-        self.logger.info(
-            f"Making PUT request to {url} Data: {'<data provided>' if json_body else 'None'}"
-        )
+        self.logger.debug(f"Updating resource at {url} with data {data}")
         async with self.session.put(
-            url, json=json_body, headers=DEFAULT_HEADERS
+            url, json=data, headers=DEFAULT_HEADERS
         ) as response:
-            await self._raise_for_response(response, f"updating resource at {endpoint}")
-            if response.status == 204:
-                return {"status_code": 204, "message": "Updated (No Content)"}
+            await self._raise_for_response(response, "update")
             return await response.json()
 
     @retry_with_exponential_backoff()
-    async def delete_(self, endpoint: str, **kwargs) -> Dict:
-        """Delete a resource using a DELETE request."""
+    async def delete_(self, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
+        """Delete a resource."""
         if self.session is None:
-            raise ConnectionError("Session not initialized.")
+            raise ValueError(
+                "Session not initialized. Ensure connection is established."
+            )
         url = f"{self.base_url}{endpoint}"
-        self.logger.info(f"Making DELETE request to {url}")
+        self.logger.debug(f"Deleting resource at {url}")
         async with self.session.delete(url, headers=DEFAULT_HEADERS) as response:
-            await self._raise_for_response(response, f"deleting resource at {endpoint}")
-            if response.status == 204:
-                return {"status_code": 204, "message": "Deleted (No Content)"}
-            try:
-                return await response.json()
-            except (
-                json.JSONDecodeError
-            ):  # Handle if DELETE returns 200 OK but no JSON body
-                return {
-                    "status_code": response.status,
-                    "message": "Deleted (No JSON Body)",
-                }
+            await self._raise_for_response(response, "delete")
+            return await response.json()

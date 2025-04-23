@@ -90,22 +90,22 @@ This runs *before* each call to the Twikit connection to ensure the agent's stor
 
 **Outcome:** If a Twitter account change is detected, the agent updates its local KV store and attempts to update (or create if missing) the central "twitter\_username" `AgentAttribute` record in MirrorDB to reflect the new username.
 
-### 4. Retrieving Recent Handles (`get_recent_memeooorr_handles`)
+### 4. Retrieving Agent's Own Previous Tweets (`get_previous_tweets`)
 
-This function aims to find Twitter handles of other agents who have interacted recently.
+This function retrieves the most recent tweets posted by the agent itself, primarily by querying its interaction history stored as attributes in MirrorDB.
 
-**Intended Steps (Requires specific backend endpoints):**
+**Steps:**
 
-1.  **Read Definition IDs:** Reads `twitter_interactions_attr_def_id` and `twitter_username_attr_def_id` from the local KV store.
-2.  **Get All Interaction Instances:** Calls `_call_mirrordb("GET", endpoint="/api/attributes/definition/{interactions_def_id}/instances/")`. ***Assumption: This endpoint exists on the backend.***
-3.  **Filter Locally:** Iterates through the returned interaction instances, parses the `timestamp` from the `json_value`, and keeps only those within the last N days (e.g., 7). Extracts the unique `agent_id`s from these recent interactions.
-4.  **Get Usernames:** For each unique recent `agent_id`:
-    *   Calls `_call_mirrordb("GET", endpoint="/api/agents/{agent_id}/attributes/{username_def_id}/")`. ***Assumption: This endpoint exists on the backend (corrected from `/definition/` path).***
-    *   Extracts the `string_value` (the username) from the response.
-5.  **Collect Handles:** Appends the retrieved usernames to a list, excluding the agent's own username.
-6.  **Return List:** Returns the final list of recent handles.
+1.  **Read Local Config:** Reads the consolidated `mirrod_db_config` from the local KV store to get the agent's `agent_id` and the `twitter_interactions_attr_def_id`.
+2.  **Get All Agent Attributes:** Calls `_call_mirrordb("GET", endpoint="/api/agents/{agent_id}/attributes/")` to retrieve *all* `AgentAttribute` instances associated with the current `agent_id`.
+3.  **Filter Locally for Interaction Attributes:** Iterates through the returned attributes and keeps only those whose `attr_def_id` matches the `twitter_interactions_attr_def_id`.
+4.  **Filter Locally for 'Post' Actions:** Iterates through the interaction attributes and checks the `json_value` field. It keeps only those where `json_value["action"] == "post"`.
+5.  **Extract Tweet Data:** For each filtered 'post' attribute, extracts the `tweet_id`, `text`, and `timestamp` from the `json_value["details"]` and `json_value["timestamp"]` fields. Converts the timestamp string to a standard format (e.g., Unix timestamp float).
+6.  **Sort Tweets:** Sorts the extracted list of tweet dictionaries by their timestamp in descending order (most recent first).
+7.  **Limit and Return:** Returns the top `limit` tweets from the sorted list.
+8.  **Fallback:** If the MirrorDB call fails at any point (e.g., network error, agent not found, no attributes returned) or if no 'post' interaction attributes are found after filtering, the function falls back to calling `get_tweets_from_db()`, which reads tweet history from the local KV store file.
 
-**Outcome:** Provides a list of Twitter usernames for other Memeooorr agents that have recorded interactions recently. **Note:** This flow depends on backend API endpoints that may not yet be implemented as specified in the assumptions.
+**Outcome:** Provides a list of the agent's own most recent tweets, fetched primarily from its interaction history in MirrorDB, with a fallback to local storage.
 
 ## Helper Functions
 

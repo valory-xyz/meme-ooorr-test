@@ -749,8 +749,7 @@ class MemeooorrAbciApp(AbciApp[Event]):
             Event.ROUND_TIMEOUT: LoadDatabaseRound,
         },
         CheckStakingRound: {
-            # Event.DONE: PullMemesRound,
-            Event.DONE: EngageTwitterRound,
+            Event.DONE: PullMemesRound,
             Event.NO_MAJORITY: CheckStakingRound,
             Event.ROUND_TIMEOUT: CheckStakingRound,
         },
