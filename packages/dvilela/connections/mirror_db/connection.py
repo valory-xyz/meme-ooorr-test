@@ -25,7 +25,7 @@ import json
 import re
 import ssl
 from functools import wraps
-from typing import Any, Dict, List, Optional, Union, cast, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import aiohttp
 import certifi
@@ -229,7 +229,7 @@ class MirrorDBConnection(Connection):
                 performative=SrrMessage.Performative.RESPONSE,
                 target_message=srr_message,
                 payload=json.dumps({"error": error}),
-                error=True,  # Add error=True for error responses
+                error=True,
             ),
         )
         return response_message
@@ -288,19 +288,13 @@ class MirrorDBConnection(Connection):
                     f"Internal connection error: Method '{method_name}' not found or not callable.",
                 )
 
-            # Optional endpoint validation (using regex) - Adapt if needed
             endpoint = kwargs.get("endpoint")
             if endpoint is None:
-                # Allow missing endpoint for methods that might not need it?
-                # For now, assume create_, read_, update_, delete_ always need it.
-                # Modify if specific internal methods don't require an endpoint.
                 if method_name in ["create_", "read_", "update_", "delete_"]:
                     return self.prepare_error_message(
                         srr_message, dialogue, "Missing endpoint in request kwargs."
                     )
 
-            # Call the internal method (e.g., self.create_(**kwargs))
-            # The kwargs passed include endpoint, data, auth etc.
             response_data = await method_to_call(**kwargs)
 
             response_message = cast(
@@ -309,7 +303,7 @@ class MirrorDBConnection(Connection):
                     performative=SrrMessage.Performative.RESPONSE,
                     target_message=srr_message,
                     payload=json.dumps({"response": response_data}),
-                    error=False,  # Add error=False for successful responses
+                    error=False,
                 ),
             )
             return response_message

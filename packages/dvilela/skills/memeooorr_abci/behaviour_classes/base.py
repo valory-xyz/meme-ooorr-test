@@ -149,7 +149,7 @@ class MirrorDBHelper:
         self, http_method: str, endpoint: str, **kwargs: Any
     ) -> Generator[None, None, Any]:
         """Send a request message to the MirrorDB connection using generic method names."""
-        connection_method = None  # Initialize here
+        connection_method = None
         try:
             # Map HTTP verb to connection method name
             connection_method = self._HTTP_METHOD_TO_CONNECTION_METHOD.get(
@@ -162,7 +162,6 @@ class MirrorDBHelper:
                 return None
 
             # Construct payload for the connection
-            # Pass the generic method name and original kwargs (endpoint, data, auth)
             connection_kwargs = {
                 "endpoint": endpoint,
                 **kwargs,  # Pass through data, auth, etc.
@@ -274,7 +273,7 @@ class MirrorDBHelper:
                 return
 
             # 2. (New) Get Agent Type ID (Assuming type name 'memeooorr')
-            agent_type_name = "memeooorr"  # TODO: Make this configurable if needed
+            agent_type_name = "memeooorr"
             agent_type_response = yield from self._call_mirrordb(
                 "GET", endpoint=f"/api/agent-types/name/{agent_type_name}"
             )
@@ -1025,15 +1024,15 @@ class MemeooorrBaseBehaviour(
                 or "Twitter account is not logged in" in response_json["error"]
             ):
                 self.context.state.env_var_status["needs_update"] = True
-                self.context.state.env_var_status["env_vars"]["TWIKIT_USERNAME"] = (
-                    response_json["error"]
-                )
-                self.context.state.env_var_status["env_vars"]["TWIKIT_EMAIL"] = (
-                    response_json["error"]
-                )
-                self.context.state.env_var_status["env_vars"]["TWIKIT_COOKIES"] = (
-                    response_json["error"]
-                )
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_USERNAME"
+                ] = response_json["error"]
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_EMAIL"
+                ] = response_json["error"]
+                self.context.state.env_var_status["env_vars"][
+                    "TWIKIT_COOKIES"
+                ] = response_json["error"]
 
             self.context.logger.error(response_json["error"])
             return None
