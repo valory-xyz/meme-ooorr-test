@@ -7,23 +7,24 @@ license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeiacqbub377oj2uvkw3lu2u43zv5rpdd2z4jx7dailiffqttksds24
-  behaviours.py: bafybeidabq5scnvljux2732bdbg7xnpnnz54y6t2kdooltd2jgugkz2voi
-  composition.py: bafybeia7ouj5ahlm253xl6m6swcpo6iozuyapjgnvbpsnnk6rdovw6hfzy
+  behaviours.py: bafybeiabl3v5527rgeyehgexmfbfvya5gipr6buurvjr7rh5mhu67dwnwq
+  composition.py: bafybeid5bpa7wkwo4zlhoheelactdqddb7iad7bsjraudnw2prlwusvo7u
   dialogues.py: bafybeiawrgmlra5f6o63nhv5kc77wvzoqmcareub3lf4qceuwpjso4pjbe
-  fsm_specification.yaml: bafybeifgusxeiweth26n6ory5nvuttngbp5mimf3xhax2loc6ivzi7sn34
+  fsm_specification.yaml: bafybeiahfitqf3u5oiqzxnjq5fgxexqdtuvqpvcd45u6pyzrzjh3qtzue4
   handlers.py: bafybeibw5nfno2scl5qzly3fpvodgoovikl6h3hoiiu6e4sqpbbczbzfim
-  models.py: bafybeiggsxlwg3vzl5nnkkzlmrn7akdki7wxcdk6qfulzau25dq6fl45uu
+  models.py: bafybeig4zaatchwdftcb6vo2yuiikwxjqwmjtvwmdri7yyavilh7bztmhm
 fingerprint_ignore_patterns: []
 connections: []
 contracts: []
 protocols: []
 skills:
-- valory/abstract_round_abci:0.1.0:bafybeihyaubqrndsjkrplx4e2tn45jgddt52cxzuhb5iwiznz7qlhrbdbe
-- valory/registration_abci:0.1.0:bafybeib2qkzymrwklb3lfp6biqllsch4werp7e3wttjpmx4eizefpiwmhi
-- valory/reset_pause_abci:0.1.0:bafybeigmyonotdry7q5uxt55xzcho2byp6u7seshisvrw6hhcgn7mzfti4
-- valory/transaction_settlement_abci:0.1.0:bafybeidpzdtevjmqw7swdmk6mtz2ez47fvsit3choh5d4nzgioyfqkzgba
-- valory/termination_abci:0.1.0:bafybeifs4vorsmsulzgobr754od2omj6uphylslkrtuadxzludoexld6ny
-- dvilela/memeooorr_abci:0.1.0:bafybeicgsrmgg4ji4u7iio7cdkbu7owk63xgkgmo3mwo2ey5ixbij2ua5y
+- valory/abstract_round_abci:0.1.0:bafybeifclzgoyulkyyigcwrqzmydyrj6c5d26xu7jk6cjbsed3pkls4pba
+- valory/registration_abci:0.1.0:bafybeigt7bmrfhet7fyafqojl2i5uhzvpaz5wfv6kuk5ojwhhnhmg3qihu
+- valory/reset_pause_abci:0.1.0:bafybeicskv7u3mtfhi7nnoyw3bppwjof63izs4jgqdddtxicoea26t2n7i
+- valory/transaction_settlement_abci:0.1.0:bafybeid4alawv3oz4gdyom5uevrgzfsahbwabi37r7gomsetwqiq66g6cm
+- valory/termination_abci:0.1.0:bafybeianygjbwmt4xrq77pfl3yzcokbjfzxmuru6j2k7a3boqc2qfb7shi
+- dvilela/memeooorr_abci:0.1.0:bafybeifgfv24mw3rewj2ldfml4yqzdk25k4nol5uirimdywcesnbury3yi
+- valory/mech_interact_abci:0.1.0:bafybeibhigcn46vxrqwcmygin4v442qknyklmuaufyre2npca26sbmkdvu
 behaviours:
   main:
     args: {}
@@ -101,7 +102,7 @@ models:
       keeper_timeout: 30.0
       max_attempts: 10
       max_healthcheck: 120
-      multisend_address: '0x0000000000000000000000000000000000000000'
+      multisend_address: ${MULTISEND_ADDRESS:str:0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761}
       termination_sleep: 900
       termination_from_block: 0
       init_fallback_gas: 0
@@ -150,8 +151,6 @@ models:
       olas_token_address_base: '0x54330d28ca3357F294334BDC454a032e7f353416'
       olas_token_address_celo: '0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51'
       persona: a cat lover that is crazy about all-things cats.
-      feedback_period_min_hours: 1
-      feedback_period_max_hours: 2
       home_chain_id: BASE
       twitter_username: dummy_twitter_name
       service_registry_address_base: '0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE'
@@ -164,6 +163,37 @@ models:
       min_summon_amount_celo: 10.0
       max_summon_amount_celo: 20.0
       max_heart_amount_celo: 0.2
+      staking_token_contract_address: '0x0000000000000000000000000000000000000000'
+      activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
+      tx_loop_breaker_count: 3
+      tools_for_mech:
+        stabilityai-stable-diffusion-v1-6: This tool generates an image based on a
+          given prompt using the StabilityAI Stable Diffusion v1.6 model
+        short_maker: This tool generates a short video based on a given prompt
+      mech_request_price: 100
+      mech_contract_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
+      mech_chain_id: base
+      mech_interaction_sleep_time: 10
+      agent_registry_address: ${AGENT_REGISTRY_ADDRESS:str:0x0000000000000000000000000000000000000000}
+      use_mech_marketplace: true
+      mech_marketplace_config:
+        mech_marketplace_address: '0xf24eE42edA0fc9b33B7D41B06Ee8ccD2Ef7C5020'
+        priority_mech_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
+        response_timeout: 300
+      use_acn_for_delivers: false
+      summon_cooldown_seconds: 2592000
+      alternative_model_for_tweets:
+        use: false
+        url: https://api.fireworks.ai/inference/v1/chat/completions
+        api_key: null
+        model: accounts/sentientfoundation/models/dobby-unhinged-llama-3-3-70b-new
+        max_tokens: 16384
+        top_p: 1
+        top_k: 40
+        presence_penalty: 0
+        frequency_penalty: 0
+        temperature": 0.6
+      fireworks_api_key: null
     class_name: Params
   randomness_api:
     args:
@@ -176,6 +206,18 @@ models:
       retries: 5
       url: https://drand.cloudflare.com/public/latest
     class_name: RandomnessApi
+  mech_response:
+    args:
+      api_id: mech_response
+      headers:
+        Content-Type: application/json
+      method: GET
+      parameters: {}
+      response_key: result
+      response_type: str
+      retries: 5
+      url: ''
+    class_name: MechResponseSpecs
   requests:
     args: {}
     class_name: Requests

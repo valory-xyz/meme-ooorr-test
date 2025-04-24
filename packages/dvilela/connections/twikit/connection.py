@@ -22,6 +22,8 @@
 
 import asyncio
 import json
+import os
+import secrets
 import time
 from asyncio import Task
 from datetime import datetime, timezone
@@ -106,13 +108,12 @@ class TwikitConnection(Connection):
         self.username = self.configuration.config.get("twikit_username")
         self.email = self.configuration.config.get("twikit_email")
         self.password = self.configuration.config.get("twikit_password")
-        cookies_str = self.configuration.config.get("twikit_cookies")
-        self.cookies_path = Path(
-            self.configuration.config.get(
-                "twikit_cookies_path", "/tmp/twikit_cookies.json"  # nosec
-            )
+        self.cookies = self.configuration.config.get("twikit_cookies")
+        self.cookies_path = (  # nosec
+            Path(self.configuration.config.get("store_path", "/tmp"))  # type: ignore
+            / self.username
+            / "twikit_cookies.json"
         )
-        self.cookies = json.loads(cookies_str) if cookies_str else None
         self.disable_tweets = self.configuration.config.get("twikit_disable_tweets")
         self.skip_connection = self.configuration.config.get("twikit_skip_connection")
         if not self.skip_connection:
@@ -125,6 +126,17 @@ class TwikitConnection(Connection):
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
         self._response_envelopes: Optional[asyncio.Queue] = None
         self.task_to_request: Dict[asyncio.Future, Envelope] = {}
+        self.logged_in = False
+
+        # Write cookies to file if there is no cookies file
+        if not self.cookies_path.exists() and self.cookies:
+            self.logger.info(f"Removing previous cookie file at {self.cookies_path}")
+            self.cookies_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.cookies_path, "w", encoding="utf-8") as cookies_file:
+                json.dump(json.loads(self.cookies), cookies_file, indent=4)
+                self.logger.info(f"Wrote cookies from config to {self.cookies_path}")
+        else:
+            self.logger.info(f"Using cookies from {self.cookies_path}")
 
     @property
     def response_envelopes(self) -> asyncio.Queue:
@@ -249,6 +261,7 @@ class TwikitConnection(Connection):
             "filter_suspended_users",
             "get_user_by_screen_name",
             "get_twitter_user_id",
+            "upload_media",
         ]
 
         if not all(i in payload for i in REQUIRED_PROPERTIES):
@@ -274,7 +287,18 @@ class TwikitConnection(Connection):
 
         self.logger.info(f"Calling twikit: {payload}")
 
+        if not self.logged_in:
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                "Twitter account is not logged in.",
+            )
+
         try:
+            # Add random delay
+            delay = secrets.randbelow(5)
+            time.sleep(delay)
+
             response = await method(**payload.get("kwargs", {}))
             self.logger.info(f"Twikit response: {response}")
             response_message = cast(
@@ -296,7 +320,7 @@ class TwikitConnection(Connection):
             return self.prepare_error_message(
                 srr_message,
                 dialogue,
-                "Twitter account is locked, suspended or unauthorized.",
+                "Twitter account is locked or suspended.",
             )
 
         except Exception as e:
@@ -304,29 +328,71 @@ class TwikitConnection(Connection):
                 srr_message, dialogue, f"Exception while calling Twikit:\n{e}"
             )
 
+    async def validate_login(self) -> bool:
+        """Validate login"""
+        valid_login = False
+        retries = 0
+        while retries < 3:
+            try:
+                # Check we can recover one example user
+                user = await self.client.get_user_by_screen_name("autonolas")
+                valid_login = user.id == "1450081635559428107"
+                if valid_login:
+                    self.logger.info(
+                        f"Cookies have succesfully been validated for user {self.username}"
+                    )
+                    break
+                raise ValueError("Could not test the cookies")
+            except Exception as e:
+                self.logger.error(
+                    f"Could not validate the cookies [{retries} / 3 retries]: {e}"
+                )
+                retries += 1
+                time.sleep(3)
+                continue
+        if not valid_login:
+            self.logger.error("Could not validate the cookies")
+        return valid_login
+
     async def twikit_login(self) -> None:
         """Login into Twitter"""
-        if not self.cookies and self.cookies_path.exists():
-            self.logger.info(f"Loading Twitter cookies from {self.cookies_path}")
-            with open(self.cookies_path, "r", encoding="utf-8") as cookies_file:
-                self.cookies = json.load(cookies_file)
 
-        if self.cookies:
-            self.logger.info("Set cookies")
-            self.client.set_cookies(self.cookies)
-        else:
-            self.logger.info("Logging into Twitter with username and password")
+        try:
+            # Try to login via cookies
             await self.client.login(
                 auth_info_1=self.username,
                 auth_info_2=self.email,
                 password=self.password,
+                cookies_file=str(self.cookies_path),
             )
 
-        if not self.cookies_path.parent.exists():
-            self.cookies_path.parent.mkdir(parents=True)
+            valid_login = await self.validate_login()
+            if valid_login:
+                self.logged_in = True
+            else:
+                raise ValueError("Could not validate the cookies")
 
-        self.client.save_cookies(self.cookies_path)
-        self.logged_in = True
+        except (twikit.errors.Unauthorized, ValueError):
+            self.logger.error("Twitter cookies are not valid. Regenerating...")
+            self.cookies_path.unlink()
+
+            try:
+                await self.client.login(
+                    auth_info_1=self.username,
+                    auth_info_2=self.email,
+                    password=self.password,
+                    cookies_file=str(self.cookies_path),
+                )
+
+                valid_login = await self.validate_login()
+                if valid_login:
+                    self.logged_in = True
+
+            except Exception as e:
+                self.logger.error(f"Exception while trying to login via password: {e}")
+
+        except twikit.errors.AccountLocked:
+            self.logger.error("Twitter account is locked")
 
     async def search(
         self, query: str, product: str = "Top", count: int = 10
@@ -364,8 +430,13 @@ class TwikitConnection(Connection):
         if None in tweet_ids:
             for tweet_id in tweet_ids:
                 # Skip tweets that failed
+
                 if not tweet_id:
                     continue
+
+                # Add random delay
+                delay = secrets.randbelow(5)
+                time.sleep(delay)
                 await self.delete_tweet(tweet_id)
 
             return [None] * len(tweet_ids)
@@ -456,6 +527,9 @@ class TwikitConnection(Connection):
         not_suspendend_users = []
         for user_name in user_names:
             try:
+                # Add random delay
+                delay = secrets.randbelow(5)
+                time.sleep(delay)
                 await self.client.get_user_by_screen_name(user_name)
                 not_suspendend_users.append(user_name)
             except twikit.errors.TwitterException:
@@ -473,14 +547,63 @@ class TwikitConnection(Connection):
     async def get_twitter_user_id(self) -> str:
         """Returns Twitter ID for the instance Twitter account."""
 
-        if not self.cookies:
-            raise ValueError("Cookies are not set.")
+        with open(self.cookies_path, "r", encoding="utf-8") as cookies_file:
+            cookies = json.load(cookies_file)
 
-        twid = self.cookies.get("twid", "").strip('"')
-        if not twid:
-            raise ValueError("Twitter ID (twid) not found in cookies.")
+            twid = cookies.get("twid", "").strip('"')
+            if not twid:
+                raise ValueError("Twitter ID (twid) not found in cookies.")
 
-        return twid
+            return twid
+
+    async def upload_media(self, media_path: str) -> Optional[str]:
+        """
+        Upload media to Twitter.
+
+        :param media_path: Path to the media file.
+        :return: Media ID if successful, None otherwise.
+        """
+        media_id = None
+        retries = 0
+
+        while retries < MAX_POST_RETRIES:
+            try:
+                self.logger.info(f"Uploading media from path: {media_path}")
+
+                # Make sure the media_path is a string, not a dictionary
+                if isinstance(media_path, dict) and "latest_image_path" in media_path:
+                    actual_path = media_path["latest_image_path"]
+                    self.logger.info(f"Extracted path from dictionary: {actual_path}")
+                    media_path = actual_path
+
+                # Check if file exists
+                if not os.path.exists(media_path):
+                    raise FileNotFoundError(
+                        f"Media file not found at path: {media_path}"
+                    )
+
+                # Upload media to Twitter
+                result = await self.client.upload_media(
+                    source=media_path, wait_for_completion=True
+                )
+                media_id = result
+
+                if media_id is not None:
+                    self.logger.info(f"Media uploaded with ID: {media_id}")
+                    break
+            except FileNotFoundError as e:
+                self.logger.error(f"Media file not found: {e}")
+                break  # No point retrying if the file doesn't exist
+            except Exception as e:
+                self.logger.error(f"Failed to upload media: {e}. Retrying...")
+            finally:
+                retries += 1
+                if retries < MAX_POST_RETRIES:
+                    # Add random delay between retries
+                    delay = secrets.randbelow(5)
+                    time.sleep(delay)
+
+        return media_id
 
 
 def tweet_to_json(tweet: Any, user_id: Optional[str] = None) -> Dict:

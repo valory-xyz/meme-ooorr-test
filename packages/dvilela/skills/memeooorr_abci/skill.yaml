@@ -8,40 +8,45 @@ aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeidorrnxjv4n4ngovxnu4mzod46kyrdncfmli4hapqeqnzp7imq7hm
   behaviour_classes/__init__.py: bafybeicjks4kxsb2r6a4armmaqxyxngwm3pouegq3fycm37rbe7otiwsre
-  behaviour_classes/base.py: bafybeieed23mlc6osvjlh3fqfjrjbii22y3233gkwk27oo5jqysdqwchbq
-  behaviour_classes/chain.py: bafybeigjprhsjuwvr66iymvytwnyp6nhgidfmdqp2wned3pgfmwthtotma
-  behaviour_classes/db.py: bafybeidbonkoclqbf6liz2fcvcs3lvhflqibrqthacggya6lvqpbpgck2a
-  behaviour_classes/llm.py: bafybeigg3lqucqicmclc37kimgpjy2kofdkfczuekp2ipfpqsncx4eg6fm
-  behaviour_classes/twitter.py: bafybeiha7fq2tgxin3oqma3xiywgpwb3feiy7xs46qvahitqqitp3exaem
-  behaviours.py: bafybeicpq6utktukthmol2y63tdcqzdrrj7qgbi3vw42uad56eyny2bkii
+  behaviour_classes/base.py: bafybeihau36r37th2itj4elrsyy2qrfipvr3edbpcvwzf2og4qoumccqn4
+  behaviour_classes/chain.py: bafybeid26lp7guky7feydgheljj6ee6663ymminlv2isvai2fsi3ppln4y
+  behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
+  behaviour_classes/llm.py: bafybeidkihjit76ix3kq3nl6wacassc5znaqp2dfhvip6bpq5atrjthzk4
+  behaviour_classes/mech.py: bafybeih6o6zs27wreoeu4ol5bbhnp33bj7sibvsn7symo63q77v3kbts4q
+  behaviour_classes/twitter.py: bafybeihsye6vnbouxvjcqgerg4lewpj3oiton4ium3v76inphgt2g7mh3y
+  behaviours.py: bafybeicsif4jpkuq4a5ijgj63s5zn4mskmakuddgiquqb4vrlz3trqa7fu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
-  fsm_specification.yaml: bafybeid5mr6fllsguewlan6c2fkxh4rmjl5j4ftn2jzhfofy2muhatksqm
+  fsm_specification.yaml: bafybeid7eyay5wtutduxyovq6kuofbigozlnuahjyjrcuszwdhicvcoes4
   handlers.py: bafybeicdbw4ayfuifdgmyezncazjabr333ltieaxq5gbgh5s7nkp5llxyi
-  models.py: bafybeialsojs3npxzv62ewxpjyms4hhdx3r4rjq36jpnbt3yhiynwd3ye4
-  payloads.py: bafybeicm4cvsihp2gxxbiwrhqzjixsatkpm2zhd3pvlem2v36alw52n6bu
-  prompts.py: bafybeihes24xtbyzg3rfwjasnsmcrauzgdn25s46aza36rgrbrzadab2hy
-  rounds.py: bafybeiaqpdohvexyenalnyzngx37ce4tbgfh3fhtlzz4lbyty7akr4jffq
-  rounds_info.py: bafybeibtcdxu46hfoqhtscyn2gdc6zuah5yw6l5anqrs4u6rozvza42j4m
+  models.py: bafybeibahq7p7p2dkbyl5capozrwfqdpwjkugpyg6jwwfocoa4mqz6jem4
+  payloads.py: bafybeibitehqtl4mydt7e7qdestsrvxdj5klclqu2dackckp5f2sazmlcm
+  prompts.py: bafybeicgezsc5zx5nmcft43qphjrdfcajzofbtupff3evnhsbdxtllri3e
+  rounds.py: bafybeigzan5olzybbbgsc6lpge6eqa2dl26wcgbd27o3kyhqbwl5d5puxa
+  rounds_info.py: bafybeib6a5a7bvwvfiscnbhsc6sejloelyglnu6lwbeeileyxrsgkxcb6a
 fingerprint_ignore_patterns: []
 connections:
-- dvilela/kv_store:0.1.0:bafybeiekugvb2kan4342hliluxl3h5och3fjwqoafdyttpcn57evvyztq4
-- dvilela/twikit:0.1.0:bafybeibneg7ugu3mkn6kpgvv3x6fykc3j5kexlbdcuxugiy4rnb6umjuny
-- dvilela/mirror_db:0.1.0:bafybeic37wau4vr6a7f5ig6q7tvjvk3lofghwa42nv32bg3bdx2hawepgm
+- dvilela/kv_store:0.1.0:bafybeiecnl7yc5qx6x4q7467i66ehmfw4qydnnry7tjs7plqeytb6ueyvu
+- dvilela/twikit:0.1.0:bafybeignkhvzulhxabtstdcd2kk5krkiczdcedbogdv3xvawitb2fnwicy
+- dvilela/mirror_db:0.1.0:bafybeifhl7e5odr53pbz2bog3tysyyfnimrz2acksgnal4yza4faxam6pa
 - dvilela/genai:0.1.0:bafybeihp6t4y7mynitwj3afwet2lr5ittrqmk4hop7ycmgyyx3nqkc5sty
-- valory/http_server:0.22.0:bafybeihpgu56ovmq4npazdbh6y6ru5i7zuv6wvdglpxavsckyih56smu7m
+- valory/http_server:0.22.0:bafybeic3jpkum7g6qo6x6vdrmvvhj7vqw7ec2op72uc3yfhmnlp5hn3joy
 contracts:
-- valory/gnosis_safe:0.1.0:bafybeign4jqpofu3jxuqkzlt4qgrwdbf4xvjusqezhsojtxrfvv467n62e
-- dvilela/meme_factory:0.1.0:bafybeidt244ghzw6pnl3vpdfr4c4tg2lcbgmp7wjsytdppxf4zcyvja6qa
-- dvilela/service_registry:0.1.0:bafybeif5rbqm73ej4l3cgn344dbaxxenw4bcemc2d3akixdf65gfmbjsma
+- valory/gnosis_safe:0.1.0:bafybeidhegkiibxroyvzvsyuh5t3qpq3egj24u2yg2xryf2kir4f36on3u
+- dvilela/meme_factory:0.1.0:bafybeifa5h2a3t2ysi24c2zvfyyazjjxjicmveoszcyjbbamoqh7pmk6cu
+- dvilela/service_registry:0.1.0:bafybeih2dhp3dr5ijsbmo6rwfotpbbccejkb3cgutghgadncjqhfryklpu
+- valory/staking_token:0.1.0:bafybeigvcnjzhrwcbzdhiddc2vj7lmyroatnyhkgpkhwrduhuajuekjic4
+- valory/staking_activity_checker:0.1.0:bafybeievwpysmimhhjfgetswigoivnkdluj2n6dh342r2iesiqdw3dpvru
+- valory/mech_marketplace:0.1.0:bafybeiajuyxzp7l3lzxk23jle2bjdxapghc5om6iidcnwg6szfkqpxhb6y
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
-- valory/http:1.0.0:bafybeifugzl63kfdmwrxwphrnrhj7bn6iruxieme3a4ntzejf6kmtuwmae
-- valory/ledger_api:1.0.0:bafybeihdk6psr4guxmbcrc26jr2cbgzpd5aljkqvpwo64bvaz7tdti2oni
-- valory/contract_api:1.0.0:bafybeidgu7o5llh26xp3u3ebq3yluull5lupiyeu6iooi2xyymdrgnzq5i
+- valory/http:1.0.0:bafybeih4azmfwtamdbkhztkm4xitep3gx6tfdnoz6tvllmaqnhu3klejfa
+- valory/ledger_api:1.0.0:bafybeihmqzcbj6t7vxz2aehd5726ofnzsfjs5cwlf42ro4tn6i34cbfrc4
+- valory/contract_api:1.0.0:bafybeid247uig2ekykdumh7ewhp2cdq7rchaeqjj6e7urx35zfpdl5zrn4
 skills:
-- valory/abstract_round_abci:0.1.0:bafybeihyaubqrndsjkrplx4e2tn45jgddt52cxzuhb5iwiznz7qlhrbdbe
-- valory/transaction_settlement_abci:0.1.0:bafybeidpzdtevjmqw7swdmk6mtz2ez47fvsit3choh5d4nzgioyfqkzgba
+- valory/abstract_round_abci:0.1.0:bafybeifclzgoyulkyyigcwrqzmydyrj6c5d26xu7jk6cjbsed3pkls4pba
+- valory/transaction_settlement_abci:0.1.0:bafybeid4alawv3oz4gdyom5uevrgzfsahbwabi37r7gomsetwqiq66g6cm
+- valory/mech_interact_abci:0.1.0:bafybeibhigcn46vxrqwcmygin4v442qknyklmuaufyre2npca26sbmkdvu
 behaviours:
   main:
     args: {}
@@ -159,8 +164,6 @@ models:
       olas_token_address_base: '0x54330d28ca3357F294334BDC454a032e7f353416'
       olas_token_address_celo: '0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51'
       persona: a cat lover that is crazy about all-things cats.
-      feedback_period_min_hours: 1
-      feedback_period_max_hours: 2
       home_chain_id: BASE
       twitter_username: dummy_twitter_name
       service_registry_address_base: '0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE'
@@ -173,7 +176,60 @@ models:
       min_summon_amount_celo: 10.0
       max_summon_amount_celo: 20.0
       max_heart_amount_celo: 0.2
+      staking_token_contract_address: '0x0000000000000000000000000000000000000000'
+      activity_checker_contract_address: '0x0000000000000000000000000000000000000000'
+      tx_loop_breaker_count: 3
+      tools_for_mech:
+        stabilityai-stable-diffusion-v1-6: This tool generates an image based on a
+          given prompt using the StabilityAI Stable Diffusion v1.6 model
+        short_maker: This tool generates a short video based on a given prompt
+      multisend_batch_size: 50
+      mech_request_price: 100
+      mech_contract_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
+      mech_chain_id: base
+      mech_interaction_sleep_time: 10
+      use_acn_for_delivers: false
+      use_mech_marketplace: true
+      mech_marketplace_config:
+        mech_marketplace_address: '0xf24eE42edA0fc9b33B7D41B06Ee8ccD2Ef7C5020'
+        priority_mech_address: '0xe535D7AcDEeD905dddcb5443f41980436833cA2B'
+        response_timeout: 300
+      mech_to_subscription_params:
+        base_url: url
+        did: did
+        escrow_payment_condition_address: address
+        lock_payment_condition_address: address
+        transfer_nft_condition_address: address
+        token_address: address
+        order_address: address
+        nft_amount: amount
+        payment_token: address
+        price: price
+      alternative_model_for_tweets:
+        use: false
+        url: https://api.fireworks.ai/inference/v1/chat/completions
+        api_key: null
+        model: accounts/sentientfoundation/models/dobby-unhinged-llama-3-3-70b-new
+        max_tokens: 16384
+        top_p: 1
+        top_k: 40
+        presence_penalty: 0
+        frequency_penalty: 0
+        temperature": 0.6
+      fireworks_api_key: null
     class_name: Params
+  mech_response:
+    args:
+      api_id: mech_response
+      headers:
+        Content-Type: application/json
+      method: GET
+      parameters: {}
+      response_key: result
+      response_type: str
+      retries: 5
+      url: ''
+    class_name: MechResponseSpecs
   requests:
     args: {}
     class_name: Requests
@@ -199,5 +255,6 @@ dependencies:
     version: '>=0.18.0.post0'
   PyYAML:
     version: '>=3.10,<=6.0.1'
+  requests: {}
 is_abstract: true
 customs: []

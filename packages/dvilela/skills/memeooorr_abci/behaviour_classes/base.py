@@ -23,9 +23,10 @@ import json
 import re
 from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, Generator, List, Optional, Tuple, cast
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union, cast
 
 from aea.protocols.base import Message
+from twitter_text import parse_tweet  # type: ignore
 
 from packages.dvilela.connections.genai.connection import (
     PUBLIC_ID as GENAI_CONNECTION_PUBLIC_ID,
@@ -61,6 +62,7 @@ CELO_CHAIN_ID = "celo"
 HTTP_OK = 200
 MEMEOOORR_DESCRIPTION_PATTERN = r"^Memeooorr @(\w+)$"
 IPFS_ENDPOINT = "https://gateway.autonolas.tech/ipfs/{ipfs_hash}"
+MAX_TWEET_CHARS = 280
 
 
 TOKENS_QUERY = """
@@ -83,6 +85,7 @@ query Tokens {
       memeToken
       name
       symbol
+      hearters
     }
   }
 }
@@ -103,6 +106,11 @@ query getPackages($package_type: String!) {
     }
 }
 """
+
+
+def is_tweet_valid(tweet: str) -> bool:
+    """Checks a tweet length"""
+    return parse_tweet(tweet).asdict()["weightedLength"] <= MAX_TWEET_CHARS
 
 
 class MemeooorrBaseBehaviour(
@@ -145,13 +153,17 @@ class MemeooorrBaseBehaviour(
         self, method: str, **kwargs: Any
     ) -> Generator[None, None, Any]:
         """Send a request message to the Twikit connection and handle MirrorDB interactions."""
-        mirror_db_config_data = yield from self._handle_mirror_db_interactions()
+        # Track this API call with our unified tracking function
+        yield from self.track_twikit_api_usage(method, **kwargs)
+
+        mirror_db_config_data = (
+            yield from self._handle_mirror_db_interactions_pre_twikit()
+        )
 
         if mirror_db_config_data is None:
             self.context.logger.error(
                 "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
             )
-            return None
 
         # Create the request message for Twikit
         srr_dialogues = cast(SrrDialogues, self.context.srr_dialogues)
@@ -167,7 +179,10 @@ class MemeooorrBaseBehaviour(
         response_json = json.loads(response.payload)  # type: ignore
 
         if "error" in response_json:
-            if "locked, suspended or unauthorized" in response_json["error"]:
+            if (
+                "Twitter account is locked or suspended" in response_json["error"]
+                or "Twitter account is not logged in" in response_json["error"]
+            ):
                 self.context.state.env_var_status["needs_update"] = True
                 self.context.state.env_var_status["env_vars"][
                     "TWIKIT_USERNAME"
@@ -184,27 +199,17 @@ class MemeooorrBaseBehaviour(
 
         # Handle MirrorDB interaction if applicable
         yield from self._handle_mirrordb_interaction_post_twikit(
-            method, kwargs, response_json, mirror_db_config_data
+            method, kwargs, response_json, mirror_db_config_data  # type: ignore
         )
-
         return response_json["response"]  # type: ignore
 
-    def _handle_mirror_db_interactions(self) -> Generator[None, None, Optional[Dict]]:
+    def _handle_mirror_db_interactions_pre_twikit(
+        self,
+    ) -> Generator[None, None, Optional[Dict]]:
         """Handle MirrorDB interactions."""
-        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
 
-        # Ensure mirror_db_config_data is parsed as JSON if it is a string
-        if isinstance(mirror_db_config_data, str):
-            mirror_db_config_data = json.loads(mirror_db_config_data)
-
-        self.context.logger.info(f"MirrorDB config data: {mirror_db_config_data}")
-        if mirror_db_config_data is None:
-            self.context.logger.info("Registering with MirrorDB")
-            yield from self._register_with_mirror_db()
-
-        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
-        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+        # registartion check for mirrorDB
+        mirror_db_config_data = yield from self._mirror_db_registration_check()  # type: ignore
 
         # Ensure mirror_db_config_data is parsed as JSON if it is a string
         if isinstance(mirror_db_config_data, str):
@@ -710,33 +715,12 @@ class MemeooorrBaseBehaviour(
 
         return {"safe": safe_balance, "agent": agent_balance}
 
-    def get_heart_and_burn_data(
-        self,
-    ) -> Generator[None, None, Tuple[List[str], int]]:
-        """Get heart, burn and purge data"""
-        # Load previously hearted memes
-        db_data = yield from self._read_kv(keys=("hearted_memes",))
-
-        if db_data is None:
-            self.context.logger.error("Error while loading the database")
-            hearted_memes_str = "[]"
-        else:
-            hearted_memes_str = db_data["hearted_memes"] or "[]"
-
-        hearted_memes = json.loads(hearted_memes_str)
-
-        # Get burnable amount
-        burnable_amount = yield from self.get_burnable_amount()
-
-        return hearted_memes, burnable_amount
-
-    def get_meme_available_actions(  # pylint: disable=too-many-arguments
+    def get_meme_available_actions(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         meme_data: Dict,
-        hearted_memes: List[str],
         burnable_amount: int,
         maga_launched: bool,
-    ) -> List[str]:
+    ) -> Generator[None, None, List[str]]:
         """Get the available actions"""
 
         # Get the times
@@ -747,15 +731,20 @@ class MemeooorrBaseBehaviour(
         seconds_since_unleash = (now - unleash_time).total_seconds()
         is_unleashed = meme_data.get("unleash_time", 0) != 0
         is_purged = meme_data.get("is_purged")
+        is_hearted = (
+            self.synchronized_data.safe_contract_address
+            in meme_data.get("hearters", {}).keys()
+        )
+        token_nonce = meme_data.get("token_nonce")
+        collectable_amount = yield from self.get_collectable_amount(
+            cast(int, token_nonce)
+        )
+        is_collectable = collectable_amount > 0
 
         available_actions: List[str] = []
 
         # Heart
-        if (
-            not is_unleashed
-            and meme_data.get("token_nonce", None) not in hearted_memes
-            and meme_data.get("token_nonce", None) != 1
-        ):
+        if not is_unleashed and meme_data.get("token_nonce", None) != 1:
             available_actions.append("heart")
 
         # Unleash
@@ -770,7 +759,8 @@ class MemeooorrBaseBehaviour(
         if (
             is_unleashed
             and seconds_since_unleash < 24 * 3600
-            and meme_data.get("token_nonce", None) in hearted_memes
+            and is_hearted
+            and is_collectable
         ):
             available_actions.append("collect")
 
@@ -839,8 +829,17 @@ class MemeooorrBaseBehaviour(
             )
             return None
 
-        response_json = json.loads(response.body)["data"]  # type: ignore
-        return response_json
+        # Parse the response body
+        response_body = json.loads(response.body)  # type: ignore
+
+        # Check if 'data' key exists in the response
+        if "data" not in response_body:
+            self.context.logger.error(
+                f"Expected 'data' key in response, but got: {response_body}"
+            )
+            return None
+
+        return response_body["data"]
 
     def get_memeooorr_handles_from_subgraph(self) -> Generator[None, None, List[str]]:
         """Get Memeooorr service handles"""
@@ -864,6 +863,42 @@ class MemeooorrBaseBehaviour(
             handles.append(handle)
 
         self.context.logger.info(f"Got Twitter handles: {handles}")
+        return handles
+
+    def get_memeooorr_handles_from_mirror_db(
+        self,
+    ) -> Generator[None, None, List[str]]:
+        """Get Memeooorr service handles from MirrorDB."""
+        mirror_db_config_data = yield from self._mirror_db_registration_check()
+
+        if mirror_db_config_data is None:
+            self.context.logger.error(
+                "MirrorDB config data is None after registration attempt. This is unexpected and indicates a potential issue with the registration process."
+            )
+            return []
+
+        handles: List[str] = []
+        try:
+            active_handles = yield from self._call_mirrordb(
+                "get_active_twitter_handles"
+            )
+
+            if active_handles is None:
+                self.context.logger.warning(
+                    "Could not retrieve active Twitter handles from MirrorDB."
+                )
+                return handles
+
+            handles = [
+                handle
+                for handle in active_handles
+                if handle != self.params.twitter_username
+            ]
+            self.context.logger.info(f"Got Twitter handles from MirrorDB: {handles}")
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(
+                f"Error while fetching active Twitter handles from MirrorDB: {e}"
+            )
         return handles
 
     def get_service_registry_address(self) -> str:
@@ -998,10 +1033,7 @@ class MemeooorrBaseBehaviour(
                 if token["token_nonce"] == event["token_nonce"]:
                     token["token_address"] = event["token_address"]
 
-        (
-            hearted_memes,
-            burnable_amount,
-        ) = yield from self.get_heart_and_burn_data()
+        burnable_amount = yield from self.get_burnable_amount()
 
         maga_launched = False
         for token in tokens:
@@ -1009,9 +1041,10 @@ class MemeooorrBaseBehaviour(
                 maga_launched = True
 
         for token in tokens:
-            token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes, burnable_amount, maga_launched
+            available_actions = yield from self.get_meme_available_actions(
+                token, burnable_amount, maga_launched
             )
+            token["available_actions"] = available_actions
 
         return tokens
 
@@ -1057,6 +1090,7 @@ class MemeooorrBaseBehaviour(
                 "summon_time": int(t["summonTime"]),
                 "unleash_time": int(t["unleashTime"]),
                 "token_nonce": int(t["memeNonce"]),
+                "hearters": t["hearters"],
             }
             for t in response_json["data"]["memeTokens"]["items"]
             if t["chain"] == self.get_chain_id()
@@ -1064,10 +1098,7 @@ class MemeooorrBaseBehaviour(
             and int(t["memeNonce"]) > 0
         ]
 
-        (
-            hearted_memes,
-            burnable_amount,
-        ) = yield from self.get_heart_and_burn_data()
+        burnable_amount = yield from self.get_burnable_amount()
 
         # We can only burn when the AG3NT token (nonce=1) has been unleashed
         maga_launched = False
@@ -1076,9 +1107,10 @@ class MemeooorrBaseBehaviour(
                 maga_launched = True
 
         for token in tokens:
-            token["available_actions"] = self.get_meme_available_actions(
-                token, hearted_memes, burnable_amount, maga_launched
+            available_actions = yield from self.get_meme_available_actions(
+                token, burnable_amount, maga_launched
             )
+            token["available_actions"] = available_actions
 
         return tokens
 
@@ -1136,6 +1168,33 @@ class MemeooorrBaseBehaviour(
         burnable_amount = cast(int, response_msg.state.body.get("burnable_amount", 0))
         return burnable_amount
 
+    def get_collectable_amount(self, token_nonce: int) -> Generator[None, None, int]:
+        """Get collectable amount"""
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
+            contract_address=self.get_meme_factory_address(),
+            contract_id=str(MemeFactoryContract.contract_id),
+            contract_callable="get_collectable_amount",
+            token_nonce=token_nonce,
+            wallet_address=self.synchronized_data.safe_contract_address,
+            chain_id=self.get_chain_id(),
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.STATE:
+            self.context.logger.error(
+                f"Could not get the collectable amount: {response_msg}"
+            )
+            return 0
+
+        collectable_amount = cast(
+            int, response_msg.state.body.get("collectable_amount", 0)
+        )
+        self.context.logger.info(
+            f"Collectable amount for token {token_nonce}: {collectable_amount}"
+        )
+        return collectable_amount
+
     def get_purged_memes_from_chain(self) -> Generator[None, None, List]:
         """Get purged memes"""
         response_msg = yield from self.get_contract_api_response(
@@ -1185,3 +1244,307 @@ class MemeooorrBaseBehaviour(
             "mirror_db_config_data is not a dictionary. failed to update new twitter_user_id."
         )
         return False
+
+    def _mirror_db_registration_check(
+        self,
+    ) -> Generator[None, None, Optional[Dict[str, Any]]]:
+        """Check if the agent_id is registered in the mirrorDB, if not then register with mirrorDB."""
+        # Read the current configuration
+        mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+        mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+
+        if mirror_db_config_data is None:
+            self.context.logger.info("No MirrorDB configuration found. Registering...")
+            yield from self._register_with_mirror_db()
+
+            mirror_db_config_data = yield from self._read_kv(keys=("mirrod_db_config",))
+            mirror_db_config_data = mirror_db_config_data.get("mirrod_db_config")  # type: ignore
+
+        # Ensure mirror_db_config_data is parsed as JSON if it is a string
+        if isinstance(mirror_db_config_data, str):
+            mirror_db_config_data = json.loads(mirror_db_config_data)
+
+            # updating the instance variables agent_id, twitter_user_id and api_key
+            agent_id = mirror_db_config_data.get("agent_id")  # type: ignore
+            twitter_user_id = mirror_db_config_data.get("twitter_user_id")  # type: ignore
+            api_key = mirror_db_config_data.get("api_key")  # type: ignore
+
+            if agent_id is None or twitter_user_id is None or api_key is None:
+                self.context.logger.error(
+                    "agent_id, twitter_user_id or api_key is None, which is not expected."
+                )
+            # updating class vars
+            yield from self._call_mirrordb("update_agent_id", agent_id=agent_id)
+            yield from self._call_mirrordb(
+                "update_twitter_user_id", twitter_user_id=twitter_user_id
+            )
+            yield from self._call_mirrordb("update_api_key", api_key=api_key)
+
+        else:
+            self.context.logger.error(
+                "mirror_db_config_data is not a dictionary. failed to update new twitter_user_id."
+            )
+            self.context.logger.info(
+                f"MirrorDB config data is : {mirror_db_config_data} setting it to None"
+            )
+            mirror_db_config_data = None
+
+        return mirror_db_config_data
+
+    def replace_tweet_with_alternative_model(
+        self, prompt: str
+    ) -> Generator[None, None, Optional[str]]:
+        """Replaces a tweet with one generated by the alternative LLM model"""
+
+        model_config = self.params.alternative_model_for_tweets
+        self.context.logger.info(f"Alternative LLM model config: {model_config}")
+
+        if not model_config.use:
+            self.context.logger.info("Alternative LLM model is disabled")
+            return None
+
+        self.context.logger.info("Calling the alternative LLM model")
+
+        payload = {
+            "model": model_config.model,
+            "max_tokens": model_config.max_tokens,
+            "top_p": model_config.top_p,
+            "top_k": model_config.top_k,
+            "presence_penalty": model_config.presence_penalty,
+            "frequency_penalty": model_config.frequency_penalty,
+            "temperature": model_config.temperature,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {model_config.api_key}",
+        }
+
+        # Make the HTTP request
+        response = yield from self.get_http_response(
+            method="POST",
+            url=model_config.url,
+            headers=headers,
+            content=json.dumps(payload).encode(),
+        )
+
+        # Handle HTTP errors
+        if response.status_code != HTTP_OK:
+            self.context.logger.error(
+                f"Error while pulling the price from Fireworks: {response}"
+            )
+
+        # Load the response
+        api_data = json.loads(response.body)
+
+        if "error" in api_data:
+            self.context.logger.error(
+                f"The alternative model returned an error: {api_data}"
+            )
+            return None
+
+        try:
+            tweet = api_data["choices"][0]["message"]["content"]
+        except Exception:  # pylint: disable=broad-except
+            self.context.logger.error(
+                f"The alternative model response is not valid: {api_data}"
+            )
+            return None
+
+        if not is_tweet_valid(tweet):
+            self.context.logger.error("The alternative tweet is too long.")
+            return None
+
+        self.context.logger.info(f"Got new tweet from Fireworks API: {tweet}")
+
+        return tweet
+
+    def track_twikit_api_usage(
+        self, method: str, **kwargs: Any
+    ) -> Generator[None, None, None]:
+        """
+        Track Twikit API calls and store analytics in KV store.
+
+        Handles both direct API calls and compound operations that make multiple internal API calls.
+
+        Args:
+            method: The Twikit API method being called
+            kwargs: Arguments passed to the method, used to determine count for compound operations
+        """
+        # Get current statistics
+        twikit_stats = yield from self._get_twikit_stats()
+
+        # Define read vs write operations
+        read_operations = {
+            "get_user_by_screen_name",
+            "get_twitter_user_id",
+            "get_user_timeline",
+            "search_tweets",
+            "get_tweet",
+            "get_user_followers",
+            "get_user_following",
+            "validate_login",
+            "get_user_tweets",
+            "search",
+        }
+
+        write_operations = {
+            "post",
+            "post_tweet",
+            "like_tweet",
+            "retweet",
+            "follow_user",
+            "upload_media",
+            "delete_tweet",
+        }
+
+        # Track compound operations that make multiple API calls
+        compound_operations: Dict[str, Dict[str, Union[str, int]]] = {
+            "filter_suspended_users": {
+                "base_method": "get_user_by_screen_name",
+                "count_param": "user_names",
+                "operation_type": "read",
+            },
+            "get_user_tweets": {
+                "base_method": "get_user_by_screen_name",
+                "count": 1,
+                "operation_type": "read",
+            },
+            "post": {
+                "base_method": "post_tweet",
+                "count_param": "tweets",
+                "operation_type": "write",
+            },
+            "search": {
+                "base_method": "search_tweets",
+                "count": 1,
+                "operation_type": "read",
+            },
+            "validate_login": {
+                "base_method": "verify_credentials",
+                "count": 1,
+                "operation_type": "read",
+            },
+        }
+
+        # PART 1: Track the direct method call
+
+        # Determine operation type
+        if method in read_operations:
+            operation_type = "read"
+            twikit_stats["read_operations"] += 1
+        elif method in write_operations:
+            operation_type = "write"
+            twikit_stats["write_operations"] += 1
+        elif method in compound_operations:
+            operation_type = cast(str, compound_operations[method]["operation_type"])
+            # For compound operations, we'll count their internal calls separately below
+        else:
+            operation_type = "other"
+            twikit_stats["other_operations"] = (
+                twikit_stats.get("other_operations", 0) + 1
+            )
+
+        # Increment total calls counter
+        twikit_stats["total_calls"] += 1
+
+        # Record the specific method call with timestamp
+        if method not in twikit_stats["methods_called"]:
+            twikit_stats["methods_called"][method] = {
+                "count": 0,
+                "type": operation_type,
+                "last_called": None,
+                "first_called": datetime.utcnow().isoformat(),
+            }
+
+        # Update method statistics
+        twikit_stats["methods_called"][method]["count"] += 1
+        twikit_stats["methods_called"][method][
+            "last_called"
+        ] = datetime.utcnow().isoformat()
+
+        # PART 2: Track internal calls for compound operations
+        if method in compound_operations:
+            mapping = compound_operations[method]
+            # Use cast to specify the expected type
+            base_method: str = cast(str, mapping["base_method"])
+            # Explicitly type the variable and use cast
+            internal_operation_type: str = cast(str, mapping["operation_type"])
+
+            # Determine number of internal calls
+            internal_call_count = 1  # Default to at least one call
+            if "count_param" in mapping and cast(str, mapping["count_param"]) in kwargs:
+                param_value = kwargs[cast(str, mapping["count_param"])]
+                if isinstance(param_value, list):
+                    internal_call_count = len(param_value)
+            elif "count" in mapping:
+                internal_call_count = cast(int, mapping["count"])
+
+            # Update stats for the internal method calls
+            if base_method not in twikit_stats["methods_called"]:
+                twikit_stats["methods_called"][base_method] = {
+                    "count": 0,
+                    "type": internal_operation_type,
+                    "last_called": None,
+                    "first_called": datetime.utcnow().isoformat(),
+                }
+
+            # Update counters for internal calls
+            twikit_stats["methods_called"][base_method]["count"] += internal_call_count
+            twikit_stats["methods_called"][base_method][
+                "last_called"
+            ] = datetime.utcnow().isoformat()
+
+            # Update operation type counters
+            if internal_operation_type == "read":
+                twikit_stats["read_operations"] += internal_call_count
+            elif internal_operation_type == "write":
+                twikit_stats["write_operations"] += internal_call_count
+            else:
+                twikit_stats["other_operations"] = (
+                    twikit_stats.get("other_operations", 0) + internal_call_count
+                )
+
+            twikit_stats["total_calls"] += internal_call_count
+
+        # Update timestamp
+        twikit_stats["last_updated"] = datetime.utcnow().isoformat()
+
+        # Save updated stats to KV store
+        yield from self._write_kv({"twikit_stats": json.dumps(twikit_stats)})
+
+    def _get_twikit_stats(self) -> Generator[None, None, Dict[str, Any]]:
+        """Get the Twikit API call statistics from KV store or initialize new stats."""
+        db_data = yield from self._read_kv(keys=("twikit_stats",))
+
+        if (
+            db_data is None
+            or "twikit_stats" not in db_data
+            or db_data["twikit_stats"] is None
+        ):
+            # Initialize new stats dict
+            twikit_stats = {
+                "read_operations": 0,
+                "write_operations": 0,
+                "other_operations": 0,
+                "total_calls": 0,
+                "methods_called": {},
+                "first_tracked": datetime.utcnow().isoformat(),
+                "last_updated": datetime.utcnow().isoformat(),
+            }
+        else:
+            # Load existing stats
+            twikit_stats = json.loads(db_data["twikit_stats"])
+
+        return twikit_stats
+
+    def get_twikit_analytics(self) -> Generator[None, None, Dict[str, Any]]:
+        """Get analytics for Twikit API usage.
+
+        Returns:
+            Dict containing read operations count, write operations count,
+            total calls, and a breakdown of calls by method.
+        """
+        return (yield from self._get_twikit_stats())

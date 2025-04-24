@@ -22,9 +22,12 @@
 
 import asyncio
 import json
+import ssl
+from functools import wraps
 from typing import Any, Dict, List, Optional, Union, cast
 
 import aiohttp
+import certifi
 from aea.configurations.base import PublicId
 from aea.connections.base import Connection, ConnectionStates
 from aea.mail.base import Envelope
@@ -38,6 +41,35 @@ from packages.valory.protocols.srr.message import SrrMessage
 
 
 PUBLIC_ID = PublicId.from_str("dvilela/mirror_db:0.1.0")
+
+
+def retry_with_exponential_backoff(max_retries=5, initial_delay=1, backoff_factor=2):  # type: ignore
+    """Retry a function with exponential backoff."""
+
+    def decorator(func):  # type: ignore
+        @wraps(func)
+        async def wrapper(*args, **kwargs):  # type: ignore
+            delay = initial_delay
+            for attempt in range(max_retries):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    if "rate limit exceeded" in str(e).lower():
+                        if attempt < max_retries - 1:
+                            print(f"Retrying in {delay} seconds due to rate limit...")
+                            await asyncio.sleep(delay)
+                            delay *= backoff_factor
+                        else:
+                            print(
+                                "Max retries reached. Could not complete the request."
+                            )
+                            raise
+                    else:
+                        raise
+
+        return wrapper
+
+    return decorator
 
 
 class SrrDialogues(BaseSrrDialogues):
@@ -85,6 +117,7 @@ class MirrorDBConnection(Connection):
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
         self._response_envelopes: Optional[asyncio.Queue] = None
         self.task_to_request: Dict[asyncio.Future, Envelope] = {}
+        self.ssl_context = ssl.create_default_context(cafile=certifi.where())
 
     async def update_api_key(self, api_key: str) -> None:
         """Update the API key."""
@@ -110,7 +143,9 @@ class MirrorDBConnection(Connection):
     async def connect(self) -> None:
         """Connect to the backend service."""
         self._response_envelopes = asyncio.Queue()
-        self.session = aiohttp.ClientSession()
+        self.session = aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=self.ssl_context)
+        )
         self.state = ConnectionStates.connected
 
     async def disconnect(self) -> None:
@@ -181,6 +216,21 @@ class MirrorDBConnection(Connection):
 
         self.response_envelopes.put_nowait(response_envelope)
 
+    _ALLOWED_METHODS = {
+        "create_agent",
+        "read_agent",
+        "create_twitter_account",
+        "get_twitter_account",
+        "create_tweet",
+        "read_tweet",
+        "create_interaction",
+        "get_latest_tweets",
+        "get_active_twitter_handles",
+        "update_twitter_user_id",
+        "update_agent_id",
+        "update_api_key",
+    }
+
     async def _get_response(
         self, srr_message: SrrMessage, dialogue: Optional[BaseDialogue]
     ) -> SrrMessage:
@@ -194,6 +244,14 @@ class MirrorDBConnection(Connection):
 
         payload = json.loads(srr_message.payload)
         method_name = payload.get("method")
+
+        if method_name not in self._ALLOWED_METHODS:
+            return self.prepare_error_message(
+                srr_message,
+                dialogue,
+                f"Method {method_name} is not allowed or present.",
+            )
+
         method = getattr(self, method_name, None)
 
         if method is None:
@@ -221,6 +279,17 @@ class MirrorDBConnection(Connection):
                 srr_message, dialogue, f"Exception while calling backend service:\n{e}"
             )
 
+    async def _raise_for_response(
+        self, response: aiohttp.ClientResponse, action: str
+    ) -> None:
+        """Raise exception with relevant message based on the HTTP status code."""
+        if response.status == 200:
+            return
+        error_content = await response.json()
+        detail = error_content.get("detail", error_content)
+        raise Exception(f"Error {action}: {detail} (HTTP {response.status})")
+
+    @retry_with_exponential_backoff()
     async def create_agent(self, agent_data: Dict) -> Dict:
         """Create an agent and a Twitter account."""
         async with self.session.post(  # type: ignore
@@ -228,45 +297,52 @@ class MirrorDBConnection(Connection):
             json=agent_data,
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "creating agent")
             agent_response = await response.json()
 
         agent_id = agent_response.get("agent_id")
         if agent_id is None:
             raise ValueError("Failed to create agent, no agent_id returned.")
-
         return agent_response
 
+    @retry_with_exponential_backoff()
     async def read_agent(self, agent_id: str) -> Dict:
         """Read an agent."""
         async with self.session.get(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "reading agent")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def create_twitter_account(self, agent_id: str, account_data: Dict) -> Dict:
-        """Create a Twitter account."""
+        """Create a Twitter account if not already present."""
         api_key = account_data.get("api_key", self.api_key)
+
         async with self.session.post(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/twitter_accounts/",
             json=account_data,
             headers={"access-token": f"{api_key}"},
         ) as response:
+            await self._raise_for_response(response, "creating twitter account")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def get_twitter_account(self, twitter_user_id: str) -> Dict:
         """Get a Twitter account."""
         async with self.session.get(  # type: ignore
             f"{self.base_url}/api/twitter_accounts/{twitter_user_id}",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "getting twitter account")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def create_tweet(
         self, agent_id: int, twitter_user_id: str, tweet_data: Dict
     ) -> Dict:
         """Create a tweet."""
-        # check if tweet id is present in the tweet_data if not raise an error
         tweet_id = tweet_data.get("tweet_id")
         if tweet_id is None:
             raise ValueError("Failed to create tweet, no tweet_id provided.")
@@ -276,16 +352,20 @@ class MirrorDBConnection(Connection):
             json=tweet_data,
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "creating tweet")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def read_tweet(self, tweet_id: str) -> Dict:
         """Read a tweet."""
         async with self.session.get(  # type: ignore
             f"{self.base_url}/api/tweets/{tweet_id}",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "reading tweet")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def create_interaction(
         self, agent_id: int, twitter_user_id: str, interaction_data: Dict
     ) -> Dict:
@@ -295,12 +375,30 @@ class MirrorDBConnection(Connection):
             json=interaction_data,
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "creating interaction")
             return await response.json()
 
+    @retry_with_exponential_backoff()
     async def get_latest_tweets(self, agent_id: int) -> List[Dict]:
         """Get the latest tweets for a given agent."""
         async with self.session.get(  # type: ignore
             f"{self.base_url}/api/agents/{agent_id}/twitter_accounts/tweets/",
             headers={"access-token": f"{self.api_key}"},
         ) as response:
+            await self._raise_for_response(response, "getting latest tweets")
+            return await response.json()
+
+    @retry_with_exponential_backoff()
+    async def get_active_twitter_handles(self) -> List[str]:
+        """
+        Retrieves a list of active X (Twitter) handles.
+
+        This function directly calls the
+        /api/active_usernames/ endpoint and returns the list of usernames.
+        """
+        async with self.session.get(  # type: ignore
+            f"{self.base_url}/api/active_usernames/",
+            headers={"access-token": f"{self.api_key}"},
+        ) as response:
+            await self._raise_for_response(response, "getting active X handles")
             return await response.json()

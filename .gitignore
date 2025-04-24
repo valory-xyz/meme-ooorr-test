@@ -8,6 +8,8 @@ htmlcov
 *.egg-info
 packages/open_aea
 packages/valory/contracts/*
+!packages/valory/contracts/staking_token
+!packages/valory/contracts/staking_activity_checker
 packages/valory/protocols/
 packages/valory/skills/
 packages/valory/connections/*
@@ -21,7 +23,6 @@ memeooorr
 !packages/dvilela/agents/memeooorr
 !packages/dvilela/services/memeooorr
 packages/__pycache__/
-packages/dvilela/connections/kv_store
 packages/dvilela/protocols/kv_store
 __pycache__/
 

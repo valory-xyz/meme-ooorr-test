@@ -20,16 +20,21 @@
 
 """Test prompts"""
 
+import enum
 import json
 import os
 import pickle  # nosec
 import random
+import typing
+from dataclasses import dataclass
 
 import dotenv
 import google.generativeai as genai  # type: ignore
 
 from packages.dvilela.skills.memeooorr_abci.prompts import (
+    MECH_RESPONSE_SUBPROMPT,
     TOKEN_DECISION_PROMPT,
+    TWITTER_DECISION_PROMPT,
     build_token_action_schema,
 )
 
@@ -80,6 +85,7 @@ OTHER_TWEETS = [
         "retweet_count": 1000000,
     },
 ]
+
 
 tweet_responses_str = "\n\n".join(
     [
@@ -169,14 +175,120 @@ prompt = TOKEN_DECISION_PROMPT.format(
     ticker="ETH",
 )
 
-response = model.generate_content(
-    prompt,
-    generation_config=genai.types.GenerationConfig(
-        temperature=2.0,
-        response_mime_type="application/json",
-        response_schema=schema_class,
-    ),
+# response = model.generate_content(
+#     prompt,
+#     generation_config=genai.types.GenerationConfig(
+#         temperature=2.0,
+#         response_mime_type="application/json",
+#         response_schema=schema_class,
+#     ),
+# )
+
+# print(json.loads(response.text))
+
+
+class TwitterActionName(enum.Enum):
+    """TwitterActionName"""
+
+    NONE = "none"
+    TWEET = "tweet"
+    LIKE = "like"
+    RETWEET = "retweet"
+    REPLY = "reply"
+    QUOTE = "quote"
+    FOLLOW = "follow"
+
+
+class ToolActionName(enum.Enum):
+    """ToolActionName"""
+
+    OPEN_AI_GPT_3 = "openai-gpt-3.5-turbo"
+
+
+@dataclass(frozen=True)
+class TwitterAction:
+    """TwitterAction"""
+
+    action: TwitterActionName
+    selected_tweet_id: str
+    user_id: str
+    text: str
+
+
+@dataclass(frozen=True)
+class ToolAction:
+    """ToolAction"""
+
+    tool_name: ToolActionName
+    tool_input: str
+
+
+def build_twitter_action_schema() -> dict:
+    """Build a schema for Twitter action response"""
+    return {"class": pickle.dumps(TwitterAction).hex(), "is_list": True}
+
+
+def build_tool_action_schema() -> dict:
+    """Build a schema for Tool action response"""
+    return {"class": pickle.dumps(ToolAction).hex(), "is_list": False}
+
+
+@dataclass(frozen=True)
+class Decision:
+    """Decision"""
+
+    tool_action: typing.Optional[ToolAction]
+    tweet_action: typing.Optional[TwitterAction]
+
+
+def build_decision_schema() -> dict:
+    """Build a schema for the decision response"""
+    return {"class": pickle.dumps(Decision).hex(), "is_list": False}
+
+
+MECH_RESPONSE_SUBPROMPT = MECH_RESPONSE_SUBPROMPT.format(
+    mech_response=""""[
+        MechInteractionResponse(
+            data="11330f28690d7908c60c145c70bd49ecd79332a998e2508d76ef33d033b9cf69",
+            requestId=86725440349159450213892102625528816528314986604628557752902184657670368435189,
+            nonce="d54b1806-1967-4419-9425-62290e8f93ca",
+            result="\"Embracing digital literacy isn't just about mastering the latest tech trends; it's about understanding the ethical implications of AI and blockchain. As we navigate this new era, let's prioritize responsible use of technology to ensure a more equitable and sustainable future. #DigitalLiteracy #EthicalTech\"",
+            error="Unknown",
+            response_data=None,
+            sender_address=None,
+        )
+    ]"""
+)
+
+TEMP_TOOLS_LIST = """
+openai-gpt-3.5-turbo: This tool generates a tweet based on a given prompt using the OpenAI GPT-3.5-turbo model.
+"""
+
+twitter_prompt = TWITTER_DECISION_PROMPT.format(
+    persona=PERSONA,
+    previous_tweets=PREVIOUS_TWEETS,
+    other_tweets=tweet_responses_str,
+    mech_response=MECH_RESPONSE_SUBPROMPT,
+    time=TIME,
+    tools=TEMP_TOOLS_LIST,
 )
 
 
-print(json.loads(response.text))
+twitter_schema = build_decision_schema()
+twitter_schema_class = pickle.loads(bytes.fromhex(twitter_schema["class"]))  # nosec
+print("twitter:schema", twitter_schema_class)
+
+print("Twitter prompt:")
+print(twitter_prompt)
+
+twitter_response = model.generate_content(
+    twitter_prompt,
+    generation_config=genai.types.GenerationConfig(
+        temperature=2.0,
+        response_mime_type="application/json",
+        response_schema=twitter_schema_class,
+    ),
+)
+print("Twitter response:")
+# print(twitter_response.text)
+print(json.loads(twitter_response.text))

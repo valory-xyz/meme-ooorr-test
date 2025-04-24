@@ -33,6 +33,13 @@ class LoadDatabasePayload(BaseTxPayload):
 
 
 @dataclass(frozen=True)
+class CheckStakingPayload(BaseTxPayload):
+    """Represent a transaction payload for the CheckStakingRound."""
+
+    is_staking_kpi_met: Optional[bool]
+
+
+@dataclass(frozen=True)
 class PullMemesPayload(BaseTxPayload):
     """Represent a transaction payload for the PullMemesRound."""
 
@@ -51,6 +58,8 @@ class EngageTwitterPayload(BaseTxPayload):
     """Represent a transaction payload for the EngageTwitterRound."""
 
     event: str
+    mech_request: Optional[str]
+    tx_submitter: str
 
 
 @dataclass(frozen=True)
@@ -69,6 +78,7 @@ class ActionDecisionPayload(
     amount: Optional[float]
     tweet: Optional[str]
     new_persona: Optional[str]
+    timestamp: Optional[float] = 0
 
 
 @dataclass(frozen=True)
@@ -76,6 +86,7 @@ class ActionPreparationPayload(BaseTxPayload):
     """Represent a transaction payload for the ActionPreparationRound."""
 
     tx_hash: Optional[str]
+    tx_submitter: str
 
 
 @dataclass(frozen=True)
@@ -90,3 +101,35 @@ class CheckFundsPayload(BaseTxPayload):
     """Represent a transaction payload for the CheckFundsRound."""
 
     event: str
+
+
+@dataclass(frozen=True)
+class PostTxDecisionMakingPayload(BaseTxPayload):
+    """Represent a transaction payload for the PostTxDecisionMakingRound."""
+
+    event: str
+
+
+@dataclass(frozen=True)
+class CallCheckpointPayload(BaseTxPayload):
+    """A transaction payload for the checkpoint call."""
+
+    tx_submitter: str
+    tx_hash: Optional[str]
+
+
+@dataclass(frozen=True)
+class MechPayload(BaseTxPayload):
+    """Represent a transaction payload for Mech-related rounds.
+
+    Used for PostMechRequestRound, FailedMechRequestRound, and FailedMechResponseRound.
+    """
+
+    mech_for_twitter: bool
+
+
+@dataclass(frozen=True)
+class TransactionLoopCheckPayload(BaseTxPayload):
+    """A transaction payload for the checkpoint call."""
+
+    counter: int

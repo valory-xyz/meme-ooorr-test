@@ -32,8 +32,6 @@ AGENT_NAME = "memeooorr"
 
 PATH_TO_VAR = {
     # Chains
-    # "config/ledger_apis/ethereum/address": "ETHEREUM_LEDGER_RPC",
-    # "config/ledger_apis/ethereum/chain_id": "ETHEREUM_LEDGER_CHAIN_ID",
     "config/ledger_apis/base/address": "BASE_LEDGER_RPC",
     "config/ledger_apis/base/chain_id": "BASE_LEDGER_CHAIN_ID",
     # Params
@@ -45,25 +43,29 @@ PATH_TO_VAR = {
     "models/params/args/minimum_gas_balance": "MINIMUM_GAS_BALANCE",
     "models/params/args/min_feedback_replies": "MIN_FEEDBACK_REPLIES",
     "models/params/args/setup/safe_contract_address": "SAFE_CONTRACT_ADDRESS",
-    "models/params/args/feedback_period_min_hours": "FEEDBACK_PERIOD_MIN_HOURS",
-    "models/params/args/feedback_period_max_hours": "FEEDBACK_PERIOD_MAX_HOURS",
     "models/params/args/twitter_username": "TWIKIT_USERNAME",
     "models/params/args/persona": "PERSONA",
     "models/params/args/skip_engagement": "SKIP_ENGAGEMENT",
+    "models/params/args/staking_token_contract_address": "STAKING_TOKEN_CONTRACT_ADDRESS",
+    "models/params/args/activity_checker_contract_address": "ACTIVITY_CHECKER_CONTRACT_ADDRESS",
     # Twikit connection
     "config/twikit_username": "TWIKIT_USERNAME",
     "config/twikit_email": "TWIKIT_EMAIL",
     "config/twikit_password": "TWIKIT_PASSWORD",
     "config/twikit_cookies": "TWIKIT_COOKIES",
-    "config/twikit_cookies_path": "TWIKIT_COOKIES_PATH",
     "config/twikit_disable_tweets": "TWIKIT_DISABLE_TWEETS",
     "config/twikit_skip_connection": "TWIKIT_SKIP_CONNECTION",
     # Genai connection
     "config/genai_api_key": "GENAI_API_KEY",
-    # DB
-    "config/db_path": "DB_PATH",
+    # Store
+    "config/store_path": "STORE_PATH",
     # Mirror DB
     "config/mirror_db_base_url": "MIRROR_DB_BASE_URL",
+    # Fireworks API
+    "models/params/args/alternative_model_for_tweets": "ALTERNATIVE_MODEL_FOR_TWEETS",
+    "models/params/args/fireworks_api_key": "FIREWORKS_API_KEY",
+    # Cooldown
+    "models/params/args/summon_cooldown_seconds": "SUMMON_COOLDOWN_SECONDS",
 }
 
 CONFIG_REGEX = r"\${.*?:(.*)}"
@@ -73,35 +75,36 @@ def find_and_replace(config, path, new_value):
     """Find and replace a variable"""
 
     # Find the correct section where this variable fits
-    section_index = None
+    section_indexes = []
     for i, section in enumerate(config):
         value = section
         try:
             for part in path:
                 value = value[part]
-            section_index = i
+            section_indexes.append(i)
         except KeyError:
             continue
 
-    if section_index is None:
+    if not section_indexes:
         raise ValueError(f"Could not update {path}")
 
     # To persist the changes in the config variable,
     # access iterating the path parts but the last part
-    sub_dic = config[section_index]
-    for part in path[:-1]:
-        sub_dic = sub_dic[part]
+    for section_index in section_indexes:
+        sub_dic = config[section_index]
+        for part in path[:-1]:
+            sub_dic = sub_dic[part]
 
-    # Now, get the whole string value
-    old_str_value = sub_dic[path[-1]]
+        # Now, get the whole string value
+        old_str_value = sub_dic[path[-1]]
 
-    # Extract the old variable value
-    match = re.match(CONFIG_REGEX, old_str_value)
-    old_var_value = match.groups()[0]
+        # Extract the old variable value
+        match = re.match(CONFIG_REGEX, old_str_value)
+        old_var_value = match.groups()[0]
 
-    # Replace the old variable with the secret value in the complete string
-    new_str_value = old_str_value.replace(old_var_value, new_value)
-    sub_dic[path[-1]] = new_str_value
+        # Replace the old variable with the secret value in the complete string
+        new_str_value = old_str_value.replace(old_var_value, new_value)
+        sub_dic[path[-1]] = new_str_value
 
     return config
 

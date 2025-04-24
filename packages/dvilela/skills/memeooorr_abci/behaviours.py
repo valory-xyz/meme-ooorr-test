@@ -23,14 +23,23 @@ from typing import Set, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.chain import (
     ActionPreparationBehaviour,
+    CallCheckpointBehaviour,
     CheckFundsBehaviour,
+    CheckStakingBehaviour,
+    PostTxDecisionMakingBehaviour,
     PullMemesBehaviour,
+    TransactionLoopCheckBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.db import (
     LoadDatabaseBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.llm import (
     ActionDecisionBehaviour,
+)
+from packages.dvilela.skills.memeooorr_abci.behaviour_classes.mech import (
+    FailedMechRequestBehaviour,
+    FailedMechResponseBehaviour,
+    PostMechResponseBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.twitter import (
     ActionTweetBehaviour,
@@ -51,11 +60,18 @@ class MemeooorrRoundBehaviour(AbstractRoundBehaviour):
     abci_app_cls = MemeooorrAbciApp  # type: ignore
     behaviours: Set[Type[BaseBehaviour]] = [  # type: ignore
         LoadDatabaseBehaviour,
-        CollectFeedbackBehaviour,
-        CheckFundsBehaviour,
+        CheckStakingBehaviour,
         PullMemesBehaviour,
+        CollectFeedbackBehaviour,
+        EngageTwitterBehaviour,
         ActionDecisionBehaviour,
         ActionPreparationBehaviour,
+        CheckFundsBehaviour,
         ActionTweetBehaviour,
-        EngageTwitterBehaviour,
+        PostTxDecisionMakingBehaviour,
+        CallCheckpointBehaviour,
+        TransactionLoopCheckBehaviour,
+        PostMechResponseBehaviour,
+        FailedMechRequestBehaviour,
+        FailedMechResponseBehaviour,
     ]

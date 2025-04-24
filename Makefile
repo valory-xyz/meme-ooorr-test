@@ -75,7 +75,7 @@ generators:
 .PHONY: common-checks-1
 common-checks-1:
 	tomte check-copyright --author author_name
-	tomte check-doc-links
+	tomte check-doc-links --url-skips https://soft-sly-slug.base-mainnet.quiknode.pro/f13d998d9d68685faeee903499e15b4b386a8b1c/
 	tox -p -e check-hash -e check-packages -e check-doc-hashes
 
 .PHONY: fix-abci-app-specs
@@ -113,13 +113,19 @@ push-image:
 	@AGENT_HASH=$$(jq -r ".dev[\"agent/dvilela/memeooorr/0.1.0\"]" packages/packages.json) && \
 	SERVICE_HASH=$$(jq -r ".dev[\"service/dvilela/memeooorr/0.1.0\"]" packages/packages.json) && \
 	IMAGE_ID=$$(docker image ls | awk -v tag="$$AGENT_HASH" '$$2 == tag {print $$3}' | head -n 1) && \
-	echo "Tagging image $$IMAGE_ID -> valory/oar-memeooorr:$$AGENT_HASH" && \
-	docker tag $$IMAGE_ID valory/oar-memeooorr:$$AGENT_HASH && \
-	docker push valory/oar-memeooorr:$$AGENT_HASH
+	echo "Tagging image $$IMAGE_ID -> dvilela/oar-memeooorr:$$AGENT_HASH" && \
+	docker tag $$IMAGE_ID dvilela/oar-memeooorr:$$AGENT_HASH && \
+	docker push dvilela/oar-memeooorr:$$AGENT_HASH
+
+.PHONY: push-packages
+push-packages:
+	make clean  && \
+	autonomy push-all
 
 .PHONY: publish
 publish:
-	bash build_image.sh
+	make push-packages  && \
+	bash build_image.sh && \
 	make push-image
 
 .PHONY: deploy-contracts

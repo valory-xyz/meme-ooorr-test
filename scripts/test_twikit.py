@@ -22,11 +22,9 @@
 
 
 import asyncio
-import json
 import os
 import random
 import time
-from pathlib import Path
 from typing import Any, Dict
 
 import dotenv
@@ -63,14 +61,26 @@ async def password_login():
 
 
 async def cookie_login():
-    """Login via password"""
-    with open(
-        Path(os.getenv("TWIKIT_COOKIES_PATH")), "r", encoding="utf-8"
-    ) as cookie_file:
-        cookies = json.load(cookie_file)
-        client = twikit.Client(language="en-US")
-        client.set_cookies(cookies)
-        return client
+    """Login via cookie"""
+
+    client = twikit.Client(language="en-US")
+    await client.login(
+        auth_info_1=os.getenv("TWIKIT_USERNAME"),
+        auth_info_2=os.getenv("TWIKIT_EMAIL"),
+        password=os.getenv("TWIKIT_PASSWORD"),
+        cookies_file=os.getenv("TWIKIT_COOKIES_PATH"),
+    )
+    return client
+
+
+async def validate_login() -> None:
+    """Stress test"""
+    client = await cookie_login()
+    user = await client.get_user_by_screen_name("autonolas")
+    if user.id != "1450081635559428107":
+        print("Error")
+    else:
+        print("OK")
 
 
 async def get_tweets(client) -> None:
@@ -120,7 +130,8 @@ async def is_suspended() -> None:
 async def search_tweet() -> None:
     """Search tweet"""
     client = await cookie_login()
-    await client.search_tweet(query="$OLAS", product="Top", count=5)
+    tweets = await client.search_tweet(query="$OLAS", product="Top", count=5)
+    return tweets
 
 
-print(asyncio.run(search_tweet()))
+print(asyncio.run(validate_login()))

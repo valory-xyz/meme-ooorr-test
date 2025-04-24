@@ -21,6 +21,7 @@
 """Test subgraph"""
 
 
+import json
 import re
 
 import requests
@@ -48,6 +49,7 @@ query Tokens {
       memeToken
       name
       symbol
+      hearters
     }
   }
 }
@@ -73,7 +75,7 @@ HTTP_OK = 200
 
 
 def get_meme_coins_from_subgraph():
-    """Get a list of meme coins"""
+    """Get a list of meme coins with formatted output"""
 
     url = "https://agentsfun-indexer-production.up.railway.app"
 
@@ -107,6 +109,7 @@ def get_meme_coins_from_subgraph():
             "meme_nonce": int(t["memeNonce"]),
             "summon_time": int(t["summonTime"]),
             "token_nonce": int(t["memeNonce"]),
+            "hearters": t["hearters"],
         }
         for t in response_json["data"]["memeTokens"]["items"]
         if t["chain"] == "base"  # TODO: adapt to Celo
@@ -157,4 +160,7 @@ def get_memeooorr_handles_from_subgraph():
     return handles
 
 
-print(get_meme_coins_from_subgraph())
+meme_coin_data = get_meme_coins_from_subgraph()
+
+# Print the meme coin data in a formatted JSON output
+print(json.dumps(meme_coin_data, indent=4))
