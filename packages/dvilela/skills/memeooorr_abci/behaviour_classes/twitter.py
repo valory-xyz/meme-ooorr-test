@@ -68,7 +68,7 @@ class InteractionContext:
     """Holds the context required for processing multiple Twitter interactions within a single period."""
 
     pending_tweets: dict
-    previous_tweets: dict
+    previous_tweets: Optional[List[dict]]
     persona: str
     new_interacted_tweet_ids: List[int]
 
@@ -341,6 +341,20 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             return tweets[:limit]
 
         return None
+
+
+def _format_previous_tweets_str(tweets: Optional[List[Dict]]) -> str:
+    """Format the list of previous tweets into a string for the prompt."""
+    if not tweets:
+        return "No previous tweets"
+
+    random.shuffle(tweets)
+    return "\n\n".join(
+        [
+            f"tweet_id: {tweet['tweet_id']}\ntweet_text: {tweet['text']}\ntime: {datetime.fromtimestamp(tweet['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}"
+            for tweet in tweets
+        ]
+    )
 
 
 class CollectFeedbackBehaviour(
@@ -748,144 +762,189 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
     def _prepare_prompt_data(
         self, pending_tweets: dict, persona: str
-    ) -> Generator[None, None, Tuple[str, dict]]:
+    ) -> Generator[None, None, Tuple[str, Optional[List[Dict]]]]:
         """Prepare the prompt data for LLM decision making."""
-        previous_tweets = {}
-
         if self.synchronized_data.mech_for_twitter:
-            # Read saved data for mech response
-            previous_tweets = yield from self._get_stored_kv_data(
-                "previous_tweets_for_tw_mech", {}
-            )
-            other_tweets = yield from self._get_stored_kv_data(
-                "other_tweets_for_tw_mech", {}
-            )
-
-            # Prepare prompt with mech response
-            mech_responses = self.synchronized_data.mech_responses
-            if not mech_responses:
-                self.context.logger.error("No mech responses found")
-
-            # Determine media type summary for the prompt
-            mech_summary = "The mech response processing failed, proceed with tweet_with_media action."  # Default/Fallback
-            try:
-                media_info_data = yield from self._read_kv(keys=("latest_media_info",))
-                if (
-                    media_info_data
-                    and "latest_media_info" in media_info_data
-                    and media_info_data["latest_media_info"]
-                ):
-                    media_info = json.loads(media_info_data["latest_media_info"])
-                    media_type = media_info.get("type")
-                    if media_type == "image":
-                        mech_summary = "The previous tool execution generated an image."
-                    elif media_type == "video":
-                        mech_summary = "The previous tool execution generated a video."
-                    else:
-                        self.context.logger.warning(
-                            f"Found media info in KV store, but type was unexpected: {media_type}"
-                        )
-                        # Keep the fallback message if type is not image/video
-                else:
-                    self.context.logger.warning(
-                        "Could not find valid 'latest_media_info' in KV store."
-                    )
-
-            except json.JSONDecodeError:
-                self.context.logger.error(
-                    "Failed to parse 'latest_media_info' JSON from KV store."
-                )
-            except Exception as e:
-                self.context.logger.error(
-                    f"Error reading or processing 'latest_media_info' from KV: {e}"
-                )
-
-            # Prepare prompt with mech response summary
-            subprompt_with_mech_response = MECH_RESPONSE_SUBPROMPT.format(
-                mech_response=mech_summary
-            )
-
-            prompt = TWITTER_DECISION_PROMPT.format(
-                persona=persona,
-                previous_tweets=previous_tweets,
-                other_tweets=other_tweets,
-                mech_response=subprompt_with_mech_response,
-                tools=self.generate_mech_tool_info(),
-                time=self.get_sync_time_str(),
-                extra_command="",  # disabling extra command in this case as we are in mech submission path
-            )
-
-            # Clear stored data
-            self.context.logger.info(
-                "Clearing all the pending tweets, interacted tweet id, previous tweets and other tweets from db"
-            )
-            yield from self._write_kv({"previous_tweets_for_tw_mech": ""})
-            yield from self._write_kv({"other_tweets_for_tw_mech": ""})
-            yield from self._write_kv({"interacted_tweet_ids_for_tw_mech": ""})
-            yield from self._write_kv({"pending_tweets_for_tw_mech": ""})
+            prompt, previous_tweets = yield from self._prepare_mech_prompt_data(persona)
         else:
-            # Standard approach
-            self.context.logger.info(
-                "No Mech for twitter detected, using prompt for decision and introducing tools to LLM"
+            prompt, previous_tweets = yield from self._prepare_standard_prompt_data(
+                pending_tweets, persona
             )
-
-            # Prepare other tweets data
-            other_tweets = "\n\n".join(
-                [
-                    f"tweet_id: {t_id}\ntweet_text: {t_data['text']}\nuser_id: {t_data['user_id']}"
-                    for t_id, t_data in dict(
-                        random.sample(list(pending_tweets.items()), len(pending_tweets))
-                    ).items()
-                ]
-            )
-
-            # Get previous tweets
-            tweets = yield from self.get_previous_tweets()
-            tweets = tweets[-5:] if tweets else None
-
-            if tweets:
-                random.shuffle(tweets)
-                previous_tweets_str = "\n\n".join(
-                    [
-                        f"tweet_id: {tweet['tweet_id']}\ntweet_text: {tweet['text']}\ntime: {datetime.fromtimestamp(tweet['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}"
-                        for tweet in tweets
-                    ]
-                )
-            else:
-                previous_tweets_str = "No previous tweets"
-
-            previous_tweets = tweets if isinstance(tweets, dict) else {}
-
-            is_staking_kpi_met = self.synchronized_data.is_staking_kpi_met
-            extra_command = (
-                ENFORCE_ACTION_COMMAND if is_staking_kpi_met is False else ""
-            )
-
-            prompt = TWITTER_DECISION_PROMPT.format(
-                persona=persona,
-                previous_tweets=previous_tweets_str,
-                other_tweets=other_tweets,
-                mech_response="",
-                tools=self.generate_mech_tool_info(),
-                time=self.get_sync_time_str(),
-                extra_command=extra_command,
-            )
-
-            # Save data for future mech responses
-            self.context.logger.info("Saving previous tweets and other tweets to db")
-            yield from self._write_kv(
-                {"previous_tweets_for_tw_mech": json.dumps(tweets)}
-            )
-            self.context.logger.info("Wrote previous tweets to db")
-            yield from self._write_kv(
-                {"other_tweets_for_tw_mech": json.dumps(pending_tweets)}
-            )
-            self.context.logger.info("Wrote other tweets to db")
 
         # saving the prompt to the kv store for retrying if llm response is invalid
         yield from self._write_kv({"last_prompt": prompt})
 
         return prompt, previous_tweets
+
+    def _prepare_standard_prompt_data(
+        self, pending_tweets: dict, persona: str
+    ) -> Generator[None, None, Tuple[str, Optional[List[Dict]]]]:
+        """Prepare prompt data when mech_for_twitter is False."""
+        self.context.logger.info(
+            "Standard engagement: using prompt for decision and introducing tools to LLM"
+        )
+
+        # Prepare other tweets data
+        other_tweets = "\n\n".join(
+            [
+                f"tweet_id: {t_id}\ntweet_text: {t_data['text']}\nuser_id: {t_data['user_id']}"
+                for t_id, t_data in dict(
+                    random.sample(list(pending_tweets.items()), len(pending_tweets))
+                ).items()
+            ]
+        )
+
+        # Get previous tweets
+        tweets = yield from self.get_previous_tweets()
+        tweets = tweets[-5:] if tweets else None
+        previous_tweets_str = _format_previous_tweets_str(tweets)
+        # Keep original list/dict structure for return value, if needed later
+        previous_tweets_for_return = (
+            tweets if isinstance(tweets, (list, dict)) else None
+        )
+
+        is_staking_kpi_met = self.synchronized_data.is_staking_kpi_met
+        extra_command = ENFORCE_ACTION_COMMAND if is_staking_kpi_met is False else ""
+
+        prompt = TWITTER_DECISION_PROMPT.format(
+            persona=persona,
+            previous_tweets=previous_tweets_str,
+            other_tweets=other_tweets,
+            mech_response="",
+            tools=self.generate_mech_tool_info(),
+            time=self.get_sync_time_str(),
+            extra_command=extra_command,
+        )
+
+        # Save data for future mech responses
+        yield from self._save_standard_kv_data(tweets, pending_tweets)
+
+        return prompt, previous_tweets_for_return
+
+    def _save_standard_kv_data(
+        self, tweets: Optional[List[Dict]], pending_tweets: dict
+    ) -> Generator[None, None, None]:
+        """Save data to KV store for potential future mech responses."""
+        self.context.logger.info(
+            "Saving standard prompt data (previous tweets, pending tweets) to KV store for potential future mech use"
+        )
+        yield from self._write_kv({"previous_tweets_for_tw_mech": json.dumps(tweets)})
+        yield from self._write_kv(
+            {"other_tweets_for_tw_mech": json.dumps(pending_tweets)}
+        )
+
+    def _prepare_mech_prompt_data(
+        self, persona: str
+    ) -> Generator[None, None, Tuple[str, Optional[List[Dict]]]]:
+        """Prepare prompt data when mech_for_twitter is True."""
+        # Read saved data for mech response
+        previous_tweets_data = yield from self._get_stored_kv_data(
+            "previous_tweets_for_tw_mech", []
+        )
+        other_tweets_data = yield from self._get_stored_kv_data(
+            "other_tweets_for_tw_mech", {}
+        )
+
+        # Ensure previous_tweets is Optional[List[Dict]]
+        previous_tweets = (
+            previous_tweets_data if isinstance(previous_tweets_data, list) else None
+        )
+        previous_tweets_str = _format_previous_tweets_str(previous_tweets)
+
+        # Ensure other_tweets is str (formatted string)
+        other_tweets_str = (
+            "\n\n".join(
+                [
+                    f"tweet_id: {t_id}\ntweet_text: {t_data['text']}\nuser_id: {t_data['user_id']}"
+                    for t_id, t_data in other_tweets_data.items()
+                ]
+            )
+            if isinstance(other_tweets_data, dict)
+            else "No other tweets found"
+        )
+
+        # Check mech responses (optional, for logging or validation)
+        if not self.synchronized_data.mech_responses:
+            self.context.logger.error("No mech responses found")
+
+        # Determine media type summary for the prompt
+        mech_summary = yield from self._determine_mech_summary()
+
+        # Prepare prompt with mech response summary
+        subprompt_with_mech_response = MECH_RESPONSE_SUBPROMPT.format(
+            mech_response=mech_summary
+        )
+
+        prompt = TWITTER_DECISION_PROMPT.format(
+            persona=persona,
+            previous_tweets=previous_tweets_str,
+            other_tweets=other_tweets_str,
+            mech_response=subprompt_with_mech_response,
+            tools=self.generate_mech_tool_info(),
+            time=self.get_sync_time_str(),
+            extra_command="",
+        )
+
+        # Clear stored data
+        yield from self._clear_mech_kv_data()
+
+        return prompt, previous_tweets
+
+    def _clear_mech_kv_data(self) -> Generator[None, None, None]:
+        """Clear KV store entries related to mech twitter interaction."""
+        self.context.logger.info(
+            "Clearing mech-related twitter data from KV store: previous_tweets, other_tweets, interacted_ids, pending_tweets"
+        )
+        yield from self._write_kv({"previous_tweets_for_tw_mech": ""})
+        yield from self._write_kv({"other_tweets_for_tw_mech": ""})
+        yield from self._write_kv({"interacted_tweet_ids_for_tw_mech": ""})
+        yield from self._write_kv({"pending_tweets_for_tw_mech": ""})
+
+    def _get_latest_media_info(self) -> Generator[None, None, Optional[Dict]]:
+        """Reads and parses the 'latest_media_info' from the KV store."""
+        try:
+            media_info_data = yield from self._read_kv(keys=("latest_media_info",))
+            if (
+                not media_info_data
+                or "latest_media_info" not in media_info_data
+                or not media_info_data["latest_media_info"]
+            ):
+                self.context.logger.warning(
+                    "Could not find valid 'latest_media_info' in KV store."
+                )
+                return None
+
+            media_info = json.loads(media_info_data["latest_media_info"])
+            return media_info
+        except json.JSONDecodeError:
+            self.context.logger.error(
+                "Failed to parse 'latest_media_info' JSON from KV store."
+            )
+            return None
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(
+                f"Error reading or processing 'latest_media_info' from KV: {e}"
+            )
+            return None
+
+    def _determine_mech_summary(self) -> Generator[None, None, str]:
+        """Determine the mech summary string based on media info in KV store."""
+        mech_summary = "The mech response processing failed, proceed with tweet_with_media action."  # Default/Fallback
+        media_info = yield from self._get_latest_media_info()
+
+        if media_info:
+            media_type = media_info.get("type")
+            if media_type == "image":
+                mech_summary = "The previous tool execution generated an image."
+            elif media_type == "video":
+                mech_summary = "The previous tool execution generated a video."
+            else:
+                self.context.logger.warning(
+                    f"Found media info in KV store, but type was unexpected: {media_type}"
+                )
+        # If media_info is None, the error/warning is already logged by _get_latest_media_info
+
+        return mech_summary
 
     def _get_stored_kv_data(
         self, key: str, default_value: Any
@@ -1020,7 +1079,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         self,
         json_response: dict,
         pending_tweets: dict,
-        previous_tweets: dict,
+        previous_tweets: Optional[List[dict]],
         persona: str,
         new_interacted_tweet_ids: List[int],
     ) -> Generator[None, None, Tuple[str, List, List]]:
@@ -1101,37 +1160,34 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
     def _handle_media_tweet(self, text: str) -> Generator[None, None, bool]:
         """Handles the 'tweet_with_media' action, including fetching, uploading, posting, and clearing KV."""
         # Read the combined media info from kv store
-        media_info_data = yield from self._read_kv(keys=("latest_media_info",))
-        media_info = None
-        if media_info_data and "latest_media_info" in media_info_data:
-            try:
-                media_info = json.loads(media_info_data["latest_media_info"])
-            except json.JSONDecodeError:
-                self.context.logger.error(
-                    "Failed to parse media_info JSON from KV store"
-                )
-                return False  # Indicate failure
+        media_info = yield from self._get_latest_media_info()
 
-        if not media_info or "path" not in media_info or "type" not in media_info:
-            self.context.logger.error(
-                "No valid media info (path and type) found in KV store for tweet_with_media action"
-            )
+        if not media_info:
+            # Error already logged by helper
             return False  # Indicate failure
 
-        media_path = media_info["path"]
-        media_type = media_info["type"]
+        media_path = media_info.get("path")
+        media_type = media_info.get("type")
+
+        if not media_path or not media_type:
+            self.context.logger.error(
+                "Media info from KV store is missing 'path' or 'type'."
+            )
+            # Clear potentially incomplete info? Or leave it? Let's clear it for safety.
+            yield from self._write_kv({"latest_media_info": ""})
+            return False  # Indicate failure
 
         self.context.logger.info(
             f"Extracted media path: {media_path}, type: {media_type}"
         )
 
-        # Clear the media info from KV store immediately after reading
+        # Clear the media info from KV store *after* successfully extracting path and type
         yield from self._write_kv({"latest_media_info": ""})
         self.context.logger.info("Cleared latest_media_info from KV store.")
 
-        # Ensure media_path is a valid string path
-        if not media_path or not isinstance(media_path, str):
-            self.context.logger.error("Invalid media path found in KV store")
+        # Ensure media_path is a valid string path (already checked by .get implicitly somewhat)
+        if not isinstance(media_path, str):
+            self.context.logger.error(f"Invalid media path type: {type(media_path)}")
             return False  # Indicate failure
 
         # Upload the media first
@@ -1142,6 +1198,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         if not media_id:
             self.context.logger.error(f"Failed to upload media from path: {media_path}")
+            # Should we try to restore the KV entry here? Probably not needed.
             return False  # Indicate failure
 
         # Post tweet with the uploaded media ID
@@ -1196,14 +1253,17 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         return True
 
     def _handle_new_tweet(
-        self, text: str, previous_tweets: dict, persona: str
+        self, text: str, previous_tweets: Optional[List[Dict]], persona: str
     ) -> Generator[None, None, None]:
         """Handle creating a new tweet."""
+        # Format the previous tweets list into a string for the prompt
+        previous_tweets_str = _format_previous_tweets_str(previous_tweets)
+
         # Optionally, replace the tweet with one generated by the alternative model
         new_text = yield from self.replace_tweet_with_alternative_model(
             ALTERNATIVE_MODEL_TWITTER_PROMPT.format(
                 persona=persona,
-                previous_tweets=previous_tweets,
+                previous_tweets=previous_tweets_str,
             )
         )
         text = new_text or text

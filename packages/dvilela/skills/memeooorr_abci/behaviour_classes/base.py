@@ -182,8 +182,9 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
             return None
         return connection_method
 
+    @staticmethod
     def _build_mirrordb_request_payload(
-        self, connection_method: str, endpoint: str, **kwargs: Any
+        connection_method: str, endpoint: str, **kwargs: Any
     ) -> Dict[str, Any]:
         """Build the payload for the MirrorDB SRR request."""
         connection_kwargs = {
@@ -206,7 +207,7 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
         srr_dialogue = cast(SrrDialogue, srr_dialogue)
         # Assuming self.behaviour exists and has do_connection_request
         response = yield from self.behaviour.do_connection_request(
-            srr_message, srr_dialogue
+            srr_message, srr_dialogue  # type: ignore
         )
         return response
 
@@ -216,12 +217,15 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
         """Parse the JSON response from MirrorDB."""
         try:
             # Check if response_message is None before accessing payload
+            self.context.logger.info(
+                f"Response message in _parse_mirrordb_response: {response_message}"
+            )
             if response_message is None:
                 self.context.logger.error(
                     "Received None response message from MirrorDB."
                 )
                 return None
-            return json.loads(response_message.payload)
+            return json.loads(response_message.payload)  # type: ignore
         except json.JSONDecodeError as e:
             self.context.logger.error(
                 f"Failed to decode JSON response from MirrorDB: {e}. Payload: {getattr(response_message, 'payload', 'N/A')}"
@@ -271,7 +275,7 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
         if not connection_method:
             return None
 
-        payload = self._build_mirrordb_request_payload(
+        payload = MirrorDBHelper._build_mirrordb_request_payload(
             connection_method, endpoint, **kwargs
         )
 
@@ -370,12 +374,73 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
 
         return agent_type_response
 
+    def _attempt_create_agent_registry(
+        self, agent_registry_data: Dict[str, Any]
+    ) -> Generator[None, None, Optional[Dict[str, Any]]]:
+        """Attempt to create an agent registry entry via POST."""
+        self.context.logger.info(
+            f"Attempting to create agent registry entry for address {self.context.agent_address}..."
+        )
+        agent_registry_response = yield from self.call_mirrordb(
+            "POST",
+            endpoint="/api/agent-registry/",
+            data=agent_registry_data,
+        )
+
+        if agent_registry_response is None:
+            self.context.logger.info(
+                "Agent registry creation POST failed (potentially address already exists)."
+            )
+            return None
+
+        if "agent_id" not in agent_registry_response:
+            self.context.logger.error(
+                "Agent registry creation response missing 'agent_id'. This is unexpected."
+            )
+            return None
+
+        self.context.logger.info(
+            f"Agent registry entry created successfully: {agent_registry_response}"
+        )
+        return agent_registry_response
+
+    def _attempt_fetch_agent_registry_by_address(
+        self,
+    ) -> Generator[None, None, Optional[Dict[str, Any]]]:
+        """Attempt to fetch an existing agent registry entry via GET by address."""
+        fetch_endpoint = f"/api/agent-registry/address/{self.context.agent_address}"
+        self.context.logger.info(
+            f"Attempting to fetch existing entry for address {self.context.agent_address} from {fetch_endpoint}..."
+        )
+        existing_agent_response = yield from self.call_mirrordb(
+            "GET", endpoint=fetch_endpoint
+        )
+
+        if existing_agent_response is None:
+            # call_mirrordb logs 404 or other errors
+            self.context.logger.error(
+                f"Failed to fetch agent registry entry from {fetch_endpoint}."
+            )
+            return None
+
+        if "agent_id" not in existing_agent_response:
+            self.context.logger.error(
+                f"Fetched existing agent registry entry from {fetch_endpoint} is missing 'agent_id'."
+            )
+            return None
+
+        self.context.logger.info(
+            f"Successfully fetched existing agent registry entry: {existing_agent_response}"
+        )
+        return existing_agent_response
+
     def _create_agent_registry_entry(
         self, agent_type_id: int
     ) -> Generator[None, None, Optional[Dict[str, Any]]]:
         """Create or get an agent registry entry.
 
-        If creation fails because the address exists, fetch the existing entry.
+        First attempts to create the entry. If creation fails (e.g., address exists),
+        it attempts to fetch the existing entry by address.
 
         Args:
             agent_type_id: The ID of the agent type
@@ -388,55 +453,33 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
             "type_id": agent_type_id,
             "eth_address": self.context.agent_address,
         }
-        self.context.logger.info(
-            f"Attempting to create agent registry entry for address {self.context.agent_address}..."
-        )
-        agent_registry_response = yield from self.call_mirrordb(
-            "POST",
-            endpoint="/api/agent-registry/",
-            data=agent_registry_data,
+
+        # Attempt to create the agent registry entry
+        agent_registry_response = yield from self._attempt_create_agent_registry(
+            agent_registry_data
         )
 
+        # If creation was successful, return the response
         if agent_registry_response is not None:
-            self.context.logger.info(
-                f"Agent registry entry created successfully: {agent_registry_response}"
-            )
-            # Check if agent_id exists in the response, although it should for a successful POST
-            if "agent_id" not in agent_registry_response:
-                self.context.logger.error(
-                    "Agent registry creation response missing 'agent_id'. This is unexpected."
-                )
-                return None
             return agent_registry_response
-        else:
-            # POST failed. Log indicates it might be due to existing address (409) or other error.
-            # Try fetching by address.
-            self.context.logger.info(
-                "Agent registry creation failed (potentially address already exists). "
-                f"Attempting to fetch existing entry for address {self.context.agent_address}..."
-            )
-            fetch_endpoint = f"/api/agent-registry/address/{self.context.agent_address}"
-            existing_agent_response = yield from self.call_mirrordb(
-                "GET", endpoint=fetch_endpoint
-            )
 
-            if existing_agent_response is not None:
-                self.context.logger.info(
-                    f"Successfully fetched existing agent registry entry: {existing_agent_response}"
-                )
-                # Ensure the fetched response has the agent_id
-                if "agent_id" not in existing_agent_response:
-                    self.context.logger.error(
-                        f"Fetched existing agent registry entry from {fetch_endpoint} is missing 'agent_id'."
-                    )
-                    return None
-                return existing_agent_response
-            else:
-                # GET also failed (could be 404 if registration *truly* failed, or another error)
-                self.context.logger.error(
-                    f"Failed to create OR fetch agent registry entry for address {self.context.agent_address}."
-                )
-                return None
+        # If creation failed (returned None), attempt to fetch the existing entry
+        self.context.logger.info(
+            "Creation failed, attempting to fetch existing entry by address."
+        )
+        existing_agent_response = (
+            yield from self._attempt_fetch_agent_registry_by_address()
+        )
+
+        # If fetching failed, log the final error and return None
+        if existing_agent_response is None:
+            self.context.logger.error(
+                f"Failed to create OR fetch agent registry entry for address {self.context.agent_address}."
+            )
+            return None
+
+        # Return the fetched existing entry
+        return existing_agent_response
 
     def _create_or_get_attribute_definition(
         self,
@@ -594,13 +637,14 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
             )
             config_data[config_key] = attr_def_id
             return attr_def_id
-        else:
-            self.context.logger.error(
-                f"Could not find or create attribute definition {params.attr_def_name!r}. Response: {attr_def_response}"
-            )
-            # Set the config key to None to indicate failure for this specific attribute
-            config_data[config_key] = None
-            return None
+
+        # Code below this line was previously inside the 'else' block
+        self.context.logger.error(
+            f"Could not find or create attribute definition {params.attr_def_name!r}. Response: {attr_def_response}"
+        )
+        # Set the config key to None to indicate failure for this specific attribute
+        config_data[config_key] = None
+        return None
 
     def _get_existing_username_attribute(
         self, agent_id: int, username_attr_def_id: int
@@ -657,12 +701,12 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
                 f"Successfully updated username attribute for agent {agent_id} (attribute {attribute_id})."
             )
             return True
-        else:
-            # Log includes MirrorDB API error if available
-            self.context.logger.error(
-                f"Failed to update username attribute for agent {agent_id} (attribute {attribute_id})."
-            )
-            return False
+
+        # Log includes MirrorDB API error if available
+        self.context.logger.error(
+            f"Failed to update username attribute for agent {agent_id} (attribute {attribute_id})."
+        )
+        return False
 
     def _create_username_attribute_instance_via_post(
         self, agent_id: int, username_attr_def_id: int, current_twitter_username: str
@@ -703,11 +747,10 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
                 f"Successfully created username attribute for agent {agent_id}."
             )
             return True
-        else:
-            self.context.logger.error(
-                f"Failed to create username attribute for agent {agent_id}."
-            )
-            return False
+        self.context.logger.error(
+            f"Failed to create username attribute for agent {agent_id}."
+        )
+        return False
 
     def _check_and_update_username_attribute(  # pylint: disable=too-many-return-statements
         self,
@@ -746,7 +789,7 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
 
             # Update required
             self.context.logger.warning(
-                f"Stored username '{stored_username}' differs from current '{current_twitter_username}'. Updating..."
+                f"Stored username {stored_username} differs from current {current_twitter_username}. Updating..."
             )
             # Pass username_attr_def_id to the update method
             yield from self._update_username_attribute_instance(
@@ -928,7 +971,7 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
         """Gets and potentially parses the current Twitter User ID from cookies."""
         try:
             raw_id = (
-                yield from self.behaviour._get_twitter_user_id_from_cookie()
+                yield from self.behaviour.get_twitter_user_id_from_cookie()
             )  # Use the base behaviour's method
 
             if raw_id and isinstance(raw_id, str) and "u=" in raw_id:
@@ -936,30 +979,25 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
                 parsed_id = raw_id.split("u=")[-1]
                 if parsed_id.isdigit():
                     return parsed_id
-                else:
-                    self.context.logger.error(
-                        f"Parsed Twitter User ID is not numeric: {parsed_id} (from raw: {raw_id})"
-                    )
-                    return None
-            elif raw_id and isinstance(raw_id, str) and raw_id.isdigit():
-                # Assuming it might just be the number directly
-                return raw_id
-            else:
+
                 self.context.logger.error(
-                    f"Unexpected format or type for Twitter User ID from cookie: {raw_id} ({type(raw_id)}) "
+                    f"Parsed Twitter User ID is not numeric: {parsed_id} (from raw: {raw_id})"
                 )
                 return None
+            if raw_id and isinstance(raw_id, str) and raw_id.isdigit():
+                # Assuming it might just be the number directly
+                return raw_id
+
+            # If raw_id is not None but doesn't match expected formats
+            self.context.logger.error(
+                f"Unexpected format or type for Twitter User ID from cookie: {raw_id} ({type(raw_id)}) "
+            )
+            return None
 
         except ValueError as e:
             # _get_twitter_user_id_from_cookie raises ValueError on API error
             self.context.logger.error(
                 f"Error getting Twitter User ID from cookie via behaviour: {e}"
-            )
-            return None
-        except Exception as e:  # Catch any other unexpected errors
-            self.context.logger.error(
-                f"Unexpected error getting Twitter User ID from cookie: {e}",
-                exc_info=True,
             )
             return None
 
@@ -984,7 +1022,7 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
 
         return config_raw
 
-    def _handle_twitter_id_mismatch(
+    def _handle_twitter_id_mismatch(  # pylint: disable=too-many-arguments
         self,
         config_data: Dict[str, Any],
         agent_id: int,
@@ -1024,7 +1062,7 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
 
         # Update MirrorDB attribute with the new username
         self.context.logger.info(
-            f"Updating MirrorDB username attribute for agent {agent_id} to '{current_username}'."
+            f"Updating MirrorDB username attribute for agent {agent_id} to {current_username}."
         )
         # Use _check_and_update which handles both update and creation if needed
         yield from self._check_and_update_username_attribute(
@@ -1072,7 +1110,7 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
         # Compare config username vs current live username
         if stored_username_from_config != current_username:
             self.context.logger.warning(
-                f"USERNAME MISMATCH (Config vs Live): Stored '{stored_username_from_config}' vs Live '{current_username}'. Updating local config dict."
+                f"USERNAME MISMATCH (Config vs Live): Stored {stored_username_from_config} vs Live {current_username}. Updating local config dict."
             )
             updated_config[
                 "twitter_username"
@@ -1098,6 +1136,7 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
     ) -> Generator[None, None, Tuple[Dict[str, Any], bool]]:
         """
         Synchronizes Twitter user ID and username between stored config/DB and live data.
+
         Returns the potentially updated config dictionary and a boolean indicating if KV needs saving.
         Raises exceptions from underlying calls on critical failures.
         """
@@ -1171,7 +1210,8 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
         self,
     ) -> Generator[None, None, Optional[Dict[str, Any]]]:
         """
-        Checks MirrorDB registration, performs registration if needed,
+        Checks MirrorDB registration, performs registration if needed
+
         and verifies/updates Twitter user details based on current cookies/API.
         Returns the validated (and potentially updated) config dictionary, or None on failure.
         """
@@ -1201,7 +1241,12 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
 
             return updated_config  # Return the final config data (potentially updated)
 
-        except (ValueError, TypeError, KeyError, Exception) as e:
+        except (  # pylint: disable=broad-except
+            ValueError,
+            TypeError,
+            KeyError,
+            Exception,
+        ) as e:
             # Catch errors specifically from _sync_twitter_details_in_config or its callees
             self.context.logger.error(
                 f"Caught exception during Twitter ID/Username synchronization: {e}. Config: {config_data}",
@@ -1275,7 +1320,7 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
 
         if method == "post":
             interaction_action = "post"
-            interaction_details = yield from self._get_post_interaction_details(
+            interaction_details = self._get_post_interaction_details(
                 kwargs, response_json
             )
 
@@ -1309,7 +1354,7 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
 
         return interaction_action, interaction_details
 
-    def _get_interaction_attr_def_id(self) -> Optional[int]:
+    def _get_interaction_attr_def_id(self) -> Generator[None, None, Optional[int]]:
         """Retrieve and validate the twitter_interactions_attr_def_id from KV store."""
         kv_data = yield from self.behaviour.read_kv(
             keys=("twitter_interactions_attr_def_id",)
@@ -1332,8 +1377,8 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
             )
             return None
 
+    @staticmethod
     def _construct_interaction_payload(
-        self,
         agent_id: int,
         attr_def_id: int,
         interaction_action: str,
@@ -1421,16 +1466,14 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
             return
 
         # Get interaction details using the helper method
-        interaction_data = yield from self._get_interaction_details(
-            method, kwargs, response_json
-        )
+        interaction_data = self._get_interaction_details(method, kwargs, response_json)
         if interaction_data is None:
             # Error already logged in helper
             return
 
         interaction_action, interaction_details = interaction_data
 
-        mirrordb_data = self._construct_interaction_payload(
+        mirrordb_data = MirrorDBHelper._construct_interaction_payload(
             agent_id, attr_def_id, interaction_action, interaction_details
         )
 
@@ -1683,12 +1726,12 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
         own_username = self._get_own_username_from_config(config)
 
         # 7. Filter and Collect Handles
-        for agent_id, username in agent_usernames.items():
+        for username in agent_usernames.items():
             # Ensure own_username was successfully retrieved before comparing
-            if own_username is not None and username == own_username:
-                self.context.logger.debug(f"Excluding own username: {username}")
+            if own_username is not None and username[1] == own_username:
+                self.context.logger.debug(f"Excluding own username: {username[1]}")
                 continue  # Skip own handle
-            handles.append(username)
+            handles.append(username[1])
 
         self.context.logger.info(
             f"Found {len(handles)} active handles (excluding self if username known): {handles}"
@@ -1699,7 +1742,11 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
 class MemeooorrBaseBehaviour(
     BaseBehaviour, ABC
 ):  # pylint: disable=too-many-ancestors,too-many-public-methods
-    """Base behaviour for the memeooorr_abci skill."""
+    """Base behaviour for the memeooorr_abci skill.
+
+    This class provides common functionalities and properties used by other behaviours
+    in the Memeooorr ABCI skill.
+    """
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize the base behaviour."""
@@ -1965,11 +2012,11 @@ class MemeooorrBaseBehaviour(
                                 )
                                 if update_response:
                                     self.context.logger.info(
-                                        f"Successfully updated username attribute for agent {agent_id}."
+                                        f"Successfully updated username attribute for agent {agent_id} (attribute {attribute_id_to_update})."
                                     )
                                 else:
                                     self.context.logger.error(
-                                        f"Failed to update username attribute for agent {agent_id}."
+                                        f"Failed to update username attribute for agent {agent_id} (attribute {attribute_id_to_update})."
                                     )
                             else:
                                 self.context.logger.error(
@@ -2110,6 +2157,15 @@ class MemeooorrBaseBehaviour(
             self.context.logger.error("twitter_user_id is None, which is not expected.")
 
         return twitter_user_id
+
+    def get_twitter_user_id_from_cookie(self) -> Generator[None, None, str]:
+        """
+        Public wrapper for getting the Twitter user ID from the Twikit connection.
+
+        Returns:
+            str: The Twitter user ID.
+        """
+        return (yield from self._get_twitter_user_id_from_cookie())
 
     def _call_genai(
         self,
