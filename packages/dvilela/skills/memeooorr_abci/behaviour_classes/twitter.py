@@ -766,8 +766,43 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             if not mech_responses:
                 self.context.logger.error("No mech responses found")
 
+            # Determine media type summary for the prompt
+            mech_summary = "The mech response processing failed, proceed with tweet_with_media action."  # Default/Fallback
+            try:
+                media_info_data = yield from self._read_kv(keys=("latest_media_info",))
+                if (
+                    media_info_data
+                    and "latest_media_info" in media_info_data
+                    and media_info_data["latest_media_info"]
+                ):
+                    media_info = json.loads(media_info_data["latest_media_info"])
+                    media_type = media_info.get("type")
+                    if media_type == "image":
+                        mech_summary = "The previous tool execution generated an image."
+                    elif media_type == "video":
+                        mech_summary = "The previous tool execution generated a video."
+                    else:
+                        self.context.logger.warning(
+                            f"Found media info in KV store, but type was unexpected: {media_type}"
+                        )
+                        # Keep the fallback message if type is not image/video
+                else:
+                    self.context.logger.warning(
+                        "Could not find valid 'latest_media_info' in KV store."
+                    )
+
+            except json.JSONDecodeError:
+                self.context.logger.error(
+                    "Failed to parse 'latest_media_info' JSON from KV store."
+                )
+            except Exception as e:
+                self.context.logger.error(
+                    f"Error reading or processing 'latest_media_info' from KV: {e}"
+                )
+
+            # Prepare prompt with mech response summary
             subprompt_with_mech_response = MECH_RESPONSE_SUBPROMPT.format(
-                mech_response=mech_responses,
+                mech_response=mech_summary
             )
 
             prompt = TWITTER_DECISION_PROMPT.format(

@@ -630,7 +630,191 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
 
     # --- Interaction Recording ---
 
-    def record_interaction(  # pylint: disable=too-many-locals, too-many-statements , too-many-return-statements
+    def _get_post_interaction_details(
+        self, kwargs: Dict[str, Any], response_json: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Get interaction details for a 'post' action."""
+        details: Dict[str, Any] = {}
+        try:
+            tweet_text = kwargs.get("tweets", [{}])[0].get("text")
+            twikit_response_list = response_json.get("response")
+            twikit_tweet_id = (
+                twikit_response_list[0]
+                if isinstance(twikit_response_list, list)
+                and len(twikit_response_list) > 0
+                else None
+            )
+
+            if not tweet_text or not twikit_tweet_id:
+                self.context.logger.error(
+                    f"Missing tweet text or ID from Twikit response/kwargs for post: {kwargs}, {response_json}"
+                )
+                return None
+
+            details["tweet_id"] = str(twikit_tweet_id)
+            details["text"] = tweet_text
+            return details
+        except (IndexError, KeyError, TypeError) as e:
+            self.context.logger.error(
+                f"Error processing Twikit 'post' data for MirrorDB attribute: {e}"
+            )
+            return None
+
+    def _get_like_retweet_interaction_details(
+        self, method: str, kwargs: Dict[str, Any]
+    ) -> Optional[Tuple[str, Dict[str, Any]]]:
+        """Get interaction action and details for 'like' or 'retweet' actions."""
+        target_tweet_id = kwargs.get("tweet_id")
+        if not target_tweet_id:
+            self.context.logger.error(
+                f"Missing tweet_id in kwargs for {method}: {kwargs}"
+            )
+            return None
+        action = method.split("_")[0]  # "like" or "retweet"
+        details = {"tweet_id": str(target_tweet_id)}
+        return action, details
+
+    def _get_follow_interaction_details(
+        self, kwargs: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Get interaction details for a 'follow' action."""
+        target_user_id = kwargs.get("user_id")
+        if not target_user_id:
+            self.context.logger.error(f"Missing user_id in kwargs for follow: {kwargs}")
+            return None
+        return {"user_id": str(target_user_id)}
+
+    def _get_interaction_details(
+        self, method: str, kwargs: Dict[str, Any], response_json: Dict[str, Any]
+    ) -> Optional[Tuple[str, Dict[str, Any]]]:
+        """Determine the interaction action and details based on the Twikit method."""
+        interaction_action: Optional[str] = None
+        interaction_details: Optional[Dict[str, Any]] = None
+
+        if method == "post":
+            interaction_action = "post"
+            interaction_details = yield from self._get_post_interaction_details(
+                kwargs, response_json
+            )
+
+        elif method in ["like_tweet", "retweet"]:
+            result = self._get_like_retweet_interaction_details(method, kwargs)
+            if result is None:
+                return None
+            interaction_action, interaction_details = result
+
+        elif method == "follow_user":
+            interaction_action = "follow"
+            interaction_details = self._get_follow_interaction_details(kwargs)
+            if interaction_details is None:
+                return None
+
+        if interaction_action is None:
+            # This case should ideally not be reached if recordable_methods check passed,
+            # but handle defensively.
+            self.context.logger.warning(
+                f"Could not determine interaction action for method {method!r} despite being recordable."
+            )
+            return None
+
+        # If interaction_details is None at this point (e.g., from _get_post_interaction_details failing),
+        # we should return None as the interaction couldn't be fully determined.
+        if interaction_details is None:
+            self.context.logger.error(
+                f"Failed to get interaction details for method {method!r}"
+            )  # Add more specific logging
+            return None
+
+        return interaction_action, interaction_details
+
+    def _get_interaction_attr_def_id(self) -> Optional[int]:
+        """Retrieve and validate the twitter_interactions_attr_def_id from KV store."""
+        kv_data = yield from self.behaviour.read_kv(
+            keys=("twitter_interactions_attr_def_id",)
+        )
+        attr_def_id_str = (
+            kv_data.get("twitter_interactions_attr_def_id") if kv_data else None
+        )
+
+        if attr_def_id_str is None:
+            self.context.logger.error(
+                "Missing twitter_interactions_attr_def_id in KV Store. Cannot record interaction."
+            )
+            return None
+
+        try:
+            return int(attr_def_id_str)
+        except (ValueError, TypeError):
+            self.context.logger.error(
+                f"Invalid twitter_interactions_attr_def_id format in KV Store: {attr_def_id_str}. Cannot record interaction."
+            )
+            return None
+
+    def _construct_interaction_payload(
+        self,
+        agent_id: int,
+        attr_def_id: int,
+        interaction_action: str,
+        interaction_details: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Construct the payload for the MirrorDB agent attribute."""
+        json_value = {
+            "action": interaction_action,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "details": interaction_details,
+        }
+        return {
+            "agent_id": agent_id,
+            "attr_def_id": attr_def_id,
+            "string_value": None,
+            "integer_value": None,
+            "float_value": None,
+            "boolean_value": None,
+            "date_value": None,
+            "json_value": json_value,
+        }
+
+    def _send_interaction_to_mirrordb(
+        self,
+        agent_id: int,
+        mirrordb_data: Dict[str, Any],
+        method: str,  # Added method for logging context
+    ) -> Generator[None, None, None]:
+        """Sign and send the interaction data to MirrorDB."""
+        mirrordb_method = "POST"
+        mirrordb_endpoint = f"/api/agents/{agent_id}/attributes/"
+
+        auth_data = yield from self.sign_mirrordb_request(mirrordb_endpoint, agent_id)
+        if auth_data is None:
+            self.context.logger.error(
+                f"Failed to generate signature for {mirrordb_method} {mirrordb_endpoint}. Aborting interaction recording for method {method}."
+            )
+            return
+
+        self.context.logger.info(
+            f"Recording interaction via MirrorDB: {mirrordb_method} {mirrordb_endpoint} Data: {mirrordb_data} Auth: {auth_data is not None}"
+        )
+        try:
+            request_body = {"agent_attr": mirrordb_data, "auth": auth_data}
+            mirrordb_response = yield from self.call_mirrordb(
+                mirrordb_method,
+                endpoint=mirrordb_endpoint,
+                data=request_body,
+            )
+            if mirrordb_response is None:
+                self.context.logger.warning(
+                    f"MirrorDB interaction recording for method {method} might have failed (returned None)."
+                )
+            else:
+                self.context.logger.info(
+                    f"Successfully recorded interaction for method {method}. Response: {mirrordb_response}"
+                )
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(
+                f"Exception during MirrorDB interaction recording for method {method}: {e}"
+            )
+
+    def record_interaction(
         self,
         method: str,
         kwargs: Dict[str, Any],
@@ -649,146 +833,26 @@ class MirrorDBHelper:  # pylint: disable=too-many-locals
             return
 
         # Retrieve the stored Attribute Definition ID for twitter interactions from KV store
-        kv_data = yield from self.behaviour.read_kv(
-            keys=("twitter_interactions_attr_def_id",)
-        )
-        attr_def_id_str = (
-            kv_data.get("twitter_interactions_attr_def_id") if kv_data else None
-        )
-
-        if attr_def_id_str is None:
-            self.context.logger.error(
-                "Missing twitter_interactions_attr_def_id in KV Store. Cannot record interaction."
-            )
-            # Optionally, could try to fetch it from MirrorDB here again, but for now we fail.
+        attr_def_id = yield from self._get_interaction_attr_def_id()
+        if attr_def_id is None:
+            # Error logged in helper
             return
 
-        try:
-            attr_def_id = int(attr_def_id_str)
-        except (ValueError, TypeError):
-            self.context.logger.error(
-                f"Invalid twitter_interactions_attr_def_id format in KV Store: {attr_def_id_str}. Cannot record interaction."
-            )
-            return
-
-        mirrordb_method = (
-            "POST"  # Always creating a new attribute instance per interaction
+        # Get interaction details using the helper method
+        interaction_data = yield from self._get_interaction_details(
+            method, kwargs, response_json
         )
-        mirrordb_endpoint = f"/api/agents/{agent_id}/attributes/"
-        interaction_action: Optional[str] = None
-        interaction_details: Dict[str, Any] = {}
-
-        if method == "post":
-            # Prepare tweet data details
-            try:
-                tweet_text = kwargs.get("tweets", [{}])[0].get("text")
-                # Ensure response_json["response"] exists and is a list before accessing
-                twikit_response_list = response_json.get("response")
-                twikit_tweet_id = (
-                    twikit_response_list[0]
-                    if isinstance(twikit_response_list, list)
-                    and len(twikit_response_list) > 0
-                    else None
-                )
-
-                if not tweet_text or not twikit_tweet_id:
-                    self.context.logger.error(
-                        f"Missing tweet text or ID from Twikit response/kwargs for post: {kwargs}, {response_json}"
-                    )
-                    return
-
-                interaction_action = "post"
-                interaction_details["tweet_id"] = str(twikit_tweet_id)
-                interaction_details["text"] = tweet_text
-                # Add user_name if needed: interaction_details["user_name"] = self.params.twitter_username
-            except (IndexError, KeyError, TypeError) as e:
-                self.context.logger.error(
-                    f"Error processing Twikit 'post' data for MirrorDB attribute: {e}"
-                )
-                return
-
-        elif method in ["like_tweet", "retweet"]:
-            # Prepare like/retweet details
-            target_tweet_id = kwargs.get("tweet_id")
-            if not target_tweet_id:
-                self.context.logger.error(
-                    f"Missing tweet_id in kwargs for {method}: {kwargs}"
-                )
-                return
-            interaction_action = method.split("_")[0]  # "like" or "retweet"
-            interaction_details["tweet_id"] = str(target_tweet_id)
-
-        elif method == "follow_user":
-            # Prepare follow details
-            target_user_id = kwargs.get("user_id")
-            if not target_user_id:
-                self.context.logger.error(
-                    f"Missing user_id in kwargs for follow: {kwargs}"
-                )
-                return
-            interaction_action = "follow"
-            interaction_details["user_id"] = str(target_user_id)
-
-        # Ensure an action was determined
-        if interaction_action is None:
-            self.context.logger.warning(
-                f"Could not determine interaction action for method {method!r}"
-            )
+        if interaction_data is None:
+            # Error already logged in helper
             return
 
-        # Construct the JSON value for the attribute
-        json_value = {
-            "action": interaction_action,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
-            "details": interaction_details,
-        }
+        interaction_action, interaction_details = interaction_data
 
-        # Construct the AgentAttribute payload
-        mirrordb_data = {
-            "agent_id": agent_id,
-            "attr_def_id": attr_def_id,
-            "string_value": None,
-            "integer_value": None,
-            "float_value": None,
-            "boolean_value": None,
-            "date_value": None,
-            "json_value": json_value,
-        }
-
-        # --- Signing Logic --- (Signing the attribute creation request)
-        auth_data = yield from self.sign_mirrordb_request(mirrordb_endpoint, agent_id)
-        if auth_data is None:
-            self.context.logger.error(
-                f"Failed to generate signature for {mirrordb_method} {mirrordb_endpoint}. Aborting interaction recording."
-            )
-            return
-
-        # --- Call MirrorDB to create the attribute ---
-        self.context.logger.info(
-            f"Recording interaction via MirrorDB: {mirrordb_method} {mirrordb_endpoint} Data: {mirrordb_data} Auth: {auth_data is not None}"
+        mirrordb_data = self._construct_interaction_payload(
+            agent_id, attr_def_id, interaction_action, interaction_details
         )
-        try:
-            # Construct the full request body expected by the endpoint
-            request_body = {"agent_attr": mirrordb_data, "auth": auth_data}
-            mirrordb_response = yield from self.call_mirrordb(
-                mirrordb_method,
-                endpoint=mirrordb_endpoint,
-                # Pass the full request body as the 'data' kwarg
-                data=request_body,
-                # auth kwarg is no longer needed here
-            )
-            if mirrordb_response is None:
-                self.context.logger.warning(
-                    f"MirrorDB interaction recording for method {method} might have failed (returned None)."
-                )
-            else:
-                self.context.logger.info(
-                    f"Successfully recorded interaction for method {method}. Response: {mirrordb_response}"
-                )
-        except Exception as e:  # pylint: disable=broad-except
-            self.context.logger.error(
-                f"Exception during MirrorDB interaction recording for method {method}: {e}"
-            )
+
+        yield from self._send_interaction_to_mirrordb(agent_id, mirrordb_data, method)
 
     # --- Data Retrieval ---
 
