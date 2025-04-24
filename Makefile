@@ -140,5 +140,8 @@ bump-packages:
 	echo "Bumping packages to open-aea $${AEA_VERSION}" && \
 	autonomy packages sync --source valory-xyz/open-autonomy:v$${AUTONOMY_VERSION} --source valory-xyz/open-aea:v$${AEA_VERSION} --update-packages
 
+.PHONY: run-agent
+run-agent:
+	bash run_agent.sh 2>&1 | tee agent_log.txt
 
 v := $(shell pip -V | grep virtualenvs)
