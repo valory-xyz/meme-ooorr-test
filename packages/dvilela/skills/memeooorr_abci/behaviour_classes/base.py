@@ -66,8 +66,8 @@ MAX_TWEET_CHARS = 280
 
 
 TOKENS_QUERY = """
-query Tokens {
-  memeTokens {
+query Tokens($limit: Int, $after: String) {
+  memeTokens(limit: $limit, after: $after, orderBy: "summonTime", orderDirection: "asc") {
     items {
       blockNumber
       chain
@@ -1056,7 +1056,7 @@ class MemeooorrBaseBehaviour(
             "Content-Type": "application/json",
         }
 
-        query = {"query": TOKENS_QUERY}
+        query = {"query": TOKENS_QUERY, "variables": {"limit": 1000, "after": None}}
 
         response = yield from self.get_http_response(  # type: ignore
             method="POST",
