@@ -13,7 +13,7 @@ fingerprint:
   behaviour_classes/db.py: bafybeiazo2bqod46qoq54isns2hkqpwqidv2o36t42ttjqoprj6qhj6nom
   behaviour_classes/llm.py: bafybeidkihjit76ix3kq3nl6wacassc5znaqp2dfhvip6bpq5atrjthzk4
   behaviour_classes/mech.py: bafybeih6o6zs27wreoeu4ol5bbhnp33bj7sibvsn7symo63q77v3kbts4q
-  behaviour_classes/twitter.py: bafybeiejlg4u47zjrqd2j5sz2bftwmwxbglwmccxzaa67yp6iv4xfdxoxy
+  behaviour_classes/twitter.py: bafybeibsrfy4r22fprzx2cjl5j2veqrvkveepkx2wrujlfa3ppd4dhmd7a
   behaviours.py: bafybeicsif4jpkuq4a5ijgj63s5zn4mskmakuddgiquqb4vrlz3trqa7fu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeid7eyay5wtutduxyovq6kuofbigozlnuahjyjrcuszwdhicvcoes4
@@ -36,7 +36,7 @@ contracts:
 - dvilela/service_registry:0.1.0:bafybeih2dhp3dr5ijsbmo6rwfotpbbccejkb3cgutghgadncjqhfryklpu
 - valory/staking_token:0.1.0:bafybeigvcnjzhrwcbzdhiddc2vj7lmyroatnyhkgpkhwrduhuajuekjic4
 - valory/staking_activity_checker:0.1.0:bafybeievwpysmimhhjfgetswigoivnkdluj2n6dh342r2iesiqdw3dpvru
-- valory/mech_marketplace:0.1.0:bafybeiajuyxzp7l3lzxk23jle2bjdxapghc5om6iidcnwg6szfkqpxhb6y
+- valory/mech_marketplace:0.1.0:bafybeiccn4ohizw2wrjt7goidiakfik26ugm735lnm3fna3khko7qgkawm
 protocols:
 - valory/srr:0.1.0:bafybeihrixgptxuqpf2s4nujypwlv5aed2nboozq5kl4c26cxw6r7si2x4
 - dvilela/kv_store:0.1.0:bafybeihimf5f37uupxmugvagmaxworgmz7cxuqpikkyzlgldtbq46jbvci
@@ -46,7 +46,7 @@ protocols:
 skills:
 - valory/abstract_round_abci:0.1.0:bafybeifclzgoyulkyyigcwrqzmydyrj6c5d26xu7jk6cjbsed3pkls4pba
 - valory/transaction_settlement_abci:0.1.0:bafybeid4alawv3oz4gdyom5uevrgzfsahbwabi37r7gomsetwqiq66g6cm
-- valory/mech_interact_abci:0.1.0:bafybeibhigcn46vxrqwcmygin4v442qknyklmuaufyre2npca26sbmkdvu
+- valory/mech_interact_abci:0.1.0:bafybeianibxar4asgtmd2ejig3vwxvyoaljynbwgoojdoctofc7kv6f5z4
 behaviours:
   main:
     args: {}

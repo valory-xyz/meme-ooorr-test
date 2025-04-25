@@ -198,13 +198,195 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             )
             return False
 
+    def _parse_iso_timestamp(self, timestamp_str: str) -> Optional[float]:
+        """Parse an ISO timestamp string, handling 'Z' suffix, and return UTC timestamp."""
+        if not timestamp_str or not isinstance(timestamp_str, str):
+            self.context.logger.warning(
+                f"Invalid timestamp string provided: {timestamp_str}"
+            )
+            return None
+        try:
+            # Handle potential timezone info (e.g., Z for UTC)
+            if timestamp_str.endswith("Z"):
+                timestamp_str = timestamp_str[:-1] + "+00:00"
+            dt_object = datetime.fromisoformat(timestamp_str)
+            # Convert to UTC timestamp float
+            return dt_object.replace(tzinfo=timezone.utc).timestamp()
+        except ValueError:
+            self.context.logger.warning(
+                f"Could not parse timestamp string: {timestamp_str}"
+            )
+            return None
+
+    def _parse_mirrordb_tweet_details(
+        self, json_value: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Extracts and formats tweet details from MirrorDB json_value."""
+        if not (
+            isinstance(json_value, dict)
+            and json_value.get("action") == "post"
+            and isinstance(json_value.get("details"), dict)
+        ):
+            return None
+
+        details = json_value["details"]
+        timestamp_str = json_value.get("timestamp")
+        tweet_id = details.get("tweet_id")
+        text = details.get("text")
+
+        if not (tweet_id and text and timestamp_str):
+            return None
+
+        timestamp = self._parse_iso_timestamp(timestamp_str)
+        if timestamp is None:
+            # Logged in _parse_iso_timestamp
+            return None
+
+        return {
+            "tweet_id": tweet_id,
+            "text": text,
+            "timestamp": timestamp,  # Store as timestamp float
+            "created_at": timestamp_str,  # Keep original string too
+        }
+
+    def _process_mirrordb_attributes(
+        self,
+        all_attributes: Optional[List[Dict]],
+        interactions_attr_def_id: int,
+        limit: int,
+        agent_id: int,  # Added for logging
+    ) -> Optional[List[Dict]]:
+        """Process attributes fetched from MirrorDB to extract posted tweets."""
+        if not all_attributes or not isinstance(all_attributes, list):
+            log_msg = (
+                f"No attributes found for agent {agent_id}."
+                if all_attributes is None
+                else f"Unexpected response type from MirrorDB: {type(all_attributes)}. Expected list."
+            )
+            self.context.logger.info(log_msg)
+            return None
+
+        self.context.logger.info(
+            f"Retrieved {len(all_attributes)} attributes from MirrorDB for agent {agent_id}."
+        )
+        posted_tweets = []
+        for attr in all_attributes:
+            if attr.get("attr_def_id") == interactions_attr_def_id:
+                json_value = attr.get("json_value")
+                # Ensure json_value is a dictionary before parsing
+                if isinstance(json_value, dict):
+                    tweet_details = self._parse_mirrordb_tweet_details(json_value)
+                    if tweet_details:
+                        posted_tweets.append(tweet_details)
+                else:
+                    self.context.logger.warning(
+                        f"Attribute {attr.get('attribute_id')} has missing or invalid json_value."
+                    )
+
+        if not posted_tweets:
+            self.context.logger.info(
+                f"No 'post' interaction attributes found for agent {agent_id} with attr_def_id {interactions_attr_def_id}."
+            )
+            return None
+
+        # Sort tweets by timestamp (most recent first)
+        posted_tweets.sort(key=lambda x: x["timestamp"], reverse=True)
+        self.context.logger.info(
+            f"Found {len(posted_tweets)} posted tweets in MirrorDB attributes. Returning latest {limit}."
+        )
+        return posted_tweets[:limit]
+
+    def _fetch_tweets_from_mirrordb(
+        self, limit: int
+    ) -> Generator[None, None, Optional[List[Dict]]]:
+        """Fetch latest tweets from MirrorDB."""
+        self.context.logger.info("Trying to get latest tweets from MirrorDB for agent")
+        mirror_db_config_data = (
+            yield from self.mirrordb_helper.mirror_db_registration_check()
+        )
+
+        if not mirror_db_config_data:
+            self.context.logger.warning("No MirrorDB config found.")
+            return None
+
+        agent_id = mirror_db_config_data.get("agent_id")
+        interactions_attr_def_id_raw = mirror_db_config_data.get(
+            "twitter_interactions_attr_def_id"
+        )
+
+        if not agent_id or not interactions_attr_def_id_raw:
+            self.context.logger.warning(
+                "MirrorDB config missing agent_id or twitter_interactions_attr_def_id."
+            )
+            return None
+
+        try:
+            interactions_attr_def_id = int(interactions_attr_def_id_raw)
+            endpoint = f"/api/agents/{agent_id}/attributes/"
+            self.context.logger.info(f"Calling MirrorDB endpoint: GET {endpoint}")
+
+            all_attributes = yield from self.mirrordb_helper.call_mirrordb(
+                http_method="GET",
+                endpoint=endpoint,
+            )
+
+            return self._process_mirrordb_attributes(
+                all_attributes, interactions_attr_def_id, limit, agent_id
+            )
+
+        except (ValueError, TypeError) as e:
+            self.context.logger.error(f"Error processing MirrorDB config ID: {e}")
+            return None
+        except Exception as e:  # pylint: disable=broad-except
+            self.context.logger.error(
+                f"Error getting or processing attributes from MirrorDB: {e}"
+            )
+            return None
+
+    def _fetch_tweets_from_kv(
+        self, limit: int
+    ) -> Generator[None, None, Optional[List[Dict]]]:
+        """Fetch latest tweets from the local KV store as a fallback."""
+        self.context.logger.info(
+            f"Getting latest {limit} tweets from local DB as fallback."
+        )
+        tweets = yield from self.get_tweets_from_db()
+
+        if not tweets:
+            self.context.logger.info("No tweets found in local KV store.")
+            return None
+
+        # Process timestamps if needed (assuming 'created_at' might be ISO string)
+        processed_tweets = []
+        for tweet in tweets:
+            # Ensure timestamp is float, parse if needed
+            if "timestamp" not in tweet or not isinstance(
+                tweet["timestamp"], (int, float)
+            ):
+                created_at = tweet.get("created_at")
+                if created_at and isinstance(created_at, str):
+                    timestamp = self._parse_iso_timestamp(created_at)
+                    if timestamp:
+                        tweet["timestamp"] = timestamp
+                    else:
+                        self.context.logger.warning(
+                            f"Could not parse 'created_at' for tweet {tweet.get('tweet_id')}, skipping timestamp update."
+                        )
+                else:
+                    self.context.logger.warning(
+                        f"Tweet {tweet.get('tweet_id')} missing valid 'timestamp' and 'created_at'."
+                    )
+            processed_tweets.append(tweet)
+
+        return processed_tweets[:limit]
+
     def get_previous_tweets(  # pylint: disable=too-many-locals
         self, limit: int = 5
     ) -> Generator[None, None, Optional[List[Dict]]]:
         """Get the latest tweets posted by the agent.
 
-        Tries to fetch interaction attributes from MirrorDB first, filtering for 'post' actions.
-        Falls back to local KV store if MirrorDB fails.
+        Tries to fetch interaction attributes from MirrorDB first.
+        Falls back to local KV store if MirrorDB fails or returns no results.
 
         Args:
             limit (int, optional): Maximum number of tweets to return. Defaults to 5.
@@ -212,135 +394,19 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         Returns:
             Generator yielding Optional[List[Dict]]: List of tweets or None
         """
-        self.context.logger.info("Trying to get latest tweets from MirrorDB for agent")
-        mirror_db_config_data = (
-            yield from self.mirrordb_helper.mirror_db_registration_check()
-        )
+        mirror_tweets = yield from self._fetch_tweets_from_mirrordb(limit)
 
-        if mirror_db_config_data:  # pylint: disable=too-many-nested-blocks
-            self.context.logger.info(f"Mirror Db config = {mirror_db_config_data}")
+        if mirror_tweets is not None:
+            # MirrorDB succeeded, even if it returned an empty list []
+            return mirror_tweets
 
-            agent_id = mirror_db_config_data.get("agent_id")
-            interactions_attr_def_id = mirror_db_config_data.get(
-                "twitter_interactions_attr_def_id"
-            )
-
-            if agent_id and interactions_attr_def_id:
-                try:
-                    # Ensure interaction attr_def_id is an integer
-                    interactions_attr_def_id = int(interactions_attr_def_id)
-
-                    # Endpoint to get all attributes for the agent
-                    endpoint = f"/api/agents/{agent_id}/attributes/"
-                    self.context.logger.info(
-                        f"Calling MirrorDB endpoint: GET {endpoint}"
-                    )
-
-                    all_attributes = yield from self.mirrordb_helper.call_mirrordb(
-                        http_method="GET",
-                        endpoint=endpoint,
-                    )
-
-                    if all_attributes and isinstance(all_attributes, list):
-                        self.context.logger.info(
-                            f"Retrieved {len(all_attributes)} attributes from MirrorDB for agent {agent_id}."
-                        )
-                        posted_tweets = []
-                        for attr in all_attributes:
-                            # Filter by the correct attribute definition ID
-                            if attr.get("attr_def_id") == interactions_attr_def_id:
-                                json_value = attr.get("json_value")
-                                # Check if it's a 'post' action and has details
-                                if (
-                                    isinstance(json_value, dict)
-                                    and json_value.get("action") == "post"
-                                    and "details" in json_value
-                                    and isinstance(json_value["details"], dict)
-                                ):
-                                    details = json_value["details"]
-                                    timestamp_str = json_value.get("timestamp")
-                                    if (
-                                        details.get("tweet_id")
-                                        and details.get("text")
-                                        and timestamp_str
-                                    ):
-                                        try:
-                                            # Handle potential timezone info (e.g., Z for UTC)
-                                            if timestamp_str.endswith("Z"):
-                                                timestamp_str = (
-                                                    timestamp_str[:-1] + "+00:00"
-                                                )
-                                            dt_object = datetime.fromisoformat(
-                                                timestamp_str
-                                            )
-                                            # Convert to UTC timestamp float
-                                            timestamp = dt_object.replace(
-                                                tzinfo=timezone.utc
-                                            ).timestamp()
-
-                                            posted_tweets.append(
-                                                {
-                                                    "tweet_id": details["tweet_id"],
-                                                    "text": details["text"],
-                                                    "timestamp": timestamp,  # Store as timestamp float
-                                                    "created_at": json_value.get(
-                                                        "timestamp"
-                                                    ),  # Keep original string too
-                                                }
-                                            )
-                                        except ValueError:
-                                            self.context.logger.warning(
-                                                f"Could not parse timestamp: {timestamp_str} in attribute {attr.get('attribute_id')}"
-                                            )
-
-                        if posted_tweets:
-                            # Sort tweets by timestamp (most recent first)
-                            posted_tweets.sort(
-                                key=lambda x: x["timestamp"], reverse=True
-                            )
-                            self.context.logger.info(
-                                f"Found {len(posted_tweets)} posted tweets in MirrorDB attributes. Returning latest {limit}."
-                            )
-                            return posted_tweets[:limit]
-
-                        self.context.logger.info(
-                            f"No 'post' interaction attributes found for agent {agent_id} with attr_def_id {interactions_attr_def_id}."
-                        )
-
-                    elif all_attributes is None:
-                        # This case includes 404 Not Found
-                        self.context.logger.info(
-                            f"No attributes found for agent {agent_id} via MirrorDB endpoint {endpoint}."
-                        )
-                    else:
-                        # Log unexpected response type
-                        self.context.logger.warning(
-                            f"Unexpected response type from {endpoint}: {type(all_attributes)}. Expected list."
-                        )
-
-                except (ValueError, TypeError) as e:
-                    self.context.logger.error(
-                        f"Error processing MirrorDB attributes or config IDs: {e}"
-                    )
-                except Exception as e:  # pylint: disable=broad-except
-                    self.context.logger.error(
-                        f"Error getting or processing attributes from MirrorDB: {e}"
-                    )
-
-        # Fallback to get_tweets_from_db if MirrorDB fails or returns no results
+        # Fallback to KV store if MirrorDB failed (returned None)
         self.context.logger.info(
-            f"Couldn't fetch tweets from MirrorDB or no 'post' actions found. Getting latest {limit} tweets from local DB as fallback."
+            "Couldn't fetch tweets from MirrorDB. Falling back to local KV store."
         )
-        tweets = yield from self.get_tweets_from_db()
+        kv_tweets = yield from self._fetch_tweets_from_kv(limit)
 
-        if tweets:
-            for tweet in tweets:
-                created_at = tweet.get("created_at")
-                if created_at:
-                    tweet["timestamp"] = datetime.fromisoformat(created_at).timestamp()
-            return tweets[:limit]
-
-        return None
+        return kv_tweets
 
 
 def _format_previous_tweets_str(tweets: Optional[List[Dict]]) -> str:
