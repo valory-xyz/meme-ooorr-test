@@ -46,56 +46,75 @@ PUBLIC_ID = PublicId.from_str("dvilela/mirror_db:0.1.0")
 DEFAULT_HEADERS = {"Content-Type": "application/json", "accept": "application/json"}
 
 
+async def _handle_retryable_exception(  # type: ignore
+    exc: Union[aiohttp.ClientResponseError, aiohttp.ClientConnectionError],
+    attempt: int,
+    max_retries: int,
+    delay: Union[int, float],
+    logger: Any,
+) -> bool:
+    """Handle exceptions to determine if a retry should occur."""
+    is_rate_limit = isinstance(exc, aiohttp.ClientResponseError) and exc.status == 429
+    is_connection_error = isinstance(exc, aiohttp.ClientConnectionError)
+
+    if not (is_rate_limit or is_connection_error):
+        # Not a retryable error type we handle here
+        return False
+
+    if attempt < max_retries - 1:
+        error_type = (
+            "Rate limit exceeded" if is_rate_limit else f"Connection error: {exc}"
+        )
+        logger.warning(f"{error_type}. Retrying in {delay} seconds...")
+        await asyncio.sleep(delay)
+        return True  # Indicate retry should proceed
+
+    # Max retries reached for a retryable error
+    error_context = "rate limiting" if is_rate_limit else "connection error"
+    logger.error(
+        f"Max retries ({max_retries}) reached for {error_context}. Could not complete the request."
+    )
+    return False  # Indicate retry should stop, exception will be raised
+
+
 def retry_with_exponential_backoff(max_retries=5, initial_delay=1, backoff_factor=2):  # type: ignore
     """Retry a function with exponential backoff."""
 
     def decorator(func):  # type: ignore
         @wraps(func)
         async def wrapper(*args, **kwargs):  # type: ignore
-            connection_instance = args[
-                0
-            ]  # Assuming the first arg is self (the connection instance)
-            delay = initial_delay
+            connection_instance = args[0]
+            current_delay = initial_delay
+
             for attempt in range(max_retries):
                 try:
                     return await func(*args, **kwargs)
-                except aiohttp.ClientResponseError as e:
-                    # Check if the error is rate limiting (e.g., status code 429)
-                    # You might need to adjust the status code based on the API
-                    if e.status == 429:
-                        if attempt < max_retries - 1:
-                            connection_instance.logger.warning(
-                                f"Rate limit exceeded. Retrying in {delay} seconds..."
-                            )
-                            await asyncio.sleep(delay)
-                            delay *= backoff_factor
-                        else:
-                            connection_instance.logger.error(
-                                "Max retries reached for rate limiting. Could not complete the request."
-                            )
-                            raise
-                    else:
-                        # Re-raise other client errors immediately
-                        raise
-                except aiohttp.ClientConnectionError as e:
-                    # Handle connection errors (e.g., DNS resolution, connection refused)
-                    if attempt < max_retries - 1:
-                        connection_instance.logger.warning(
-                            f"Connection error: {e}. Retrying in {delay} seconds..."
-                        )
-                        await asyncio.sleep(delay)
-                        delay *= backoff_factor
-                    else:
-                        connection_instance.logger.error(
-                            "Max retries reached for connection error. Could not complete the request."
-                        )
-                        raise
-                except Exception as e:
-                    # Handle other potential exceptions during the request
-                    connection_instance.logger.error(
-                        f"An unexpected error occurred: {e}"
+                except (
+                    aiohttp.ClientResponseError,
+                    aiohttp.ClientConnectionError,
+                ) as e:
+                    should_continue = await _handle_retryable_exception(
+                        e,
+                        attempt,
+                        max_retries,
+                        current_delay,
+                        connection_instance.logger,
                     )
-                    raise  # Re-raise unexpected errors
+                    if not should_continue:
+                        raise e  # Re-raise the exception if not retrying
+                    current_delay *= backoff_factor
+                except Exception as e:
+                    connection_instance.logger.error(
+                        f"An unexpected error occurred during attempt {attempt + 1}: {e}"
+                    )
+                    raise  # Re-raise unexpected errors immediately
+
+            # This part should ideally not be reached if exceptions are raised correctly on final attempt
+            # Adding a fallback raise for safety, though _handle_retryable_exception should lead to a raise earlier.
+            connection_instance.logger.error(
+                "Function call failed after maximum retries."
+            )
+            raise Exception("Function call failed after maximum retries.")
 
         return wrapper
 
