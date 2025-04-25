@@ -83,7 +83,7 @@ def retry_with_exponential_backoff(max_retries=5, initial_delay=1, backoff_facto
     def decorator(func):  # type: ignore
         @wraps(func)
         async def wrapper(*args, **kwargs):  # type: ignore
-            connection_instance = args[0]  # Assuming the first arg is self
+            connection_instance = args[0]  
             current_delay = initial_delay
 
             for attempt in range(max_retries):
@@ -102,7 +102,7 @@ def retry_with_exponential_backoff(max_retries=5, initial_delay=1, backoff_facto
                     )
                     if not should_continue:
                         raise e  # Re-raise the exception if not retrying
-                    current_delay *= backoff_factor  # Increase delay for next retry
+                    current_delay *= backoff_factor  
                 except Exception as e:
                     connection_instance.logger.error(
                         f"An unexpected error occurred during attempt {attempt + 1}: {e}"
