@@ -1032,81 +1032,95 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         self.context.logger.info(f"LLM response for twitter decision: {llm_response}")
         return llm_response
 
-    def _validate_llm_response(  # pylint: disable=too-many-return-statements
-        self, json_response: dict
-    ) -> bool:
-        """Validate that the LLM response has either valid tweet_action or valid tool_action"""
-        # If mech_for_twitter is True, only tweet_action with 'tweet_with_media' is allowed
-        if self.synchronized_data.mech_for_twitter:
-            if (
-                "tweet_action" in json_response
-                and json_response["tweet_action"] is not None
-            ):
-                # Check both possible field names: action_type (schema format) and action (actual response format)
-                action = json_response["tweet_action"].get(
-                    "action_type", json_response["tweet_action"].get("action")
-                )
-                if action == "tweet_with_media":
-                    # Ensure we have the required text field for media tweet
-                    if "text" in json_response["tweet_action"]:
-                        return True
-
-                    self.context.logger.error(
-                        "Invalid tweet_with_media action: missing 'text' field"
-                    )
-                    return False
-
-                self.context.logger.error(
-                    f"Invalid action type: {action}. Only 'tweet_with_media' is allowed when mech_for_twitter is True"
-                )
-                return False
-
+    def _validate_mech_llm_response(self, json_response: dict) -> bool:
+        """Validate LLM response when mech_for_twitter is True."""
+        tweet_action = json_response.get("tweet_action")
+        if not isinstance(tweet_action, dict):
             self.context.logger.error(
-                "Invalid LLM response: expected tweet_action with type 'tweet_with_media' when mech_for_twitter is True"
+                "Invalid LLM response: expected tweet_action object when mech_for_twitter is True"
             )
             return False
 
-        # Normal validation when mech_for_twitter is False
-        if (
-            "tweet_action" in json_response
-            and json_response["tweet_action"] is not None
-        ):
-            # For non-mech context, tweet_with_media should not be allowed
-            if isinstance(json_response["tweet_action"], list):
-                for action in json_response["tweet_action"]:
-                    action_type = action.get("action")
-                    if action_type == "tweet_with_media":
-                        self.context.logger.error(
-                            "Invalid action: 'tweet_with_media' is not allowed when mech_for_twitter is False"
-                        )
-                        return False
-            else:
-                action_type = json_response["tweet_action"].get(
-                    "action_type", json_response["tweet_action"].get("action")
-                )
-                if action_type == "tweet_with_media":
-                    self.context.logger.error(
-                        "Invalid action: 'tweet_with_media' is not allowed when mech_for_twitter is False"
-                    )
-                    return False
-            return True
+        # Check both possible field names: action_type (schema format) and action (actual response format)
+        action = tweet_action.get("action_type", tweet_action.get("action"))
+        if action != "tweet_with_media":
+            self.context.logger.error(
+                f"Invalid action type: {action}. Only 'tweet_with_media' is allowed when mech_for_twitter is True"
+            )
+            return False
 
-        if "tool_action" in json_response and json_response["tool_action"] is not None:
-            # Ensure tool_action has both required fields
-            if (
-                "tool_name" not in json_response["tool_action"]
-                or "tool_input" not in json_response["tool_action"]
-            ):
+        if "text" not in tweet_action:
+            self.context.logger.error(
+                "Invalid tweet_with_media action: missing 'text' field"
+            )
+            return False
+
+        return True
+
+    def _validate_non_mech_tweet_action(
+        self, tweet_action: Union[dict, List[dict]]
+    ) -> bool:
+        """Validate the tweet_action part of the LLM response when mech_for_twitter is False."""
+        actions_to_check = (
+            tweet_action if isinstance(tweet_action, list) else [tweet_action]
+        )
+
+        for action_item in actions_to_check:
+            if not isinstance(action_item, dict):
+                # Basic type check for safety, although schema should handle this.
+                continue
+            action_type = action_item.get("action_type", action_item.get("action"))
+            if action_type == "tweet_with_media":
                 self.context.logger.error(
-                    f"Invalid tool_action format: missing required fields. Got: {json_response['tool_action']}"
+                    "Invalid action: 'tweet_with_media' is not allowed when mech_for_twitter is False"
                 )
                 return False
+        return True
+
+    def _validate_non_mech_tool_action(self, tool_action: dict) -> bool:
+        """Validate the tool_action part of the LLM response when mech_for_twitter is False."""
+        if not isinstance(tool_action, dict):
+            self.context.logger.error(
+                f"Invalid tool_action format: expected dict, got {type(tool_action)}"
+            )
+            return False
+
+        if "tool_name" not in tool_action or "tool_input" not in tool_action:
+            self.context.logger.error(
+                f"Invalid tool_action format: missing required fields. Got: {tool_action}"
+            )
+            return False
+        return True
+
+    def _validate_non_mech_llm_response(self, json_response: dict) -> bool:
+        """Validate LLM response when mech_for_twitter is False."""
+        tweet_action = json_response.get("tweet_action")
+        if tweet_action is not None and self._validate_non_mech_tweet_action(
+            tweet_action
+        ):
+            return True
+
+        tool_action = json_response.get("tool_action")
+        if tool_action is not None and self._validate_non_mech_tool_action(tool_action):
             return True
 
         self.context.logger.error(
-            "Invalid LLM response: neither tweet_action nor tool_action is valid"
+            "Invalid LLM response: neither valid tweet_action nor valid tool_action found"
         )
         return False
+
+    def _validate_llm_response(self, json_response: dict) -> bool:
+        """Validate that the LLM response adheres to expected format based on context."""
+        if not isinstance(json_response, dict):
+            self.context.logger.error(
+                f"Invalid LLM response format: expected dict, got {type(json_response)}"
+            )
+            return False
+
+        if self.synchronized_data.mech_for_twitter:
+            return self._validate_mech_llm_response(json_response)
+
+        return self._validate_non_mech_llm_response(json_response)
 
     def _handle_tool_action(self, json_response: dict) -> Tuple[str, List, List]:
         """Handle tool action from LLM response."""
