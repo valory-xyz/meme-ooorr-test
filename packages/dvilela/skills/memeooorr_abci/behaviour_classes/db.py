@@ -69,3 +69,10 @@ class LoadDatabaseBehaviour(
         yield from self._write_kv({"other_tweets_for_tw_mech": ""})
         yield from self._write_kv({"interacted_tweet_ids_for_tw_mech": ""})
         yield from self._write_kv({"pending_tweets_for_tw_mech": ""})
+
+        # Initialize last summon
+        db_data = yield from self._read_kv(keys=("last_summon_timestamp",))
+        if db_data is None or db_data.get("last_summon_timestamp", None) is None:
+            yield from self._write_kv(
+                {"last_summon_timestamp": self.get_sync_timestamp()}
+            )
