@@ -167,7 +167,7 @@ class ActionDecisionBehaviour(
             last_summon_timestamp = current_timestamp
         else:
             last_summon_timestamp = (
-                json.loads(db_data["last_summon_timestamp"])
+                float(json.loads(db_data["last_summon_timestamp"]))
                 if db_data["last_summon_timestamp"]
                 else current_timestamp
             )
