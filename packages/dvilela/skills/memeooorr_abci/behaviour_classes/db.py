@@ -74,5 +74,5 @@ class LoadDatabaseBehaviour(
         db_data = yield from self._read_kv(keys=("last_summon_timestamp",))
         if db_data is None or db_data.get("last_summon_timestamp", None) is None:
             yield from self._write_kv(
-                {"last_summon_timestamp": self.get_sync_timestamp()}
+                {"last_summon_timestamp": str(self.get_sync_timestamp())}
             )

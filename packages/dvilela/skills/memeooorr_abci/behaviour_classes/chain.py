@@ -782,7 +782,7 @@ class ActionPreparationBehaviour(ChainBehaviour):  # pylint: disable=too-many-an
             self.context.logger.info("Wrote latest token to db")
 
             yield from self._write_kv(
-                {"last_summon_timestamp": self.get_sync_timestamp()}
+                {"last_summon_timestamp": str(self.get_sync_timestamp())}
             )
 
     def get_token_nonce(
