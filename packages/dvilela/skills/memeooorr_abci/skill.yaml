@@ -13,7 +13,7 @@ fingerprint:
   behaviour_classes/db.py: bafybeifiufhjk2vgeoxd7fsl7bskpxx6rtkvayq6vx6yzb5d66wa2sjnxi
   behaviour_classes/llm.py: bafybeihtv5g2gtvkiorgijmmoukxdrvkyweoqucsuwexuxc32bg6bazyai
   behaviour_classes/mech.py: bafybeih6o6zs27wreoeu4ol5bbhnp33bj7sibvsn7symo63q77v3kbts4q
-  behaviour_classes/twitter.py: bafybeifwn2ww3z47p3sjof2dsd7mnrwilwit6q4dz3ezpjoxr2aruqigmy
+  behaviour_classes/twitter.py: bafybeigvndrxpkei65ppunintttvise75d2ttoewv3rud7hjkxtjkm4qdy
   behaviours.py: bafybeicsif4jpkuq4a5ijgj63s5zn4mskmakuddgiquqb4vrlz3trqa7fu
   dialogues.py: bafybeiaygigeleloplgrsg2sovv463uvzk3zc2tupgazn4ak2vqcangksu
   fsm_specification.yaml: bafybeid7eyay5wtutduxyovq6kuofbigozlnuahjyjrcuszwdhicvcoes4
