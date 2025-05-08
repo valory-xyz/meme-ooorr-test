@@ -143,12 +143,17 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
     def like_tweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Like a tweet"""
         self.context.logger.info(f"Liking tweet with ID: {tweet_id}")
-
         try:
             response = yield from self._call_twikit(
                 method="like_tweet", tweet_id=tweet_id
             )
-            if response is None or not response.get("success", False):
+            if response is None:
+                self.context.logger.error(
+                    f"Twikit call for like_tweet ID {tweet_id} failed (returned None). See previous logs for details."
+                )
+                return False
+
+            if not response.get("success", False):
                 error_message = response.get("error", "Unknown error occurred.")
                 self.context.logger.error(
                     f"Error liking tweet with ID {tweet_id}: {error_message}"
@@ -162,10 +167,15 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
     def retweet(self, tweet_id: str) -> Generator[None, None, bool]:
         """Retweet"""
         self.context.logger.info(f"Retweeting tweet with ID: {tweet_id}")
-
         try:
             response = yield from self._call_twikit(method="retweet", tweet_id=tweet_id)
-            if response is None or not response.get("success", False):
+            if response is None:
+                self.context.logger.error(
+                    f"Twikit call for retweet ID {tweet_id} failed (returned None). See previous logs for details."
+                )
+                return False
+
+            if not response.get("success", False):
                 error_message = response.get("error", "Unknown error occurred.")
                 self.context.logger.error(
                     f"Error retweeting tweet with ID {tweet_id}: {error_message}"
@@ -185,7 +195,13 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             response = yield from self._call_twikit(
                 method="follow_user", user_id=user_id
             )
-            if response is None or not response.get("success", False):
+            if response is None:
+                self.context.logger.error(
+                    f"Twikit call for follow_user ID {user_id} failed (returned None). See previous logs for details."
+                )
+                return False
+
+            if not response.get("success", False):
                 error_message = response.get("error", "Unknown error occurred.")
                 self.context.logger.error(
                     f"Error Following user with ID {user_id}: {error_message}"
@@ -849,42 +865,6 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         self.context.logger.info(
             "Standard engagement: using prompt for decision and introducing tools to LLM"
         )
-
-        # FOR TESTING: Ensure the hardcoded user ID for 'follow' is available.
-        # The prompt is expected to instruct a follow on test_user_id_for_follow.
-        test_user_id_for_follow = "2412508609"
-
-        # Check if any existing pending tweet has this user_id
-        is_test_user_present = any(
-            tweet_data.get("user_id") == test_user_id_for_follow
-            for tweet_data in pending_tweets.values()
-        )
-
-        if not is_test_user_present:
-            # If the user isn't in pending_tweets, add a dummy entry for them.
-            # The key for this entry should be unique, e.g., based on the user_id.
-            dummy_tweet_id_for_test_user = (
-                f"dummy_tweet_for_user_{test_user_id_for_follow}"
-            )
-            if (
-                dummy_tweet_id_for_test_user not in pending_tweets
-            ):  # Avoid re-adding if somehow already there
-                pending_tweets[dummy_tweet_id_for_test_user] = {
-                    "text": f"Placeholder tweet for testing follow for user {test_user_id_for_follow}.",
-                    "user_id": test_user_id_for_follow,  # This is the crucial field
-                    "user_name": f"test_username_{test_user_id_for_follow}",  # Also provide user_name
-                }
-                self.context.logger.info(
-                    f"Added dummy tweet entry for user_id {test_user_id_for_follow} to pending_tweets for testing 'follow' action."
-                )
-            else:
-                self.context.logger.info(
-                    f"Dummy tweet entry {dummy_tweet_id_for_test_user} already exists. Not re-adding."
-                )
-        else:
-            self.context.logger.info(
-                f"User ID {test_user_id_for_follow} is already present in a pending tweet. No dummy injection needed."
-            )
 
         # Prepare other tweets data
         other_tweets = "\n\n".join(
