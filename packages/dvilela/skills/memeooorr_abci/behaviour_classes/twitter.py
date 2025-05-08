@@ -1457,6 +1457,10 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             ]
         )
         self.context.logger.info(tools_info)
+
+        # temporary hardcoding empty string for now
+        tools_info = ""
+
         return tools_info
 
     def get_agent_handles(self) -> Generator[None, None, List[str]]:

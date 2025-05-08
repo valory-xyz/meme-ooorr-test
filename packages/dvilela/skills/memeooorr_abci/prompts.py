@@ -25,7 +25,8 @@ import typing
 from dataclasses import dataclass
 
 
-ENFORCE_ACTION_COMMAND = "Please use tools, as you are required to meet some action KPIs and you have not met them yet."
+# ENFORCE_ACTION_COMMAND = "Please use tools, as you are required to meet some action KPIs and you have not met them yet."
+ENFORCE_ACTION_COMMAND = ""
 
 
 TWITTER_DECISION_PROMPT = """
