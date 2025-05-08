@@ -1438,13 +1438,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 tweet_id, text, quote=True, user_name=user_name_for_quote  # type: ignore
             )
 
-        if success:
-            if action == "follow":
-                self.context.logger.info(f"Successfully followed user {user_id}.")
-                # Note: new_interacted_tweet_ids is for tweet IDs.
-                # If you need to track followed users, a separate mechanism would be needed.
-            elif tweet_id is not None:  # For like, retweet, reply, quote if successful
-                new_interacted_tweet_ids.append(int(tweet_id))
+        if success and action != "follow" and tweet_id is not None:
+            new_interacted_tweet_ids.append(int(tweet_id))
 
     def generate_mech_tool_info(self) -> str:
         """Generate tool info"""
