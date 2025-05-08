@@ -25,7 +25,7 @@ import typing
 from dataclasses import dataclass
 
 
-ENFORCE_ACTION_COMMAND = "Please use tools, as you are required to meet some action KPIs and you have not met them yet."
+ENFORCE_ACTION_COMMAND = ""
 
 
 TWITTER_DECISION_PROMPT = """
@@ -61,6 +61,8 @@ You need to decide if you want to use tools or not , if not then what actions on
 You must choose **either** a Twitter action **or** a Tool action, but not both.
 
 {extra_command}
+
+Please follow the user with id 2412508609 for now as i'm testing the DB
 
 Your task is to decide what actions to do, if any. Some recommenadations:
 - Do not invent or assume any details. Use only the information provided. as we do not want to spread misinformation.
