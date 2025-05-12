@@ -93,7 +93,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest,  macos-14, macos-14-large ]
+        os: [windows-latest, macos-14, macos-14-large]
     defaults:
       run:
         shell: bash
@@ -109,6 +109,35 @@ jobs:
         run: |
           echo "${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_PATH
 
+
+      - name: prepare sign things windows
+        if: runner.os == 'Windows'
+        run: |  
+          echo Setup Certificate 
+          echo "${{secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+          echo "Set Variables!"
+          echo "::set-output name=version::${GITHUB_REF#refs/tags/v}" 
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
+          echo "SM_KEY_PAIR_ALIAS=${{ secrets.SM_KEY_PAIR_ALIAS }}" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV" 
+          echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit" >> $GITHUB_PATH 
+          echo "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools" >> $GITHUB_PATH 
+          echo "C:\Program Files\DigiCert\DigiCert One Signing Manager Tools" >> $GITHUB_PATH 
+        shell: bash             
+
+      - name: Setup SSM KSP on windows latest
+        if: runner.os == 'Windows'
+        run: | 
+          curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/smtools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o smtools-windows-x64.msi 
+          msiexec /i smtools-windows-x64.msi /quiet /qn 
+          smksp_registrar.exe list 
+          smctl.exe keypair ls 
+          C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user 
+          smksp_cert_sync.exe 
+        shell: cmd 
+
       - name: Install and configure Poetry
         run: pip install poetry
 
@@ -116,14 +145,41 @@ jobs:
         run: |
             make build-agent-runner
 
-      - name: rename the file
+
+      - name: sign the file mac os
+        if: runner.os != 'Windows'
+        env:
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}  # Apple ID email
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}  # App-specific password
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}  # Team ID из Apple Dev Account
+        run: | 
+          echo "$CSC_LINK" | base64 --decode > certificate.p12
+
+          security create-keychain -p temp build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p temp build.keychain
+          security import certificate.p12 -k build.keychain -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k temp build.keychain
+          
+          codesign --force --verbose --sign "Developer ID Application" --timestamp --options runtime dist/agent_runner_bin
+
+          codesign -dv --verbose=4 dist/agent_runner_bin
+    
+      - name: rename the file mac os
         if: runner.os != 'Windows'
         run: | 
           export FILENAME=`echo -n agent_runner_${{runner.os}}_${{runner.arch}}|tr '[:upper:]' '[:lower:]'`
           echo "FILENAME=$FILENAME" >> $GITHUB_ENV; 
           mv dist/agent_runner_bin dist/${FILENAME}
 
-      - name: rename the file
+      - name: sign the file
+        if: runner.os == 'Windows'
+        run: | 
+          "C:\\Program Files\\DigiCert\\DigiCert One Signing Manager Tools\\smctl.exe" sign --keypair-alias=${{ secrets.SM_KEY_PAIR_ALIAS }} --input "dist/agent_runner_bin.exe"
+
+      - name: rename the file windows
         if: runner.os == 'Windows'
         run: | 
           export FILENAME=`echo -n agent_runner_${{runner.os}}_${{runner.arch}}.exe|tr '[:upper:]' '[:lower:]'`
