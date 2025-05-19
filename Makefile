@@ -186,50 +186,35 @@ build-agent-runner:
 
 .PHONY: build-agent-runner-mac
 build-agent-runner-mac:
-	poetry lock
+		poetry lock
 	poetry install
-	poetry run pip install -U pyinstaller
-	poetry run pip install --upgrade setuptools==59.8.0
 	poetry run pyinstaller \
 	--collect-data eth_account \
 	--collect-all aea \
-	--collect-all autonomy \
-	--collect-all operate \
-	--collect-all google.generativeai \
 	--collect-all aea_ledger_ethereum \
 	--collect-all aea_ledger_cosmos \
 	--collect-all aea_ledger_ethereum_flashbots \
+	--collect-all asn1crypto \
+	--collect-all autonomy \
+	--collect-all backports.tarfile \
+	--collect-all google.protobuf \
+	--collect-all openapi_core \
+	--collect-all openapi_spec_validator \
+	--collect-all google.generativeai \
+	--collect-all js2py \
+	--collect-all peewee \
+	--collect-all textblob \
+	--collect-all twikit \
+	--collect-all twitter_text \
+	--collect-all twitter_text_parser \
 	--hidden-import aea_ledger_ethereum \
 	--hidden-import aea_ledger_cosmos \
 	--hidden-import aea_ledger_ethereum_flashbots \
 	--hidden-import grpc \
 	--hidden-import openapi_core \
-	--collect-all google.protobuf \
-	--collect-all openapi_core \
-	--collect-all openapi_spec_validator \
-	--collect-all asn1crypto \
 	--hidden-import py_ecc \
 	--hidden-import pytz \
-	--collect-all requests \
-	--collect-all pycoingecko \
-	--collect-all numpy \
-	--collect-all pandas \
-	--collect-all pyfolio \
-	--collect-all peewee \
-	--collect-all google-generativeai \
-	--collect-all google.generativeai \
-	--hidden-import requests \
-	--hidden-import pycoingecko \
-	--hidden-import numpy \
-	--hidden-import pandas \
-	--hidden-import pyfolio \
-	--hidden-import peewee \
-	--hidden-import google-generativeai \
-	--hidden-import google.generativeai \
-	--hidden-import distutils.dir_util \
-	--hidden-import distutils \
-	--collect-all distutils \
-	--onefile pyinstaller/optimus_bin.py \
+	--onefile pyinstaller/memeooorr_bin.py \
 	--codesign-identity "${SIGN_ID}" \
 	--name agent_runner_bin
 	sleep 1
