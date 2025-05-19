@@ -142,11 +142,6 @@ jobs:
         run: pip install poetry
       
       #### MAC
-      - name: Build Agent Runner Windonws
-        if: runner.os != 'Windows'
-        run: |
-            
-
       - name: build an sign sign the file mac os
         if: runner.os != 'Windows'
         env:
@@ -165,12 +160,9 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k temp build.keychain
 
-          security find-identity -v -p codesigning
           make build-agent-runner-mac
 
-          #codesign --force --verbose --sign "Developer ID Application" --timestamp --options runtime dist/agent_runner_bin
-
-          #codesign -dv --verbose=4 dist/agent_runner_bin
+          codesign -dv --verbose=4 dist/agent_runner_bin
     
       - name: rename the file mac os
         if: runner.os != 'Windows'
