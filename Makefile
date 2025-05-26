@@ -147,7 +147,6 @@ run-agent:
 v := $(shell pip -V | grep virtualenvs)
 
 
-
 .PHONY: build-agent-runner
 build-agent-runner:
 	poetry lock
@@ -171,6 +170,7 @@ build-agent-runner:
 	--collect-all twikit \
 	--collect-all twitter_text \
 	--collect-all twitter_text_parser \
+	--collect-all tweepy \
 	--hidden-import aea_ledger_ethereum \
 	--hidden-import aea_ledger_cosmos \
 	--hidden-import aea_ledger_ethereum_flashbots \
@@ -178,9 +178,9 @@ build-agent-runner:
 	--hidden-import openapi_core \
 	--hidden-import py_ecc \
 	--hidden-import pytz \
+	--hidden-import tweepy \
 	--onefile pyinstaller/memeooorr_bin.py \
 	--name agent_runner_bin
-
 	./dist/agent_runner_bin 1>/dev/null
 
 
@@ -207,6 +207,7 @@ build-agent-runner-mac:
 	--collect-all twikit \
 	--collect-all twitter_text \
 	--collect-all twitter_text_parser \
+	--collect-all tweepy \
 	--hidden-import aea_ledger_ethereum \
 	--hidden-import aea_ledger_cosmos \
 	--hidden-import aea_ledger_ethereum_flashbots \
@@ -214,6 +215,7 @@ build-agent-runner-mac:
 	--hidden-import openapi_core \
 	--hidden-import py_ecc \
 	--hidden-import pytz \
+	--hidden-import tweepy \
 	--onefile pyinstaller/memeooorr_bin.py \
 	--codesign-identity "${SIGN_ID}" \
 	--name agent_runner_bin
