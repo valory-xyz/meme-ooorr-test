@@ -161,7 +161,7 @@ poetry-install:
 
 ./agent:  poetry-install ./hash_id
 	@if [ ! -d "agent" ]; then \
-		poetry run autonomy fetch --remote `cat ./hash_id` --alias agent; \
+		poetry run autonomy -s fetch --remote `cat ./hash_id` --alias agent; \
 	fi \
 
 .PHONY: build-agent-runner
@@ -214,7 +214,7 @@ build-agent-runner-mac: poetry-install  agent
 	tar czf ./agent.tar.gz ./agent
 
 ./agent/ethereum_private_key.txt: ./agent
-	poetry run bash -c "cd ./agent; autonomy  generate-key ethereum; autonomy add-key ethereum ethereum_private_key.txt; autonomy issue-certificates;"
+	poetry run bash -c "cd ./agent; autonomy  -s generate-key ethereum; autonomy  -s add-key ethereum ethereum_private_key.txt; autonomy -s issue-certificates;"
 
 
 # Configuration
