@@ -116,6 +116,16 @@ class SynchronizedData(BaseSynchronizedData):
         return cast(str, self.db.get("persona", None))
 
     @property
+    def heart_cooldown_hours(self) -> Optional[int]:
+        """Get the heart cooldown hours."""
+        return cast(int, self.db.get("heart_cooldown_hours", None))
+
+    @property
+    def summon_cooldown_seconds(self) -> Optional[int]:
+        """Get the summon cooldown seconds."""
+        return cast(int, self.db.get("summon_cooldown_seconds", None))
+
+    @property
     def meme_coins(self) -> List[Dict]:
         """Get the meme_coins."""
         return cast(list, json.loads(cast(str, self.db.get("meme_coins", "[]"))))
@@ -199,6 +209,12 @@ class SynchronizedData(BaseSynchronizedData):
         """Get the check funds count."""
         return int(self.db.get("check_funds_count", 0))  # type: ignore
 
+    @property
+    def agent_details(self) -> Dict[str, Any]:
+        """Get the agent details."""
+        serialized_details = cast(str, self.db.get("agent_details", "{}"))
+        return json.loads(serialized_details)
+
 
 class EventRoundBase(CollectSameUntilThresholdRound):
     """EventRoundBase"""
@@ -236,7 +252,11 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
     payload_class = LoadDatabasePayload
     synchronized_data_class = SynchronizedData
     collection_key = get_name(SynchronizedData.participants_to_db)
-    selection_key = (get_name(SynchronizedData.persona),)
+    selection_key = (
+        get_name(SynchronizedData.persona),
+        get_name(SynchronizedData.heart_cooldown_hours),
+        get_name(SynchronizedData.summon_cooldown_seconds),
+    )
 
     def end_block(self) -> Optional[Tuple[BaseSynchronizedData, Event]]:
         """Process the end of the block."""
@@ -245,12 +265,21 @@ class LoadDatabaseRound(CollectSameUntilThresholdRound):
         # Event.DONE, Event.NO_MAJORITY, Event.ROUND_TIMEOUT
 
         if self.threshold_reached:
-            payload = dict(zip(self.selection_key, self.most_voted_payload_values))
+            payload = LoadDatabasePayload(
+                *(("dummy_sender",) + self.most_voted_payload_values)
+            )
 
             synchronized_data = self.synchronized_data.update(
                 synchronized_data_class=SynchronizedData,
                 **{
-                    get_name(SynchronizedData.persona): payload["persona"],
+                    get_name(SynchronizedData.persona): payload.persona,
+                    get_name(
+                        SynchronizedData.heart_cooldown_hours
+                    ): payload.heart_cooldown_hours,
+                    get_name(
+                        SynchronizedData.summon_cooldown_seconds
+                    ): payload.summon_cooldown_seconds,
+                    get_name(SynchronizedData.agent_details): payload.agent_details,
                 },
             )
 
@@ -896,7 +925,9 @@ class MemeooorrAbciApp(AbciApp[Event]):
         FinishedForMechResponseRound,
     }
     event_to_timeout: EventToTimeout = {Event.ROUND_TIMEOUT: 30}
-    cross_period_persisted_keys: FrozenSet[str] = frozenset(["persona"])
+    cross_period_persisted_keys: FrozenSet[str] = frozenset(
+        ["persona", "heart_cooldown_hours", "summon_cooldown_seconds"]
+    )
     db_pre_conditions: Dict[AppState, Set[str]] = {
         LoadDatabaseRound: set(),
         CheckStakingRound: set(),

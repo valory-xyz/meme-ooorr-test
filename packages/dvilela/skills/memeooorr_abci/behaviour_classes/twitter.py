@@ -155,6 +155,27 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             self.context.logger.info(
                 f"Successfully stored {action_description.lower()} action in AgentsFunDB. Attribute ID: {db_add_result.attribute_id}"
             )
+
+            action_data = {}
+            if tweepy_method_name == "like_tweet":
+                action_type = "like"
+                action_data["tweet_id"] = str(target_identifier)
+            elif tweepy_method_name == "retweet":
+                action_type = "retweet"
+                action_data["tweet_id"] = str(target_identifier)
+            elif tweepy_method_name == "follow_by_username":
+                action_type = "follow"
+                action_data["username"] = str(target_identifier)
+
+            # store the action in the kv store in the agent_actions key
+            yield from self._store_agent_action(
+                "tweet_action",
+                {
+                    "action_type": action_type,
+                    "action_data": action_data,
+                },
+            )
+
             return True  # Indicates overall success (Tweepy and DB)
 
         return False  # Should not be reached if response["success"] is true, but as a fallback
@@ -166,7 +187,7 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         action_text: str,
         original_tweet_id_for_reply: Optional[str] = None,
         quote_tweet_id: Optional[str] = None,
-        store_in_kv: bool = True,  # Default for KV store of main posts
+        media_type: Optional[str] = None,
     ) -> Generator[None, None, Optional[Union[Dict, bool]]]:
         """Helper to post new content (original tweet, reply, quote) to Twitter."""
         self.context.logger.info(
@@ -222,18 +243,40 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
                 f"Successfully stored TwitterPost action in AgentsFunDB. Attribute ID: {db_add_result.attribute_id}"
             )
 
-        if not is_reply_or_quote_action:  # Logic for main posts
-            latest_tweet_data_for_kv = {
-                "tweet_id": newly_posted_tweet_id,
-                "text": action_text,
-                "timestamp": self.get_sync_timestamp(),
-            }
-            if store_in_kv:
-                yield from self._write_tweet_to_kv_store(latest_tweet_data_for_kv)
-                self.context.logger.info(
-                    f"Wrote latest tweet to KV db for {log_message_prefix.lower()}"
-                )
-            return latest_tweet_data_for_kv
+        action_data = {}
+
+        # incase of quote or reply, we need to add the quote_url or reply_to_tweet_id to the action_data
+        if quote_tweet_id:
+            action_type = "quote"
+            action_data["quote_tweet_id"] = quote_tweet_id
+            action_data["tweet_id"] = newly_posted_tweet_id
+            action_data["text"] = tweet_payload.get("text", "")
+        elif original_tweet_id_for_reply:
+            action_type = "reply"
+            action_data["reply_to_tweet_id"] = str(original_tweet_id_for_reply)
+            action_data["tweet_id"] = newly_posted_tweet_id
+            action_data["text"] = tweet_payload.get("text", "")
+        elif media_type and tweet_payload.get("image_paths", None):
+            action_type = "tweet_with_media"
+            action_data["media_path"] = tweet_payload.get("image_paths", None)[0]
+            action_data["media_ipfs_hash"] = tweet_payload.get(
+                "image_ipfs_hashes", None
+            )[0]
+            action_data["media_type"] = media_type  # type: ignore
+            action_data["tweet_id"] = newly_posted_tweet_id
+            action_data["text"] = tweet_payload.get("text", "")
+        else:
+            action_type = "tweet"
+            action_data["tweet_id"] = newly_posted_tweet_id
+            action_data["text"] = tweet_payload.get("text", "")
+        # stroing the action in the kv store in the agent_actions key
+        yield from self._store_agent_action(
+            "tweet_action",
+            {
+                "action_type": action_type,
+                "action_data": action_data,
+            },
+        )
 
         return True  # For reply/quote, indicates success of Tweepy posting part
 
@@ -241,7 +284,8 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
         self,
         text: Union[str, List[str]],
         image_paths: Optional[List[str]] = None,
-        store: bool = True,
+        image_ipfs_hashes: Optional[List[str]] = None,
+        media_type: Optional[str] = None,
     ) -> Generator[None, None, Optional[Union[Dict, bool]]]:
         """Post a tweet, optionally with media."""
         text_to_post = text[0] if isinstance(text, list) else text
@@ -249,6 +293,7 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
 
         if image_paths:
             tweet_payload_for_api["image_paths"] = image_paths
+            tweet_payload_for_api["image_ipfs_hashes"] = image_ipfs_hashes
 
         return (
             yield from self._create_twitter_content(
@@ -257,7 +302,7 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
                 action_text=text_to_post,  # The text component for DB/KV
                 original_tweet_id_for_reply=None,
                 quote_tweet_id=None,
-                store_in_kv=store,
+                media_type=media_type,
             )
         )
 
@@ -293,7 +338,6 @@ class BaseTweetBehaviour(MemeooorrBaseBehaviour):  # pylint: disable=too-many-an
             action_text=text,
             original_tweet_id_for_reply=tweet_id if not quote else None,
             quote_tweet_id=id_of_tweet_being_quoted_for_db if quote else None,
-            store_in_kv=True,
         )
         return bool(result)
 
@@ -404,6 +448,9 @@ class CollectFeedbackBehaviour(
         """Get the responses to our agent's tweets from MirrorDB."""
 
         self.context.logger.info("Attempting to get feedback for agent's tweets.")
+
+        if not self.context.agents_fun_db.my_agent.posts:
+            return {"likes": 0, "retweets": 0, "replies": []}
 
         last_tweet = self.context.agents_fun_db.my_agent.posts[-1]
         if last_tweet is None:
@@ -712,7 +759,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         json_response = None
 
         # Try to get the previously stored prompt first
-        stored_prompt = yield from self._read_json_from_kv("last_prompt", None)
+        stored_prompt = yield from self._read_value_from_kv("last_prompt", None)
 
         # Check if we should use a stored prompt or generate a new one
         if stored_prompt and retry_count > 0:
@@ -887,7 +934,8 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             self.context.logger.info(
                 "It seems like the mech failed to deliver the response forcing agent to create a normal tweet"
             )
-            last_prompt = yield from self._read_json_from_kv("last_prompt", None)
+            last_prompt = yield from self._read_value_from_kv("last_prompt", None)
+
             ENFORCE_ACTION_COMMAND_FAILED_MECH_SUBPROMPT = (
                 ENFORCE_ACTION_COMMAND_FAILED_MECH.format(last_prompt=last_prompt)
             )
@@ -995,7 +1043,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             mech_response=subprompt_with_mech_response,
             tools=self.generate_mech_tool_info(),
             time=self.get_sync_time_str(),
-            extra_command="",
+            extra_command="IMPORTANT:use tweet_with_media action.",
             tweet_actions="",
             tool_actions="",
             twitter_actions=twitter_actions_str,
@@ -1249,7 +1297,12 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         ):
             return
 
-        yield from self._store_agent_action("tweet_action", interaction)
+        media_info = None
+        if action == "tweet_with_media":
+            media_info = yield from self._get_latest_media_info()
+            if media_info:
+                interaction["media_path"] = media_info.get("path")
+                interaction["media_type"] = media_info.get("type")
 
         # Add random delay to avoid rate limiting
         delay = secrets.randbelow(5)
@@ -1263,10 +1316,16 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             )
         elif action == "tweet_with_media":
             # Delegate to the new handler
-            success = yield from self._handle_media_tweet(text)
-            if not success:
-                self.context.logger.error("Failed to handle tweet_with_media action.")
-                # Potentially return or handle error differently if needed
+            if media_info:
+                success = yield from self._handle_media_tweet(text, media_info)
+                if not success:
+                    self.context.logger.error(
+                        "Failed to handle tweet_with_media action."
+                    )
+            else:
+                self.context.logger.error(
+                    "Could not handle tweet_with_media action because media_info is missing."
+                )
         else:
             yield from self._handle_tweet_interaction(
                 action,
@@ -1277,21 +1336,22 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
                 context.new_interacted_tweet_ids,
             )
 
-    def _handle_media_tweet(self, text: str) -> Generator[None, None, bool]:
+    def _handle_media_tweet(
+        self, text: str, media_info: Dict
+    ) -> Generator[None, None, bool]:
         """Handles the 'tweet_with_media' action, including fetching, uploading, posting, and clearing KV."""
-        # Read the combined media info from kv store
-        media_info = yield from self._get_latest_media_info()
-
         if not media_info:
-            # Error already logged by helper
+            self.context.logger.error(
+                "Media info is missing, cannot handle tweet with media."
+            )
             return False  # Indicate failure
 
         media_path = media_info.get("path")
         media_type = media_info.get("type")
-
-        if not media_path or not media_type:
+        media_ipfs_hash = media_info.get("ipfs_hash")
+        if not media_path or not media_type or not media_ipfs_hash:
             self.context.logger.error(
-                "Media info from KV store is missing 'path' or 'type'."
+                "Media info from KV store is missing 'path', 'type', or 'ipfs_hash'."
             )
             # Clear potentially incomplete info? Or leave it? Let's clear it for safety.
             yield from self._write_kv({"latest_media_info": ""})
@@ -1312,7 +1372,10 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
 
         # Use post_tweet with text and image_paths
         result = yield from self.post_tweet(
-            text=text, image_paths=[media_path], store=True
+            text=text,
+            image_paths=[media_path],
+            image_ipfs_hashes=[media_ipfs_hash],
+            media_type=media_type,
         )
 
         if result is not None:
@@ -1376,7 +1439,7 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
             self.context.logger.error("The tweet is too long.")
             return
 
-        yield from self.post_tweet(text=[text], store=True)
+        yield from self.post_tweet(text=[text])
 
     def _handle_tweet_interaction(  # pylint: disable=too-many-arguments
         self,
@@ -1469,13 +1532,16 @@ class EngageTwitterBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-an
         )  # Call renamed method
 
         if not active_agent_objects:
-            self.context.logger.info(
-                "No active memeooorr handles from agents_fun_db. Now trying subgraph."
-            )
+            # self.context.logger.info(
+            #     "No active memeooorr handles from agents_fun_db. Now trying subgraph."
+            # ) # noqa: E800
 
-            active_agent_objects = (
-                yield from self.get_memeooorr_handles_from_subgraph()
-            )  # This might need to change if it returns strings
+            # active_agent_objects = ( # noqa: E800
+            #     yield from self.get_memeooorr_handles_from_subgraph()
+            # )  # This might need to change if it returns strings
+            self.context.logger.warning(
+                "Disabled loading agents from subgraph for the case where AgentDB was not returning active handles"
+            )
 
         return active_agent_objects
 
@@ -1523,5 +1589,27 @@ class ActionTweetBehaviour(BaseTweetBehaviour):  # pylint: disable=too-many-ance
             self.context.logger.info("Post-action tweet is missing")
             return Event.MISSING_TWEET.value
         self.context.logger.info("Sending the action tweet...")
-        latest_tweet = yield from self.post_tweet(text=[pending_tweet], store=False)
+        latest_tweet = yield from self.post_tweet(text=[pending_tweet])
+
+        action_data = self.synchronized_data.token_action
+
+        if latest_tweet:
+            agent_actions = yield from self._read_json_from_kv("agent_actions", {})
+            # load list of tweet_actions from agent_actions
+            tweet_actions = agent_actions.get("tweet_action", [])
+            latest_tweet_action = tweet_actions[-1]
+            latest_tweet_id = latest_tweet_action["action_data"]["tweet_id"]
+            latest_action_type = latest_tweet_action.get("action_type")
+            if latest_action_type == "tweet":
+                action_data["tweet_id"] = latest_tweet_id
+            else:
+                self.context.logger.error(
+                    "Tweet action is not tweet in ActionTweetBehaviour , cannot store tweet_id in token_action"
+                )
+
+        yield from self._store_agent_action(
+            action_type="token_action",
+            action_data=action_data,
+        )
+
         return Event.DONE.value if latest_tweet else Event.ERROR.value

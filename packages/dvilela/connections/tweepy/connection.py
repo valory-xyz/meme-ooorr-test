@@ -113,7 +113,7 @@ class TweepyConnection(BaseSyncConnection):
         self.tweepy_access_token_secret: str = self.configuration.config.get(
             "tweepy_access_token_secret", ""
         )
-        self.tweepy_skip_auth: str = self.configuration.config.get(
+        self.tweepy_skip_auth: bool = self.configuration.config.get(
             "tweepy_skip_auth", False
         )
 
@@ -123,13 +123,26 @@ class TweepyConnection(BaseSyncConnection):
                 "Tweepy is disabled. Set `tweepy_skip_auth` to False in the configuration to enable it."
             )
         else:
-            self.twitter = Twitter(
+            credentials = [
                 self.tweepy_consumer_api_key,
                 self.tweepy_consumer_api_key_secret,
                 self.tweepy_access_token,
                 self.tweepy_access_token_secret,
                 self.tweepy_bearer_token,
-            )
+            ]
+            if not all(credentials):
+                self.twitter = None
+                self.logger.warning(
+                    "Tweepy credentials are not fully set in the configuration. Disabling Tweepy connection."
+                )
+            else:
+                self.twitter = Twitter(
+                    self.tweepy_consumer_api_key,
+                    self.tweepy_consumer_api_key_secret,
+                    self.tweepy_access_token,
+                    self.tweepy_access_token_secret,
+                    self.tweepy_bearer_token,
+                )
 
         self.dialogues = SrrDialogues(connection_id=PUBLIC_ID)
 
@@ -238,6 +251,9 @@ class TweepyConnection(BaseSyncConnection):
             return {
                 "error": "Tweepy is disabled. Set `tweepy_skip_auth` to False in the configuration to enable it."
             }
+
+        if self.twitter is None:
+            return {"error": "Tweepy client not initialized. Check credentials"}
 
         method = getattr(self, method_name)
 

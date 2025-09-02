@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeiaekcmielp6mb4qvmo2twwkpmoun36bqajrh7wnnkcpdnia45ycl4
 fingerprint_ignore_patterns: []
-agent: dvilela/memeooorr:0.1.0:bafybeibwt5kqnsetvo7wolsnon6lhelqoidfx24rvt6qy2omvyxf3eri3u
+agent: dvilela/memeooorr:0.1.0:bafybeihpkkh44zemqof3h5ccojimur36o4tn3umll3lue3st73hk3u2oqi
 number_of_agents: 1
 deployment:
   agent:
@@ -93,6 +93,7 @@ extra:
         olas_token_address_base: ${OLAS_TOKEN_ADDRESS_BASE:str:0x54330d28ca3357F294334BDC454a032e7f353416}
         olas_token_address_celo: ${OLAS_TOKEN_ADDRESS_CELO:str:0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51}
         persona: ${PERSONA:str:a cat lover that is crazy about all-things cats.}
+        store_path: ${STORE_PATH:str:/data}
         home_chain_id: ${HOME_CHAIN_ID:str:BASE}
         service_registry_address_base: ${SERVICE_REGISTRY_ADDRESS_BASE:str:0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE}
         service_registry_address_celo: ${SERVICE_REGISTRY_ADDRESS_CELO:str:0xE3607b00E75f6405248323A9417ff6b39B244b50}
@@ -117,6 +118,7 @@ extra:
         tools_for_mech: ${dict:{}}
         use_acn_for_delivers: false
         summon_cooldown_seconds: ${SUMMON_COOLDOWN_SECONDS:int:2592000}
+        heart_cooldown_hours: ${HEART_COOLDOWN_HOURS:int:48}
 ---
 public_id: valory/ledger:0.19.0
 type: connection

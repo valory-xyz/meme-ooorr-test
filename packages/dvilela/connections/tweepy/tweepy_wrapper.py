@@ -215,7 +215,11 @@ class Twitter:
         """Get my user."""
         try:
             result = self.client.get_me()
-            return {"user_id": result.data.id, "username": result.data.username}
+            return {
+                "user_id": result.data.id,
+                "username": result.data.username,
+                "display_name": result.data.name,
+            }
         except tweepy.errors.TweepyException as e:
             self.logger.error(
                 f"TweepyException in method get_me: {type(e).__name__} - {e}"

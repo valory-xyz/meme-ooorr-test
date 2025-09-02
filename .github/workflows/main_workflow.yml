@@ -66,7 +66,7 @@ jobs:
       - name: Check dependencies
         run: tox -e check-dependencies
       - name: Check doc links
-        run: tomte check-doc-links --url-skips https://soft-sly-slug.base-mainnet.quiknode.pro/f13d998d9d68685faeee903499e15b4b386a8b1c/ --url-skips https://developer.x.com/en/portal/dashboard  --url-skips https://tenderly.co/ --url-skips https://foundry.paradigm.xyz
+        run: tomte check-doc-links --url-skips https://soft-sly-slug.base-mainnet.quiknode.pro/f13d998d9d68685faeee903499e15b4b386a8b1c/ --url-skips https://developer.x.com/en/portal/dashboard  --url-skips https://tenderly.co/ --url-skips https://foundry.paradigm.xyz --url-skips https://github.com/olas-operate-app
       - name: Check doc IPFS hashes
         run: tox -e check-doc-hashes
 

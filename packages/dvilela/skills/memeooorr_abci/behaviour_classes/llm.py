@@ -209,7 +209,7 @@ class ActionDecisionBehaviour(
         # Get last summon timestamp and current persona
         current_persona = yield from self.get_persona()
         current_timestamp = self.get_sync_timestamp()
-        summon_cooldown_seconds = self.params.summon_cooldown_seconds
+        summon_cooldown_seconds = yield from self.get_summon_cooldown_seconds()
 
         # Read last summon from the db
         db_data = yield from self._read_kv(keys=("last_summon_timestamp",))
@@ -301,12 +301,19 @@ class ActionDecisionBehaviour(
             )
             tweet = new_tweet or tweet
 
-            token_name = action.get("token_name", None)
-            token_ticker = action.get("token_ticker", None)
-            token_supply = action.get("token_supply", None)
             amount = int(action.get("amount", 0))
             token_nonce = action.get("token_nonce", None)
-            token_address = action.get("token_address", None)
+
+            if isinstance(token_nonce, str) and token_nonce.isdigit():
+                token_nonce = int(token_nonce)
+
+            # we need to get the token_name, token_ticker, token_supply, token_address from the meme_coins list by matching the token_nonce from the action
+            (
+                token_name,
+                token_ticker,
+                token_supply,
+                token_address,
+            ) = self._get_token_details(action_name, action, token_nonce)
 
             if isinstance(token_nonce, str) and token_nonce.isdigit():
                 token_nonce = int(token_nonce)
@@ -378,18 +385,48 @@ class ActionDecisionBehaviour(
             if action_name == "summon":
                 chain_id = self.get_chain_id()
 
-                amount = max(
-                    amount,
-                    int(getattr(self.params, f"min_summon_amount_{chain_id}") * 1e18),
-                )
-                amount = min(
-                    amount,
-                    int(getattr(self.params, f"max_summon_amount_{chain_id}") * 1e18),
-                )
+                if is_summon_available:
+                    amount = max(
+                        amount,
+                        int(
+                            getattr(self.params, f"min_summon_amount_{chain_id}") * 1e18
+                        ),
+                    )
+                    amount = min(
+                        amount,
+                        int(
+                            getattr(self.params, f"max_summon_amount_{chain_id}") * 1e18
+                        ),
+                    )
 
-                if token_name.lower() in ["olas"] or token_ticker.lower() in ["olas"]:
-                    raise ValueError(
-                        f"Cannot summon token with name/ticker {token_name}/{token_ticker}. Invalid name or ticker."
+                    if (
+                        token_name
+                        and token_ticker
+                        and (
+                            token_name.lower() in ["olas"]
+                            or token_ticker.lower() in ["olas"]
+                        )
+                    ):
+                        raise ValueError(
+                            f"Cannot summon token with name/ticker {token_name}/{token_ticker}. Invalid name or ticker."
+                        )
+                else:
+                    self.context.logger.info(
+                        f"Summon action is NOT available because time since last summon ({seconds_since_last_summon}) is < summon cooldown ({summon_cooldown_seconds}) but the llm still wants to summon setting it to none"
+                    )
+
+                    return (
+                        Event.WAIT.value,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        current_timestamp,
                     )
 
             if action_name == "heart":
@@ -402,6 +439,11 @@ class ActionDecisionBehaviour(
                 amount = min(
                     amount,
                     int(getattr(self.params, f"max_heart_amount_{chain_id}") * 1e18),
+                )
+
+                # stroing this in KV as last heart timestamp
+                yield from self._write_kv(
+                    {"last_heart_timestamp": str(self.get_sync_timestamp())}
                 )
 
             self.context.logger.info("The LLM returned a valid response")
@@ -437,3 +479,28 @@ class ActionDecisionBehaviour(
                 None,
                 current_timestamp,
             )
+
+    def _get_token_details(
+        self,
+        action_name: str,
+        action: Dict[str, Any],
+        token_nonce: Optional[int],
+    ) -> Tuple[Optional[str], Optional[str], Optional[Any], Optional[str]]:
+        """Get token details based on the action."""
+        token_name = None
+        token_ticker = None
+        token_supply = None
+        token_address = None
+
+        if action_name == "summon":
+            token_name = action.get("token_name")
+            token_ticker = action.get("token_ticker")
+            token_supply = action.get("token_supply")
+        elif token_nonce is not None:
+            for meme_coin in self.synchronized_data.meme_coins:
+                if meme_coin["token_nonce"] == token_nonce:
+                    token_name = meme_coin.get("token_name")
+                    token_ticker = meme_coin.get("token_ticker")
+                    token_address = meme_coin.get("token_address")
+                    break
+        return token_name, token_ticker, token_supply, token_address

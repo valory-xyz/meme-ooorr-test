@@ -19,11 +19,18 @@
 
 """This module contains classes to interact with AgentDB."""
 
-from packages.valory.skills.agent_db_abci.agent_db_models import AgentType, AgentInstance, AttributeDefinition, AttributeInstance
-from datetime import datetime, timezone
 import json
-from typing import Any, Dict, List, Optional, Callable, cast
+from datetime import datetime, timezone
+from typing import Any, Callable, Dict, List, Optional, cast
+
 from aea.skills.base import Model
+
+from packages.valory.skills.agent_db_abci.agent_db_models import (
+    AgentInstance,
+    AgentType,
+    AttributeDefinition,
+    AttributeInstance,
+)
 
 
 # Docs at:
@@ -45,32 +52,103 @@ class AgentDBClient(Model):
         self.signing_func: Callable = None
         self.http_request_func: Callable = None
         self.logger: Callable = None
+        self.agent_type_name: str = None
+        self.agent_name_template: str = None
 
-    def initialize(self, address: str, http_request_func: Callable, signing_func: Callable, logger: Callable):
+    def initialize(
+        self,
+        address: str,
+        http_request_func: Callable,
+        signing_func: Callable,
+        logger: Callable,
+        agent_type_name: str = None,
+        agent_name_template: str = None,
+    ):
         """Inject external functions"""
         self.address = address
         self.http_request_func = http_request_func
         self.signing_func = signing_func
         self.logger = logger
+        self.agent_type_name = agent_type_name
+        self.agent_name_template = agent_name_template
+
+    def _ensure_agent_instance(self):
+        """Fetch or create the agent instance if it doesn't exist."""
+        if self.agent is not None:
+            return
+
+        self.agent = yield from self.get_agent_instance_by_address(self.address)
+        if self.agent:
+            self.agent_type = yield from self.get_agent_type_by_type_id(
+                self.agent.type_id
+            )
+        elif self.agent_type_name and self.agent_name_template:
+            self.logger.info(
+                f"Agent with address {self.address} not found. Registering..."
+            )
+            agent_name = self.agent_name_template.format(address=self.address)
+            agent_type = yield from self.get_agent_type_by_type_name(
+                self.agent_type_name
+            )
+            self.agent = yield from self.create_agent_instance(
+                agent_name=agent_name,
+                agent_type=agent_type,
+                eth_address=self.address,
+            )
+            self.agent_type = agent_type
+
+    def _ensure_agent_type_definition(
+        self, description: Optional[str] = "Placeholder agent description"
+    ):
+        """Fetch or create the agent type definition if it doesn't exist."""
+        self.agent_type = yield from self.get_agent_type_by_type_name(
+            self.agent_type_name
+        )
+
+        if not self.agent_type:
+            self.agent_type = yield from self.create_agent_type(
+                self.agent_type_name, description
+            )
+
+    def _ensure_agent_type_attribute_definition(
+        self, attribute_definitions: List[AttributeDefinition]
+    ):
+        """Fetch or create the agent type attribute definition if it doesn't exist."""
+        existing_attribute_definitions = (
+            yield from self.get_attribute_definitions_by_agent_type(self.agent_type)
+        )
+        for type_attribute_definition in attribute_definitions:
+            if not any(
+                ad.attr_name == type_attribute_definition.attr_name
+                for ad in existing_attribute_definitions
+            ):
+                yield from self.create_attribute_definition(
+                    agent_type=self.agent_type,
+                    attr_name=type_attribute_definition.attr_name,
+                    data_type=type_attribute_definition.data_type,
+                    default_value=type_attribute_definition.default_value,
+                    is_required=type_attribute_definition.is_required,
+                )
 
     def _sign_request(self, endpoint):
         """Generate authentication"""
 
         if self.signing_func is None:
-            raise ValueError("Signing function not set. Use set_external_funcs to set it.")
+            raise ValueError(
+                "Signing function not set. Use set_external_funcs to set it."
+            )
+
+        yield from self._ensure_agent_instance()
 
         if self.agent is None:
-            self.agent = yield from self.get_agent_instance_by_address(self.address)
-            self.agent_type = (
-                self.get_agent_type_by_type_id(self.agent.type_id) if self.agent else None
+            raise ValueError(
+                f"failed to get agent with address {self.address} or register it"
             )
 
         timestamp = int(datetime.now(timezone.utc).timestamp())
         message_to_sign = f"timestamp:{timestamp},endpoint:{endpoint}"
 
-        signature_hex = yield from self.signing_func(
-            message_to_sign.encode("utf-8")
-        )
+        signature_hex = yield from self.signing_func(message_to_sign.encode("utf-8"))
 
         auth_data = {
             "agent_id": self.agent.agent_id,

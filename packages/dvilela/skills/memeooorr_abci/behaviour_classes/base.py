@@ -24,6 +24,7 @@ import re
 from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, cast
 
 from aea.protocols.base import Message
@@ -62,6 +63,8 @@ MEMEOOORR_DESCRIPTION_PATTERN = r".*Memeooorr @(\w+)$"
 IPFS_ENDPOINT = "https://gateway.autonolas.tech/ipfs/{ipfs_hash}"
 MAX_TWEET_CHARS = 280
 AGENT_TYPE_NAME = "memeooorr"
+LIST_COUNT_TO_KEEP = 20
+HOUR_TO_SECONDS = 3600
 
 
 TOKENS_QUERY = """
@@ -213,11 +216,20 @@ class MemeooorrBaseBehaviour(
             error_str = actual_tweepy_result["error"]
             self.context.logger.error(f"Error from Tweepy connection: {error_str}")
 
-            # Check for indicators of a Forbidden error in the error string
+            # Check for indicators of different error types
+            needs_update = False
             if "Forbidden" in error_str or "403" in error_str:
-                self.context.logger.warning(
-                    f"A Tweepy Forbidden error occurred (detected by string content): {error_str}"
+                self.context.logger.error(
+                    f"A Tweepy Forbidden error occurred: {error_str}"
                 )
+                needs_update = True
+            elif "credentials" in error_str.lower():
+                self.context.logger.error(
+                    f"A Tweepy error occurred due to incomplete credentials: {error_str}"
+                )
+                needs_update = True
+
+            if needs_update:
                 self.context.state.env_var_status["needs_update"] = True
                 self.context.state.env_var_status["env_vars"][
                     "TWEEPY_CONSUMER_API_KEY"
@@ -231,7 +243,6 @@ class MemeooorrBaseBehaviour(
                 self.context.state.env_var_status["env_vars"][
                     "TWEEPY_ACCESS_TOKEN_SECRET"
                 ] = error_str
-
                 self.context.state.env_var_status["env_vars"][
                     "TWEEPY_BEARER_TOKEN"
                 ] = error_str
@@ -368,50 +379,86 @@ class MemeooorrBaseBehaviour(
         """Get the synchronized time from Tendermint's last block."""
         return self.get_sync_datetime().strftime("%Y-%m-%d %H:%M:%S")
 
-    def get_persona(self) -> Generator[None, None, str]:
-        """Get the agent persona"""
+    def _get_configurable_param(
+        self,
+        param_name: str,
+        initial_param_name: str,
+        param_type: type = str,
+    ) -> Generator[None, None, Any]:
+        """
+        Generic helper to get a configurable parameter from synchronized data, DB, or config.
 
-        # If the persona is already in the synchronized data, return it
-        if self.synchronized_data.persona:
-            return self.synchronized_data.persona
+        :param param_name: The name of the parameter in the DB.
+        :param initial_param_name: The name of the initial parameter in the DB.
+        :param type: The type to cast the parameter value to.
+        :return: The resolved parameter value.
+        """
 
-        # If we reach this point, the agent has just started
-        persona_config = self.params.persona
+        # Never read synchronized data, always read from db
+        config_value = getattr(self.params, param_name)
 
-        # Try getting the persona from the db
-        db_data = yield from self.read_kv(keys=("persona", "initial_persona"))
-
+        # Try getting from DB
+        db_data = yield from self.read_kv(keys=(param_name, initial_param_name))
         if not db_data:
             self.context.logger.error(
-                "Error while loading the database. Falling back to the config."
+                f"Error while loading the database for {param_name}. Falling back to the config."
             )
-            return persona_config
+            return param_type(config_value)
 
-        # Load values from the config and database
-        initial_persona_db = db_data.get("initial_persona", None)
-        persona_db = db_data.get("persona", None)
+        initial_db = db_data.get(initial_param_name, None)
+        param_db = db_data.get(param_name, None)
 
-        # If the initial persona is not in the db, we need to store it
-        if initial_persona_db is None:
-            yield from self.write_kv({"initial_persona": persona_config})
-            initial_persona_db = persona_config
+        # If the initial value is not in the db, store it
+        if initial_db is None:
+            yield from self.write_kv({initial_param_name: config_value})
+            initial_db = config_value
 
-        # If the persona is not in the db, this is the first run
-        if persona_db is None:
-            yield from self.write_kv({"persona": persona_config})
-            persona_db = persona_config
+        # If the param is not in the db, store it
+        if param_db is None:
+            yield from self.write_kv({param_name: config_value})
+            param_db = config_value
 
-        # If the configured persona does not match the initial persona in the db,
+        # If the configured value does not match the initial value in the db,
         # the user has reconfigured it and we need to update it:
-        if persona_config != initial_persona_db:
+        if param_type(config_value) != param_type(initial_db):
             yield from self.write_kv(
-                {"persona": persona_config, "initial_persona": persona_config}
+                {param_name: config_value, initial_param_name: config_value}
             )
-            initial_persona_db = persona_config
-            persona_db = persona_config
+            initial_db = config_value
+            param_db = config_value
 
-        # At this point, the db in the persona is the correct one
-        return persona_db
+        # At this point, the param in the db is the correct one
+        return param_type(param_db)
+
+    def get_persona(self) -> Generator[None, None, str]:
+        """Get the agent persona"""
+        return (
+            yield from self._get_configurable_param(
+                param_name="persona",
+                initial_param_name="initial_persona",
+                param_type=str,
+            )
+        )
+
+    def get_heart_cooldown_hours(self) -> Generator[None, None, int]:
+        """Get the cooldown hours for hearting"""
+        return (
+            yield from self._get_configurable_param(
+                param_name="heart_cooldown_hours",
+                initial_param_name="initial_heart_cooldown_hours",
+                param_type=int,
+            )
+        )
+
+    def get_summon_cooldown_seconds(self) -> Generator[None, None, int]:
+        """Get the cooldown seconds for summoning"""
+        return (
+            yield from self._get_configurable_param(
+                param_name="summon_cooldown_seconds",
+                initial_param_name="initial_summon_cooldown_seconds",
+                param_type=int,
+            )
+        )
 
     def get_native_balance(self) -> Generator[None, None, dict]:
         """Get the native balance"""
@@ -497,7 +544,21 @@ class MemeooorrBaseBehaviour(
         available_actions: List[str] = []
 
         # Heart
-        if not is_unleashed and meme_data.get("token_nonce", None) != 1:
+        last_heart_timestamp = yield from self._read_json_from_kv(
+            key="last_heart_timestamp", default_value=0
+        )
+        time_since_last_heart = now - datetime.fromtimestamp(
+            float(last_heart_timestamp)
+        )
+
+        heart_cooldown_hours = yield from self.get_heart_cooldown_hours()
+
+        if (
+            not is_unleashed
+            and meme_data.get("token_nonce", None) != 1
+            and time_since_last_heart.total_seconds()
+            > (heart_cooldown_hours * HOUR_TO_SECONDS)
+        ):
             available_actions.append("heart")
 
         # Unleash
@@ -957,6 +1018,7 @@ class MemeooorrBaseBehaviour(
             return
         self.context.state.twitter_username = account_details.get("username")
         self.context.state.twitter_id = account_details.get("user_id")
+        self.context.state.twitter_display_name = account_details.get("display_name")
 
         self.context.agents_fun_db.my_agent.twitter_username = (
             self.context.state.twitter_username
@@ -993,6 +1055,9 @@ class MemeooorrBaseBehaviour(
             )
             action_list = []
 
+        if isinstance(action_data, dict):
+            action_data["timestamp"] = self.get_sync_timestamp()
+
         action_list.append(action_data)
         current_agent_actions[action_type] = action_list[-10:]
 
@@ -1023,7 +1088,7 @@ class MemeooorrBaseBehaviour(
     def _read_json_from_kv(
         self, key: str, default_value: Any
     ) -> Generator[None, None, Any]:
-        """Helper to get and parse stored KV data."""
+        """Helper to get and parse stored JSON KV data."""
         data = yield from self._read_kv(keys=(key,))
         if not data or not data.get(key):
             self.context.logger.info(f"No {key} found in KV store, returning default.")
@@ -1035,3 +1100,53 @@ class MemeooorrBaseBehaviour(
                 f"Could not decode JSON for key {key}, returning default."
             )
             return default_value
+
+    def _read_value_from_kv(
+        self, key: str, default_value: Any
+    ) -> Generator[None, None, Any]:
+        """Helper to get and parse stored KV data."""
+        data = yield from self._read_kv(keys=(key,))
+        if not data or not data.get(key):
+            self.context.logger.info(f"No {key} found in KV store, returning default.")
+            return default_value
+
+        return data[key]
+
+    def _store_media_info_list(self, media_info: Dict) -> Generator[None, None, None]:
+        """Store media info in the key-value store"""
+        media_store_list = yield from self._read_media_info_list()
+        media_store_list.append(media_info)
+
+        # Enforce retention policy: keep only the latest 20 media files
+        if len(media_store_list) > LIST_COUNT_TO_KEEP:
+            num_to_remove = len(media_store_list) - LIST_COUNT_TO_KEEP
+            old_media_entries = media_store_list[:num_to_remove]
+
+            for entry in old_media_entries:
+                file_path = entry.get("path")
+                self._cleanup_temp_file(file_path, "old media file")
+
+            media_store_list = media_store_list[num_to_remove:]
+
+        yield from self._write_kv({"media-store-list": json.dumps(media_store_list)})
+
+    def _read_media_info_list(self) -> Generator[None, None, List[Dict]]:
+        """Read media info from the key-value store"""
+        raw_list = yield from self._read_json_from_kv("media-store-list", [])
+
+        if not isinstance(raw_list, list):
+            self.context.logger.error(
+                f"Expected media-store-list to be a list, but found {type(raw_list)}. Returning empty list."
+            )
+            return []
+
+        return raw_list
+
+    def _cleanup_temp_file(self, file_path: Optional[str], reason: str) -> None:
+        """Attempt to remove a temporary file and log the outcome."""
+        if file_path:
+            path = Path(file_path)
+            path.unlink()
+            self.context.logger.info(f"Removed temporary file ({reason}): {file_path}")
+        else:
+            self.context.logger.warning(f"No file to remove ({reason})")

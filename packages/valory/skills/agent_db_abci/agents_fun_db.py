@@ -19,21 +19,56 @@
 
 """This module contains classes to interact with Agents.Fun agent data on AgentDB."""
 
-from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta, timezone
-from packages.valory.skills.agent_db_abci.agent_db_client import AgentDBClient, AgentInstance
+from typing import Any, Dict, List
 
+from aea.skills.base import Model
+
+from packages.valory.skills.agent_db_abci.agent_db_client import (
+    AgentDBClient,
+    AgentInstance,
+)
+from packages.valory.skills.agent_db_abci.agent_db_models import AttributeDefinition
 from packages.valory.skills.agent_db_abci.twitter_models import (
     TwitterAction,
-    TwitterPost,
-    TwitterRewtweet,
     TwitterFollow,
     TwitterLike,
+    TwitterPost,
+    TwitterRewtweet,
 )
-from aea.skills.base import Model
 
 
 MEMEOOORR = "memeooorr"
+AGENT_TYPE_DESCRIPTION = "Agent type for Memeooorr skill"
+
+
+# Required attribute definitions for the Memeooorr agent type in AgentDB
+REQUIRED_AGENT_TYPE_ATTRIBUTE_DEFINITIONS = [
+    AttributeDefinition(
+        attr_def_id=0,  # Placeholder value
+        type_id=0,  # Placeholder value
+        attr_name="twitter_username",
+        data_type="string",
+        is_required=True,
+        default_value="",
+    ),
+    AttributeDefinition(
+        attr_def_id=0,  # Placeholder value
+        type_id=0,  # Placeholder value
+        attr_name="twitter_user_id",
+        data_type="string",
+        is_required=True,
+        default_value="",
+    ),
+    AttributeDefinition(
+        attr_def_id=0,  # Placeholder value
+        type_id=0,  # Placeholder value
+        attr_name="twitter_interactions",
+        data_type="json",
+        is_required=False,
+        default_value="{}",
+    ),
+]
 
 
 class AgentsFunAgent:
@@ -176,10 +211,26 @@ class AgentsFunDatabase(Model):
         self.client = client
         self.logger = self.client.logger
 
+        # Set registration details on the client to register new agents
+        self.client.agent_type_name = MEMEOOORR
+        self.client.agent_name_template = "memeooorr-agent-{address}"
+
     def load(self):
         """Load data"""
+        yield from self.client._ensure_agent_type_definition(AGENT_TYPE_DESCRIPTION)
+        yield from self.client._ensure_agent_type_attribute_definition(
+            REQUIRED_AGENT_TYPE_ATTRIBUTE_DEFINITIONS
+        )
+
+        yield from self.client._ensure_agent_instance()
         if self.agent_type is None:
-            self.agent_type = yield from self.client.get_agent_type_by_type_name(MEMEOOORR)
+            self.agent_type = yield from self.client.get_agent_type_by_type_name(
+                MEMEOOORR
+            )
+
+        if not self.agent_type:
+            self.logger.error(f"Could not get agent type {MEMEOOORR}")
+            return
 
         agent_instances = yield from self.client.get_agent_instances_by_type_id(
             self.agent_type.type_id
@@ -189,6 +240,10 @@ class AgentsFunDatabase(Model):
             yield from self.agents[-1].load()
             if self.agents[-1].agent_instance.eth_address == self.client.address:
                 self.my_agent = self.agents[-1]
+
+        if not self.my_agent and self.client.agent:
+            self.my_agent = AgentsFunAgent(self.client, self.client.agent)
+            self.agents.append(self.my_agent)
 
     def get_tweet_likes_number(self, tweet_id) -> int:
         """Get all tweet likes"""

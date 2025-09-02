@@ -23,7 +23,7 @@ skills:
 - valory/reset_pause_abci:0.1.0:bafybeicskv7u3mtfhi7nnoyw3bppwjof63izs4jgqdddtxicoea26t2n7i
 - valory/transaction_settlement_abci:0.1.0:bafybeid4alawv3oz4gdyom5uevrgzfsahbwabi37r7gomsetwqiq66g6cm
 - valory/termination_abci:0.1.0:bafybeianygjbwmt4xrq77pfl3yzcokbjfzxmuru6j2k7a3boqc2qfb7shi
-- dvilela/memeooorr_abci:0.1.0:bafybeiclkfjfkvzceojcgyzezhbi6qaao6qtnzsayscxv4xwmnsdtzggga
+- dvilela/memeooorr_abci:0.1.0:bafybeihd3cureko4mdynbwdpafkdisqftxtw2itzyyidzsf4pn2z33huaa
 - valory/mech_interact_abci:0.1.0:bafybeibhigcn46vxrqwcmygin4v442qknyklmuaufyre2npca26sbmkdvu
 behaviours:
   main:
@@ -151,6 +151,7 @@ models:
       olas_token_address_base: '0x54330d28ca3357F294334BDC454a032e7f353416'
       olas_token_address_celo: '0xaCFfAe8e57Ec6E394Eb1b41939A8CF7892DbDc51'
       persona: a cat lover that is crazy about all-things cats.
+      store_path: /data
       home_chain_id: BASE
       service_registry_address_base: '0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE'
       service_registry_address_celo: '0xE3607b00E75f6405248323A9417ff6b39B244b50'
@@ -181,6 +182,7 @@ models:
         response_timeout: 300
       use_acn_for_delivers: false
       summon_cooldown_seconds: 2592000
+      heart_cooldown_hours: 48
       alternative_model_for_tweets:
         use: false
         url: https://api.fireworks.ai/inference/v1/chat/completions

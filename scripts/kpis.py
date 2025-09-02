@@ -44,10 +44,10 @@ from scripts.test_twikit import (
 
 dotenv.load_dotenv(override=True)
 
-BASESCAN_API_BASE = "https://api.basescan.org/api"
+BASESCAN_API_BASE = "https://api.etherscan.io/v2/api?chainid=8453"
 BASE_BLOCKS_PER_SECOND = 2
 
-CELOSCAN_API_BASE = "https://api.celoscan.io/api"
+CELOSCAN_API_BASE = "https://api.etherscan.io/v2/api?chainid=44787"
 CELO_BLOCKS_PER_SECOND = 1
 
 BLOCK_MARGIN = 2
@@ -59,14 +59,14 @@ DAA_DB_PATH = "daa_base.json"
 CHAIN_CONFIGS = {
     "BASE": {
         "API_BASE": BASESCAN_API_BASE,
-        "API_KEY": os.getenv("BASESCAN_API_KEY"),
+        "API_KEY": os.getenv("ETHERSCAN_API_KEY"),
         "BLOCKS_PER_DAY": 24 * 60 * 60 / BASE_BLOCKS_PER_SECOND,
         "WEB3": Web3(Web3.HTTPProvider(os.getenv("BASE_LEDGER_RPC"))),
         "SERVICE_REGISTRY_ADDRES": "0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE",
     },
     "CELO": {
         "API_BASE": CELOSCAN_API_BASE,
-        "API_KEY": os.getenv("CELOSCAN_API_KEY"),
+        "API_KEY": os.getenv("ETHERSCAN_API_KEY"),
         "BLOCKS_PER_DAY": 24 * 60 * 60 / CELO_BLOCKS_PER_SECOND,
         "WEB3": Web3(Web3.HTTPProvider(os.getenv("CELO_LEDGER_RPC"))),
         "SERVICE_REGISTRY_ADDRES": "0xE3607b00E75f6405248323A9417ff6b39B244b50",
@@ -427,7 +427,7 @@ def calculate_engagement_rate_avg():  # pylint: disable=too-many-locals
         a.twitter_handle
         for a in list(
             filter(
-                lambda a: was_service_active(a.service_id, today),
+                lambda a: is_service_active(a.service_id),
                 list(daa_db.agents.values()),
             )
         )
@@ -445,9 +445,12 @@ def calculate_engagement_rate_avg():  # pylint: disable=too-many-locals
             )
         )
         agent_to_tweets[agent_handle] = tweets
-        print(
-            f"Got {len(tweets)} tweets for agent {agent_handle} covering from {tweets[-1].created_at} to {tweets[0].created_at}"
-        )
+        if tweets:
+            print(
+                f"Got {len(tweets)} tweets for agent {agent_handle} covering from {tweets[-1].created_at} to {tweets[0].created_at}"
+            )
+        else:
+            print(f"No tweets found for agent {agent_handle}")
 
     # Calculate engagement on a per-day basis
     service_id_to_handle = get_memeooorrs_from_subgraph()
@@ -492,7 +495,7 @@ def calculate_engagement_rate_avg():  # pylint: disable=too-many-locals
 
 
 if __name__ == "__main__":
-    # calculate_daas(CHAIN_CONFIGS["BASE"])
+    calculate_daas(CHAIN_CONFIGS["BASE"])
     # calculate_daas(CHAIN_CONFIGS["CELO"])
-    # calculate_follower_avg()
+    calculate_follower_avg()
     calculate_engagement_rate_avg()

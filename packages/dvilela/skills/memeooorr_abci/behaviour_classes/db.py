@@ -19,9 +19,11 @@
 
 """This package contains round behaviours of MemeooorrAbciApp."""
 
-from typing import Generator, Type
+import json
+from typing import Generator, Tuple, Type
 
 from packages.dvilela.skills.memeooorr_abci.behaviour_classes.base import (
+    HOUR_TO_SECONDS,
     MemeooorrBaseBehaviour,
 )
 from packages.dvilela.skills.memeooorr_abci.rounds import (
@@ -42,13 +44,23 @@ class LoadDatabaseBehaviour(
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            persona = yield from self.load_db()
+            (
+                persona,
+                hearting_cooldown_hours,
+                summon_cooldown_seconds,
+            ) = yield from self.load_db()
             yield from self.populate_keys_in_kv()
             yield from self.init_own_twitter_details()
+            agent_details = self.gather_agent_details(persona)
+
+            yield from self._write_kv({"agent_details": agent_details})
 
             payload = LoadDatabasePayload(
                 sender=self.context.agent_address,
                 persona=persona,
+                agent_details=agent_details,
+                heart_cooldown_hours=hearting_cooldown_hours,
+                summon_cooldown_seconds=summon_cooldown_seconds,
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -57,12 +69,16 @@ class LoadDatabaseBehaviour(
 
         self.set_done()
 
-    def load_db(self) -> Generator[None, None, str]:
+    def load_db(self) -> Generator[None, None, Tuple[str, int, int]]:
         """Load the data"""
         persona = yield from self.get_persona()
-        self.context.logger.info(f"Loaded from the db\npersona={persona}")
+        heart_cooldown_hours = yield from self.get_heart_cooldown_hours()
+        summon_cooldown_seconds = yield from self.get_summon_cooldown_seconds()
+        self.context.logger.info(
+            f"Loaded from the db\npersona={persona}\nheart_cooldown_hours={heart_cooldown_hours}\nsummon_cooldown_seconds={summon_cooldown_seconds}"
+        )
         yield from self.context.agents_fun_db.load()
-        return persona
+        return persona, heart_cooldown_hours, summon_cooldown_seconds
 
     def populate_keys_in_kv(self) -> Generator[None, None, None]:
         """This function is used to populate the keys in the KV store which are required in EngageTwitterRound."""
@@ -77,3 +93,27 @@ class LoadDatabaseBehaviour(
             yield from self._write_kv(
                 {"last_summon_timestamp": str(self.get_sync_timestamp())}
             )
+
+        # Initialize last heart if not present then set it to 48 hours ago to make sure the agent can heart first time it is deployed
+        db_data = yield from self._read_kv(keys=("last_heart_timestamp",))
+        if db_data is None or db_data.get("last_heart_timestamp", None) is None:
+            yield from self._write_kv(
+                {
+                    "last_heart_timestamp": str(
+                        self.get_sync_timestamp()
+                        - self.params.heart_cooldown_hours * HOUR_TO_SECONDS
+                    )
+                }
+            )
+
+    def gather_agent_details(self, persona: str) -> str:
+        """Write the agent details to the db."""
+        agent_details = {
+            "twitter_username": self.context.agents_fun_db.my_agent.twitter_username,
+            "twitter_user_id": self.context.agents_fun_db.my_agent.twitter_user_id,
+            "safe_address": self.synchronized_data.safe_contract_address,
+            "persona": persona,
+            "twitter_display_name": self.context.state.twitter_display_name,
+        }
+        agent_details_str = json.dumps(agent_details)
+        return agent_details_str
